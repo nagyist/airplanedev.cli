@@ -1,9 +1,9 @@
-module github.com/airplanedev/airplanelib
+module github.com/airplanedev/lib
 
 go 1.17
 
 require (
-	github.com/airplanedev/ojson v0.0.0-20211027092300-8b9ed734a1df
+	github.com/airplanedev/ojson v0.0.1
 	github.com/airplanedev/path v0.0.1
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
