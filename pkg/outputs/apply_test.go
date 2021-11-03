@@ -122,6 +122,20 @@ func TestApplySet(tt *testing.T) {
 			`{"a":[{"b":{"c":{}}}]}`,
 			`{"a":[{"b":{"c":{"\"":"testing"}}}]}`,
 		},
+		{
+			"create nested objects",
+			`a.b`,
+			`"c"`,
+			`null`,
+			`{"a":{"b":"c"}}`,
+		},
+		{
+			"create nested objects including array",
+			`a[0].b`,
+			`"c"`,
+			`{"a":[null]}`,
+			`{"a":[{"b":"c"}]}`,
+		},
 	} {
 		tt.Run(test.testName, func(t *testing.T) {
 			require := require.New(t)
@@ -194,6 +208,20 @@ func TestApplyAppend(tt *testing.T) {
 			`{"a":[{"b":{"c":{}}}]}`,
 			`{"a":[{"b":{"c":{"\"":["testing"]}}}]}`,
 		},
+		{
+			"create nested objects",
+			`a.b`,
+			`"c"`,
+			`null`,
+			`{"a":{"b":["c"]}}`,
+		},
+		{
+			"create nested objects including array",
+			`a[0].b`,
+			`"c"`,
+			`{"a":[null]}`,
+			`{"a":[{"b":["c"]}]}`,
+		},
 	} {
 		tt.Run(test.testName, func(t *testing.T) {
 			require := require.New(t)
@@ -240,12 +268,6 @@ func TestSetInvalid(tt *testing.T) {
 			`"testing"`,
 			`[]`,
 		},
-		{
-			"missing object path",
-			`a.b.c`,
-			`"testing"`,
-			`{"a":{}}`,
-		},
 	} {
 		tt.Run(test.testName, func(t *testing.T) {
 			require := require.New(t)
@@ -290,12 +312,6 @@ func TestAppendInvalid(tt *testing.T) {
 			"[1]",
 			`"testing"`,
 			`[]`,
-		},
-		{
-			"missing object path",
-			`a.b.c`,
-			`"testing"`,
-			`{"a":{}}`,
 		},
 		{
 			"root not array",
