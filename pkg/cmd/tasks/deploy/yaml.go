@@ -8,6 +8,7 @@ import (
 	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/build"
+	"github.com/airplanedev/cli/pkg/cmd/tasks/deploy/archive"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/taskdir"
 	libBuild "github.com/airplanedev/lib/pkg/build"
@@ -149,7 +150,7 @@ More information: https://apn.sh/jst-upgrade`)
 		if cfg.local {
 			bc = build.NewLocalBuildCreator()
 		} else {
-			bc = build.NewRemoteBuildCreator()
+			bc = build.NewRemoteBuildCreator(archive.NewAPIArchiver(&logger.StdErrLogger{}, cfg.client, &archive.HttpUploader{}))
 		}
 		resp, err := bc.CreateBuild(ctx, build.Request{
 			Client: client,

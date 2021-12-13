@@ -76,7 +76,9 @@ func (mc *MockClient) GetRegistryToken(ctx context.Context) (res RegistryTokenRe
 }
 
 func (mc *MockClient) CreateBuildUpload(ctx context.Context, req CreateBuildUploadRequest) (res CreateBuildUploadResponse, err error) {
-	return CreateBuildUploadResponse{}, nil
+	return CreateBuildUploadResponse{
+		WriteOnlyURL: "writeOnlyURL",
+	}, nil
 }
 
 func (mc *MockClient) GetBuildLogs(ctx context.Context, buildID string, prevToken string) (res GetBuildLogsResponse, err error) {

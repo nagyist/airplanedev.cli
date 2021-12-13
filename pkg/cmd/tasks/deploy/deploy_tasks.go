@@ -12,6 +12,7 @@ import (
 	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/build"
+	"github.com/airplanedev/cli/pkg/cmd/tasks/deploy/archive"
 	"github.com/airplanedev/cli/pkg/cmd/tasks/deploy/discover"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -42,7 +43,8 @@ func NewDeployer(cfg config, logger logger.Logger, opts DeployerOpts) *deployer 
 	if cfg.local {
 		bc = build.NewLocalBuildCreator()
 	} else {
-		bc = build.NewRemoteBuildCreator()
+		a := archive.NewAPIArchiver(logger, cfg.client, &archive.HttpUploader{})
+		bc = build.NewRemoteBuildCreator(a)
 	}
 	if opts.BuildCreator != nil {
 		bc = opts.BuildCreator

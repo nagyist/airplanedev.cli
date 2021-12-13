@@ -3,25 +3,20 @@ package build
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/airplanedev/archiver"
 	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/cmd/tasks/deploy/archive"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/taskdir/definitions"
 	"github.com/airplanedev/cli/pkg/utils"
 	libBuild "github.com/airplanedev/lib/pkg/build"
-	"github.com/airplanedev/lib/pkg/build/ignore"
 	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
-	"golang.org/x/sync/singleflight"
 )
 
 type contextKey string
@@ -38,14 +33,12 @@ type registryTokenGetter struct {
 
 type remoteBuildCreator struct {
 	registryTokenGetter
-
-	uploadArchiveSingleFlightGroup singleflight.Group
-	uploadedArchives               map[string]string
+	archiver archive.Archiver
 }
 
-func NewRemoteBuildCreator() BuildCreator {
+func NewRemoteBuildCreator(archiver archive.Archiver) BuildCreator {
 	return &remoteBuildCreator{
-		uploadedArchives: make(map[string]string),
+		archiver: archiver,
 	}
 }
 
@@ -70,26 +63,17 @@ func (d *remoteBuildCreator) CreateBuild(ctx context.Context, req Request) (*lib
 		return nil, err
 	}
 
-	tmpdir, err := ioutil.TempDir("", "airplane-builds-")
-	if err != nil {
-		return nil, errors.Wrap(err, "creating temporary directory for remote build")
-	}
-	defer os.RemoveAll(tmpdir)
+	buildLog(ctx, api.LogLevelInfo, loader, logger.Gray("Packaging and uploading %s to build task...", req.Root))
 
-	archivePath := path.Join(tmpdir, "archive.tar.gz")
-	buildLog(ctx, api.LogLevelInfo, loader, logger.Gray("Packaging and uploading %s to build the task...", req.Root))
-	if err := archiveTaskDir(req.Root, archivePath); err != nil {
-		return nil, err
-	}
-
-	uploadIDRes, err, _ := d.uploadArchiveSingleFlightGroup.Do(req.Root, func() (interface{}, error) {
-		return d.uploadArchive(ctx, req.Client, archivePath, req.Root, loader)
-	})
-
+	uploadID, sizeBytes, err := d.archiver.Archive(ctx, req.Root)
 	if err != nil {
 		return nil, err
 	}
-	uploadID := uploadIDRes.(string)
+	if sizeBytes > 0 {
+		buildLog(ctx, api.LogLevelInfo, loader, logger.Gray("Uploaded %s build archive.",
+			humanize.Bytes(uint64(sizeBytes)),
+		))
+	}
 
 	build, err := req.Client.CreateBuild(ctx, api.CreateBuildRequest{
 		TaskID:         req.TaskID,
@@ -181,88 +165,6 @@ func updateKindAndOptions(ctx context.Context, client api.APIClient, def definit
 	}
 
 	return nil
-}
-
-func archiveTaskDir(root string, archivePath string) error {
-	// mholt/archiver takes a list of "sources" (files/directories) that will
-	// be included in the root of the archive. In our case, we want the root of
-	// the archive to be the contents of the task directory, rather than the
-	// task directory itself.
-	var sources []string
-	if files, err := ioutil.ReadDir(root); err != nil {
-		return errors.Wrap(err, "inspecting files in task root")
-	} else {
-		for _, f := range files {
-			sources = append(sources, path.Join(root, f.Name()))
-		}
-	}
-
-	var err error
-	arch := archiver.NewTarGz()
-	arch.Tar.IncludeFunc, err = ignore.Func(root)
-	if err != nil {
-		return err
-	}
-
-	if err := arch.Archive(sources, archivePath); err != nil {
-		return errors.Wrap(err, "building archive")
-	}
-
-	return nil
-}
-
-func (d *remoteBuildCreator) uploadArchive(ctx context.Context, client api.APIClient, archivePath, rootPath string, loader logger.Loader) (string, error) {
-	// Check if anyone has uploaded an archive for this path.
-	uid, ok := d.uploadedArchives[rootPath]
-	if ok {
-		// Somebody has already uploaded the path. Re-use the upload ID.
-		return uid, nil
-	}
-
-	loader.Start()
-
-	archive, err := os.OpenFile(archivePath, os.O_RDONLY, 0)
-	if err != nil {
-		return "", errors.Wrap(err, "opening archive file")
-	}
-	defer archive.Close()
-
-	info, err := archive.Stat()
-	if err != nil {
-		return "", errors.Wrap(err, "stat on archive file")
-	}
-	sizeBytes := int(info.Size())
-
-	buildLog(ctx, api.LogLevelInfo, loader, logger.Gray("Uploading %s build archive...",
-		humanize.Bytes(uint64(sizeBytes)),
-	))
-
-	upload, err := client.CreateBuildUpload(ctx, api.CreateBuildUploadRequest{
-		SizeBytes: sizeBytes,
-	})
-	if err != nil {
-		return "", errors.Wrap(err, "creating upload")
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "PUT", upload.WriteOnlyURL, archive)
-	if err != nil {
-		return "", errors.Wrap(err, "creating GCS upload request")
-	}
-	req.Header.Add("X-Goog-Content-Length-Range", fmt.Sprintf("0,%d", sizeBytes))
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", errors.Wrap(err, "uploading to GCS")
-	}
-	defer resp.Body.Close()
-
-	logger.Debug("Upload complete: %s", upload.Upload.URL)
-	uploadID := upload.Upload.ID
-
-	// Populate the cache so that we can reuse the upload.
-	d.uploadedArchives[rootPath] = uploadID
-
-	return uploadID, nil
 }
 
 func waitForBuild(ctx context.Context, loader logger.Loader, client api.APIClient, buildID string) error {
