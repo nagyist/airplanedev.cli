@@ -50,18 +50,11 @@ func (sd *ScriptDiscoverer) GetTaskConfig(ctx context.Context, task api.Task, fi
 	}
 	def.SetWorkdir(taskroot, wd)
 
-	kind, kindOptions, err := def.GetKindAndOptions()
-	if err != nil {
-		return TaskConfig{}, err
-	}
-
 	return TaskConfig{
 		TaskRoot:         taskroot,
 		WorkingDirectory: wd,
-		TaskFilePath:     absFile,
+		TaskEntrypoint:   absFile,
 		Def:              &def,
-		Kind:             kind,
-		KindOptions:      kindOptions,
 		Task:             task,
 	}, nil
 }

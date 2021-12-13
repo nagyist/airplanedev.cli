@@ -9,7 +9,6 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/taskdir/definitions"
-	"github.com/airplanedev/lib/pkg/build"
 	"github.com/pkg/errors"
 )
 
@@ -29,11 +28,9 @@ const (
 type TaskConfig struct {
 	TaskRoot         string
 	WorkingDirectory string
-	TaskFilePath     string
+	TaskEntrypoint   string
 	Task             api.Task
 	Def              definitions.DefinitionInterface
-	Kind             build.TaskKind
-	KindOptions      build.KindOptions
 	From             TaskConfigSource
 }
 

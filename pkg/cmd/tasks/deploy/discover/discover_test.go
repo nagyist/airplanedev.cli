@@ -39,18 +39,11 @@ func TestDiscoverTasks(t *testing.T) {
 				{
 					TaskRoot:         fixturesPath,
 					WorkingDirectory: fixturesPath,
-					TaskFilePath:     fixturesPath + "/single_task.js",
-					Kind:             build.TaskKindNode,
+					TaskEntrypoint:   fixturesPath + "/single_task.js",
 					Def: &definitions.Definition{
 						Node: &definitions.NodeDefinition{Entrypoint: "single_task.js"},
 					},
 					Task: api.Task{Kind: build.TaskKindNode},
-					KindOptions: build.KindOptions{
-						"entrypoint":  "single_task.js",
-						"language":    "",
-						"nodeVersion": "",
-						"workdir":     "",
-					},
 					From: TaskConfigSourceScript,
 				},
 			},
@@ -66,35 +59,21 @@ func TestDiscoverTasks(t *testing.T) {
 				{
 					TaskRoot:         fixturesPath,
 					WorkingDirectory: fixturesPath,
-					TaskFilePath:     fixturesPath + "/single_task.js",
-					Kind:             build.TaskKindNode,
+					TaskEntrypoint:   fixturesPath + "/single_task.js",
 					Def: &definitions.Definition{
 						Node: &definitions.NodeDefinition{Entrypoint: "single_task.js"},
 					},
 					Task: api.Task{Kind: build.TaskKindNode},
-					KindOptions: build.KindOptions{
-						"entrypoint":  "single_task.js",
-						"language":    "",
-						"nodeVersion": "",
-						"workdir":     "",
-					},
 					From: TaskConfigSourceScript,
 				},
 				{
 					TaskRoot:         fixturesPath,
 					WorkingDirectory: fixturesPath,
-					TaskFilePath:     fixturesPath + "/single_task2.js",
-					Kind:             build.TaskKindNode,
+					TaskEntrypoint:   fixturesPath + "/single_task2.js",
 					Def: &definitions.Definition{
 						Node: &definitions.NodeDefinition{Entrypoint: "single_task2.js"},
 					},
 					Task: api.Task{Kind: build.TaskKindNode},
-					KindOptions: build.KindOptions{
-						"entrypoint":  "single_task2.js",
-						"language":    "",
-						"nodeVersion": "",
-						"workdir":     "",
-					},
 					From: TaskConfigSourceScript,
 				},
 			},
@@ -110,35 +89,21 @@ func TestDiscoverTasks(t *testing.T) {
 				{
 					TaskRoot:         fixturesPath + "/nestedScripts",
 					WorkingDirectory: fixturesPath + "/nestedScripts",
-					TaskFilePath:     fixturesPath + "/nestedScripts/single_task.js",
-					Kind:             build.TaskKindNode,
+					TaskEntrypoint:   fixturesPath + "/nestedScripts/single_task.js",
 					Def: &definitions.Definition{
 						Node: &definitions.NodeDefinition{Entrypoint: "single_task.js"},
 					},
 					Task: api.Task{Kind: build.TaskKindNode},
-					KindOptions: build.KindOptions{
-						"entrypoint":  "single_task.js",
-						"language":    "",
-						"nodeVersion": "",
-						"workdir":     "",
-					},
 					From: TaskConfigSourceScript,
 				},
 				{
 					TaskRoot:         fixturesPath + "/nestedScripts",
 					WorkingDirectory: fixturesPath + "/nestedScripts",
-					TaskFilePath:     fixturesPath + "/nestedScripts/single_task2.js",
-					Kind:             build.TaskKindNode,
+					TaskEntrypoint:   fixturesPath + "/nestedScripts/single_task2.js",
 					Def: &definitions.Definition{
 						Node: &definitions.NodeDefinition{Entrypoint: "single_task2.js"},
 					},
 					Task: api.Task{Kind: build.TaskKindNode},
-					KindOptions: build.KindOptions{
-						"entrypoint":  "single_task2.js",
-						"language":    "",
-						"nodeVersion": "",
-						"workdir":     "",
-					},
 					From: TaskConfigSourceScript,
 				},
 			},
@@ -153,20 +118,15 @@ func TestDiscoverTasks(t *testing.T) {
 				{
 					TaskRoot: fixturesPath,
 					// TODO adjust to be fixturesPath when entrypoint is relative to task defn
-					TaskFilePath: discoverPath + "/single_task.js",
-					Kind:         build.TaskKindNode,
+					TaskEntrypoint: discoverPath + "/single_task.js",
 					Def: &definitions.Definition_0_3{
 						Name:        "sunt in tempor eu",
 						Slug:        "my_task",
 						Description: "ut dolor sit officia ea",
-						Node:        &definitions.NodeDefinition_0_3{Entrypoint: "./single_task.js", NodeVersion: "14"},
+						// TODO adjust to be absolute path
+						Node: &definitions.NodeDefinition_0_3{Entrypoint: "./single_task.js", NodeVersion: "14"},
 					},
 					Task: api.Task{Kind: build.TaskKindNode},
-					KindOptions: build.KindOptions{
-						// TODO adjust to be absolute path
-						"entrypoint":  "./single_task.js",
-						"nodeVersion": "14",
-					},
 					From: TaskConfigSourceDefn,
 				},
 			},

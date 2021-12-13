@@ -137,9 +137,13 @@ func (d *deployer) DeployTasks(ctx context.Context, taskConfigs []discover.TaskC
 
 func (d *deployer) deployTask(ctx context.Context, cfg config, tc discover.TaskConfig) (rErr error) {
 	client := cfg.client
+	kind, _, err := tc.Def.GetKindAndOptions()
+	if err != nil {
+		return err
+	}
 	tp := taskDeployedProps{
 		from:       string(tc.From),
-		kind:       tc.Kind,
+		kind:       kind,
 		taskID:     tc.Task.ID,
 		taskSlug:   tc.Task.Slug,
 		taskName:   tc.Task.Name,
@@ -179,20 +183,16 @@ More information: https://apn.sh/jst-upgrade`)
 		}
 	}
 
-	err := ensureConfigVarsExist(ctx, client, tc.Def)
+	err = ensureConfigVarsExist(ctx, client, tc.Def)
 	if err != nil {
 		return err
 	}
 
-	kind, _, err := tc.Def.GetKindAndOptions()
-	if err != nil {
-		return err
-	}
 	var image *string
 	if ok, err := libBuild.NeedsBuilding(kind); err != nil {
 		return err
 	} else if ok {
-		gitMeta, err := getGitMetadata(tc.TaskFilePath)
+		gitMeta, err := getGitMetadata(tc.TaskEntrypoint)
 		if err != nil {
 			d.logger.Debug("failed to gather git metadata: %v", err)
 			analytics.ReportError(errors.Wrap(err, "failed to gather git metadata"))
