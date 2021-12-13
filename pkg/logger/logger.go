@@ -22,6 +22,7 @@ type Logger interface {
 	Step(msg string, args ...interface{})
 	Suggest(title, command string, args ...interface{})
 	Debug(msg string, args ...interface{})
+	Error(msg string, args ...interface{})
 }
 
 var _ Logger = &StdErrLogger{}
@@ -39,6 +40,10 @@ func (l *StdErrLogger) Debug(msg string, args ...interface{}) {
 
 func (l *StdErrLogger) Warning(msg string, args ...interface{}) {
 	Warning(msg, args...)
+}
+
+func (l *StdErrLogger) Error(msg string, args ...interface{}) {
+	Error(msg, args...)
 }
 
 func (l *StdErrLogger) Step(msg string, args ...interface{}) {

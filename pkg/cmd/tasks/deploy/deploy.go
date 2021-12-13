@@ -8,8 +8,8 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/cmd/auth/login"
+	"github.com/airplanedev/cli/pkg/cmd/tasks/deploy/discover"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/taskdir/definitions"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/version/latest"
 	"github.com/airplanedev/lib/pkg/build"
@@ -19,7 +19,7 @@ import (
 
 type config struct {
 	root         *cli.Config
-	client       *api.Client
+	client       api.APIClient
 	paths        []string
 	local        bool
 	changedFiles utils.NewlineFileValue
@@ -102,14 +102,37 @@ func run(ctx context.Context, cfg config) error {
 		return errors.New("Cannot specify both --yes and --no")
 	}
 
-	if cfg.dev && definitions.IsTaskDef(cfg.paths[0]) {
-		return deployFromTaskDefn(ctx, cfg)
-	}
-
 	ext := filepath.Ext(cfg.paths[0])
-	if ext == ".yml" || ext == ".yaml" {
+	if !cfg.dev && (ext == ".yml" || ext == ".yaml") && len(cfg.paths) == 1 {
+		// Legacy YAML.
 		return deployFromYaml(ctx, cfg)
 	}
 
-	return NewDeployer().deployFromScript(ctx, cfg)
+	l := &logger.StdErrLogger{}
+
+	d := &discover.Discoverer{
+		TaskDiscoverers: []discover.TaskDiscoverer{
+			&discover.ScriptDiscoverer{},
+		},
+		Client: cfg.client,
+		Logger: l,
+	}
+	if cfg.dev {
+		d.TaskDiscoverers = append(d.TaskDiscoverers, &discover.DefnDiscoverer{
+			Client:    cfg.client,
+			Logger:    l,
+			AssumeYes: cfg.assumeYes,
+			AssumeNo:  cfg.assumeNo,
+		})
+	}
+
+	loader := logger.NewLoader(logger.LoaderOpts{HideLoader: logger.EnableDebug})
+	loader.Start()
+	taskConfigs, err := d.DiscoverTasks(ctx, cfg.paths...)
+	if err != nil {
+		return err
+	}
+	loader.Stop()
+
+	return NewDeployer(cfg, l, DeployerOpts{}).DeployTasks(ctx, taskConfigs)
 }

@@ -47,7 +47,7 @@ func ReadValueFromPrompt(message string, secret bool) (string, error) {
 }
 
 // SetConfig writes config value to API and prints progress to user
-func SetConfig(ctx context.Context, client *api.Client, nt NameTag, value string, secret bool) error {
+func SetConfig(ctx context.Context, client api.APIClient, nt NameTag, value string, secret bool) error {
 	// Avoid printing back secrets
 	var valueStr string
 	if secret {

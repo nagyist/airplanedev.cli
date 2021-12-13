@@ -284,17 +284,16 @@ func (def *Definition) GetSlug() string {
 	return def.Slug
 }
 
-func (def *Definition) GetUpdateTaskRequest(ctx context.Context, client *api.Client, image *string) (api.UpdateTaskRequest, error) {
+func (def *Definition) GetUpdateTaskRequest(ctx context.Context, client api.APIClient, currentTask *api.Task) (api.UpdateTaskRequest, error) {
 	kind, options, err := def.GetKindAndOptions()
 	if err != nil {
 		return api.UpdateTaskRequest{}, err
 	}
 
-	return api.UpdateTaskRequest{
+	utr := api.UpdateTaskRequest{
 		Slug:             def.Slug,
 		Name:             def.Name,
 		Description:      def.Description,
-		Image:            image,
 		Command:          []string{},
 		Arguments:        def.Arguments,
 		Parameters:       def.Parameters,
@@ -306,7 +305,12 @@ func (def *Definition) GetUpdateTaskRequest(ctx context.Context, client *api.Cli
 		KindOptions:      options,
 		Repo:             def.Repo,
 		Timeout:          def.Timeout,
-	}, nil
+	}
+	if currentTask != nil {
+		utr.Permissions = currentTask.Permissions
+		utr.RequireExplicitPermissions = currentTask.RequireExplicitPermissions
+	}
+	return utr, nil
 }
 
 func UnmarshalDefinition(buf []byte, defPath string) (Definition, error) {

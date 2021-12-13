@@ -51,7 +51,7 @@ func deployFromYaml(ctx context.Context, cfg config) (rErr error) {
 	}
 	props.taskSlug = def.Slug
 
-	err = ensureConfigsExist(ctx, client, def)
+	err = ensureConfigVarsExist(ctx, client, &def)
 	if err != nil {
 		return err
 	}
@@ -145,8 +145,13 @@ More information: https://apn.sh/jst-upgrade`)
 	if ok, err := libBuild.NeedsBuilding(kind); err != nil {
 		return err
 	} else if ok {
-		resp, err := build.Run(ctx, build.NewDeployer(), build.Request{
-			Local:  cfg.local,
+		var bc build.BuildCreator
+		if cfg.local {
+			bc = build.NewLocalBuildCreator()
+		} else {
+			bc = build.NewRemoteBuildCreator()
+		}
+		resp, err := bc.CreateBuild(ctx, build.Request{
 			Client: client,
 			Root:   dir.DefinitionRootPath(),
 			Def:    &def,

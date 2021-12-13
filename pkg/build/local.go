@@ -10,8 +10,19 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (d *Deployer) local(ctx context.Context, req Request) (*build.Response, error) {
+type localBuildCreator struct {
+	registryTokenGetter
+}
+
+func NewLocalBuildCreator() BuildCreator {
+	return &localBuildCreator{}
+}
+
+func (d *localBuildCreator) CreateBuild(ctx context.Context, req Request) (*build.Response, error) {
 	registry, err := d.getRegistryToken(ctx, req.Client)
+	if err != nil {
+		return nil, err
+	}
 
 	env, err := req.Def.GetEnv()
 	if err != nil {
@@ -62,7 +73,7 @@ func (d *Deployer) local(ctx context.Context, req Request) (*build.Response, err
 
 // Retrieves a build env from def - looks for env vars starting with BUILD_ and either uses the
 // string literal or looks up the config value.
-func getBuildEnv(ctx context.Context, client *api.Client, taskEnv api.TaskEnv) (map[string]string, error) {
+func getBuildEnv(ctx context.Context, client api.APIClient, taskEnv api.TaskEnv) (map[string]string, error) {
 	buildEnv := make(map[string]string)
 	for k, v := range taskEnv {
 		if v.Value != nil {

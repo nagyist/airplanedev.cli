@@ -30,21 +30,26 @@ const (
 	taskSlugContextKey contextKey = "taskSlug"
 )
 
-type Deployer struct {
+// registryTokenGetter gets registry tokens and is optimized for concurrent requests.
+type registryTokenGetter struct {
 	getRegistryTokenMutex sync.Mutex
 	cachedRegistryToken   *api.RegistryTokenResponse
+}
+
+type remoteBuildCreator struct {
+	registryTokenGetter
 
 	uploadArchiveSingleFlightGroup singleflight.Group
 	uploadedArchives               map[string]string
 }
 
-func NewDeployer() *Deployer {
-	return &Deployer{
+func NewRemoteBuildCreator() BuildCreator {
+	return &remoteBuildCreator{
 		uploadedArchives: make(map[string]string),
 	}
 }
 
-func (d *Deployer) remote(ctx context.Context, req Request) (*libBuild.Response, error) {
+func (d *remoteBuildCreator) CreateBuild(ctx context.Context, req Request) (*libBuild.Response, error) {
 	ctx = context.WithValue(ctx, taskSlugContextKey, req.Def.GetSlug())
 	if err := confirmBuildRoot(req.Root); err != nil {
 		return nil, err
@@ -113,7 +118,7 @@ func (d *Deployer) remote(ctx context.Context, req Request) (*libBuild.Response,
 	}, nil
 }
 
-func (d *Deployer) getRegistryToken(ctx context.Context, client *api.Client) (registryToken api.RegistryTokenResponse, err error) {
+func (d *registryTokenGetter) getRegistryToken(ctx context.Context, client api.APIClient) (registryToken api.RegistryTokenResponse, err error) {
 	d.getRegistryTokenMutex.Lock()
 	defer d.getRegistryTokenMutex.Unlock()
 	if d.cachedRegistryToken != nil {
@@ -128,7 +133,7 @@ func (d *Deployer) getRegistryToken(ctx context.Context, client *api.Client) (re
 	return registryToken, nil
 }
 
-func updateKindAndOptions(ctx context.Context, client *api.Client, def definitions.DefinitionInterface, shim bool) error {
+func updateKindAndOptions(ctx context.Context, client api.APIClient, def definitions.DefinitionInterface, shim bool) error {
 	task, err := client.GetTask(ctx, def.GetSlug())
 	if err != nil {
 		return err
@@ -206,7 +211,7 @@ func archiveTaskDir(root string, archivePath string) error {
 	return nil
 }
 
-func (d *Deployer) uploadArchive(ctx context.Context, client *api.Client, archivePath, rootPath string, loader logger.Loader) (string, error) {
+func (d *remoteBuildCreator) uploadArchive(ctx context.Context, client api.APIClient, archivePath, rootPath string, loader logger.Loader) (string, error) {
 	// Check if anyone has uploaded an archive for this path.
 	uid, ok := d.uploadedArchives[rootPath]
 	if ok {
@@ -260,7 +265,7 @@ func (d *Deployer) uploadArchive(ctx context.Context, client *api.Client, archiv
 	return uploadID, nil
 }
 
-func waitForBuild(ctx context.Context, loader logger.Loader, client *api.Client, buildID string) error {
+func waitForBuild(ctx context.Context, loader logger.Loader, client api.APIClient, buildID string) error {
 	loader.Start()
 	buildLog(ctx, api.LogLevelInfo, loader, logger.Gray("Waiting for builder..."))
 

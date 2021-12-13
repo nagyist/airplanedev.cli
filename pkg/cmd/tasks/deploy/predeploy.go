@@ -14,12 +14,16 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ensureConfigsExist checks for config references in env and asks users to create any missing ones
-func ensureConfigsExist(ctx context.Context, client *api.Client, def definitions.Definition) error {
-	// Check if configs exist
-	for k, v := range def.Env {
+// ensureConfigVarsExist checks for config references in env and asks users to create any missing ones
+func ensureConfigVarsExist(ctx context.Context, client api.APIClient, def definitions.DefinitionInterface) error {
+	// Check if env vars exist
+	env, err := def.GetEnv()
+	if err != nil {
+		return err
+	}
+	for k, v := range env {
 		if v.Config != nil {
-			if err := ensureConfigExists(ctx, client, k, *v.Config); err != nil {
+			if err := ensureConfigVarExists(ctx, client, k, *v.Config); err != nil {
 				return err
 			}
 		}
@@ -27,7 +31,7 @@ func ensureConfigsExist(ctx context.Context, client *api.Client, def definitions
 	return nil
 }
 
-func ensureConfigExists(ctx context.Context, client *api.Client, envName, configName string) error {
+func ensureConfigVarExists(ctx context.Context, client api.APIClient, envName, configName string) error {
 	cn, err := configs.ParseName(configName)
 	if err != nil {
 		return err
@@ -61,7 +65,7 @@ func ensureConfigExists(ctx context.Context, client *api.Client, envName, config
 	}
 }
 
-func createConfig(ctx context.Context, client *api.Client, cn configs.NameTag) error {
+func createConfig(ctx context.Context, client api.APIClient, cn configs.NameTag) error {
 	var secret bool
 	if err := survey.AskOne(
 		&survey.Confirm{

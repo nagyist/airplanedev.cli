@@ -1,6 +1,8 @@
 package definitions
 
 import (
+	"fmt"
+
 	"github.com/alecthomas/jsonschema"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
@@ -20,7 +22,7 @@ type ErrSchemaValidation struct {
 }
 
 func (err ErrSchemaValidation) Error() string {
-	return "invalid YAML format"
+	return fmt.Sprintf("invalid YAML format: %v", err.Errors)
 }
 
 // ValidateYAML checks that YAML data matches the schema defined by schemaObj
