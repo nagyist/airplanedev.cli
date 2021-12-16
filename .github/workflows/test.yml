@@ -22,19 +22,10 @@ jobs:
 
       - name: Run tests
         run: |
-          go test -covermode atomic -coverprofile=covprofile ./...
+          go test -coverpkg=./... -covermode atomic -coverprofile=coverage.out ./...
       - name: Run check_gotidy.sh
         run: |
           scripts/check_gotidy.sh
-
-      # goveralls is a Go integration for Coveralls:
-      # https://github.com/mattn/goveralls
-      - name: Install goveralls
-        env:
-          GO111MODULE: off
-        run: go get github.com/mattn/goveralls
-      - name: Send coverage
-        env:
-          COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          goveralls -coverprofile=covprofile -service=github -show
+      
+      - name: Upload coverage to Codecov
+        run: bash <(curl -s https://codecov.io/bash) -t ${{ secrets.CODECOV_TOKEN }} 
