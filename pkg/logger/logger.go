@@ -146,8 +146,6 @@ func (sp *SpinnerLoader) Stop() {
 	sp.Lock()
 	defer sp.Unlock()
 	sp.spin.Stop()
-	// Remove the spinner!
-	fmt.Fprint(os.Stderr, "\r \r")
 }
 
 // Returns whether the spinner is active.

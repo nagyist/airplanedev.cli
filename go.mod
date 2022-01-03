@@ -13,7 +13,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/evanw/esbuild v0.14.2 // indirect
 	github.com/fatih/color v1.13.0
-	github.com/getsentry/sentry-go v0.11.0
+	github.com/getsentry/sentry-go v0.12.0
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/golang-jwt/jwt/v4 v4.2.0
 	github.com/golang/snappy v0.0.3 // indirect
@@ -40,7 +40,7 @@ require (
 require (
 	github.com/airplanedev/lib v0.2.3
 	github.com/airplanedev/ojson v0.1.0
-	github.com/briandowns/spinner v1.16.0
+	github.com/briandowns/spinner v1.18.0
 )
 
 require (
@@ -103,8 +103,8 @@ require (
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	go.opencensus.io v0.23.0 // indirect
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
-	golang.org/x/net v0.0.0-20210825183410-e898025ed96a // indirect
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
+	golang.org/x/net v0.0.0-20211008194852-3b03d305991f // indirect
 	golang.org/x/sys v0.0.0-20211205182925-97ca703d548d // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
