@@ -2,8 +2,9 @@ package login
 
 import (
 	"context"
-	"errors"
+	"os"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
@@ -11,6 +12,7 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/token"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -94,22 +96,7 @@ func EnsureLoggedIn(ctx context.Context, c *cli.Config) error {
 }
 
 func login(ctx context.Context, c *cli.Config) error {
-	srv, err := token.NewServer(ctx, c.Client.LoginSuccessURL())
-	if err != nil {
-		return err
-	}
-	defer srv.Close()
-
-	url := c.Client.LoginURL(srv.URL())
-	if ok := utils.Open(url); !ok {
-		logger.Log("Visit %s to complete logging in", url)
-	}
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-
-	case token := <-srv.Token():
+	writeToken := func(token string) error {
 		c.Client.Token = token
 		cfg, err := conf.ReadDefault()
 		if err != nil && !errors.Is(err, conf.ErrMissing) {
@@ -122,6 +109,45 @@ func login(ctx context.Context, c *cli.Config) error {
 		if err := conf.WriteDefault(cfg); err != nil {
 			return err
 		}
+		return nil
+	}
+
+	logger.Log("Enter your %s from %s\nor hit ENTER to log in with your browser.", logger.Bold("token"), logger.Blue(c.Client.TokenURL()))
+	var tkn string
+	if err := survey.AskOne(
+		&survey.Password{
+			Message: "Token:",
+		},
+		&tkn,
+		survey.WithStdio(os.Stdin, os.Stderr, os.Stderr),
+	); err != nil {
+		return errors.Wrap(err, "prompting for token")
+	}
+
+	// If the user entered a token, finish logging in.
+	if tkn != "" {
+		return writeToken(tkn)
+	}
+
+	// Otherwise, open the login URL and use an HTTP server to listen for the response.
+	srv, err := token.NewServer(ctx, c.Client.LoginSuccessURL())
+	if err != nil {
+		return err
+	}
+	defer srv.Close()
+
+	url := c.Client.LoginURL(srv.URL())
+	if ok := utils.Open(url); !ok {
+		logger.Log("Visit %s to finish logging in", logger.Blue("%s", url))
+	} else {
+		logger.Log("Opening %s in your browser...", logger.Blue("%s", url))
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case tkn := <-srv.Token():
+		writeToken(tkn)
 	}
 
 	return nil

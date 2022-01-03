@@ -100,7 +100,13 @@ func (c Client) appURL() *url.URL {
 	return u
 }
 
-// LoginURL returns a login URL that redirects to `uri`.
+func (c Client) TokenURL() string {
+	u := c.appURL()
+	u.Path = "/cli/login"
+	u.RawQuery = url.Values{"showToken": []string{"1"}}.Encode()
+	return u.String()
+}
+
 func (c Client) LoginURL(uri string) string {
 	u := c.appURL()
 	u.Path = "/cli/login"
