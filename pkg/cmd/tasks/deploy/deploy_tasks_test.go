@@ -7,11 +7,12 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/build"
-	"github.com/airplanedev/cli/pkg/cmd/tasks/deploy/discover"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/taskdir/definitions"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	libBuild "github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/discover"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,9 +24,9 @@ func TestDeployTasks(t *testing.T) {
 	testCases := []struct {
 		desc          string
 		taskConfigs   []discover.TaskConfig
-		existingTasks map[string]api.Task
+		existingTasks map[string]libapi.Task
 		changedFiles  []string
-		updatedTasks  map[string]api.Task
+		updatedTasks  map[string]libapi.Task
 	}{
 		{
 			desc: "no tasks",
@@ -49,19 +50,19 @@ func TestDeployTasks(t *testing.T) {
 						Slug: "my_task",
 						Node: &definitions.NodeDefinition_0_3{},
 					},
-					Task: api.Task{
+					Task: libapi.Task{
 						Slug: "my_task",
 						Name: "My Task",
 					},
 				},
 			},
-			existingTasks: map[string]api.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
-			updatedTasks: map[string]api.Task{
+			existingTasks: map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
+			updatedTasks: map[string]libapi.Task{
 				"my_task": {
 					Name:       "My Task",
 					Slug:       "my_task",
 					Image:      pointers.String("imageURL"),
-					Parameters: api.Parameters{},
+					Parameters: libapi.Parameters{},
 					Kind:       "node",
 					KindOptions: libBuild.KindOptions{
 						"entrypoint":  "",
@@ -80,19 +81,19 @@ func TestDeployTasks(t *testing.T) {
 						Slug:  "my_task",
 						Image: &definitions.ImageDefinition_0_3{Image: "myImage"},
 					},
-					Task: api.Task{
+					Task: libapi.Task{
 						Slug: "my_task",
 						Name: "My Task",
 					},
 				},
 			},
-			existingTasks: map[string]api.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
-			updatedTasks: map[string]api.Task{
+			existingTasks: map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
+			updatedTasks: map[string]libapi.Task{
 				"my_task": {
 					Name:       "My Task",
 					Slug:       "my_task",
 					Image:      pointers.String("myImage"),
-					Parameters: api.Parameters{},
+					Parameters: libapi.Parameters{},
 					Kind:       "image",
 				},
 			},
@@ -110,18 +111,18 @@ func TestDeployTasks(t *testing.T) {
 		// 					Entrypoint: "./fixtures/test.sql",
 		// 				},
 		// 			},
-		// 			Task: api.Task{
+		// 			Task: libapi.Task{
 		// 				Slug: "my_task",
 		// 				Name: "My Task",
 		// 			},
 		// 		},
 		// 	},
-		// 	existingTasks: map[string]api.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
-		// 	updatedTasks: map[string]api.Task{
+		// 	existingTasks: map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
+		// 	updatedTasks: map[string]libapi.Task{
 		// 		"my_task": {
 		// 			Name:       "My Task",
 		// 			Slug:       "my_task",
-		// 			Parameters: api.Parameters{},
+		// 			Parameters: libapi.Parameters{},
 		// 			Kind:       "sql",
 		// 		},
 		// 	},

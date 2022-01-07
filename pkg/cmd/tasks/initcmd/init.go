@@ -19,9 +19,10 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/cmd/auth/login"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/taskdir/definitions"
 	"github.com/airplanedev/cli/pkg/utils"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
 	_ "github.com/airplanedev/lib/pkg/runtime/javascript"
 	_ "github.com/airplanedev/lib/pkg/runtime/python"
@@ -346,7 +347,7 @@ func patch(slug, file string) (ok bool, err error) {
 	return
 }
 
-func promptForNewFileName(task api.Task) (string, error) {
+func promptForNewFileName(task libapi.Task) (string, error) {
 	fileName := task.Slug + runtime.SuggestExt(task.Kind)
 
 	if cwdIsHome, err := cwdIsHome(); err != nil {
@@ -483,7 +484,7 @@ func cwdIsHome() (bool, error) {
 	return cwd == home, nil
 }
 
-func createEntrypoint(r runtime.Interface, entrypoint string, task *api.Task) error {
+func createEntrypoint(r runtime.Interface, entrypoint string, task *libapi.Task) error {
 	code, fileMode, err := r.Generate(apiTaskToRuntimeTask(task))
 	if err != nil {
 		return err
@@ -500,7 +501,7 @@ func createEntrypoint(r runtime.Interface, entrypoint string, task *api.Task) er
 	return nil
 }
 
-func apiTaskToRuntimeTask(task *api.Task) *runtime.Task {
+func apiTaskToRuntimeTask(task *libapi.Task) *runtime.Task {
 	if task == nil {
 		return nil
 	}

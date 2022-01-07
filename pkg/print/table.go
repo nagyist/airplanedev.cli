@@ -12,6 +12,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/params"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/ojson"
 	"github.com/olekukonko/tablewriter"
 )
@@ -39,7 +40,7 @@ func (t Table) apiKeys(apiKeys []api.APIKey) {
 }
 
 // Tasks implementation.
-func (t Table) tasks(tasks []api.Task) {
+func (t Table) tasks(tasks []libapi.Task) {
 	tw := tablewriter.NewWriter(os.Stdout)
 	tw.SetBorder(false)
 	tw.SetHeader([]string{"name", "slug", "builder", "parameters"})
@@ -85,7 +86,7 @@ func (t Table) tasks(tasks []api.Task) {
 }
 
 // Task implementation.
-func (t Table) task(task api.Task) {
+func (t Table) task(task libapi.Task) {
 	builderStr := task.Kind
 
 	fmt.Fprintln(os.Stdout, "Name:       ", task.Name)

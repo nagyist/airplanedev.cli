@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/airplanedev/cli/pkg/api"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/ojson"
 )
 
@@ -31,12 +32,12 @@ func (j *JSON) apiKeys(apiKeys []api.APIKey) {
 }
 
 // Tasks implementation.
-func (j *JSON) tasks(tasks []api.Task) {
+func (j *JSON) tasks(tasks []libapi.Task) {
 	j.enc.Encode(printTasks(tasks))
 }
 
 // Task implementation.
-func (j *JSON) task(task api.Task) {
+func (j *JSON) task(task libapi.Task) {
 	j.enc.Encode(printTask(task))
 }
 

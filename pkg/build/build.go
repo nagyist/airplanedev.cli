@@ -4,8 +4,9 @@ import (
 	"context"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/taskdir/definitions"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 )
 
 type BuildCreator interface {
@@ -18,7 +19,7 @@ type Request struct {
 	Root    string
 	Def     definitions.DefinitionInterface
 	TaskID  string
-	TaskEnv api.TaskEnv
+	TaskEnv libapi.TaskEnv
 	Shim    bool
 	GitMeta api.BuildGitMeta
 }

@@ -16,6 +16,7 @@ import (
 
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/version"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/pkg/errors"
 )
@@ -75,21 +76,22 @@ type Client struct {
 }
 
 type APIClient interface {
-	GetTask(ctx context.Context, slug string) (res Task, err error)
-	ListResources(ctx context.Context) (res ListResourcesResponse, err error)
+	GetTask(ctx context.Context, slug string) (res libapi.Task, err error)
+	ListResources(ctx context.Context) (res libapi.ListResourcesResponse, err error)
 	SetConfig(ctx context.Context, req SetConfigRequest) (err error)
 	GetConfig(ctx context.Context, req GetConfigRequest) (res GetConfigResponse, err error)
 	TaskURL(slug string) string
-	UpdateTask(ctx context.Context, req UpdateTaskRequest) (res UpdateTaskResponse, err error)
+	UpdateTask(ctx context.Context, req libapi.UpdateTaskRequest) (res UpdateTaskResponse, err error)
 	CreateTask(ctx context.Context, req CreateTaskRequest) (res CreateTaskResponse, err error)
 	CreateBuild(ctx context.Context, req CreateBuildRequest) (res CreateBuildResponse, err error)
 	GetRegistryToken(ctx context.Context) (res RegistryTokenResponse, err error)
-	CreateBuildUpload(ctx context.Context, req CreateBuildUploadRequest) (res CreateBuildUploadResponse, err error)
+	CreateBuildUpload(ctx context.Context, req libapi.CreateBuildUploadRequest) (res libapi.CreateBuildUploadResponse, err error)
 	GetBuildLogs(ctx context.Context, buildID string, prevToken string) (res GetBuildLogsResponse, err error)
 	GetBuild(ctx context.Context, id string) (res GetBuildResponse, err error)
 }
 
 var _ APIClient = Client{}
+var _ libapi.IAPIClient = Client{}
 
 // AppURL returns the app URL.
 func (c Client) appURL() *url.URL {
@@ -154,7 +156,7 @@ func (c Client) CreateTask(ctx context.Context, req CreateTaskRequest) (res Crea
 }
 
 // UpdateTask updates a task with the given req.
-func (c Client) UpdateTask(ctx context.Context, req UpdateTaskRequest) (res UpdateTaskResponse, err error) {
+func (c Client) UpdateTask(ctx context.Context, req libapi.UpdateTaskRequest) (res UpdateTaskResponse, err error) {
 	err = c.do(ctx, "POST", "/tasks/update", req, &res)
 	return
 }
@@ -273,14 +275,14 @@ func (c Client) GetOutputs(ctx context.Context, runID string) (res GetOutputsRes
 }
 
 // GetTask returns a task by its slug.
-func (c Client) GetTask(ctx context.Context, slug string) (res Task, err error) {
+func (c Client) GetTask(ctx context.Context, slug string) (res libapi.Task, err error) {
 	q := url.Values{"slug": []string{slug}}
 	err = c.do(ctx, "GET", "/tasks/get?"+q.Encode(), nil, &res)
 
 	if err, ok := err.(Error); ok && err.Code == 404 {
-		return res, &TaskMissingError{
-			appURL: c.appURL().String(),
-			slug:   slug,
+		return res, &libapi.TaskMissingError{
+			AppURL: c.appURL().String(),
+			Slug:   slug,
 		}
 	}
 
@@ -317,7 +319,7 @@ func (c Client) CreateBuild(ctx context.Context, req CreateBuildRequest) (res Cr
 }
 
 // CreateBuildUpload creates an Airplane upload and returns metadata about it.
-func (c Client) CreateBuildUpload(ctx context.Context, req CreateBuildUploadRequest) (res CreateBuildUploadResponse, err error) {
+func (c Client) CreateBuildUpload(ctx context.Context, req libapi.CreateBuildUploadRequest) (res libapi.CreateBuildUploadResponse, err error) {
 	err = c.do(ctx, "POST", "/builds/createUpload", req, &res)
 	return
 }
@@ -354,7 +356,7 @@ func (c Client) GetBuildLogs(ctx context.Context, buildID string, prevToken stri
 	return
 }
 
-func (c Client) ListResources(ctx context.Context) (res ListResourcesResponse, err error) {
+func (c Client) ListResources(ctx context.Context) (res libapi.ListResourcesResponse, err error) {
 	err = c.do(ctx, "GET", "/resources/list", nil, &res)
 	return
 }

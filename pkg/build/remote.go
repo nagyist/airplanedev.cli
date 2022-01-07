@@ -10,11 +10,12 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/cmd/tasks/deploy/archive"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/taskdir/definitions"
 	"github.com/airplanedev/cli/pkg/utils"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	libBuild "github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/archive"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/dustin/go-humanize"
 	"github.com/pkg/errors"
 )
@@ -139,7 +140,7 @@ func updateKindAndOptions(ctx context.Context, client api.APIClient, def definit
 		kindOptions["entrypoint"] = filepath.ToSlash(ep)
 	}
 
-	_, err = client.UpdateTask(ctx, api.UpdateTaskRequest{
+	_, err = client.UpdateTask(ctx, libapi.UpdateTaskRequest{
 		Kind:        kind,
 		KindOptions: kindOptions,
 

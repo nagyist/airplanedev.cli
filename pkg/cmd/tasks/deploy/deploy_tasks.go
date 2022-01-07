@@ -12,12 +12,12 @@ import (
 	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/build"
-	"github.com/airplanedev/cli/pkg/cmd/tasks/deploy/archive"
-	"github.com/airplanedev/cli/pkg/cmd/tasks/deploy/discover"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libBuild "github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/archive"
+	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/go-git/go-git/v5"
 	"github.com/pkg/errors"
@@ -205,6 +205,7 @@ More information: https://apn.sh/jst-upgrade`)
 		if err != nil {
 			return err
 		}
+
 		resp, err := d.buildCreator.CreateBuild(ctx, build.Request{
 			Client:  client,
 			TaskID:  tc.Task.ID,
@@ -221,7 +222,7 @@ More information: https://apn.sh/jst-upgrade`)
 		image = &resp.ImageURL
 	}
 
-	utr, err := tc.Def.GetUpdateTaskRequest(ctx, client, &tc.Task)
+	utr, err := tc.Def.GetUpdateTaskRequest(ctx, cfg.client, &tc.Task)
 	if err != nil {
 		return err
 	}

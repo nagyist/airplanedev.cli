@@ -2,17 +2,20 @@ package deploy
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/cmd/auth/login"
-	"github.com/airplanedev/cli/pkg/cmd/tasks/deploy/discover"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/version/latest"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/discover"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -119,10 +122,11 @@ func run(ctx context.Context, cfg config) error {
 	}
 	if cfg.dev {
 		d.TaskDiscoverers = append(d.TaskDiscoverers, &discover.DefnDiscoverer{
-			Client:    cfg.client,
-			Logger:    l,
-			AssumeYes: cfg.assumeYes,
-			AssumeNo:  cfg.assumeNo,
+			Client:             cfg.client,
+			Logger:             l,
+			AssumeYes:          cfg.assumeYes,
+			AssumeNo:           cfg.assumeNo,
+			MissingTaskHandler: HandleMissingTask(cfg, l),
 		})
 	}
 
@@ -135,4 +139,53 @@ func run(ctx context.Context, cfg config) error {
 	loader.Stop()
 
 	return NewDeployer(cfg, l, DeployerOpts{}).DeployTasks(ctx, taskConfigs)
+}
+
+func HandleMissingTask(cfg config, l logger.Logger) func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.Task, error) {
+	return func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.Task, error) {
+		if !utils.CanPrompt() {
+			return nil, nil
+		}
+
+		question := fmt.Sprintf("Task with slug %s does not exist. Would you like to create a new task?", def.GetSlug())
+		if ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
+			return nil, err
+		} else if !ok {
+			// User answered "no", so bail here.
+			return nil, nil
+		}
+
+		l.Log("Creating task...")
+		utr, err := def.GetUpdateTaskRequest(ctx, cfg.client, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = cfg.client.CreateTask(ctx, api.CreateTaskRequest{
+			Slug:             utr.Slug,
+			Name:             utr.Name,
+			Description:      utr.Description,
+			Image:            utr.Image,
+			Command:          utr.Command,
+			Arguments:        utr.Arguments,
+			Parameters:       utr.Parameters,
+			Constraints:      utr.Constraints,
+			Env:              utr.Env,
+			ResourceRequests: utr.ResourceRequests,
+			Resources:        utr.Resources,
+			Kind:             utr.Kind,
+			KindOptions:      utr.KindOptions,
+			Repo:             utr.Repo,
+			Timeout:          utr.Timeout,
+		})
+		if err != nil {
+			return nil, errors.Wrapf(err, "creating task %s", def.GetSlug())
+		}
+
+		task, err := cfg.client.GetTask(ctx, def.GetSlug())
+		if err != nil {
+			return nil, errors.Wrap(err, "fetching created task")
+		}
+		return &task, nil
+	}
 }

@@ -3,25 +3,26 @@ package api
 import (
 	"context"
 
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/pkg/errors"
 )
 
 type MockClient struct {
-	Tasks map[string]Task
+	Tasks map[string]libapi.Task
 }
 
 var _ APIClient = &MockClient{}
 
-func (mc *MockClient) GetTask(ctx context.Context, slug string) (res Task, err error) {
+func (mc *MockClient) GetTask(ctx context.Context, slug string) (res libapi.Task, err error) {
 	task, ok := mc.Tasks[slug]
 	if !ok {
-		return Task{}, &TaskMissingError{appURL: "api/", slug: slug}
+		return libapi.Task{}, &libapi.TaskMissingError{AppURL: "api/", Slug: slug}
 	}
 	return task, nil
 }
 
-func (mc *MockClient) ListResources(ctx context.Context) (res ListResourcesResponse, err error) {
-	return ListResourcesResponse{}, nil
+func (mc *MockClient) ListResources(ctx context.Context) (res libapi.ListResourcesResponse, err error) {
+	return libapi.ListResourcesResponse{}, nil
 }
 func (mc *MockClient) SetConfig(ctx context.Context, req SetConfigRequest) (err error) {
 	panic("not implemented") // TODO: Implement
@@ -35,7 +36,7 @@ func (mc *MockClient) TaskURL(slug string) string {
 	return "api/t/" + slug
 }
 
-func (mc *MockClient) UpdateTask(ctx context.Context, req UpdateTaskRequest) (res UpdateTaskResponse, err error) {
+func (mc *MockClient) UpdateTask(ctx context.Context, req libapi.UpdateTaskRequest) (res UpdateTaskResponse, err error) {
 	task, ok := mc.Tasks[req.Slug]
 	if !ok {
 		return UpdateTaskResponse{}, errors.Errorf("no task %s", req.Slug)
@@ -75,8 +76,8 @@ func (mc *MockClient) GetRegistryToken(ctx context.Context) (res RegistryTokenRe
 	return RegistryTokenResponse{Token: "token"}, nil
 }
 
-func (mc *MockClient) CreateBuildUpload(ctx context.Context, req CreateBuildUploadRequest) (res CreateBuildUploadResponse, err error) {
-	return CreateBuildUploadResponse{
+func (mc *MockClient) CreateBuildUpload(ctx context.Context, req libapi.CreateBuildUploadRequest) (res libapi.CreateBuildUploadResponse, err error) {
+	return libapi.CreateBuildUploadResponse{
 		WriteOnlyURL: "writeOnlyURL",
 	}, nil
 }

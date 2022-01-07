@@ -9,8 +9,8 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/configs"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/taskdir/definitions"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/pkg/errors"
 )
 

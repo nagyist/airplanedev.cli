@@ -8,10 +8,11 @@ import (
 	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/build"
-	"github.com/airplanedev/cli/pkg/cmd/tasks/deploy/archive"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/taskdir"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	libBuild "github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/archive"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir"
 	"github.com/pkg/errors"
 )
 
@@ -68,7 +69,7 @@ func deployFromYaml(ctx context.Context, cfg config) (rErr error) {
 	if err != nil {
 		return errors.Wrap(err, "fetching resources")
 	}
-	resourcesByName := map[string]api.Resource{}
+	resourcesByName := map[string]libapi.Resource{}
 	for _, resource := range resp.Resources {
 		resourcesByName[resource.Name] = resource
 	}
@@ -89,7 +90,7 @@ func deployFromYaml(ctx context.Context, cfg config) (rErr error) {
 	}
 
 	task, err := client.GetTask(ctx, def.Slug)
-	if _, ok := err.(*api.TaskMissingError); ok {
+	if _, ok := err.(*libapi.TaskMissingError); ok {
 		// A task with this slug does not exist, so we should create one.
 		logger.Log("Creating task...")
 		_, err = client.CreateTask(ctx, api.CreateTaskRequest{
@@ -168,7 +169,7 @@ More information: https://apn.sh/jst-upgrade`)
 		image = &resp.ImageURL
 	}
 
-	_, err = client.UpdateTask(ctx, api.UpdateTaskRequest{
+	_, err = client.UpdateTask(ctx, libapi.UpdateTaskRequest{
 		Slug:                       def.Slug,
 		Name:                       def.Name,
 		Description:                def.Description,

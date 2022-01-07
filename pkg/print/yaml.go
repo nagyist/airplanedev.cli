@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/airplanedev/cli/pkg/api"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/ojson"
 	"gopkg.in/yaml.v3"
 )
@@ -24,12 +25,12 @@ func (YAML) apiKeys(apiKeys []api.APIKey) {
 }
 
 // Tasks implementation.
-func (YAML) tasks(tasks []api.Task) {
+func (YAML) tasks(tasks []libapi.Task) {
 	yaml.NewEncoder(os.Stdout).Encode(printTasks(tasks))
 }
 
 // Task implementation.
-func (YAML) task(task api.Task) {
+func (YAML) task(task libapi.Task) {
 	yaml.NewEncoder(os.Stdout).Encode(printTask(task))
 }
 

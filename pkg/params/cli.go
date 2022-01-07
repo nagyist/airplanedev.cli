@@ -11,6 +11,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/pkg/errors"
 )
 
@@ -18,7 +19,7 @@ import (
 //
 // A flag.ErrHelp error will be returned if a -h or --help was provided, in which case
 // this function will print out help text on how to pass this task's parameters as flags.
-func CLI(args []string, client *api.Client, task api.Task) (api.Values, error) {
+func CLI(args []string, client *api.Client, task libapi.Task) (api.Values, error) {
 	values := api.Values{}
 
 	if len(args) > 0 {
@@ -38,7 +39,7 @@ func CLI(args []string, client *api.Client, task api.Task) (api.Values, error) {
 }
 
 // Flagset returns a new flagset from the given task parameters.
-func flagset(task api.Task, args api.Values) *flag.FlagSet {
+func flagset(task libapi.Task, args api.Values) *flag.FlagSet {
 	var set = flag.NewFlagSet(task.Name, flag.ContinueOnError)
 
 	set.Usage = func() {
@@ -69,7 +70,7 @@ func flagset(task api.Task, args api.Values) *flag.FlagSet {
 // If there are no parameters, does nothing.
 // If TTY, prompts for parameters and then asks user to confirm.
 // If no TTY, errors.
-func promptForParamValues(client *api.Client, task api.Task, paramValues map[string]interface{}) error {
+func promptForParamValues(client *api.Client, task libapi.Task, paramValues map[string]interface{}) error {
 	if len(task.Parameters) == 0 {
 		return nil
 	}
@@ -90,7 +91,7 @@ func promptForParamValues(client *api.Client, task api.Task, paramValues map[str
 	}
 
 	for _, param := range task.Parameters {
-		if param.Type == api.TypeUpload {
+		if param.Type == libapi.TypeUpload {
 			logger.Log(logger.Yellow("Skipping %s - uploads are not supported in CLI", param.Name))
 			continue
 		}
@@ -138,14 +139,14 @@ func promptForParamValues(client *api.Client, task api.Task, paramValues map[str
 }
 
 // promptForParam returns a survey.Prompt matching the param type
-func promptForParam(param api.Parameter) (survey.Prompt, error) {
+func promptForParam(param libapi.Parameter) (survey.Prompt, error) {
 	message := fmt.Sprintf("%s %s:", param.Name, logger.Gray("(--%s)", param.Slug))
 	defaultValue, err := APIValueToInput(param, param.Default)
 	if err != nil {
 		return nil, err
 	}
 	switch param.Type {
-	case api.TypeBoolean:
+	case libapi.TypeBoolean:
 		var dv interface{}
 		if defaultValue == "" {
 			dv = nil
@@ -168,7 +169,7 @@ func promptForParam(param api.Parameter) (survey.Prompt, error) {
 }
 
 // validateInput returns a survey.Validator to perform rudimentary checks on CLI input
-func validateInput(param api.Parameter) func(interface{}) error {
+func validateInput(param libapi.Parameter) func(interface{}) error {
 	return func(ans interface{}) error {
 		var v string
 		switch a := ans.(type) {

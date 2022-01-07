@@ -2,6 +2,7 @@ package print
 
 import (
 	"github.com/airplanedev/cli/pkg/api"
+	libapi "github.com/airplanedev/lib/pkg/api"
 )
 
 var (
@@ -15,8 +16,8 @@ var (
 // Formatter represents an output formatter.
 type Formatter interface {
 	apiKeys([]api.APIKey)
-	tasks([]api.Task)
-	task(api.Task)
+	tasks([]libapi.Task)
+	task(libapi.Task)
 	runs([]api.Run)
 	run(api.Run)
 	outputs(api.Outputs)
@@ -29,12 +30,12 @@ func APIKeys(apiKeys []api.APIKey) {
 }
 
 // Tasks prints the given slice of tasks using the default formatter.
-func Tasks(tasks []api.Task) {
+func Tasks(tasks []libapi.Task) {
 	DefaultFormatter.tasks(tasks)
 }
 
 // Task prints a single task.
-func Task(task api.Task) {
+func Task(task libapi.Task) {
 	DefaultFormatter.task(task)
 }
 
