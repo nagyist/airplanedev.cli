@@ -370,13 +370,10 @@ func promptForNewFileName(task libapi.Task) (string, error) {
 }
 
 var namesByKind = map[build.TaskKind]string{
-	build.TaskKindDeno:       "Deno",
-	build.TaskKindDockerfile: "Dockerfile",
-	build.TaskKindGo:         "Go",
-	build.TaskKindImage:      "Docker",
-	build.TaskKindNode:       "Node",
-	build.TaskKindPython:     "Python",
-	build.TaskKindShell:      "Shell",
+	build.TaskKindImage:  "Docker",
+	build.TaskKindNode:   "Node",
+	build.TaskKindPython: "Python",
+	build.TaskKindShell:  "Shell",
 
 	build.TaskKindSQL:  "SQL",
 	build.TaskKindREST: "REST",
@@ -389,9 +386,6 @@ var orderedKindNames = []string{
 	"Python",
 	"Shell",
 	"Docker",
-	"Deno",
-	"Dockerfile",
-	"Go",
 }
 
 func promptForNewTask(file string, info *newTaskInfo) error {
