@@ -38,7 +38,7 @@ require (
 )
 
 require (
-	github.com/airplanedev/lib v0.2.5
+	github.com/airplanedev/lib v0.2.6
 	github.com/airplanedev/ojson v0.1.0
 	github.com/briandowns/spinner v1.18.0
 )
@@ -52,6 +52,7 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20210428141323-04723f9f07d7 // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/airplanedev/path v0.0.1 // indirect
+	github.com/alessio/shellescape v1.4.1 // indirect
 	github.com/containerd/cgroups v1.0.1 // indirect
 	github.com/containerd/containerd v1.5.7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -61,6 +62,7 @@ require (
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dsnet/compress v0.0.2-0.20210315054119-f66993602bf5 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
+	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect
 	github.com/goccy/go-yaml v1.9.4 // indirect

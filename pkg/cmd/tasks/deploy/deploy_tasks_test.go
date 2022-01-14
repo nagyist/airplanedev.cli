@@ -95,6 +95,7 @@ func TestDeployTasks(t *testing.T) {
 					Image:      pointers.String("myImage"),
 					Parameters: libapi.Parameters{},
 					Kind:       "image",
+					Command:    []string{},
 				},
 			},
 		},
