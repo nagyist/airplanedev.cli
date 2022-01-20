@@ -230,7 +230,6 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				KindOptions: build.KindOptions{
 					"entrypoint": "main.py",
 				},
-				Constraints: api.RunConstraints{},
 			},
 			definition: Definition_0_3{
 				Name:        "Python Task",
@@ -240,7 +239,6 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					Arguments:  []string{"{{JSON.stringify(params)}}"},
 					Entrypoint: "main.py",
 				},
-				Constraints: &api.RunConstraints{},
 			},
 		},
 		{
@@ -254,7 +252,6 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					"entrypoint":  "main.ts",
 					"nodeVersion": "14",
 				},
-				Constraints: api.RunConstraints{},
 			},
 			definition: Definition_0_3{
 				Name: "Node Task",
@@ -264,7 +261,6 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					Entrypoint:  "main.ts",
 					NodeVersion: "14",
 				},
-				Constraints: &api.RunConstraints{},
 			},
 		},
 		{
@@ -277,7 +273,6 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				KindOptions: build.KindOptions{
 					"entrypoint": "main.sh",
 				},
-				Constraints: api.RunConstraints{},
 			},
 			definition: Definition_0_3{
 				Name: "Shell Task",
@@ -286,7 +281,6 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					Arguments:  []string{},
 					Entrypoint: "main.sh",
 				},
-				Constraints: &api.RunConstraints{},
 			},
 		},
 		{
@@ -299,7 +293,6 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				Kind:        build.TaskKindImage,
 				KindOptions: build.KindOptions{},
 				Image:       newStringPtr("ubuntu:latest"),
-				Constraints: api.RunConstraints{},
 			},
 			definition: Definition_0_3{
 				Name: "Image Task",
@@ -309,7 +302,6 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					Entrypoint: "bash",
 					Command:    []string{"-c", "echo 'foobar'"},
 				},
-				Constraints: &api.RunConstraints{},
 			},
 		},
 		{
@@ -341,7 +333,6 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				Resources: map[string]string{
 					"rest": "res20220111foobarx",
 				},
-				Constraints: api.RunConstraints{},
 			},
 			definition: Definition_0_3{
 				Name: "REST Task",
@@ -360,7 +351,6 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					Body:     "",
 					FormData: map[string]interface{}{},
 				},
-				Constraints: &api.RunConstraints{},
 			},
 		},
 		{
@@ -431,7 +421,6 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				KindOptions: build.KindOptions{
 					"entrypoint": "main.py",
 				},
-				Constraints: api.RunConstraints{},
 			},
 			definition: Definition_0_3{
 				Name: "Test Task",
@@ -490,7 +479,6 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					Arguments:  []string{"{{JSON.stringify(params)}}"},
 					Entrypoint: "main.py",
 				},
-				Constraints: &api.RunConstraints{},
 			},
 		},
 		{
@@ -503,7 +491,6 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				KindOptions: build.KindOptions{
 					"entrypoint": "main.py",
 				},
-				Constraints: api.RunConstraints{},
 				ExecuteRules: api.ExecuteRules{
 					DisallowSelfApprove: true,
 					RequireRequests:     true,
@@ -516,7 +503,6 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					Arguments:  []string{"{{JSON.stringify(params)}}"},
 					Entrypoint: "main.py",
 				},
-				Constraints:        &api.RunConstraints{},
 				RequireRequests:    true,
 				AllowSelfApprovals: newBoolPtr(false),
 			},
@@ -531,7 +517,6 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				KindOptions: build.KindOptions{
 					"entrypoint": "main.py",
 				},
-				Constraints: api.RunConstraints{},
 				ExecuteRules: api.ExecuteRules{
 					DisallowSelfApprove: false,
 					RequireRequests:     false,
@@ -544,7 +529,6 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					Arguments:  []string{"{{JSON.stringify(params)}}"},
 					Entrypoint: "main.py",
 				},
-				Constraints:        &api.RunConstraints{},
 				RequireRequests:    false,
 				AllowSelfApprovals: nil,
 			},
@@ -579,7 +563,6 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					Arguments:  []string{"{{JSON.stringify(params)}}"},
 					Entrypoint: "main.py",
 				},
-				Constraints: &api.RunConstraints{},
 			},
 			request: api.UpdateTaskRequest{
 				Name:        "Test Task",
@@ -591,7 +574,6 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 				KindOptions: build.KindOptions{
 					"entrypoint": "main.py",
 				},
-				Constraints: api.RunConstraints{},
 			},
 		},
 		{
@@ -604,7 +586,6 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					Entrypoint:  "main.ts",
 					NodeVersion: "14",
 				},
-				Constraints: &api.RunConstraints{},
 			},
 			request: api.UpdateTaskRequest{
 				Name:       "Node Task",
@@ -616,7 +597,6 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					"entrypoint":  "main.ts",
 					"nodeVersion": "14",
 				},
-				Constraints: api.RunConstraints{},
 			},
 		},
 		{
@@ -628,7 +608,6 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					Arguments:  []string{},
 					Entrypoint: "main.sh",
 				},
-				Constraints: &api.RunConstraints{},
 			},
 			request: api.UpdateTaskRequest{
 				Name:       "Shell Task",
@@ -639,7 +618,6 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 				KindOptions: build.KindOptions{
 					"entrypoint": "main.sh",
 				},
-				Constraints: api.RunConstraints{},
 			},
 		},
 		{
@@ -652,17 +630,15 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					Entrypoint: "bash",
 					Command:    []string{"-c", "echo 'foobar'"},
 				},
-				Constraints: &api.RunConstraints{},
 			},
 			request: api.UpdateTaskRequest{
-				Name:        "Image Task",
-				Slug:        "image_task",
-				Parameters:  []api.Parameter{},
-				Command:     []string{"bash"},
-				Arguments:   []string{"-c", "echo 'foobar'"},
-				Kind:        build.TaskKindImage,
-				Image:       newStringPtr("ubuntu:latest"),
-				Constraints: api.RunConstraints{},
+				Name:       "Image Task",
+				Slug:       "image_task",
+				Parameters: []api.Parameter{},
+				Command:    []string{"bash"},
+				Arguments:  []string{"-c", "echo 'foobar'"},
+				Kind:       build.TaskKindImage,
+				Image:      newStringPtr("ubuntu:latest"),
 			},
 		},
 		{
@@ -725,7 +701,6 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					Arguments:  []string{"{{JSON.stringify(params)}}"},
 					Entrypoint: "main.py",
 				},
-				Constraints: &api.RunConstraints{},
 			},
 			request: api.UpdateTaskRequest{
 				Name:        "Test Task",
@@ -794,7 +769,6 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 				KindOptions: build.KindOptions{
 					"entrypoint": "main.py",
 				},
-				Constraints: api.RunConstraints{},
 			},
 		},
 		{
@@ -807,7 +781,6 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					Arguments:  []string{"{{JSON.stringify(params)}}"},
 					Entrypoint: "main.py",
 				},
-				Constraints:        &api.RunConstraints{},
 				RequireRequests:    true,
 				AllowSelfApprovals: newBoolPtr(false),
 			},
@@ -821,7 +794,6 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 				KindOptions: build.KindOptions{
 					"entrypoint": "main.py",
 				},
-				Constraints: api.RunConstraints{},
 				ExecuteRules: api.ExecuteRules{
 					DisallowSelfApprove: true,
 					RequireRequests:     true,
@@ -838,7 +810,6 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					Arguments:  []string{"{{JSON.stringify(params)}}"},
 					Entrypoint: "main.py",
 				},
-				Constraints:        &api.RunConstraints{},
 				RequireRequests:    false,
 				AllowSelfApprovals: nil,
 			},
@@ -852,7 +823,6 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 				KindOptions: build.KindOptions{
 					"entrypoint": "main.py",
 				},
-				Constraints: api.RunConstraints{},
 				ExecuteRules: api.ExecuteRules{
 					DisallowSelfApprove: false,
 					RequireRequests:     false,
