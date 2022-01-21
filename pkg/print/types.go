@@ -25,6 +25,7 @@ type printTask struct {
 	Repo                       string                  `json:"repo" yaml:"repo"`
 	RequireExplicitPermissions bool                    `json:"requireExplicitPermissions" yaml:"-"`
 	Permissions                libapi.Permissions      `json:"permissions" yaml:"-"`
+	ExecuteRules               libapi.ExecuteRules     `json:"executeRules" yaml:"executeRules"`
 	Timeout                    int                     `json:"timeout" yaml:"timeout"`
 	InterpolationMode          string                  `json:"-" yaml:"-"`
 }

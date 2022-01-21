@@ -88,6 +88,8 @@ type APIClient interface {
 	CreateBuildUpload(ctx context.Context, req libapi.CreateBuildUploadRequest) (res libapi.CreateBuildUploadResponse, err error)
 	GetBuildLogs(ctx context.Context, buildID string, prevToken string) (res GetBuildLogsResponse, err error)
 	GetBuild(ctx context.Context, id string) (res GetBuildResponse, err error)
+	ListGroups(ctx context.Context) (res libapi.ListGroupsResponse, err error)
+	ListUsers(ctx context.Context) (res libapi.ListUsersResponse, err error)
 }
 
 var _ APIClient = Client{}
@@ -339,6 +341,16 @@ func (c Client) ListAPIKeys(ctx context.Context) (res ListAPIKeysResponse, err e
 // DeleteAPIKey deletes an API key.
 func (c Client) DeleteAPIKey(ctx context.Context, req DeleteAPIKeyRequest) (err error) {
 	err = c.do(ctx, "POST", "/apiKeys/delete", req, nil)
+	return
+}
+
+func (c Client) ListGroups(ctx context.Context) (res libapi.ListGroupsResponse, err error) {
+	err = c.do(ctx, "GET", "/groups/list", nil, &res)
+	return
+}
+
+func (c Client) ListUsers(ctx context.Context) (res libapi.ListUsersResponse, err error) {
+	err = c.do(ctx, "GET", "/teams/listUsers", nil, &res)
 	return
 }
 
