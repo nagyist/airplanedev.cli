@@ -215,9 +215,11 @@ func TestDefinitionSerialization_0_3(t *testing.T) {
 func TestTaskToDefinition_0_3(t *testing.T) {
 	for _, test := range []struct {
 		name       string
-		resources  []api.Resource
 		task       api.Task
 		definition Definition_0_3
+		resources  []api.Resource
+		users      []api.User
+		groups     []api.Group
 	}{
 		{
 			name: "python task",
@@ -482,6 +484,74 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 			},
 		},
 		{
+			name: "check permissions",
+			task: api.Task{
+				Name:      "Test Task",
+				Slug:      "test_task",
+				Arguments: []string{"{{JSON.stringify(params)}}"},
+				Kind:      build.TaskKindPython,
+				KindOptions: build.KindOptions{
+					"entrypoint": "main.py",
+				},
+				RequireExplicitPermissions: true,
+				Permissions: []api.Permission{
+					{
+						SubUserID: newStringPtr("1000"),
+						RoleID:    api.RoleTaskAdmin,
+					},
+					{
+						SubUserID: newStringPtr("1001"),
+						RoleID:    api.RoleTaskExecuter,
+					},
+					{
+						SubGroupID: newStringPtr("2000"),
+						RoleID:     api.RoleTaskRequester,
+					},
+					{
+						SubUserID: newStringPtr("1002"),
+						RoleID:    api.RoleTaskViewer,
+					},
+				},
+			},
+			definition: Definition_0_3{
+				Name: "Test Task",
+				Slug: "test_task",
+				Python: &PythonDefinition_0_3{
+					Arguments:  []string{"{{JSON.stringify(params)}}"},
+					Entrypoint: "main.py",
+				},
+				Permissions: &PermissionDefinition_0_3{
+					Admins:     []string{"gary@dragonhawk5.com"},
+					Executers:  []string{"quinn@infinityguard.org"},
+					Requesters: []string{"Team Squad"},
+					Viewers:    []string{"kvn@kvn.net"},
+				},
+			},
+			users: []api.User{
+				{
+					ID:    "1000",
+					Name:  "Gary Goodspeed",
+					Email: "gary@dragonhawk5.com",
+				},
+				{
+					ID:    "1001",
+					Name:  "Quinn Ergon",
+					Email: "quinn@infinityguard.org",
+				},
+				{
+					ID:    "1002",
+					Name:  "KVN",
+					Email: "kvn@kvn.net",
+				},
+			},
+			groups: []api.Group{
+				{
+					ID:   "2000",
+					Name: "Team Squad",
+				},
+			},
+		},
+		{
 			name: "check execute rules",
 			task: api.Task{
 				Name:      "Test Task",
@@ -539,6 +609,8 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 			ctx := context.Background()
 			client := &mock.MockClient{
 				Resources: test.resources,
+				Users:     test.users,
+				Groups:    test.groups,
 			}
 			d, err := NewDefinitionFromTask_0_3(ctx, client, test.task)
 			assert.NoError(err)
@@ -552,6 +624,8 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 		name       string
 		definition Definition_0_3
 		request    api.UpdateTaskRequest
+		users      []api.User
+		groups     []api.Group
 	}{
 		{
 			name: "python task",
@@ -642,132 +716,75 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 			},
 		},
 		{
-			name: "test update parameters",
+			name: "test update permissions",
 			definition: Definition_0_3{
 				Name:        "Test Task",
 				Slug:        "test_task",
 				Description: "A task for testing",
-				Parameters: []ParameterDefinition_0_3{
-					{
-						Name:        "Required boolean",
-						Slug:        "required_boolean",
-						Type:        "boolean",
-						Description: "A required boolean.",
-					},
-					{
-						Name:    "Short text",
-						Slug:    "short_text",
-						Type:    "shorttext",
-						Default: "foobar",
-					},
-					{
-						Name: "SQL",
-						Slug: "sql",
-						Type: "sql",
-					},
-					{
-						Name:     "Optional long text",
-						Slug:     "optional_long_text",
-						Type:     "longtext",
-						Required: newBoolPtr(false),
-					},
-					{
-						Name: "Options",
-						Slug: "options",
-						Type: "shorttext",
-						Options: []OptionDefinition_0_3{
-							{
-								Label: "one",
-								Value: 1,
-							},
-							{
-								Label: "two",
-								Value: 2,
-							},
-							{
-								Label: "three",
-								Value: 3,
-							},
-						},
-					},
-					{
-						Name:  "Regex",
-						Slug:  "regex",
-						Type:  "shorttext",
-						Regex: "foo.*",
-					},
-				},
 				Python: &PythonDefinition_0_3{
 					Arguments:  []string{"{{JSON.stringify(params)}}"},
 					Entrypoint: "main.py",
 				},
+				Permissions: &PermissionDefinition_0_3{
+					Admins:     []string{"gary@dragonhawk5.com"},
+					Executers:  []string{"quinn@infinityguard.org"},
+					Requesters: []string{"Team Squad"},
+					Viewers:    []string{"kvn@kvn.net"},
+				},
+				Constraints: &api.RunConstraints{},
 			},
 			request: api.UpdateTaskRequest{
 				Name:        "Test Task",
 				Slug:        "test_task",
+				Parameters:  []api.Parameter{},
 				Description: "A task for testing",
-				Parameters: []api.Parameter{
-					{
-						Name: "Required boolean",
-						Slug: "required_boolean",
-						Type: api.TypeBoolean,
-						Desc: "A required boolean.",
-					},
-					{
-						Name:    "Short text",
-						Slug:    "short_text",
-						Type:    api.TypeString,
-						Default: "foobar",
-					},
-					{
-						Name:      "SQL",
-						Slug:      "sql",
-						Type:      api.TypeString,
-						Component: api.ComponentEditorSQL,
-					},
-					{
-						Name:      "Optional long text",
-						Slug:      "optional_long_text",
-						Type:      api.TypeString,
-						Component: api.ComponentTextarea,
-						Constraints: api.Constraints{
-							Optional: true,
-						},
-					},
-					{
-						Name: "Options",
-						Slug: "options",
-						Type: api.TypeString,
-						Constraints: api.Constraints{
-							Options: []api.ConstraintOption{
-								{
-									Label: "one",
-									Value: 1,
-								},
-								{
-									Label: "two",
-									Value: 2,
-								},
-								{
-									Label: "three",
-									Value: 3,
-								},
-							},
-						},
-					},
-					{
-						Name: "Regex",
-						Slug: "regex",
-						Type: api.TypeString,
-						Constraints: api.Constraints{
-							Regex: "foo.*",
-						},
-					},
-				},
-				Arguments: []string{"{{JSON.stringify(params)}}"},
-				Kind:      build.TaskKindPython,
+				Arguments:   []string{"{{JSON.stringify(params)}}"},
+				Kind:        build.TaskKindPython,
 				KindOptions: build.KindOptions{
 					"entrypoint": "main.py",
+				},
+				RequireExplicitPermissions: true,
+				Permissions: []api.Permission{
+					{
+						SubUserID: newStringPtr("1002"),
+						RoleID:    api.RoleTaskViewer,
+					},
+					{
+						SubGroupID: newStringPtr("2000"),
+						RoleID:     api.RoleTaskRequester,
+					},
+					{
+						SubUserID: newStringPtr("1001"),
+						RoleID:    api.RoleTaskExecuter,
+					},
+					{
+						SubUserID: newStringPtr("1000"),
+						RoleID:    api.RoleTaskAdmin,
+					},
+				},
+				Constraints: api.RunConstraints{},
+			},
+			users: []api.User{
+				{
+					ID:    "1000",
+					Name:  "Gary Goodspeed",
+					Email: "gary@dragonhawk5.com",
+				},
+				{
+					ID:    "1001",
+					Name:  "Quinn Ergon",
+					Email: "quinn@infinityguard.org",
+				},
+				{
+					ID:    "1002",
+					Name:  "KVN",
+					Email: "kvn@kvn.net",
+				},
+			},
+			groups: []api.Group{
+				{
+					ID:   "2000",
+					Name: "Team Squad",
 				},
 			},
 		},
@@ -833,7 +850,10 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			assert := require.New(t)
 			ctx := context.Background()
-			client := &mock.MockClient{}
+			client := &mock.MockClient{
+				Users:  test.users,
+				Groups: test.groups,
+			}
 			req, err := test.definition.GetUpdateTaskRequest(ctx, client, &api.Task{})
 			assert.NoError(err)
 			assert.Equal(test.request, req)

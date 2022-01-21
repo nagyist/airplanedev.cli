@@ -13,6 +13,8 @@ type IAPIClient interface {
 	GetTask(ctx context.Context, slug string) (res Task, err error)
 	ListResources(ctx context.Context) (res ListResourcesResponse, err error)
 	CreateBuildUpload(ctx context.Context, req CreateBuildUploadRequest) (res CreateBuildUploadResponse, err error)
+	ListGroups(ctx context.Context) (res ListGroupsResponse, err error)
+	ListUsers(ctx context.Context) (res ListUsersResponse, err error)
 }
 
 // Task represents a task.
@@ -111,15 +113,33 @@ const (
 type Permissions []Permission
 
 type Permission struct {
-	Action     Action  `json:"action"`
+	Action     Action  `json:"action,omitempty"`
+	RoleID     RoleID  `json:"roleID,omitempty"`
 	SubUserID  *string `json:"subUserID"`
 	SubGroupID *string `json:"subGroupID"`
-	RoleID     RoleID  `json:"roleID"`
 }
+
+type Action string
 
 type RoleID string
 
-type Action string
+const (
+	RoleTeamAdmin        RoleID = "team_admin"
+	RoleTeamDeveloper    RoleID = "team_developer"
+	RoleTaskViewer       RoleID = "task_viewer"
+	RoleTaskRequester    RoleID = "task_requester"
+	RoleTaskExecuter     RoleID = "task_executer"
+	RoleTaskAdmin        RoleID = "task_admin"
+	RoleRunViewer        RoleID = "run_viewer"
+	RoleRunbookViewer    RoleID = "runbook_viewer"
+	RoleRunbookRequester RoleID = "runbook_requester"
+	RoleRunbookExecuter  RoleID = "runbook_executer"
+	RoleRunbookAdmin     RoleID = "runbook_admin"
+	RoleSessionViewer    RoleID = "session_viewer"
+	RoleSessionExecuter  RoleID = "session_executer"
+	RoleSessionAdmin     RoleID = "session_admin"
+	RoleResourceUser     RoleID = "resource_user"
+)
 
 type ResourceRequests map[string]string
 
@@ -284,6 +304,25 @@ func (rc RunConstraints) IsEmpty() bool {
 type AgentLabel struct {
 	Key   string `json:"key" yaml:"key"`
 	Value string `json:"value" yaml:"value"`
+}
+
+type ListGroupsResponse struct {
+	Groups []Group `json:"groups"`
+}
+
+type Group struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type ListUsersResponse struct {
+	Users []User `json:"users"`
+}
+
+type User struct {
+	ID    string `json:"userID"`
+	Email string `json:"email"`
+	Name  string `json:"name"`
 }
 
 type ExecuteRules struct {

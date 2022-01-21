@@ -868,10 +868,61 @@ func (d Definition_0_3) addParametersToUpdateTaskRequest(ctx context.Context, re
 }
 
 func (d Definition_0_3) addPermissionsToUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest) error {
-	if d.Permissions != nil && !d.Permissions.isEmpty() {
-		req.RequireExplicitPermissions = true
-		// TODO: convert permissions.
+	if d.Permissions == nil || d.Permissions.isEmpty() {
+		return nil
 	}
+
+	req.RequireExplicitPermissions = true
+
+	userResp, err := client.ListUsers(ctx)
+	if err != nil {
+		return err
+	}
+	usersByEmail := map[string]api.User{}
+	for _, user := range userResp.Users {
+		usersByEmail[user.Email] = user
+	}
+
+	groupResp, err := client.ListGroups(ctx)
+	if err != nil {
+		return err
+	}
+	groupsByName := map[string]api.Group{}
+	for _, group := range groupResp.Groups {
+		groupsByName[group.Name] = group
+	}
+
+	roleIDs := []api.RoleID{
+		api.RoleTaskViewer,
+		api.RoleTaskRequester,
+		api.RoleTaskExecuter,
+		api.RoleTaskAdmin,
+	}
+	idents := [][]string{
+		d.Permissions.Viewers,
+		d.Permissions.Requesters,
+		d.Permissions.Executers,
+		d.Permissions.Admins,
+	}
+
+	for idx, roleID := range roleIDs {
+		for _, ident := range idents[idx] {
+			if user, ok := usersByEmail[ident]; ok {
+				req.Permissions = append(req.Permissions, api.Permission{
+					SubUserID: &user.ID,
+					RoleID:    roleID,
+				})
+			} else if group, ok := groupsByName[ident]; ok {
+				req.Permissions = append(req.Permissions, api.Permission{
+					SubGroupID: &group.ID,
+					RoleID:     roleID,
+				})
+			} else {
+				return errors.Errorf("unknown entity in permissions: %s", ident)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -1093,7 +1144,64 @@ func (d *Definition_0_3) convertTaskKindFromTask(ctx context.Context, client api
 }
 
 func (d *Definition_0_3) convertPermissionsFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
-	// TODO: convert permissions.
+	if !t.RequireExplicitPermissions {
+		return nil
+	}
+
+	userResp, err := client.ListUsers(ctx)
+	if err != nil {
+		return err
+	}
+	usersByID := map[string]api.User{}
+	for _, user := range userResp.Users {
+		usersByID[user.ID] = user
+	}
+
+	groupResp, err := client.ListGroups(ctx)
+	if err != nil {
+		return err
+	}
+	groupsByID := map[string]api.Group{}
+	for _, group := range groupResp.Groups {
+		groupsByID[group.ID] = group
+	}
+
+	d.Permissions = &PermissionDefinition_0_3{}
+	for _, perm := range t.Permissions {
+		var ident string
+		if perm.SubUserID != nil {
+			if user, ok := usersByID[*perm.SubUserID]; ok {
+				ident = user.Email
+			} else {
+				return errors.Errorf("unknown user on permission: %s", *perm.SubUserID)
+			}
+		} else if perm.SubGroupID != nil {
+			if group, ok := groupsByID[*perm.SubGroupID]; ok {
+				ident = group.Name
+			} else {
+				return errors.Errorf("unknown group on permission: %s", *perm.SubGroupID)
+			}
+		} else {
+			return errors.Errorf("malformed permission object: %v", perm)
+		}
+
+		if perm.RoleID != "" {
+			switch perm.RoleID {
+			case api.RoleTaskAdmin:
+				d.Permissions.Admins = append(d.Permissions.Admins, ident)
+			case api.RoleTaskExecuter:
+				d.Permissions.Executers = append(d.Permissions.Executers, ident)
+			case api.RoleTaskRequester:
+				d.Permissions.Requesters = append(d.Permissions.Requesters, ident)
+			case api.RoleTaskViewer:
+				d.Permissions.Viewers = append(d.Permissions.Viewers, ident)
+			default:
+				return errors.Errorf("unknown role ID: %s", perm.RoleID)
+			}
+		} else {
+			return errors.Errorf("unhandled permission object: %v", perm)
+		}
+	}
 	return nil
 }
 
