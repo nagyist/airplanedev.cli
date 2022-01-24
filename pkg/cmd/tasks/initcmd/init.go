@@ -152,49 +152,62 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		return errors.Errorf("Invalid \"def-format\" specified: %s", cfg.defFormat)
 	}
 
-	var name string
-	var kind build.TaskKind
-	var entrypoint string
-	var slug string
-
+	var def definitions.Definition_0_3
 	if cfg.slug != "" {
 		task, err := client.GetTask(ctx, cfg.slug)
 		if err != nil {
 			return err
 		}
 
-		name = task.Name
-		kind = task.Kind
-		slug = task.Slug
-		// TODO: handle this properly
-		entrypoint = task.KindOptions["entrypoint"].(string)
+		def, err = definitions.NewDefinitionFromTask_0_3(ctx, client, task)
+		if err != nil {
+			return err
+		}
 	} else {
 		if cfg.newTaskInfo.name == "" || cfg.newTaskInfo.kind == "" {
 			return errors.New("missing new task info")
 		}
-		name = cfg.newTaskInfo.name
-		kind = cfg.newTaskInfo.kind
-		entrypoint = cfg.newTaskInfo.entrypoint
-		slug = utils.MakeSlug(name)
-	}
 
-	r, err := runtime.Lookup(entrypoint, kind)
-	if err != nil {
-		return errors.Wrapf(err, "unable to init %q - check that your CLI is up to date", entrypoint)
-	}
-
-	// Create entrypoint, without comment link, if it doesn't exist.
-	if !fsx.Exists(entrypoint) {
-		if err := createEntrypoint(r, entrypoint, nil); err != nil {
-			return errors.Wrapf(err, "unable to create entrypoint")
+		var err error
+		def, err = definitions.NewDefinition_0_3(cfg.newTaskInfo.name,
+			utils.MakeSlug(cfg.newTaskInfo.name), cfg.newTaskInfo.kind, cfg.newTaskInfo.entrypoint)
+		if err != nil {
+			return err
 		}
-		logger.Step("Created %s", entrypoint)
-	} else {
-		logger.Step("%s already exists", entrypoint)
+	}
+
+	entrypoint, err := def.Entrypoint()
+	if err != nil && err != definitions.ErrNoEntrypoint {
+		return err
+	}
+
+	if entrypoint != "" {
+		kind, err := def.Kind()
+		if err != nil {
+			return err
+		}
+
+		r, err := runtime.Lookup(entrypoint, kind)
+		if err != nil {
+			return errors.Wrapf(err, "unable to init %q - check that your CLI is up to date", entrypoint)
+		}
+
+		// Create entrypoint, without comment link, if it doesn't exist.
+		if !fsx.Exists(entrypoint) {
+			if err := createEntrypoint(r, entrypoint, nil); err != nil {
+				return errors.Wrapf(err, "unable to create entrypoint")
+			}
+			logger.Step("Created %s", entrypoint)
+		} else {
+			logger.Step("%s already exists", entrypoint)
+		}
 	}
 
 	// Create task defn file.
-	defFn := fmt.Sprintf("%s.task.%s", slug, cfg.defFormat)
+	defFn := cfg.file
+	if !definitions.IsTaskDef(defFn) {
+		defFn = fmt.Sprintf("%s.task.%s", def.Slug, cfg.defFormat)
+	}
 	if fsx.Exists(defFn) {
 		// If it exists, check for existence of this file before overwriting it.
 		question := fmt.Sprintf("Would you like to overwrite %s?", defFn)
@@ -204,11 +217,6 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 			// User answered "no", so bail here.
 			return nil
 		}
-	}
-
-	def, err := definitions.NewDefinition_0_3(name, slug, kind, entrypoint)
-	if err != nil {
-		return err
 	}
 
 	buf, err := def.Marshal(definitions.TaskDefFormat(cfg.defFormat))
