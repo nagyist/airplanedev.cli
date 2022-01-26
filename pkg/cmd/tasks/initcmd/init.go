@@ -177,14 +177,24 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 	}
 
 	entrypoint, err := def.Entrypoint()
-	if err != nil && err != definitions.ErrNoEntrypoint {
+	if err == definitions.ErrNoEntrypoint {
+		// no-op
+	} else if err != nil {
 		return err
-	}
-
-	if entrypoint != "" {
+	} else {
 		kind, err := def.Kind()
 		if err != nil {
 			return err
+		}
+
+		if entrypoint == "" {
+			entrypoint, err = promptForNewFileName(def.GetSlug(), kind)
+			if err != nil {
+				return err
+			}
+			if err := def.SetEntrypoint(entrypoint); err != nil {
+				return err
+			}
 		}
 
 		r, err := runtime.Lookup(entrypoint, kind)
@@ -247,7 +257,7 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 	}
 
 	if cfg.file == "" {
-		cfg.file, err = promptForNewFileName(task)
+		cfg.file, err = promptForNewFileName(task.Slug, task.Kind)
 		if err != nil {
 			return err
 		}
@@ -355,8 +365,8 @@ func patch(slug, file string) (ok bool, err error) {
 	return
 }
 
-func promptForNewFileName(task libapi.Task) (string, error) {
-	fileName := task.Slug + runtime.SuggestExt(task.Kind)
+func promptForNewFileName(slug string, kind build.TaskKind) (string, error) {
+	fileName := slug + runtime.SuggestExt(kind)
 
 	if cwdIsHome, err := cwdIsHome(); err != nil {
 		return "", err
