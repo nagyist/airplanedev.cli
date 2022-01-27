@@ -202,14 +202,37 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 			return errors.Wrapf(err, "unable to init %q - check that your CLI is up to date", entrypoint)
 		}
 
-		// Create entrypoint, without comment link, if it doesn't exist.
-		if !fsx.Exists(entrypoint) {
-			if err := createEntrypoint(r, entrypoint, nil); err != nil {
-				return errors.Wrapf(err, "unable to create entrypoint")
+		if kind == build.TaskKindSQL {
+			doCreateEntrypoint := true
+			if fsx.Exists(entrypoint) {
+				question := fmt.Sprintf("Would you like to overwrite %s?", entrypoint)
+				if ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
+					return err
+				} else if !ok {
+					doCreateEntrypoint = false
+				}
 			}
-			logger.Step("Created %s", entrypoint)
+
+			if doCreateEntrypoint {
+				query, err := def.SQL.GetQuery()
+				if err != nil {
+					return err
+				}
+				if err := writeEntrypoint(entrypoint, []byte(query), 0644); err != nil {
+					return errors.Wrapf(err, "unable to create entrypoint")
+				}
+				logger.Step("Created %s", entrypoint)
+			}
 		} else {
-			logger.Step("%s already exists", entrypoint)
+			// Create entrypoint, without comment link, if it doesn't exist.
+			if !fsx.Exists(entrypoint) {
+				if err := createEntrypoint(r, entrypoint, nil); err != nil {
+					return errors.Wrapf(err, "unable to create entrypoint")
+				}
+				logger.Step("Created %s", entrypoint)
+			} else {
+				logger.Step("%s already exists", entrypoint)
+			}
 		}
 	}
 
@@ -502,11 +525,15 @@ func createEntrypoint(r runtime.Interface, entrypoint string, task *libapi.Task)
 		return err
 	}
 
-	if err := os.MkdirAll(filepath.Dir(entrypoint), 0755); err != nil {
+	return writeEntrypoint(entrypoint, code, fileMode)
+}
+
+func writeEntrypoint(path string, b []byte, fileMode os.FileMode) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
 
-	if err := ioutil.WriteFile(entrypoint, code, fileMode); err != nil {
+	if err := ioutil.WriteFile(path, b, fileMode); err != nil {
 		return err
 	}
 
