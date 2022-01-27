@@ -21,7 +21,7 @@ jobs:
         with:
           go-version: 1.17
       - name: Set up gcloud CLI
-        uses: google-github-actions/setup-gcloud@v0.3.0
+        uses: google-github-actions/setup-gcloud@v0.4.0
         with:
           project_id: airplane-prod
           service_account_key: ${{ secrets.GCP_KEY }}
