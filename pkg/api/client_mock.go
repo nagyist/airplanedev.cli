@@ -13,12 +13,16 @@ type MockClient struct {
 
 var _ APIClient = &MockClient{}
 
-func (mc *MockClient) GetTask(ctx context.Context, slug string) (res libapi.Task, err error) {
-	task, ok := mc.Tasks[slug]
+func (mc *MockClient) GetTask(ctx context.Context, req libapi.GetTaskRequest) (res libapi.Task, err error) {
+	task, ok := mc.Tasks[req.Slug]
 	if !ok {
-		return libapi.Task{}, &libapi.TaskMissingError{AppURL: "api/", Slug: slug}
+		return libapi.Task{}, &libapi.TaskMissingError{AppURL: "api/", Slug: req.Slug}
 	}
 	return task, nil
+}
+
+func (mc *MockClient) ListTasks(ctx context.Context, envSlug string) (res ListTasksResponse, err error) {
+	panic("not implemented") // TODO: Implement
 }
 
 func (mc *MockClient) ListResources(ctx context.Context) (res libapi.ListResourcesResponse, err error) {

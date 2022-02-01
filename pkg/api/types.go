@@ -11,6 +11,11 @@ import (
 	"github.com/airplanedev/ojson"
 )
 
+type GetTaskRequest struct {
+	Slug    string
+	EnvSlug string
+}
+
 // CreateTaskRequest creates a new task.
 type CreateTaskRequest struct {
 	Slug             string                `json:"slug"`
@@ -27,8 +32,8 @@ type CreateTaskRequest struct {
 	Kind             build.TaskKind        `json:"kind"`
 	KindOptions      build.KindOptions     `json:"kindOptions"`
 	Repo             string                `json:"repo"`
-	// TODO(amir): friendly type here (120s, 5m ...)
-	Timeout int `json:"timeout"`
+	Timeout          int                   `json:"timeout"`
+	EnvSlug          string                `json:"envSlug"`
 }
 
 type UpdateTaskResponse struct {
@@ -144,6 +149,7 @@ type Values = map[string]interface{}
 type RunTaskRequest struct {
 	TaskID      string `json:"taskID"`
 	ParamValues Values `json:"paramValues"`
+	EnvSlug     string `json:"envSlug"`
 }
 
 // RunTaskResponse represents a run task response.
@@ -189,11 +195,12 @@ type Run struct {
 
 // ListRunsRequest represents a list runs request.
 type ListRunsRequest struct {
-	TaskID string    `json:"taskID"`
-	Since  time.Time `json:"since"`
-	Until  time.Time `json:"until"`
-	Page   int       `json:"page"`
-	Limit  int       `json:"limit"`
+	TaskID  string    `json:"taskID"`
+	Since   time.Time `json:"since"`
+	Until   time.Time `json:"until"`
+	Page    int       `json:"page"`
+	Limit   int       `json:"limit"`
+	EnvSlug string    `json:"envSlug"`
 }
 
 // ListRunsResponse represents a list runs response.

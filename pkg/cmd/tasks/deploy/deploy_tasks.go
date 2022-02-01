@@ -40,14 +40,13 @@ type DeployerOpts struct {
 
 func NewDeployer(cfg config, logger logger.Logger, opts DeployerOpts) *deployer {
 	var bc build.BuildCreator
-	if cfg.local {
+	if opts.BuildCreator != nil {
+		bc = opts.BuildCreator
+	} else if cfg.local {
 		bc = build.NewLocalBuildCreator()
 	} else {
 		a := archive.NewAPIArchiver(logger, cfg.client, &archive.HttpUploader{})
 		bc = build.NewRemoteBuildCreator(a)
-	}
-	if opts.BuildCreator != nil {
-		bc = opts.BuildCreator
 	}
 	return &deployer{
 		buildCreator:     bc,
@@ -162,6 +161,7 @@ func (d *deployer) deployTask(ctx context.Context, cfg config, tc discover.TaskC
 			"build_id":         tp.buildID,
 			"errored":          rErr != nil,
 			"duration_seconds": time.Since(start).Seconds(),
+			"env_slug":         cfg.envSlug,
 		})
 	}()
 
@@ -232,6 +232,7 @@ More information: https://apn.sh/jst-upgrade`)
 	}
 	utr.BuildID = pointers.String(tp.buildID)
 	utr.InterpolationMode = interpolationMode
+	utr.EnvSlug = cfg.envSlug
 
 	_, err = client.UpdateTask(ctx, utr)
 	return err

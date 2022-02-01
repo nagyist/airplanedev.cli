@@ -7,6 +7,7 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -69,7 +70,9 @@ func run(ctx context.Context, cfg config) error {
 		slug = def.Slug
 	}
 
-	task, err := client.GetTask(ctx, slug)
+	task, err := client.GetTask(ctx, api.GetTaskRequest{
+		Slug: slug,
+	})
 	if err != nil {
 		return errors.Wrap(err, "get task")
 	}

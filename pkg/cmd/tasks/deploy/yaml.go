@@ -89,7 +89,9 @@ func deployFromYaml(ctx context.Context, cfg config) (rErr error) {
 		command = def.Image.Command
 	}
 
-	task, err := client.GetTask(ctx, def.Slug)
+	task, err := client.GetTask(ctx, libapi.GetTaskRequest{
+		Slug: def.Slug,
+	})
 	if _, ok := err.(*libapi.TaskMissingError); ok {
 		// A task with this slug does not exist, so we should create one.
 		logger.Log("Creating task...")
@@ -114,7 +116,9 @@ func deployFromYaml(ctx context.Context, cfg config) (rErr error) {
 			return errors.Wrapf(err, "creating task %s", def.Slug)
 		}
 
-		task, err = client.GetTask(ctx, def.Slug)
+		task, err = client.GetTask(ctx, libapi.GetTaskRequest{
+			Slug: def.Slug,
+		})
 		if err != nil {
 			return errors.Wrap(err, "fetching created task")
 		}

@@ -9,6 +9,7 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/utils"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -57,7 +58,10 @@ func run(ctx context.Context, c *cli.Config, cfg config) error {
 
 	// If a task slug was provided, look up its task ID:
 	if cfg.slug != "" {
-		task, err := client.GetTask(ctx, cfg.slug)
+		task, err := client.GetTask(ctx, libapi.GetTaskRequest{
+			Slug: cfg.slug,
+			// TODO: pass EnvSlug through once we add it to the /runs/list API
+		})
 		if err != nil {
 			return err
 		}

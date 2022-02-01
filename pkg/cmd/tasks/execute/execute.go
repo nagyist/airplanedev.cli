@@ -17,6 +17,7 @@ import (
 	"github.com/airplanedev/cli/pkg/params"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/utils"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/pkg/errors"
@@ -27,8 +28,9 @@ import (
 type config struct {
 	root *cli.Config
 	// task reference could be a script file, yaml definition or a slug.
-	task string
-	args []string
+	task    string
+	args    []string
+	envSlug string
 }
 
 // New returns a new execute cobra command.
@@ -67,6 +69,12 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().StringVarP(&cfg.task, "file", "f", "", "File to deploy (.yaml, .yml, .js, .ts)")
 	cli.Must(cmd.Flags().MarkHidden("file")) // --file is deprecated
 
+	// Unhide this flag once we release environments.
+	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
+	if err := cmd.Flags().MarkHidden("env"); err != nil {
+		logger.Debug("unable to hide --env: %s", err)
+	}
+
 	return cmd
 }
 
@@ -86,7 +94,10 @@ func run(ctx context.Context, cfg config) error {
 			return err
 		}
 	}
-	task, err := client.GetTask(ctx, slug)
+	task, err := client.GetTask(ctx, libapi.GetTaskRequest{
+		Slug:    slug,
+		EnvSlug: cfg.envSlug,
+	})
 	if err != nil {
 		return err
 	}
@@ -100,11 +111,12 @@ func run(ctx context.Context, cfg config) error {
 	req := api.RunTaskRequest{
 		TaskID:      task.ID,
 		ParamValues: make(api.Values),
+		EnvSlug:     cfg.envSlug,
 	}
 
 	logger.Log("Executing %s task: %s", logger.Bold(task.Name), logger.Gray(client.TaskURL(task.Slug)))
 
-	req.ParamValues, err = params.CLI(cfg.args, client, task)
+	req.ParamValues, err = params.CLI(cfg.args, task)
 	if errors.Is(err, flag.ErrHelp) {
 		return nil
 	} else if err != nil {
@@ -153,6 +165,7 @@ func run(ctx context.Context, cfg config) error {
 		"task_id":   task.ID,
 		"task_name": task.Name,
 		"status":    state.Status,
+		"env_slug":  cfg.envSlug,
 	})
 
 	switch state.Status {

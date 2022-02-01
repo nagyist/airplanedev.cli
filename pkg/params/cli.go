@@ -19,7 +19,7 @@ import (
 //
 // A flag.ErrHelp error will be returned if a -h or --help was provided, in which case
 // this function will print out help text on how to pass this task's parameters as flags.
-func CLI(args []string, client *api.Client, task libapi.Task) (api.Values, error) {
+func CLI(args []string, task libapi.Task) (api.Values, error) {
 	values := api.Values{}
 
 	if len(args) > 0 {
@@ -30,7 +30,7 @@ func CLI(args []string, client *api.Client, task libapi.Task) (api.Values, error
 		}
 	} else {
 		// Otherwise, try to prompt for parameters
-		if err := promptForParamValues(client, task, values); err != nil {
+		if err := promptForParamValues(task, values); err != nil {
 			return nil, err
 		}
 	}
@@ -70,7 +70,7 @@ func flagset(task libapi.Task, args api.Values) *flag.FlagSet {
 // If there are no parameters, does nothing.
 // If TTY, prompts for parameters and then asks user to confirm.
 // If no TTY, errors.
-func promptForParamValues(client *api.Client, task libapi.Task, paramValues map[string]interface{}) error {
+func promptForParamValues(task libapi.Task, paramValues map[string]interface{}) error {
 	if len(task.Parameters) == 0 {
 		return nil
 	}

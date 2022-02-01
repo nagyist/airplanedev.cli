@@ -43,6 +43,7 @@ type config struct {
 	defFormat string
 	assumeYes bool
 	assumeNo  bool
+	envSlug   string
 
 	newTaskInfo newTaskInfo
 }
@@ -105,6 +106,12 @@ func New(c *cli.Config) *cobra.Command {
 		logger.Debug("error: %s", err)
 	}
 
+	// Unhide this flag once we release environments.
+	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
+	if err := cmd.Flags().MarkHidden("env"); err != nil {
+		logger.Debug("unable to hide --env: %s", err)
+	}
+
 	return cmd
 }
 
@@ -154,12 +161,15 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 
 	var def definitions.Definition_0_3
 	if cfg.slug != "" {
-		task, err := client.GetTask(ctx, cfg.slug)
+		task, err := client.GetTask(ctx, libapi.GetTaskRequest{
+			Slug:    cfg.slug,
+			EnvSlug: cfg.envSlug,
+		})
 		if err != nil {
 			return err
 		}
 
-		def, err = definitions.NewDefinitionFromTask_0_3(ctx, client, task)
+		def, err = definitions.NewDefinitionFromTask_0_3(ctx, cfg.client, task)
 		if err != nil {
 			return err
 		}
@@ -274,7 +284,10 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 		return errors.New("Required flag(s) \"slug\" not set")
 	}
 
-	task, err := client.GetTask(ctx, cfg.slug)
+	task, err := client.GetTask(ctx, libapi.GetTaskRequest{
+		Slug:    cfg.slug,
+		EnvSlug: cfg.envSlug,
+	})
 	if err != nil {
 		return err
 	}

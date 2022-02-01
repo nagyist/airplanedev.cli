@@ -32,6 +32,8 @@ type config struct {
 	dev       bool
 	assumeYes bool
 	assumeNo  bool
+
+	envSlug string
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -83,6 +85,12 @@ func New(c *cli.Config) *cobra.Command {
 		logger.Debug("error: %s", err)
 	}
 
+	// Unhide this flag once we release environments.
+	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
+	if err := cmd.Flags().MarkHidden("env"); err != nil {
+		logger.Debug("unable to hide --env: %s", err)
+	}
+
 	return cmd
 }
 
@@ -107,6 +115,10 @@ func run(ctx context.Context, cfg config) error {
 
 	ext := filepath.Ext(cfg.paths[0])
 	if !cfg.dev && (ext == ".yml" || ext == ".yaml") && len(cfg.paths) == 1 {
+		if cfg.envSlug != "" {
+			return errors.New("--env is not supported by the legacy YAML format")
+		}
+
 		// Legacy YAML.
 		return deployFromYaml(ctx, cfg)
 	}
@@ -117,8 +129,9 @@ func run(ctx context.Context, cfg config) error {
 		TaskDiscoverers: []discover.TaskDiscoverer{
 			&discover.ScriptDiscoverer{},
 		},
-		Client: cfg.client,
-		Logger: l,
+		Client:  cfg.client,
+		Logger:  l,
+		EnvSlug: cfg.envSlug,
 	}
 	if cfg.dev {
 		d.TaskDiscoverers = append(d.TaskDiscoverers, &discover.DefnDiscoverer{
@@ -177,12 +190,16 @@ func HandleMissingTask(cfg config, l logger.Logger) func(ctx context.Context, de
 			KindOptions:      utr.KindOptions,
 			Repo:             utr.Repo,
 			Timeout:          utr.Timeout,
+			EnvSlug:          cfg.envSlug,
 		})
 		if err != nil {
 			return nil, errors.Wrapf(err, "creating task %s", def.GetSlug())
 		}
 
-		task, err := cfg.client.GetTask(ctx, def.GetSlug())
+		task, err := cfg.client.GetTask(ctx, libapi.GetTaskRequest{
+			Slug:    def.GetSlug(),
+			EnvSlug: cfg.envSlug,
+		})
 		if err != nil {
 			return nil, errors.Wrap(err, "fetching created task")
 		}

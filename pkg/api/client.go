@@ -76,19 +76,25 @@ type Client struct {
 }
 
 type APIClient interface {
-	GetTask(ctx context.Context, slug string) (res libapi.Task, err error)
+	GetTask(ctx context.Context, req libapi.GetTaskRequest) (res libapi.Task, err error)
+	ListTasks(ctx context.Context, envSlug string) (res ListTasksResponse, err error)
+	CreateTask(ctx context.Context, req CreateTaskRequest) (res CreateTaskResponse, err error)
+	UpdateTask(ctx context.Context, req libapi.UpdateTaskRequest) (res UpdateTaskResponse, err error)
+	TaskURL(slug string) string
+
 	ListResources(ctx context.Context) (res libapi.ListResourcesResponse, err error)
+
 	SetConfig(ctx context.Context, req SetConfigRequest) (err error)
 	GetConfig(ctx context.Context, req GetConfigRequest) (res GetConfigResponse, err error)
-	TaskURL(slug string) string
-	UpdateTask(ctx context.Context, req libapi.UpdateTaskRequest) (res UpdateTaskResponse, err error)
-	CreateTask(ctx context.Context, req CreateTaskRequest) (res CreateTaskResponse, err error)
+
 	CreateBuild(ctx context.Context, req CreateBuildRequest) (res CreateBuildResponse, err error)
 	GetRegistryToken(ctx context.Context) (res RegistryTokenResponse, err error)
 	CreateBuildUpload(ctx context.Context, req libapi.CreateBuildUploadRequest) (res libapi.CreateBuildUploadResponse, err error)
 	GetBuildLogs(ctx context.Context, buildID string, prevToken string) (res GetBuildLogsResponse, err error)
 	GetBuild(ctx context.Context, id string) (res GetBuildResponse, err error)
+
 	ListGroups(ctx context.Context) (res libapi.ListGroupsResponse, err error)
+
 	ListUsers(ctx context.Context) (res libapi.ListUsersResponse, err error)
 }
 
@@ -164,8 +170,10 @@ func (c Client) UpdateTask(ctx context.Context, req libapi.UpdateTaskRequest) (r
 }
 
 // ListTasks lists all tasks.
-func (c Client) ListTasks(ctx context.Context) (res ListTasksResponse, err error) {
-	err = c.do(ctx, "GET", "/tasks/list", nil, &res)
+func (c Client) ListTasks(ctx context.Context, envSlug string) (res ListTasksResponse, err error) {
+	err = c.do(ctx, "GET", encodeQueryString("/tasks/list", url.Values{
+		"envSlug": []string{envSlug},
+	}), nil, &res)
 	if err != nil {
 		return
 	}
@@ -187,17 +195,17 @@ func (c Client) GetUniqueSlug(ctx context.Context, name, preferredSlug string) (
 
 // ListRuns lists most recent runs.
 func (c Client) ListRuns(ctx context.Context, req ListRunsRequest) (ListRunsResponse, error) {
-	q := url.Values{}
-	q.Set("page", strconv.FormatInt(int64(req.Page), 10))
-	if req.TaskID != "" {
-		q.Set("taskID", req.TaskID)
-	}
 	pageLimit := 100
 	if req.Limit > 0 && req.Limit < 100 {
 		// If a user provides a smaller limit, fetch exactly that many items.
 		pageLimit = req.Limit
 	}
-	q.Set("limit", strconv.FormatInt(int64(pageLimit), 10))
+
+	q := url.Values{
+		"page":   []string{strconv.FormatInt(int64(req.Page), 10)},
+		"taskID": []string{req.TaskID},
+		"limit":  []string{strconv.FormatInt(int64(pageLimit), 10)},
+	}
 	if !req.Since.IsZero() {
 		q.Set("since", req.Since.Format(time.RFC3339))
 	}
@@ -209,9 +217,9 @@ func (c Client) ListRuns(ctx context.Context, req ListRunsRequest) (ListRunsResp
 	var page ListRunsResponse
 	var i int
 	for {
-		q["page"] = []string{strconv.FormatInt(int64(i), 10)}
+		q.Set("page", strconv.FormatInt(int64(i), 10))
 		i++
-		if err := c.do(ctx, "GET", "/runs/list?"+q.Encode(), nil, &page); err != nil {
+		if err := c.do(ctx, "GET", encodeQueryString("/runs/list", q), nil, &page); err != nil {
 			return ListRunsResponse{}, err
 		}
 		runs := page.Runs
@@ -277,14 +285,16 @@ func (c Client) GetOutputs(ctx context.Context, runID string) (res GetOutputsRes
 }
 
 // GetTask returns a task by its slug.
-func (c Client) GetTask(ctx context.Context, slug string) (res libapi.Task, err error) {
-	q := url.Values{"slug": []string{slug}}
-	err = c.do(ctx, "GET", "/tasks/get?"+q.Encode(), nil, &res)
+func (c Client) GetTask(ctx context.Context, req libapi.GetTaskRequest) (res libapi.Task, err error) {
+	err = c.do(ctx, "GET", encodeQueryString("/tasks/get", url.Values{
+		"slug":    []string{req.Slug},
+		"envSlug": []string{req.EnvSlug},
+	}), nil, &res)
 
 	if err, ok := err.(Error); ok && err.Code == 404 {
 		return res, &libapi.TaskMissingError{
 			AppURL: c.appURL().String(),
-			Slug:   slug,
+			Slug:   req.Slug,
 		}
 	}
 
@@ -447,4 +457,24 @@ func (c Client) host() string {
 		return c.Host
 	}
 	return Host
+}
+
+// encodeURL is a helper for encoding a set of query parameters onto a URL.
+//
+// If a query parameter is an empty string, it will be excluded from the
+// encoded query string.
+func encodeQueryString(path string, params url.Values) string {
+	updatedParams := url.Values{}
+	for k, v := range params {
+		// Remove any query parameters
+		if len(v) > 1 || (len(v) == 1 && len(v[0]) > 0) {
+			updatedParams[k] = v
+		}
+	}
+
+	if len(updatedParams) == 0 {
+		return path
+	}
+
+	return path + "?" + updatedParams.Encode()
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/params"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/utils"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/outputs"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils/bufiox"
@@ -31,9 +32,10 @@ import (
 )
 
 type config struct {
-	root *cli.Config
-	file string
-	args []string
+	root    *cli.Config
+	file    string
+	args    []string
+	envSlug string
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -62,6 +64,12 @@ func New(c *cli.Config) *cobra.Command {
 		},
 	}
 
+	// Unhide this flag once we release environments.
+	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
+	if err := cmd.Flags().MarkHidden("env"); err != nil {
+		logger.Debug("unable to hide --env: %s", err)
+	}
+
 	return cmd
 }
 
@@ -75,7 +83,10 @@ func run(ctx context.Context, cfg config) error {
 		return err
 	}
 
-	task, err := cfg.root.Client.GetTask(ctx, slug)
+	task, err := cfg.root.Client.GetTask(ctx, libapi.GetTaskRequest{
+		Slug:    slug,
+		EnvSlug: cfg.envSlug,
+	})
 	if err != nil {
 		return errors.Wrap(err, "getting task")
 	}
@@ -85,7 +96,7 @@ func run(ctx context.Context, cfg config) error {
 		return errors.Wrapf(err, "unsupported file type: %s", filepath.Base(cfg.file))
 	}
 
-	paramValues, err := params.CLI(cfg.args, cfg.root.Client, task)
+	paramValues, err := params.CLI(cfg.args, task)
 	if errors.Is(err, flag.ErrHelp) {
 		return nil
 	} else if err != nil {

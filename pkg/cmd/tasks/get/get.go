@@ -5,12 +5,25 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
+	"github.com/airplanedev/lib/pkg/api"
 	"github.com/spf13/cobra"
 )
 
+type config struct {
+	root *cli.Config
+
+	slug    string
+	envSlug string
+}
+
 // New returns a new get command.
 func New(c *cli.Config) *cobra.Command {
+	cfg := config{
+		root: c,
+	}
+
 	cmd := &cobra.Command{
 		Use:   "get",
 		Short: "Get information about a task",
@@ -21,17 +34,28 @@ func New(c *cli.Config) *cobra.Command {
 		`),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return run(cmd.Root().Context(), c, args[0])
+			cfg.slug = args[0]
+			return run(cmd.Root().Context(), cfg)
 		},
 	}
+
+	// Unhide this flag once we release environments.
+	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
+	if err := cmd.Flags().MarkHidden("env"); err != nil {
+		logger.Debug("unable to hide --env: %s", err)
+	}
+
 	return cmd
 }
 
 // Run runs the get command.
-func run(ctx context.Context, c *cli.Config, slug string) error {
-	var client = c.Client
+func run(ctx context.Context, cfg config) error {
+	var client = cfg.root.Client
 
-	task, err := client.GetTask(ctx, slug)
+	task, err := client.GetTask(ctx, api.GetTaskRequest{
+		Slug:    cfg.slug,
+		EnvSlug: cfg.envSlug,
+	})
 	if err != nil {
 		return err
 	}
