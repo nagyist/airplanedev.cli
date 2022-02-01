@@ -177,20 +177,20 @@ const (
 
 // Run represents a run.
 type Run struct {
-	RunID       string     `json:"runID"`
-	TaskID      string     `json:"taskID"`
-	TaskName    string     `json:"taskName"`
-	TeamID      string     `json:"teamID"`
-	Status      RunStatus  `json:"status"`
-	ParamValues Values     `json:"paramValues"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	CreatorID   string     `json:"creatorID"`
-	QueuedAt    *time.Time `json:"queuedAt"`
-	ActiveAt    *time.Time `json:"activeAt"`
-	SucceededAt *time.Time `json:"succeededAt"`
-	FailedAt    *time.Time `json:"failedAt"`
-	CancelledAt *time.Time `json:"cancelledAt"`
-	CancelledBy *string    `json:"cancelledBy"`
+	RunID       string     `json:"id" yaml:"id"`
+	TaskID      string     `json:"taskID" yaml:"taskID"`
+	TaskName    string     `json:"taskName" yaml:"taskName"`
+	TeamID      string     `json:"teamID" yaml:"teamID"`
+	Status      RunStatus  `json:"status" yaml:"status"`
+	ParamValues Values     `json:"paramValues" yaml:"paramValues"`
+	CreatedAt   time.Time  `json:"createdAt" yaml:"createdAt"`
+	CreatorID   string     `json:"creatorID" yaml:"creatorID"`
+	QueuedAt    *time.Time `json:"queuedAt" yaml:"queuedAt"`
+	ActiveAt    *time.Time `json:"activeAt" yaml:"activeAt"`
+	SucceededAt *time.Time `json:"succeededAt" yaml:"succeededAt"`
+	FailedAt    *time.Time `json:"failedAt" yaml:"failedAt"`
+	CancelledAt *time.Time `json:"cancelledAt" yaml:"cancelledAt"`
+	CancelledBy *string    `json:"cancelledBy" yaml:"cancelledBy"`
 }
 
 // ListRunsRequest represents a list runs request.
@@ -225,10 +225,10 @@ type SetConfigRequest struct {
 
 // Config represents a config var.
 type Config struct {
-	Name     string `json:"name"`
-	Tag      string `json:"tag"`
-	Value    string `json:"value"`
-	IsSecret bool   `json:"isSecret"`
+	Name     string `json:"name" yaml:"name"`
+	Tag      string `json:"tag" yaml:"tag"`
+	Value    string `json:"value" yaml:"value"`
+	IsSecret bool   `json:"isSecret" yaml:"isSecret"`
 }
 
 // GetConfigResponse represents a get config response.
