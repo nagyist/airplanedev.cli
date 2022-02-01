@@ -12,7 +12,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
-	libapi "github.com/airplanedev/lib/pkg/api"
+	"github.com/airplanedev/lib/pkg/build"
 	libBuild "github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/archive"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
@@ -52,12 +52,6 @@ func (d *remoteBuildCreator) CreateBuild(ctx context.Context, req Request) (*lib
 	defer loader.Stop()
 	loader.Start()
 
-	// Before performing a remote build, we must first update kind/kindOptions
-	// since the remote build relies on pulling those from the tasks table (for now).
-	if err := updateKindAndOptions(ctx, req.Client, req.Def, req.Shim); err != nil {
-		return nil, err
-	}
-
 	buildLog(ctx, api.LogLevelInfo, loader, logger.Gray("Authenticating with Airplane..."))
 	registry, err := d.getRegistryToken(ctx, req.Client)
 	if err != nil {
@@ -76,11 +70,17 @@ func (d *remoteBuildCreator) CreateBuild(ctx context.Context, req Request) (*lib
 		))
 	}
 
+	kind, buildConfig, err := getKindAndConfig(ctx, req.Def, req.Shim)
+	if err != nil {
+		return nil, err
+	}
 	build, err := req.Client.CreateBuild(ctx, api.CreateBuildRequest{
 		TaskID:         req.TaskID,
 		SourceUploadID: uploadID,
 		Env:            req.TaskEnv,
 		GitMeta:        req.GitMeta,
+		BuildConfig:    buildConfig,
+		Kind:           kind,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "creating build")
@@ -118,54 +118,24 @@ func (d *registryTokenGetter) getRegistryToken(ctx context.Context, client api.A
 	return registryToken, nil
 }
 
-func updateKindAndOptions(ctx context.Context, client api.APIClient, def definitions.DefinitionInterface, shim bool) error {
-	task, err := client.GetTask(ctx, def.GetSlug())
+func getKindAndConfig(ctx context.Context, def definitions.DefinitionInterface, shim bool) (build.TaskKind, build.KindOptions, error) {
+	kind, buildConfig, err := def.GetKindAndOptions()
 	if err != nil {
-		return err
-	}
-
-	kind, kindOptions, err := def.GetKindAndOptions()
-	if err != nil {
-		return err
+		return "", nil, err
 	}
 
 	// Conditionally instruct the remote builder API to perform a shim-based build.
 	if shim {
-		kindOptions["shim"] = "true"
+		buildConfig["shim"] = "true"
 	}
 
 	// Normalize entrypoint to `/` regardless of OS.
 	// CLI might be run from Windows or not Windows, but remote API is on Linux.
-	if ep, ok := kindOptions["entrypoint"].(string); ok {
-		kindOptions["entrypoint"] = filepath.ToSlash(ep)
+	if ep, ok := buildConfig["entrypoint"].(string); ok {
+		buildConfig["entrypoint"] = filepath.ToSlash(ep)
 	}
 
-	_, err = client.UpdateTask(ctx, libapi.UpdateTaskRequest{
-		Kind:        kind,
-		KindOptions: kindOptions,
-
-		// The following fields are not updated until after the build finishes.
-		Slug:                       task.Slug,
-		Name:                       task.Name,
-		Description:                task.Description,
-		Image:                      task.Image,
-		Command:                    task.Command,
-		Arguments:                  task.Arguments,
-		Parameters:                 task.Parameters,
-		Constraints:                task.Constraints,
-		Env:                        task.Env,
-		ResourceRequests:           task.ResourceRequests,
-		Resources:                  task.Resources,
-		Repo:                       task.Repo,
-		RequireExplicitPermissions: task.RequireExplicitPermissions,
-		Permissions:                task.Permissions,
-		Timeout:                    task.Timeout,
-	})
-	if err != nil {
-		return errors.Wrapf(err, "updating task %s", def.GetSlug())
-	}
-
-	return nil
+	return kind, buildConfig, nil
 }
 
 func waitForBuild(ctx context.Context, loader logger.Loader, client api.APIClient, buildID string) error {

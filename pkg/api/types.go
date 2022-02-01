@@ -13,20 +13,20 @@ import (
 
 // CreateTaskRequest creates a new task.
 type CreateTaskRequest struct {
-	Slug             string            `json:"slug"`
-	Name             string            `json:"name"`
-	Description      string            `json:"description"`
-	Image            *string           `json:"image"`
-	Command          []string          `json:"command"`
-	Arguments        []string          `json:"arguments"`
-	Parameters       libapi.Parameters        `json:"parameters"`
-	Constraints      libapi.RunConstraints    `json:"constraints"`
-	Env              libapi.TaskEnv           `json:"env"`
-	ResourceRequests map[string]string `json:"resourceRequests"`
-	Resources        map[string]string `json:"resources"`
-	Kind             build.TaskKind    `json:"kind"`
-	KindOptions      build.KindOptions `json:"kindOptions"`
-	Repo             string            `json:"repo"`
+	Slug             string                `json:"slug"`
+	Name             string                `json:"name"`
+	Description      string                `json:"description"`
+	Image            *string               `json:"image"`
+	Command          []string              `json:"command"`
+	Arguments        []string              `json:"arguments"`
+	Parameters       libapi.Parameters     `json:"parameters"`
+	Constraints      libapi.RunConstraints `json:"constraints"`
+	Env              libapi.TaskEnv        `json:"env"`
+	ResourceRequests map[string]string     `json:"resourceRequests"`
+	Resources        map[string]string     `json:"resources"`
+	Kind             build.TaskKind        `json:"kind"`
+	KindOptions      build.KindOptions     `json:"kindOptions"`
+	Repo             string                `json:"repo"`
 	// TODO(amir): friendly type here (120s, 5m ...)
 	Timeout int `json:"timeout"`
 }
@@ -234,10 +234,12 @@ type GetBuildResponse struct {
 }
 
 type CreateBuildRequest struct {
-	TaskID         string       `json:"taskID"`
-	SourceUploadID string       `json:"sourceUploadID"`
-	Env            libapi.TaskEnv      `json:"env"`
-	GitMeta        BuildGitMeta `json:"gitMeta"`
+	TaskID         string            `json:"taskID"`
+	SourceUploadID string            `json:"sourceUploadID"`
+	Env            libapi.TaskEnv    `json:"env"`
+	BuildConfig    build.KindOptions `json:"buildConfig"`
+	Kind           build.TaskKind    `json:"kind"`
+	GitMeta        BuildGitMeta      `json:"gitMeta"`
 }
 
 type BuildGitMeta struct {
