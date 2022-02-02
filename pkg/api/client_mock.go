@@ -93,11 +93,3 @@ func (mc *MockClient) GetBuildLogs(ctx context.Context, buildID string, prevToke
 func (mc *MockClient) GetBuild(ctx context.Context, id string) (res GetBuildResponse, err error) {
 	panic("not implemented") // TODO: Implement
 }
-
-func (mc *MockClient) ListGroups(ctx context.Context) (res libapi.ListGroupsResponse, err error) {
-	panic("not implemented")
-}
-
-func (mc *MockClient) ListUsers(ctx context.Context) (res libapi.ListUsersResponse, err error) {
-	panic("not implemented")
-}
