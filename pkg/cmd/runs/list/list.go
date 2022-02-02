@@ -7,6 +7,7 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
@@ -15,10 +16,11 @@ import (
 )
 
 type config struct {
-	slug  string
-	limit int
-	since utils.TimeValue
-	until utils.TimeValue
+	slug    string
+	limit   int
+	since   utils.TimeValue
+	until   utils.TimeValue
+	envSlug string
 }
 
 // New returns a new list command.
@@ -43,6 +45,12 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().Var(&cfg.since, "since", "Include only runs created after the given time")
 	cmd.Flags().Var(&cfg.until, "until", "Include only runs created before the given time")
 
+	// Unhide this flag once we release environments.
+	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
+	if err := cmd.Flags().MarkHidden("env"); err != nil {
+		logger.Debug("unable to hide --env: %s", err)
+	}
+
 	return cmd
 }
 
@@ -51,16 +59,17 @@ func run(ctx context.Context, c *cli.Config, cfg config) error {
 	var client = c.Client
 
 	req := api.ListRunsRequest{
-		Limit: cfg.limit,
-		Since: time.Time(cfg.since),
-		Until: time.Time(cfg.until),
+		Limit:   cfg.limit,
+		Since:   time.Time(cfg.since),
+		Until:   time.Time(cfg.until),
+		EnvSlug: cfg.envSlug,
 	}
 
 	// If a task slug was provided, look up its task ID:
 	if cfg.slug != "" {
 		task, err := client.GetTask(ctx, libapi.GetTaskRequest{
-			Slug: cfg.slug,
-			// TODO: pass EnvSlug through once we add it to the /runs/list API
+			Slug:    cfg.slug,
+			EnvSlug: cfg.envSlug,
 		})
 		if err != nil {
 			return err

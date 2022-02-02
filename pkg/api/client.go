@@ -202,9 +202,10 @@ func (c Client) ListRuns(ctx context.Context, req ListRunsRequest) (ListRunsResp
 	}
 
 	q := url.Values{
-		"page":   []string{strconv.FormatInt(int64(req.Page), 10)},
-		"taskID": []string{req.TaskID},
-		"limit":  []string{strconv.FormatInt(int64(pageLimit), 10)},
+		"page":    []string{strconv.FormatInt(int64(req.Page), 10)},
+		"taskID":  []string{req.TaskID},
+		"limit":   []string{strconv.FormatInt(int64(pageLimit), 10)},
+		"envSlug": []string{req.EnvSlug},
 	}
 	if !req.Since.IsZero() {
 		q.Set("since", req.Since.Format(time.RFC3339))

@@ -191,6 +191,7 @@ type Run struct {
 	FailedAt    *time.Time `json:"failedAt"`
 	CancelledAt *time.Time `json:"cancelledAt"`
 	CancelledBy *string    `json:"cancelledBy"`
+	EnvSlug     string     `json:"envSlug"`
 }
 
 // ListRunsRequest represents a list runs request.
