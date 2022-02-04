@@ -46,23 +46,31 @@ func ReadValueFromPrompt(message string, secret bool) (string, error) {
 	return strings.TrimSpace(value), nil
 }
 
+type SetConfigRequest struct {
+	NameTag NameTag
+	Value   string
+	Secret  bool
+	EnvSlug string
+}
+
 // SetConfig writes config value to API and prints progress to user
-func SetConfig(ctx context.Context, client api.APIClient, nt NameTag, value string, secret bool) error {
+func SetConfig(ctx context.Context, client api.APIClient, req SetConfigRequest) error {
 	// Avoid printing back secrets
 	var valueStr string
-	if secret {
+	if req.Secret {
 		valueStr = "<secret value>"
 	} else {
-		valueStr = value
+		valueStr = req.Value
 	}
-	logger.Log("  Setting %s to %s...", logger.Blue(JoinName(nt)), logger.Green(valueStr))
-	req := api.SetConfigRequest{
-		Name:     nt.Name,
-		Tag:      nt.Tag,
-		Value:    value,
-		IsSecret: secret,
+	logger.Log("  Setting %s to %s...", logger.Blue(JoinName(req.NameTag)), logger.Green(valueStr))
+	apiReq := api.SetConfigRequest{
+		Name:     req.NameTag.Name,
+		Tag:      req.NameTag.Tag,
+		Value:    req.Value,
+		IsSecret: req.Secret,
+		EnvSlug:  req.EnvSlug,
 	}
-	if err := client.SetConfig(ctx, req); err != nil {
+	if err := client.SetConfig(ctx, apiReq); err != nil {
 		return errors.Wrap(err, "set config")
 	}
 	logger.Log("  Done!")

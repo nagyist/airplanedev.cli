@@ -214,6 +214,7 @@ type GetConfigRequest struct {
 	Name       string `json:"name"`
 	Tag        string `json:"tag"`
 	ShowSecret bool   `json:"showSecret"`
+	EnvSlug    string `json:"envSlug"`
 }
 
 // SetConfigRequest represents a set config request.
@@ -222,6 +223,7 @@ type SetConfigRequest struct {
 	Tag      string `json:"tag"`
 	Value    string `json:"value"`
 	IsSecret bool   `json:"isSecret"`
+	EnvSlug  string `json:"envSlug"`
 }
 
 // Config represents a config var.

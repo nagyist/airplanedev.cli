@@ -185,7 +185,7 @@ More information: https://apn.sh/jst-upgrade`)
 		}
 	}
 
-	err = ensureConfigVarsExist(ctx, client, tc.Def)
+	err = ensureConfigVarsExist(ctx, client, tc.Def, cfg.envSlug)
 	if err != nil {
 		return err
 	}

@@ -53,7 +53,7 @@ func deployFromYaml(ctx context.Context, cfg config) (rErr error) {
 	}
 	props.taskSlug = def.Slug
 
-	err = ensureConfigVarsExist(ctx, client, &def)
+	err = ensureConfigVarsExist(ctx, client, &def, cfg.envSlug)
 	if err != nil {
 		return err
 	}
