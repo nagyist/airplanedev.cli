@@ -402,8 +402,8 @@ func (c Client) do(ctx context.Context, method, path string, payload, reply inte
 		req.Header.Set("X-Team-ID", c.TeamID)
 	}
 
-	req.Header.Set("X-Airplane-Client", "cli")
-	req.Header.Set("X-Airplane-Version", version.Get())
+	req.Header.Set("X-Airplane-Client-Kind", "cli")
+	req.Header.Set("X-Airplane-Client-Version", version.Get())
 
 	resp, err := client.Do(req)
 
