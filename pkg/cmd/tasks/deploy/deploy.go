@@ -183,7 +183,7 @@ func HandleMissingTask(cfg config, l logger.Logger) func(ctx context.Context, de
 			Arguments:        utr.Arguments,
 			Parameters:       utr.Parameters,
 			Constraints:      utr.Constraints,
-			Env:              utr.Env,
+			EnvVars:          utr.Env,
 			ResourceRequests: utr.ResourceRequests,
 			Resources:        utr.Resources,
 			Kind:             utr.Kind,

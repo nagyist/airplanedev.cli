@@ -141,6 +141,14 @@ func ReportError(err error) {
 	}
 }
 
+// ReportMessage sends a message to Sentry.
+func ReportMessage(msg string) {
+	sentryID := sentry.CaptureMessage(msg)
+	if sentryID != nil {
+		logger.Debug("Sentry event ID: %s", *sentryID)
+	}
+}
+
 func ignoreError(err error) bool {
 	// For now, all this does is handle survey's interrupt error.
 	return errors.Is(err, terminal.InterruptErr)

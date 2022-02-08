@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
@@ -25,12 +24,6 @@ type contextKey string
 const (
 	taskSlugContextKey contextKey = "taskSlug"
 )
-
-// registryTokenGetter gets registry tokens and is optimized for concurrent requests.
-type registryTokenGetter struct {
-	getRegistryTokenMutex sync.Mutex
-	cachedRegistryToken   *api.RegistryTokenResponse
-}
 
 type remoteBuildCreator struct {
 	registryTokenGetter
@@ -77,8 +70,7 @@ func (d *remoteBuildCreator) CreateBuild(ctx context.Context, req Request) (*lib
 	build, err := req.Client.CreateBuild(ctx, api.CreateBuildRequest{
 		TaskID:         req.TaskID,
 		SourceUploadID: uploadID,
-		Env:            req.TaskEnv,
-		GitMeta:        req.GitMeta,
+		EnvVars:        req.TaskEnv,
 		BuildConfig:    buildConfig,
 		Kind:           kind,
 	})
@@ -101,21 +93,6 @@ func (d *remoteBuildCreator) CreateBuild(ctx context.Context, req Request) (*lib
 		ImageURL: imageURL,
 		BuildID:  build.Build.ID,
 	}, nil
-}
-
-func (d *registryTokenGetter) getRegistryToken(ctx context.Context, client api.APIClient) (registryToken api.RegistryTokenResponse, err error) {
-	d.getRegistryTokenMutex.Lock()
-	defer d.getRegistryTokenMutex.Unlock()
-	if d.cachedRegistryToken != nil {
-		registryToken = *d.cachedRegistryToken
-	} else {
-		registryToken, err = client.GetRegistryToken(ctx)
-		if err != nil {
-			return registryToken, errors.Wrap(err, "getting registry token")
-		}
-		d.cachedRegistryToken = &registryToken
-	}
-	return registryToken, nil
 }
 
 func getKindAndConfig(ctx context.Context, def definitions.DefinitionInterface, shim bool) (build.TaskKind, build.KindOptions, error) {

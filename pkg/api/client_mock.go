@@ -2,13 +2,15 @@ package api
 
 import (
 	"context"
+	"time"
 
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/pkg/errors"
 )
 
 type MockClient struct {
-	Tasks map[string]libapi.Task
+	Tasks   map[string]libapi.Task
+	Deploys []CreateDeploymentRequest
 }
 
 var _ APIClient = &MockClient{}
@@ -72,10 +74,6 @@ func (mc *MockClient) CreateTask(ctx context.Context, req CreateTaskRequest) (re
 }
 
 // TODO add other functions when needed.
-func (mc *MockClient) CreateBuild(ctx context.Context, req CreateBuildRequest) (res CreateBuildResponse, err error) {
-	panic("not implemented") // TODO: Implement
-}
-
 func (mc *MockClient) GetRegistryToken(ctx context.Context) (res RegistryTokenResponse, err error) {
 	return RegistryTokenResponse{Token: "token"}, nil
 }
@@ -84,6 +82,31 @@ func (mc *MockClient) CreateBuildUpload(ctx context.Context, req libapi.CreateBu
 	return libapi.CreateBuildUploadResponse{
 		WriteOnlyURL: "writeOnlyURL",
 	}, nil
+}
+
+func (mc *MockClient) GetDeploymentLogs(ctx context.Context, id string, prevToken string) (res GetDeploymentLogsResponse, err error) {
+	return GetDeploymentLogsResponse{}, nil
+}
+
+func (mc *MockClient) GetDeployment(ctx context.Context, id string) (res Deployment, err error) {
+	return Deployment{
+		SucceededAt: &time.Time{},
+	}, nil
+}
+
+func (mc *MockClient) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) (res CreateDeploymentResponse, err error) {
+	mc.Deploys = append(mc.Deploys, req)
+	return CreateDeploymentResponse{
+		Deployment: Deployment{
+			ID: "deployment",
+		},
+		NumTasksUpdated:  len(req.Tasks),
+		NumBuildsCreated: len(req.Tasks),
+	}, nil
+}
+
+func (mc *MockClient) CreateBuild(ctx context.Context, req CreateBuildRequest) (res CreateBuildResponse, err error) {
+	panic("not implemented") // TODO: Implement
 }
 
 func (mc *MockClient) GetBuildLogs(ctx context.Context, buildID string, prevToken string) (res GetBuildLogsResponse, err error) {

@@ -2,6 +2,7 @@ package build
 
 import (
 	"context"
+	"sync"
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/configs"
@@ -96,4 +97,25 @@ func getBuildEnv(ctx context.Context, client api.APIClient, taskEnv libapi.TaskE
 		}
 	}
 	return buildEnv, nil
+}
+
+// registryTokenGetter gets registry tokens and is optimized for concurrent requests.
+type registryTokenGetter struct {
+	getRegistryTokenMutex sync.Mutex
+	cachedRegistryToken   *api.RegistryTokenResponse
+}
+
+func (d *registryTokenGetter) getRegistryToken(ctx context.Context, client api.APIClient) (registryToken api.RegistryTokenResponse, err error) {
+	d.getRegistryTokenMutex.Lock()
+	defer d.getRegistryTokenMutex.Unlock()
+	if d.cachedRegistryToken != nil {
+		registryToken = *d.cachedRegistryToken
+	} else {
+		registryToken, err = client.GetRegistryToken(ctx)
+		if err != nil {
+			return registryToken, errors.Wrap(err, "getting registry token")
+		}
+		d.cachedRegistryToken = &registryToken
+	}
+	return registryToken, nil
 }
