@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -93,8 +94,14 @@ func GetTeamID() string {
 }
 
 // GetGitRepo gets a git repo from an env var, if one exists.
-func GetGitRepo() string {
-	return os.Getenv("AP_GIT_REPO")
+func GetGitRepo() (ownerName, repoName string) {
+	repo := os.Getenv("AP_GIT_REPO")
+	repoSplit := strings.Split(repo, "/")
+	if len(repoSplit) == 2 {
+		ownerName = repoSplit[0]
+		repoName = repoSplit[1]
+	}
+	return
 }
 
 // GetGitUser gets a git user from an env var, if one exists.

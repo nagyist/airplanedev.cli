@@ -277,10 +277,13 @@ func TestDeployTasks(t *testing.T) {
 						},
 					},
 					GitMetadata: api.GitMetadata{
-						CommitHash:    "6ecf0ef2c2dffb796033e5a02219af86ec6584e5",
-						Ref:           "master",
-						IsDirty:       true,
-						CommitMessage: "vendor stuff\n",
+						CommitHash:          "6ecf0ef2c2dffb796033e5a02219af86ec6584e5",
+						Ref:                 "master",
+						IsDirty:             true,
+						CommitMessage:       "vendor stuff\n",
+						RepositoryOwnerName: "git-fixtures",
+						RepositoryName:      "basic",
+						Vendor:              "GitHub",
 					},
 				},
 			},
@@ -342,6 +345,49 @@ func TestDeployTasks(t *testing.T) {
 				assert.Equal(tC.existingTasks, client.Tasks)
 			}
 			assert.Equal(tC.deploys, client.Deploys)
+		})
+	}
+}
+
+func TestParseRemote(t *testing.T) {
+	testCases := []struct {
+		desc      string
+		remote    string
+		ownerName string
+		repoName  string
+		vendor    api.GitVendor
+	}{
+		{
+			desc:      "git http",
+			remote:    "https://github.com/airplanedev/airport",
+			ownerName: "airplanedev",
+			repoName:  "airport",
+			vendor:    api.GitVendorGitHub,
+		},
+		{
+			desc:      "git ssh",
+			remote:    "git@github.com:airplanedev/airport.git",
+			ownerName: "airplanedev",
+			repoName:  "airport",
+			vendor:    api.GitVendorGitHub,
+		},
+		{
+			desc:   "unknown - no error returned",
+			remote: "some remote",
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			t.Parallel()
+			assert := assert.New(t)
+			require := require.New(t)
+
+			owner, name, vendor, err := parseRemote(tC.remote)
+			require.NoError(err)
+
+			assert.Equal(tC.ownerName, owner)
+			assert.Equal(tC.repoName, name)
+			assert.Equal(tC.vendor, vendor)
 		})
 	}
 }

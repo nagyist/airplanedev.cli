@@ -284,15 +284,21 @@ type CreateDeploymentRequest struct {
 }
 
 type GitMetadata struct {
-	CommitHash          string `json:"commitHash"`
-	Ref                 string `json:"ref"`
-	User                string `json:"user"`
-	RepositoryOwnerName string `json:"repositoryOwnerName"`
-	RepositoryName      string `json:"repositoryName"`
-	CommitMessage       string `json:"commitMessage"`
-	Vendor              string `json:"vendor"`
-	IsDirty             bool   `json:"isDirty"`
+	CommitHash          string    `json:"commitHash"`
+	Ref                 string    `json:"ref"`
+	User                string    `json:"user"`
+	RepositoryOwnerName string    `json:"repositoryOwnerName"`
+	RepositoryName      string    `json:"repositoryName"`
+	CommitMessage       string    `json:"commitMessage"`
+	Vendor              GitVendor `json:"vendor"`
+	IsDirty             bool      `json:"isDirty"`
 }
+
+type GitVendor string
+
+const (
+	GitVendorGitHub GitVendor = "GitHub"
+)
 
 type CreateDeploymentResponse struct {
 	Deployment       Deployment `json:"deployment"`

@@ -134,6 +134,14 @@ func (d *deployer) DeployTasks(ctx context.Context, taskConfigs []discover.TaskC
 			analytics.ReportMessage(fmt.Sprintf("failed to gather git metadata at %s: %v", taskConfigs[0].TaskEntrypoint, err))
 		}
 		gitMeta.User = conf.GetGitUser()
+		// Use the env variable provided repo if it exists.
+		repoNameFromEnv, ownerNameFromEnv := conf.GetGitRepo()
+		if repoNameFromEnv != "" {
+			gitMeta.RepositoryName = repoNameFromEnv
+		}
+		if ownerNameFromEnv != "" {
+			gitMeta.RepositoryOwnerName = ownerNameFromEnv
+		}
 	}
 
 	resp, err := d.cfg.client.CreateDeployment(ctx, api.CreateDeploymentRequest{

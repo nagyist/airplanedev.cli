@@ -2,6 +2,7 @@ package deploy
 
 import (
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/airplanedev/cli/pkg/api"
@@ -81,5 +82,59 @@ func GetGitMetadata(repo *git.Repository) (api.GitMetadata, error) {
 	}
 	meta.Ref = ref
 
+	remotes, err := repo.Remotes()
+	if err != nil {
+		return meta, errors.Wrap(err, "listing remotes")
+	}
+	var remote *git.Remote
+	for _, r := range remotes {
+		// If there is a remote called origin, use that. Origin is the default
+		// name for the remote, so it's our best guess for the correct remote.
+		if r.Config().Name == "origin" {
+			remote = r
+			break
+		}
+	}
+	if remote == nil && len(remotes) > 0 {
+		// If there is no origin, use the first remote.
+		remote = remotes[0]
+	}
+	if remote != nil {
+		// URLs will always be non-empty. Use the first URL which is used
+		// by git for fetching from a remote.
+		remoteURL := remote.Config().URLs[0]
+		repoOwner, repoName, vendor, err := parseRemote(remoteURL)
+		if err != nil {
+			return meta, errors.Wrapf(err, "parsing remote %s", remote.Config().URLs[0])
+		}
+		meta.RepositoryOwnerName = repoOwner
+		meta.RepositoryName = repoName
+		meta.Vendor = vendor
+	}
+
 	return meta, nil
+}
+
+var (
+	githubHTTPRegex, _ = regexp.Compile(`^https:\/\/github\.com\/(.+)\/(.+)$`)
+	githubSSHRegex, _  = regexp.Compile(`^git@github\.com:(.+)\/(.+)\.git$`)
+)
+
+func parseRemote(remote string) (repoOwner, repoName string, vendor api.GitVendor, err error) {
+	switch {
+	case githubHTTPRegex.MatchString(remote):
+		matches := githubHTTPRegex.FindStringSubmatch(remote)
+		if len(matches) != 3 {
+			return "", "", "", errors.Errorf("invalid github http remote %s", remote)
+		}
+		return matches[1], matches[2], api.GitVendorGitHub, nil
+	case githubSSHRegex.MatchString(remote):
+		matches := githubSSHRegex.FindStringSubmatch(remote)
+		if len(matches) != 3 {
+			return "", "", "", errors.Errorf("invalid github ssh remote %s", remote)
+		}
+		return matches[1], matches[2], api.GitVendorGitHub, nil
+	default:
+		return "", "", "", nil
+	}
 }
