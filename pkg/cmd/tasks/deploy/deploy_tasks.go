@@ -398,7 +398,7 @@ func waitForDeploy(ctx context.Context, loader logger.Loader, client api.APIClie
 			switch {
 			case d.FailedAt != nil:
 				deployLog(ctx, api.LogLevelInfo, loader, deployLogReq{msg: logger.Bold(logger.Red("failed: %s", d.FailedReason))})
-				return nil
+				return errors.New("Deploy failed")
 			case d.SucceededAt != nil:
 				deployLog(ctx, api.LogLevelInfo, loader, deployLogReq{msg: logger.Bold(logger.Green("succeeded"))})
 				return nil

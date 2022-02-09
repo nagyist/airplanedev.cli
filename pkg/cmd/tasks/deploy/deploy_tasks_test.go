@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/build"
@@ -19,6 +20,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/storage/filesystem"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,18 +33,21 @@ func TestDeployTasks(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+	now := time.Now()
 
 	fixturesPath, _ := filepath.Abs("./fixtures")
 	testCases := []struct {
-		desc          string
-		taskConfigs   []discover.TaskConfig
-		existingTasks map[string]libapi.Task
-		changedFiles  []string
-		local         bool
-		envSlug       string
-		gitRepo       *git.Repository
-		updatedTasks  map[string]libapi.Task
-		deploys       []api.CreateDeploymentRequest
+		desc                  string
+		taskConfigs           []discover.TaskConfig
+		existingTasks         map[string]libapi.Task
+		changedFiles          []string
+		local                 bool
+		envSlug               string
+		gitRepo               *git.Repository
+		getDeploymentResponse *api.Deployment
+		expectedError         error
+		updatedTasks          map[string]libapi.Task
+		deploys               []api.CreateDeploymentRequest
 	}{
 		{
 			desc: "no tasks",
@@ -65,6 +70,53 @@ func TestDeployTasks(t *testing.T) {
 				},
 			},
 			existingTasks: map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
+			deploys: []api.CreateDeploymentRequest{
+				{
+					Tasks: []api.DeployTask{
+						{
+							TaskID: "my_task",
+							Kind:   "node",
+							BuildConfig: libBuild.KindOptions{
+								"entrypoint":  "",
+								"nodeVersion": "",
+								"shim":        "true",
+							},
+							UploadID: "uploadID",
+							UpdateTaskRequest: libapi.UpdateTaskRequest{
+								Slug:       "my_task",
+								Name:       "My Task",
+								Parameters: libapi.Parameters{},
+								Kind:       "node",
+								KindOptions: libBuild.KindOptions{
+									"entrypoint":  "",
+									"nodeVersion": "",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			desc: "deploys a task - deployment fails",
+			taskConfigs: []discover.TaskConfig{
+				{
+					TaskRoot: fixturesPath,
+					Def: &definitions.Definition_0_3{
+						Name: "My Task",
+						Slug: "my_task",
+						Node: &definitions.NodeDefinition_0_3{},
+					},
+					Task: libapi.Task{
+						ID:   "my_task",
+						Slug: "my_task",
+						Name: "My Task",
+					},
+				},
+			},
+			existingTasks:         map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
+			getDeploymentResponse: &api.Deployment{FailedAt: &now},
+			expectedError:         errors.New("Deploy failed"),
 			deploys: []api.CreateDeploymentRequest{
 				{
 					Tasks: []api.DeployTask{
@@ -323,7 +375,8 @@ func TestDeployTasks(t *testing.T) {
 			require := require.New(t)
 			assert := assert.New(t)
 			client := &api.MockClient{
-				Tasks: tC.existingTasks,
+				Tasks:                 tC.existingTasks,
+				GetDeploymentResponse: tC.getDeploymentResponse,
 			}
 			cfg := config{
 				changedFiles: tC.changedFiles,
@@ -337,7 +390,12 @@ func TestDeployTasks(t *testing.T) {
 				RepoGetter:   &MockGitRepoGetter{Repo: tC.gitRepo},
 			})
 			err := d.DeployTasks(context.Background(), tC.taskConfigs)
-			require.NoError(err)
+			if tC.expectedError != nil {
+				assert.Error(err)
+				return
+			} else {
+				require.NoError(err)
+			}
 
 			if tC.updatedTasks != nil {
 				assert.Equal(tC.updatedTasks, client.Tasks)

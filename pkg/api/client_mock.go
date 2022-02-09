@@ -9,8 +9,9 @@ import (
 )
 
 type MockClient struct {
-	Tasks   map[string]libapi.Task
-	Deploys []CreateDeploymentRequest
+	Tasks                 map[string]libapi.Task
+	Deploys               []CreateDeploymentRequest
+	GetDeploymentResponse *Deployment
 }
 
 var _ APIClient = &MockClient{}
@@ -89,6 +90,9 @@ func (mc *MockClient) GetDeploymentLogs(ctx context.Context, id string, prevToke
 }
 
 func (mc *MockClient) GetDeployment(ctx context.Context, id string) (res Deployment, err error) {
+	if mc.GetDeploymentResponse != nil {
+		return *mc.GetDeploymentResponse, nil
+	}
 	return Deployment{
 		SucceededAt: &time.Time{},
 	}, nil
