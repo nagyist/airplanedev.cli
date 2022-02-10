@@ -128,12 +128,10 @@ func run(ctx context.Context, cfg config) error {
 	loader.Start()
 
 	d := &discover.Discoverer{
-		TaskDiscoverers: []discover.TaskDiscoverer{
-			&discover.ScriptDiscoverer{},
-		},
-		Client:  cfg.client,
-		Logger:  l,
-		EnvSlug: cfg.envSlug,
+		TaskDiscoverers: []discover.TaskDiscoverer{},
+		Client:          cfg.client,
+		Logger:          l,
+		EnvSlug:         cfg.envSlug,
 	}
 	if cfg.dev {
 		d.TaskDiscoverers = append(d.TaskDiscoverers, &discover.DefnDiscoverer{
@@ -144,6 +142,7 @@ func run(ctx context.Context, cfg config) error {
 			MissingTaskHandler: HandleMissingTask(cfg, l, loader),
 		})
 	}
+	d.TaskDiscoverers = append(d.TaskDiscoverers, &discover.ScriptDiscoverer{})
 
 	taskConfigs, err := d.DiscoverTasks(ctx, cfg.paths...)
 	if err != nil {

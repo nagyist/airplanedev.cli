@@ -6,7 +6,7 @@ require (
 	github.com/AlecAivazis/survey/v2 v2.3.2
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021 // indirect
-	github.com/alecthomas/jsonschema v0.0.0-20211228220459-151e3c21f49d // indirect
+	github.com/alecthomas/jsonschema v0.0.0-20220203024042-cc89723c9db0 // indirect
 	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
@@ -37,7 +37,7 @@ require (
 )
 
 require (
-	github.com/airplanedev/lib v0.3.2
+	github.com/airplanedev/lib v0.3.4
 	github.com/airplanedev/ojson v0.1.0
 	github.com/briandowns/spinner v1.18.0
 )
