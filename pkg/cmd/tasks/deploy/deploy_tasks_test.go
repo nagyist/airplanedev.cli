@@ -145,6 +145,53 @@ func TestDeployTasks(t *testing.T) {
 			},
 		},
 		{
+			desc: "deploys a task - deployment cancelled",
+			taskConfigs: []discover.TaskConfig{
+				{
+					TaskRoot: fixturesPath,
+					Def: &definitions.Definition_0_3{
+						Name: "My Task",
+						Slug: "my_task",
+						Node: &definitions.NodeDefinition_0_3{},
+					},
+					Task: libapi.Task{
+						ID:   "my_task",
+						Slug: "my_task",
+						Name: "My Task",
+					},
+				},
+			},
+			existingTasks:         map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
+			getDeploymentResponse: &api.Deployment{CancelledAt: &now},
+			expectedError:         errors.New("Deploy cancelled"),
+			deploys: []api.CreateDeploymentRequest{
+				{
+					Tasks: []api.DeployTask{
+						{
+							TaskID: "my_task",
+							Kind:   "node",
+							BuildConfig: libBuild.KindOptions{
+								"entrypoint":  "",
+								"nodeVersion": "",
+								"shim":        "true",
+							},
+							UploadID: "uploadID",
+							UpdateTaskRequest: libapi.UpdateTaskRequest{
+								Slug:       "my_task",
+								Name:       "My Task",
+								Parameters: libapi.Parameters{},
+								Kind:       "node",
+								KindOptions: libBuild.KindOptions{
+									"entrypoint":  "",
+									"nodeVersion": "",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			desc: "deploys a task to an environment",
 			taskConfigs: []discover.TaskConfig{
 				{

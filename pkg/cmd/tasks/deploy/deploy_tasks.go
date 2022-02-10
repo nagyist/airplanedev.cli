@@ -402,6 +402,9 @@ func waitForDeploy(ctx context.Context, loader logger.Loader, client api.APIClie
 			case d.SucceededAt != nil:
 				deployLog(ctx, api.LogLevelInfo, loader, deployLogReq{msg: logger.Bold(logger.Green("succeeded"))})
 				return nil
+			case d.CancelledAt != nil:
+				deployLog(ctx, api.LogLevelInfo, loader, deployLogReq{msg: logger.Bold(logger.Red("cancelled"))})
+				return errors.New("Deploy cancelled")
 			}
 		}
 	}

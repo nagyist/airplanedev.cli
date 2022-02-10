@@ -312,6 +312,7 @@ type Deployment struct {
 	CreatedAt    time.Time  `json:"createdAt"`
 	CreatedBy    string     `json:"createdBy"`
 	SucceededAt  *time.Time `json:"succeededAt,omitempty"`
+	CancelledAt  *time.Time `json:"cancelledAt,omitempty"`
 	FailedAt     *time.Time `json:"failedAt,omitempty"`
 	FailedReason string     `json:"failedReason,omitempty"`
 }
