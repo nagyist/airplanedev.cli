@@ -124,6 +124,8 @@ func run(ctx context.Context, cfg config) error {
 	}
 
 	l := &logger.StdErrLogger{}
+	loader := logger.NewLoader(logger.LoaderOpts{HideLoader: logger.EnableDebug})
+	loader.Start()
 
 	d := &discover.Discoverer{
 		TaskDiscoverers: []discover.TaskDiscoverer{
@@ -139,12 +141,10 @@ func run(ctx context.Context, cfg config) error {
 			Logger:             l,
 			AssumeYes:          cfg.assumeYes,
 			AssumeNo:           cfg.assumeNo,
-			MissingTaskHandler: HandleMissingTask(cfg, l),
+			MissingTaskHandler: HandleMissingTask(cfg, l, loader),
 		})
 	}
 
-	loader := logger.NewLoader(logger.LoaderOpts{HideLoader: logger.EnableDebug})
-	loader.Start()
 	taskConfigs, err := d.DiscoverTasks(ctx, cfg.paths...)
 	if err != nil {
 		return err
@@ -154,14 +154,23 @@ func run(ctx context.Context, cfg config) error {
 	return NewDeployer(cfg, l, DeployerOpts{}).DeployTasks(ctx, taskConfigs)
 }
 
-func HandleMissingTask(cfg config, l logger.Logger) func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.Task, error) {
+func HandleMissingTask(cfg config, l logger.Logger, loader logger.Loader) func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.Task, error) {
 	return func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.Task, error) {
 		if !utils.CanPrompt() {
 			return nil, nil
 		}
 
+		isActive := loader.IsActive()
+		loader.Stop()
+
 		question := fmt.Sprintf("Task with slug %s does not exist. Would you like to create a new task?", def.GetSlug())
-		if ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
+		ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo)
+
+		if isActive {
+			loader.Start()
+		}
+
+		if err != nil {
 			return nil, err
 		} else if !ok {
 			// User answered "no", so bail here.
