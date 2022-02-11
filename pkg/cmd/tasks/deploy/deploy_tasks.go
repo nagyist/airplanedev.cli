@@ -154,7 +154,17 @@ func (d *deployer) DeployTasks(ctx context.Context, taskConfigs []discover.TaskC
 
 	// TODO log URL to deploy
 
-	return waitForDeploy(ctx, d.loader, d.cfg.client, resp.Deployment.ID)
+	err = waitForDeploy(ctx, d.loader, d.cfg.client, resp.Deployment.ID)
+	if errors.Is(err, context.Canceled) {
+		cerr := d.cfg.client.CancelDeployment(context.Background(), api.CancelDeploymentRequest{ID: resp.Deployment.ID})
+		if cerr != nil {
+			d.logger.Warning("failed to cancel deployment %v", cerr)
+		} else {
+			d.logger.Log("cancelled deployment")
+		}
+	}
+
+	return err
 }
 
 func (d *deployer) getDeployTask(ctx context.Context, tc discover.TaskConfig, uploadID string, repo *git.Repository) (taskToDeploy api.DeployTask, rErr error) {

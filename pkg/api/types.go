@@ -283,6 +283,10 @@ type CreateDeploymentRequest struct {
 	GitMetadata GitMetadata  `json:"gitMetadata"`
 }
 
+type CancelDeploymentRequest struct {
+	ID string `json:"id"`
+}
+
 type GitMetadata struct {
 	CommitHash          string    `json:"commitHash"`
 	Ref                 string    `json:"ref"`

@@ -109,6 +109,10 @@ func (mc *MockClient) CreateDeployment(ctx context.Context, req CreateDeployment
 	}, nil
 }
 
+func (mc *MockClient) CancelDeployment(ctx context.Context, req CancelDeploymentRequest) error {
+	return nil
+}
+
 func (mc *MockClient) CreateBuild(ctx context.Context, req CreateBuildRequest) (res CreateBuildResponse, err error) {
 	panic("not implemented") // TODO: Implement
 }
