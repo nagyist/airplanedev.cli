@@ -135,12 +135,12 @@ func (d *deployer) DeployTasks(ctx context.Context, taskConfigs []discover.TaskC
 		}
 		gitMeta.User = conf.GetGitUser()
 		// Use the env variable provided repo if it exists.
-		repoNameFromEnv, ownerNameFromEnv := conf.GetGitRepo()
-		if repoNameFromEnv != "" {
-			gitMeta.RepositoryName = repoNameFromEnv
+		getGitRepoResp := conf.GetGitRepo()
+		if getGitRepoResp.RepoName != "" {
+			gitMeta.RepositoryName = getGitRepoResp.RepoName
 		}
-		if ownerNameFromEnv != "" {
-			gitMeta.RepositoryOwnerName = ownerNameFromEnv
+		if getGitRepoResp.OwnerName != "" {
+			gitMeta.RepositoryOwnerName = getGitRepoResp.OwnerName
 		}
 	}
 

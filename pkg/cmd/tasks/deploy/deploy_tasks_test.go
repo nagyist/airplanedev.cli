@@ -2,6 +2,7 @@ package deploy
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -41,6 +42,7 @@ func TestDeployTasks(t *testing.T) {
 		taskConfigs           []discover.TaskConfig
 		existingTasks         map[string]libapi.Task
 		changedFiles          []string
+		envVars               map[string]string
 		local                 bool
 		envSlug               string
 		gitRepo               *git.Repository
@@ -387,6 +389,66 @@ func TestDeployTasks(t *testing.T) {
 				},
 			},
 		},
+		{
+			desc: "deploys a task with owner and repo from env var",
+			taskConfigs: []discover.TaskConfig{
+				{
+					TaskRoot:       fixturesPath,
+					TaskEntrypoint: "/json/short.json",
+					Def: &definitions.Definition_0_3{
+						Name: "My Task",
+						Slug: "my_task",
+						Node: &definitions.NodeDefinition_0_3{},
+					},
+					Task: libapi.Task{
+						ID:   "my_task",
+						Slug: "my_task",
+						Name: "My Task",
+					},
+				},
+			},
+			existingTasks: map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
+			gitRepo:       mockRepo,
+			envVars: map[string]string{
+				"AP_GIT_REPO": "airplanedev/airport",
+			},
+			deploys: []api.CreateDeploymentRequest{
+				{
+					Tasks: []api.DeployTask{
+						{
+							TaskID: "my_task",
+							Kind:   "node",
+							BuildConfig: libBuild.KindOptions{
+								"entrypoint":  "",
+								"nodeVersion": "",
+								"shim":        "true",
+							},
+							UploadID: "uploadID",
+							UpdateTaskRequest: libapi.UpdateTaskRequest{
+								Slug:       "my_task",
+								Name:       "My Task",
+								Parameters: libapi.Parameters{},
+								Kind:       "node",
+								KindOptions: libBuild.KindOptions{
+									"entrypoint":  "",
+									"nodeVersion": "",
+								},
+							},
+							GitFilePath: "json/short.json",
+						},
+					},
+					GitMetadata: api.GitMetadata{
+						CommitHash:          "6ecf0ef2c2dffb796033e5a02219af86ec6584e5",
+						Ref:                 "master",
+						IsDirty:             true,
+						CommitMessage:       "vendor stuff\n",
+						RepositoryOwnerName: "airplanedev",
+						RepositoryName:      "airport",
+						Vendor:              "GitHub",
+					},
+				},
+			},
+		},
 		// TODO uncomment when sql deploys work.
 		// {
 		// 	desc: "deploys and updates an SQL task",
@@ -424,6 +486,9 @@ func TestDeployTasks(t *testing.T) {
 			client := &api.MockClient{
 				Tasks:                 tC.existingTasks,
 				GetDeploymentResponse: tC.getDeploymentResponse,
+			}
+			for k, v := range tC.envVars {
+				os.Setenv(k, v)
 			}
 			cfg := config{
 				changedFiles: tC.changedFiles,

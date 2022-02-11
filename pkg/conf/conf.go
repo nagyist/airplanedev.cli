@@ -93,15 +93,22 @@ func GetTeamID() string {
 	return os.Getenv("AP_TEAM_ID")
 }
 
+type GetGitRepoReponse struct {
+	OwnerName string
+	RepoName  string
+}
+
 // GetGitRepo gets a git repo from an env var, if one exists.
-func GetGitRepo() (ownerName, repoName string) {
+func GetGitRepo() GetGitRepoReponse {
 	repo := os.Getenv("AP_GIT_REPO")
 	repoSplit := strings.Split(repo, "/")
 	if len(repoSplit) == 2 {
-		ownerName = repoSplit[0]
-		repoName = repoSplit[1]
+		return GetGitRepoReponse{
+			OwnerName: repoSplit[0],
+			RepoName:  repoSplit[1],
+		}
 	}
-	return
+	return GetGitRepoReponse{}
 }
 
 // GetGitUser gets a git user from an env var, if one exists.
