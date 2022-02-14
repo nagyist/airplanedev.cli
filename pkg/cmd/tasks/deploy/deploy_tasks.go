@@ -285,6 +285,7 @@ More information: https://apn.sh/jst-upgrade`)
 // tarAndUploadTasks concurrently tars and uploads tasks that need building.
 func (d *deployer) tarAndUploadTasks(ctx context.Context, taskConfigs []discover.TaskConfig) (map[string]string, error) {
 	uploadIDs := make(map[string]string)
+	var mu = sync.Mutex{}
 	g, ctx := errgroup.WithContext(ctx)
 	for _, tc := range taskConfigs {
 		tc := tc
@@ -305,7 +306,9 @@ func (d *deployer) tarAndUploadTasks(ctx context.Context, taskConfigs []discover
 			if err != nil {
 				return err
 			}
+			mu.Lock()
 			uploadIDs[tc.Task.ID] = uploadID
+			mu.Unlock()
 			return nil
 		})
 	}
