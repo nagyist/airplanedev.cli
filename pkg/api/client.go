@@ -93,6 +93,7 @@ type APIClient interface {
 	GetDeploymentLogs(ctx context.Context, deploymentID string, prevToken string) (res GetDeploymentLogsResponse, err error)
 	GetDeployment(ctx context.Context, id string) (res Deployment, err error)
 	CreateDeployment(ctx context.Context, req CreateDeploymentRequest) (CreateDeploymentResponse, error)
+	CancelDeployment(ctx context.Context, req CancelDeploymentRequest) error
 
 	GetBuild(ctx context.Context, id string) (res GetBuildResponse, err error)
 	GetBuildLogs(ctx context.Context, buildID string, prevToken string) (res GetBuildLogsResponse, err error)
@@ -353,6 +354,10 @@ func (c Client) DeleteAPIKey(ctx context.Context, req DeleteAPIKeyRequest) (err 
 func (c Client) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) (res CreateDeploymentResponse, err error) {
 	err = c.do(ctx, "POST", "/deployments/create", req, &res)
 	return
+}
+
+func (c Client) CancelDeployment(ctx context.Context, req CancelDeploymentRequest) error {
+	return c.do(ctx, "POST", "/deployments/cancel", req, nil)
 }
 
 func (c Client) GetDeploymentLogs(ctx context.Context, deploymentID string, prevToken string) (res GetDeploymentLogsResponse, err error) {
