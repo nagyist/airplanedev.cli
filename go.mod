@@ -37,7 +37,7 @@ require (
 )
 
 require (
-	github.com/airplanedev/lib v0.3.4
+	github.com/airplanedev/lib v0.3.5
 	github.com/airplanedev/ojson v0.1.0
 	github.com/briandowns/spinner v1.18.1
 )
