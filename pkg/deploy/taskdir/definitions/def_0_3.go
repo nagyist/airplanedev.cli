@@ -38,6 +38,8 @@ type Definition_0_3 struct {
 	RequireRequests    bool                `json:"requireRequests,omitempty"`
 	AllowSelfApprovals *bool               `json:"allowSelfApprovals,omitempty"`
 	Timeout            int                 `json:"timeout,omitempty"`
+
+	buildConfig build.BuildConfig
 }
 
 type taskKind_0_3 interface {
@@ -1051,7 +1053,7 @@ func (d *Definition_0_3) SetWorkdir(taskroot, workdir string) error {
 		return nil
 	}
 
-	d.Node.Workdir = strings.TrimPrefix(workdir, taskroot)
+	d.SetBuildConfig("workdir", strings.TrimPrefix(workdir, taskroot))
 
 	return nil
 }
@@ -1170,6 +1172,35 @@ func (d *Definition_0_3) convertTaskKindFromTask(ctx context.Context, client api
 	default:
 		return errors.Errorf("unknown task kind: %s", t.Kind)
 	}
+}
+
+func (d *Definition_0_3) GetBuildConfig() (build.BuildConfig, error) {
+	config := build.BuildConfig{}
+
+	_, options, err := d.GetKindAndOptions()
+	if err != nil {
+		return nil, err
+	}
+	for key, val := range options {
+		config[key] = val
+	}
+
+	for key, val := range d.buildConfig {
+		if val == nil { // Nil masks out the value.
+			delete(config, key)
+		} else {
+			config[key] = val
+		}
+	}
+
+	return config, nil
+}
+
+func (d *Definition_0_3) SetBuildConfig(key string, value interface{}) {
+	if d.buildConfig == nil {
+		d.buildConfig = map[string]interface{}{}
+	}
+	d.buildConfig[key] = value
 }
 
 func getResourcesByName(ctx context.Context, client api.IAPIClient) (map[string]api.Resource, error) {
