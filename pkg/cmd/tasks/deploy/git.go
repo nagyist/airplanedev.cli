@@ -116,21 +116,21 @@ func GetGitMetadata(repo *git.Repository) (api.GitMetadata, error) {
 }
 
 var (
-	githubHTTPRegex, _ = regexp.Compile(`^https:\/\/github\.com\/(.+)\/(.+)$`)
-	githubSSHRegex, _  = regexp.Compile(`^git@github\.com:(.+)\/(.+)\.git$`)
+	githubHTTPRegex, _ = regexp.Compile(`^https:\/\/github\.com\/(.+)\/(.+?)(\.git)?$`)
+	githubSSHRegex, _  = regexp.Compile(`^git@github\.com:(.+)\/(.+?)(\.git)?$`)
 )
 
 func parseRemote(remote string) (repoOwner, repoName string, vendor api.GitVendor, err error) {
 	switch {
 	case githubHTTPRegex.MatchString(remote):
 		matches := githubHTTPRegex.FindStringSubmatch(remote)
-		if len(matches) != 3 {
+		if len(matches) < 3 {
 			return "", "", "", errors.Errorf("invalid github http remote %s", remote)
 		}
 		return matches[1], matches[2], api.GitVendorGitHub, nil
 	case githubSSHRegex.MatchString(remote):
 		matches := githubSSHRegex.FindStringSubmatch(remote)
-		if len(matches) != 3 {
+		if len(matches) < 3 {
 			return "", "", "", errors.Errorf("invalid github ssh remote %s", remote)
 		}
 		return matches[1], matches[2], api.GitVendorGitHub, nil

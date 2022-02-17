@@ -536,6 +536,13 @@ func TestParseRemote(t *testing.T) {
 			vendor:    api.GitVendorGitHub,
 		},
 		{
+			desc:      "git http with .git suffix",
+			remote:    "https://github.com/airplanedev/airport.git",
+			ownerName: "airplanedev",
+			repoName:  "airport",
+			vendor:    api.GitVendorGitHub,
+		},
+		{
 			desc:      "git ssh",
 			remote:    "git@github.com:airplanedev/airport.git",
 			ownerName: "airplanedev",
@@ -549,7 +556,6 @@ func TestParseRemote(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			t.Parallel()
 			assert := assert.New(t)
 			require := require.New(t)
 
