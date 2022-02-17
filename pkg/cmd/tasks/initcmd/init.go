@@ -38,7 +38,6 @@ type config struct {
 	file   string
 	slug   string
 
-	dev       bool
 	codeOnly  bool
 	defFormat string
 	assumeYes bool
@@ -79,30 +78,13 @@ func New(c *cli.Config) *cobra.Command {
 
 	cmd.Flags().StringVar(&cfg.slug, "slug", "", "Slug of an existing task to generate from.")
 
-	// Remove dev flag + unhide these flags + deprecate `slug` before release!
-	cmd.Flags().BoolVar(&cfg.dev, "dev", false, "Dev mode: warning, not guaranteed to work and subject to change.")
 	cmd.Flags().StringVar(&cfg.slug, "from", "", "Slug of an existing task to initialize.")
 	cmd.Flags().BoolVar(&cfg.codeOnly, "code-only", false, "True to skip creating a task definition file; only generates an entrypoint file.")
 	cmd.Flags().StringVar(&cfg.defFormat, "def-format", "", `One of "json" or "yaml". Defaults to "yaml".`)
 	cmd.Flags().BoolVarP(&cfg.assumeYes, "yes", "y", false, "True to specify automatic yes to prompts.")
 	cmd.Flags().BoolVarP(&cfg.assumeNo, "no", "n", false, "True to specify automatic no to prompts.")
 
-	if err := cmd.Flags().MarkHidden("dev"); err != nil {
-		logger.Debug("error: %s", err)
-	}
-	if err := cmd.Flags().MarkHidden("from"); err != nil {
-		logger.Debug("error: %s", err)
-	}
-	if err := cmd.Flags().MarkHidden("code-only"); err != nil {
-		logger.Debug("error: %s", err)
-	}
-	if err := cmd.Flags().MarkHidden("def-format"); err != nil {
-		logger.Debug("error: %s", err)
-	}
-	if err := cmd.Flags().MarkHidden("yes"); err != nil {
-		logger.Debug("error: %s", err)
-	}
-	if err := cmd.Flags().MarkHidden("no"); err != nil {
+	if err := cmd.Flags().MarkHidden("slug"); err != nil {
 		logger.Debug("error: %s", err)
 	}
 
@@ -116,10 +98,6 @@ func New(c *cli.Config) *cobra.Command {
 }
 
 func run(ctx context.Context, cfg config) error {
-	if !cfg.dev {
-		return initCodeOnly(ctx, cfg)
-	}
-
 	// Check for mutually exclusive flags.
 	if cfg.codeOnly && cfg.defFormat != "" {
 		return errors.New("Cannot specify both --code-only and --def-format")

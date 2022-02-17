@@ -30,7 +30,6 @@ type config struct {
 
 	upgradeInterpolation bool
 
-	dev       bool
 	assumeYes bool
 	assumeNo  bool
 
@@ -71,14 +70,9 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().BoolVarP(&cfg.local, "local", "L", false, "use a local Docker daemon (instead of an Airplane-hosted builder)")
 	cmd.Flags().BoolVar(&cfg.upgradeInterpolation, "jst", false, "Upgrade interpolation to JST")
 	cmd.Flags().Var(&cfg.changedFiles, "changed-files", "A file with a list of file paths that were changed, one path per line. Only tasks with changed files will be deployed")
-	// Remove dev flag + unhide these flags before release!
-	cmd.Flags().BoolVar(&cfg.dev, "dev", false, "Dev mode: warning, not guaranteed to work and subject to change.")
 	cmd.Flags().BoolVarP(&cfg.assumeYes, "yes", "y", false, "True to specify automatic yes to prompts.")
 	cmd.Flags().BoolVarP(&cfg.assumeNo, "no", "n", false, "True to specify automatic no to prompts.")
 
-	if err := cmd.Flags().MarkHidden("dev"); err != nil {
-		logger.Debug("error: %s", err)
-	}
 	if err := cmd.Flags().MarkHidden("yes"); err != nil {
 		logger.Debug("error: %s", err)
 	}
@@ -124,17 +118,14 @@ func run(ctx context.Context, cfg config) error {
 		Logger:          l,
 		EnvSlug:         cfg.envSlug,
 	}
-	var defnDiscoverer *discover.DefnDiscoverer
-	if cfg.dev {
-		defnDiscoverer := &discover.DefnDiscoverer{
-			Client:             cfg.client,
-			Logger:             l,
-			AssumeYes:          cfg.assumeYes,
-			AssumeNo:           cfg.assumeNo,
-			MissingTaskHandler: HandleMissingTask(cfg, l, loader),
-		}
-		d.TaskDiscoverers = append(d.TaskDiscoverers, defnDiscoverer)
+	defnDiscoverer := &discover.DefnDiscoverer{
+		Client:             cfg.client,
+		Logger:             l,
+		AssumeYes:          cfg.assumeYes,
+		AssumeNo:           cfg.assumeNo,
+		MissingTaskHandler: HandleMissingTask(cfg, l, loader),
 	}
+	d.TaskDiscoverers = append(d.TaskDiscoverers, defnDiscoverer)
 	d.TaskDiscoverers = append(d.TaskDiscoverers, &discover.ScriptDiscoverer{
 		Client: cfg.client,
 	})
@@ -145,15 +136,13 @@ func run(ctx context.Context, cfg config) error {
 	}
 	loader.Stop()
 
-	if cfg.dev {
-		for i, tc := range taskConfigs {
-			taskConfig, err := findDefinitionForScript(ctx, cfg, defnDiscoverer, tc)
-			if err != nil {
-				return err
-			}
-			if taskConfig != nil {
-				taskConfigs[i] = *taskConfig
-			}
+	for i, tc := range taskConfigs {
+		taskConfig, err := findDefinitionForScript(ctx, cfg, defnDiscoverer, tc)
+		if err != nil {
+			return err
+		}
+		if taskConfig != nil {
+			taskConfigs[i] = *taskConfig
 		}
 	}
 
