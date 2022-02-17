@@ -135,7 +135,9 @@ func run(ctx context.Context, cfg config) error {
 		}
 		d.TaskDiscoverers = append(d.TaskDiscoverers, defnDiscoverer)
 	}
-	d.TaskDiscoverers = append(d.TaskDiscoverers, &discover.ScriptDiscoverer{})
+	d.TaskDiscoverers = append(d.TaskDiscoverers, &discover.ScriptDiscoverer{
+		Client: cfg.client,
+	})
 
 	taskConfigs, err := d.DiscoverTasks(ctx, cfg.paths...)
 	if err != nil {
