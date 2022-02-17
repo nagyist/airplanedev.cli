@@ -114,16 +114,6 @@ func run(ctx context.Context, cfg config) error {
 		return errors.New("Cannot specify both --yes and --no")
 	}
 
-	ext := filepath.Ext(cfg.paths[0])
-	if !cfg.dev && (ext == ".yml" || ext == ".yaml") && len(cfg.paths) == 1 {
-		if cfg.envSlug != "" {
-			return errors.New("--env is not supported by the legacy YAML format")
-		}
-
-		// Legacy YAML.
-		return deployFromYaml(ctx, cfg)
-	}
-
 	l := &logger.StdErrLogger{}
 	loader := logger.NewLoader(logger.LoaderOpts{HideLoader: logger.EnableDebug})
 	loader.Start()
