@@ -226,10 +226,15 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 			if doCreateEntrypoint {
 				query, err := def.SQL.GetQuery()
 				if err != nil {
-					return err
-				}
-				if err := writeEntrypoint(entrypoint, []byte(query), 0644); err != nil {
-					return errors.Wrapf(err, "unable to create entrypoint")
+					// Create a generic entrypoint.
+					if err := createEntrypoint(r, entrypoint, nil); err != nil {
+						return errors.Wrapf(err, "unable to create entrypoint")
+					}
+				} else {
+					// Write the query to the entrypoint.
+					if err := writeEntrypoint(entrypoint, []byte(query), 0644); err != nil {
+						return errors.Wrapf(err, "unable to create entrypoint")
+					}
 				}
 				logger.Step("Created %s", entrypoint)
 			}
