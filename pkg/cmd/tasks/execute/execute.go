@@ -19,7 +19,6 @@ import (
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
-	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -32,7 +31,6 @@ type config struct {
 	task    string
 	args    []string
 	envSlug string
-	dev     bool
 }
 
 // New returns a new execute cobra command.
@@ -77,12 +75,6 @@ func New(c *cli.Config) *cobra.Command {
 		logger.Debug("unable to hide --env: %s", err)
 	}
 
-	// Unhide this flag once we release tasks-as-code.
-	cmd.Flags().BoolVar(&cfg.dev, "dev", false, "Dev mode: warning, not guaranteed to work and subject to change.")
-	if err := cmd.Flags().MarkHidden("dev"); err != nil {
-		logger.Debug("error: %s", err)
-	}
-
 	return cmd
 }
 
@@ -97,7 +89,7 @@ func run(ctx context.Context, cfg config) error {
 		slug = cfg.task
 	} else {
 		// It's a file, look up the slug from the file.
-		slug, err = slugFrom(cfg.task, cfg.dev)
+		slug, err = slugFrom(cfg.task)
 		if err != nil {
 			return err
 		}
@@ -184,36 +176,26 @@ func run(ctx context.Context, cfg config) error {
 }
 
 // SlugFrom returns the slug from the given file.
-func slugFrom(file string, dev bool) (string, error) {
+func slugFrom(file string) (string, error) {
 	switch ext := filepath.Ext(file); ext {
 	case ".yml", ".yaml", ".json":
-		return slugFromYaml(file, dev)
+		return slugFromDefn(file)
 	default:
 		return slugFromScript(file)
 	}
 }
 
-// slugFromYaml attempts to extract a slug from a yaml definition.
-func slugFromYaml(file string, dev bool) (string, error) {
-	dir, err := taskdir.Open(file, dev)
+// slugFromDefn attempts to extract a slug from a yaml definition.
+func slugFromDefn(file string) (string, error) {
+	dir, err := taskdir.Open(file)
 	if err != nil {
 		return "", err
 	}
 	defer dir.Close()
 
-	var def definitions.DefinitionInterface
-	if dev {
-		d, err := dir.ReadDefinition_0_3()
-		if err != nil {
-			return "", err
-		}
-		def = &d
-	} else {
-		d, err := dir.ReadDefinition()
-		if err != nil {
-			return "", err
-		}
-		def = &d
+	def, err := dir.ReadDefinition()
+	if err != nil {
+		return "", err
 	}
 
 	if def.GetSlug() == "" {

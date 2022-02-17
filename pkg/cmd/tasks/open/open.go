@@ -9,7 +9,6 @@ import (
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
-	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -19,7 +18,6 @@ type config struct {
 	root *cli.Config
 	slug string
 	file string
-	dev  bool
 }
 
 // New returns a new open command.
@@ -42,12 +40,6 @@ func New(c *cli.Config) *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&cfg.file, "file", "f", "", "Path to a task definition file.")
 
-	// Unhide this flag once we release tasks-as-code.
-	cmd.Flags().BoolVar(&cfg.dev, "dev", false, "Dev mode: warning, not guaranteed to work and subject to change.")
-	if err := cmd.Flags().MarkHidden("dev"); err != nil {
-		logger.Debug("error: %s", err)
-	}
-
 	return cmd
 }
 
@@ -61,25 +53,15 @@ func run(ctx context.Context, cfg config) error {
 			return errors.New("expected either a task slug or --file")
 		}
 
-		dir, err := taskdir.Open(cfg.file, cfg.dev)
+		dir, err := taskdir.Open(cfg.file)
 		if err != nil {
 			return err
 		}
 		defer dir.Close()
 
-		var def definitions.DefinitionInterface
-		if cfg.dev {
-			d, err := dir.ReadDefinition_0_3()
-			if err != nil {
-				return err
-			}
-			def = &d
-		} else {
-			d, err := dir.ReadDefinition()
-			if err != nil {
-				return err
-			}
-			def = &d
+		def, err := dir.ReadDefinition()
+		if err != nil {
+			return err
 		}
 
 		if def.GetSlug() == "" {
