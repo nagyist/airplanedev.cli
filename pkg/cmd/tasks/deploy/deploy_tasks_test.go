@@ -78,7 +78,7 @@ func TestDeployTasks(t *testing.T) {
 						{
 							TaskID: "my_task",
 							Kind:   "node",
-							BuildConfig: libBuild.KindOptions{
+							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
 								"shim":        "true",
@@ -125,7 +125,7 @@ func TestDeployTasks(t *testing.T) {
 						{
 							TaskID: "my_task",
 							Kind:   "node",
-							BuildConfig: libBuild.KindOptions{
+							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
 								"shim":        "true",
@@ -172,7 +172,7 @@ func TestDeployTasks(t *testing.T) {
 						{
 							TaskID: "my_task",
 							Kind:   "node",
-							BuildConfig: libBuild.KindOptions{
+							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
 								"shim":        "true",
@@ -218,7 +218,7 @@ func TestDeployTasks(t *testing.T) {
 						{
 							TaskID: "my_task",
 							Kind:   "node",
-							BuildConfig: libBuild.KindOptions{
+							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
 								"shim":        "true",
@@ -262,8 +262,9 @@ func TestDeployTasks(t *testing.T) {
 				{
 					Tasks: []api.DeployTask{
 						{
-							TaskID: "my_task",
-							Kind:   "image",
+							TaskID:      "my_task",
+							Kind:        "image",
+							BuildConfig: libBuild.BuildConfig{},
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
 								Slug:       "my_task",
 								Name:       "My Task",
@@ -301,7 +302,7 @@ func TestDeployTasks(t *testing.T) {
 						{
 							TaskID: "my_task",
 							Kind:   "node",
-							BuildConfig: libBuild.KindOptions{
+							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
 								"shim":        "true",
@@ -358,7 +359,7 @@ func TestDeployTasks(t *testing.T) {
 						{
 							TaskID: "my_task",
 							Kind:   "node",
-							BuildConfig: libBuild.KindOptions{
+							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
 								"shim":        "true",
@@ -418,7 +419,7 @@ func TestDeployTasks(t *testing.T) {
 						{
 							TaskID: "my_task",
 							Kind:   "node",
-							BuildConfig: libBuild.KindOptions{
+							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
 								"shim":        "true",

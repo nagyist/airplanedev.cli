@@ -169,7 +169,11 @@ func (d *deployer) DeployTasks(ctx context.Context, taskConfigs []discover.TaskC
 
 func (d *deployer) getDeployTask(ctx context.Context, tc discover.TaskConfig, uploadID string, repo *git.Repository) (taskToDeploy api.DeployTask, rErr error) {
 	client := d.cfg.client
-	kind, buildConfig, err := tc.Def.GetKindAndOptions()
+	kind, _, err := tc.Def.GetKindAndOptions()
+	if err != nil {
+		return api.DeployTask{}, err
+	}
+	buildConfig, err := tc.Def.GetBuildConfig()
 	if err != nil {
 		return api.DeployTask{}, err
 	}
@@ -225,31 +229,32 @@ More information: https://apn.sh/jst-upgrade`)
 	if err != nil {
 		return api.DeployTask{}, err
 	}
-	if buildConfig != nil {
+
+	var image *string
+	if ok, err := libBuild.NeedsBuilding(kind); err != nil {
+		return api.DeployTask{}, err
+	} else if ok {
 		buildConfig["shim"] = "true"
 		// Normalize entrypoint to `/` regardless of OS.
 		// CLI might be run from Windows or not Windows, but remote API is on Linux.
 		if ep, ok := buildConfig["entrypoint"].(string); ok {
 			buildConfig["entrypoint"] = filepath.ToSlash(ep)
 		}
-	}
 
-	var image *string
-	if ok, err := libBuild.NeedsBuilding(kind); err != nil {
-		return api.DeployTask{}, err
-	} else if ok && d.cfg.local {
-		resp, err := d.buildCreator.CreateBuild(ctx, build.Request{
-			Client:  client,
-			TaskID:  tc.Task.ID,
-			Root:    tc.TaskRoot,
-			Def:     tc.Def,
-			TaskEnv: env,
-			Shim:    true,
-		})
-		if err != nil {
-			return api.DeployTask{}, err
+		if d.cfg.local {
+			resp, err := d.buildCreator.CreateBuild(ctx, build.Request{
+				Client:  client,
+				TaskID:  tc.Task.ID,
+				Root:    tc.TaskRoot,
+				Def:     tc.Def,
+				TaskEnv: env,
+				Shim:    true,
+			})
+			if err != nil {
+				return api.DeployTask{}, err
+			}
+			image = &resp.ImageURL
 		}
-		image = &resp.ImageURL
 	}
 
 	utr, err := tc.Def.GetUpdateTaskRequest(ctx, d.cfg.client, &tc.Task)
@@ -363,9 +368,6 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []disc
 		d.logger.Log(logger.Bold(tc.Task.Slug))
 		d.logger.Log("Type: %s", tc.Task.Kind)
 		d.logger.Log("Root directory: %s", relpath(tc.TaskRoot))
-		if tc.WorkingDirectory != tc.TaskRoot {
-			d.logger.Log("Working directory: %s", relpath(tc.WorkingDirectory))
-		}
 		d.logger.Log("URL: %s", d.cfg.client.TaskURL(tc.Task.Slug))
 		d.logger.Log("")
 	}

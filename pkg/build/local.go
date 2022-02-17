@@ -35,19 +35,25 @@ func (d *localBuildCreator) CreateBuild(ctx context.Context, req Request) (*buil
 		return nil, err
 	}
 
-	kind, options, err := req.Def.GetKindAndOptions()
+	kind, _, err := req.Def.GetKindAndOptions()
+	if err != nil {
+		return nil, err
+	}
+
+	buildConfig, err := req.Def.GetBuildConfig()
 	if err != nil {
 		return nil, err
 	}
 
 	if req.Shim {
-		options["shim"] = "true"
+		buildConfig["shim"] = "true"
 	}
 
 	b, err := build.New(build.LocalConfig{
 		Root:    req.Root,
 		Builder: string(kind),
-		Options: options,
+		// TODO(fleung): should be build.BuildConfig, not build.KindOptions
+		Options: build.KindOptions(buildConfig),
 		Auth: &build.RegistryAuth{
 			Token: registry.Token,
 			Repo:  registry.Repo,

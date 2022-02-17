@@ -271,7 +271,7 @@ type DeployTask struct {
 	TaskID            string                   `json:"taskID"`
 	InterpolationMode string                   `json:"interpolationMode"`
 	Kind              build.TaskKind           `json:"kind"`
-	BuildConfig       build.KindOptions        `json:"buildConfig"`
+	BuildConfig       build.BuildConfig        `json:"buildConfig"`
 	UploadID          string                   `json:"uploadID"`
 	UpdateTaskRequest libapi.UpdateTaskRequest `json:"updateTaskRequest"`
 	EnvVars           libapi.TaskEnv           `json:"envVars"`
