@@ -105,6 +105,9 @@ func run(ctx context.Context, cfg config) error {
 	if cfg.assumeYes && cfg.assumeNo {
 		return errors.New("Cannot specify both --yes and --no")
 	}
+	if cfg.codeOnly && cfg.slug == "" {
+		return errors.New("Required flag(s) \"slug\" not set")
+	}
 
 	// Extrapolate defFormat from the specified file, if it's a definition file.
 	defFormat := definitions.GetTaskDefFormat(cfg.file)
@@ -260,12 +263,6 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 
 func initCodeOnly(ctx context.Context, cfg config) error {
 	client := cfg.client
-
-	// Require slug for now. If `dev` is specified and `slug` is not, we should initialize based on
-	// the new task info.
-	if cfg.slug == "" {
-		return errors.New("Required flag(s) \"slug\" not set")
-	}
 
 	task, err := client.GetTask(ctx, libapi.GetTaskRequest{
 		Slug:    cfg.slug,
