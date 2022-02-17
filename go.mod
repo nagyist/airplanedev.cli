@@ -6,7 +6,6 @@ require (
 	github.com/AlecAivazis/survey/v2 v2.3.2
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021 // indirect
-	github.com/alecthomas/jsonschema v0.0.0-20220203024042-cc89723c9db0 // indirect
 	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
@@ -37,7 +36,7 @@ require (
 )
 
 require (
-	github.com/airplanedev/lib v0.3.8
+	github.com/airplanedev/lib v0.3.9-0.20220217150520-0c6a9f248064
 	github.com/airplanedev/ojson v0.1.0
 	github.com/briandowns/spinner v1.18.1
 )
@@ -73,7 +72,6 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
-	github.com/iancoleman/orderedmap v0.0.0-20190318233801-ac98e3ecb4b0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
