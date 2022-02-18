@@ -49,9 +49,10 @@ func New(c *cli.Config) *cobra.Command {
 		Example: heredoc.Doc(`
 			airplane tasks deploy ./task.ts
 			airplane tasks deploy --local ./task.js
-			airplane tasks deploy ./my-task.yml
+			airplane tasks deploy ./my_task.task.yml
+			airplane tasks deploy --local ./my_task.task.yml
 			airplane tasks deploy my-directory
-			airplane tasks deploy ./my-task1.yml ./my-task2.yml
+			airplane tasks deploy ./my_task1.task.yml ./my_task2.task.json my-directory
 		`),
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -60,9 +60,10 @@ func New(c *cli.Config) *cobra.Command {
 		Use:   "init",
 		Short: "Initialize a task definition",
 		Example: heredoc.Doc(`
-			$ airplane tasks init --slug task-slug
-			$ airplane tasks init --slug task-slug ./my/task.js
-			$ airplane tasks init --slug task-slug ./my/task.ts
+			$ airplane tasks init --from task_slug
+			$ airplane tasks init --from task_slug ./folder/my_task.js
+			$ airplane tasks init --from task_slug ./folder/my_task.task.json
+			$ airplane tasks init --from task_slug ./folder/my_task.task.yaml
 		`),
 		Args: cobra.MaximumNArgs(1),
 		PersistentPreRunE: utils.WithParentPersistentPreRunE(func(cmd *cobra.Command, args []string) error {
