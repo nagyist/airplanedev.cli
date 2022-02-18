@@ -211,7 +211,6 @@ func HandleMissingTask(cfg config, l logger.Logger, loader logger.Loader) func(c
 			Resources:        utr.Resources,
 			Kind:             utr.Kind,
 			KindOptions:      utr.KindOptions,
-			Repo:             utr.Repo,
 			Timeout:          utr.Timeout,
 			EnvSlug:          cfg.envSlug,
 		})

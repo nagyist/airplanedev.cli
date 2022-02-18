@@ -31,7 +31,6 @@ type CreateTaskRequest struct {
 	Resources        map[string]string     `json:"resources"`
 	Kind             build.TaskKind        `json:"kind"`
 	KindOptions      build.KindOptions     `json:"kindOptions"`
-	Repo             string                `json:"repo"`
 	Timeout          int                   `json:"timeout"`
 	EnvSlug          string                `json:"envSlug"`
 }

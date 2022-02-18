@@ -109,7 +109,6 @@ func deployFromYaml(ctx context.Context, cfg config) (rErr error) {
 			Resources:        resources,
 			Kind:             kind,
 			KindOptions:      kindOptions,
-			Repo:             def.Repo,
 			Timeout:          def.Timeout,
 		})
 		if err != nil {
@@ -187,7 +186,6 @@ More information: https://apn.sh/jst-upgrade`)
 		Resources:                  resources,
 		Kind:                       kind,
 		KindOptions:                kindOptions,
-		Repo:                       def.Repo,
 		RequireExplicitPermissions: task.RequireExplicitPermissions,
 		Permissions:                task.Permissions,
 		Timeout:                    def.Timeout,
