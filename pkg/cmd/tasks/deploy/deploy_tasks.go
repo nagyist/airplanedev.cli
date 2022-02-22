@@ -152,7 +152,8 @@ func (d *deployer) DeployTasks(ctx context.Context, taskConfigs []discover.TaskC
 		return err
 	}
 
-	// TODO log URL to deploy
+	deployLog(ctx, api.LogLevelInfo, d.loader, deployLogReq{msg: logger.Gray("Creating deployment...")})
+	d.logger.Log(logger.Purple(fmt.Sprintf("\nView deployment: %s\n", d.cfg.client.DeploymentURL(ctx, resp.Deployment.ID))))
 
 	err = waitForDeploy(ctx, d.loader, d.cfg.client, resp.Deployment.ID)
 	if errors.Is(err, context.Canceled) {

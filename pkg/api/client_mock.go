@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	libapi "github.com/airplanedev/lib/pkg/api"
@@ -112,6 +113,11 @@ func (mc *MockClient) CreateDeployment(ctx context.Context, req CreateDeployment
 
 func (mc *MockClient) CancelDeployment(ctx context.Context, req CancelDeploymentRequest) error {
 	return nil
+}
+
+// DeploymentURL returns a URL for a deployment.
+func (mc *MockClient) DeploymentURL(ctx context.Context, deploymentID string) string {
+	return fmt.Sprintf("https://airplane.dev/%s", deploymentID)
 }
 
 func (mc *MockClient) CreateBuild(ctx context.Context, req CreateBuildRequest) (res CreateBuildResponse, err error) {
