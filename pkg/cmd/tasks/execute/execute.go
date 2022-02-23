@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
@@ -18,8 +17,6 @@ import (
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/deploy/taskdir"
-	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -89,7 +86,7 @@ func run(ctx context.Context, cfg config) error {
 		slug = cfg.task
 	} else {
 		// It's a file, look up the slug from the file.
-		slug, err = slugFrom(cfg.task)
+		slug, err = utils.SlugFrom(cfg.task)
 		if err != nil {
 			return err
 		}
@@ -173,46 +170,6 @@ func run(ctx context.Context, cfg config) error {
 		return errors.New("Run has failed")
 	}
 	return nil
-}
-
-// SlugFrom returns the slug from the given file.
-func slugFrom(file string) (string, error) {
-	switch ext := filepath.Ext(file); ext {
-	case ".yml", ".yaml", ".json":
-		return slugFromDefn(file)
-	default:
-		return slugFromScript(file)
-	}
-}
-
-// slugFromDefn attempts to extract a slug from a yaml definition.
-func slugFromDefn(file string) (string, error) {
-	dir, err := taskdir.Open(file)
-	if err != nil {
-		return "", err
-	}
-	defer dir.Close()
-
-	def, err := dir.ReadDefinition()
-	if err != nil {
-		return "", err
-	}
-
-	if def.GetSlug() == "" {
-		return "", errors.Errorf("no task slug found in task definition at %s", file)
-	}
-
-	return def.GetSlug(), nil
-}
-
-// slugFromScript attempts to extract a slug from a script.
-func slugFromScript(file string) (string, error) {
-	slug, ok := runtime.Slug(file)
-	if !ok {
-		return "", runtime.ErrNotLinked{Path: file}
-	}
-
-	return slug, nil
 }
 
 type notDeployedError struct {

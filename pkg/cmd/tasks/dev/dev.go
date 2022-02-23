@@ -20,6 +20,8 @@ import (
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/outputs"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils/bufiox"
@@ -78,7 +80,7 @@ func run(ctx context.Context, cfg config) error {
 		return errors.Errorf("Unable to open file: %s", cfg.file)
 	}
 
-	slug, err := slugFromScript(cfg.file)
+	slug, err := utils.SlugFrom(cfg.file)
 	if err != nil {
 		return err
 	}
@@ -91,9 +93,14 @@ func run(ctx context.Context, cfg config) error {
 		return errors.Wrap(err, "getting task")
 	}
 
-	r, err := runtime.Lookup(cfg.file, task.Kind)
+	entrypoint, err := entrypointFrom(cfg.file)
 	if err != nil {
-		return errors.Wrapf(err, "unsupported file type: %s", filepath.Base(cfg.file))
+		return err
+	}
+
+	r, err := runtime.Lookup(entrypoint, task.Kind)
+	if err != nil {
+		return errors.Wrapf(err, "unsupported file type: %s", filepath.Base(entrypoint))
 	}
 
 	paramValues, err := params.CLI(cfg.args, task)
@@ -106,9 +113,9 @@ func run(ctx context.Context, cfg config) error {
 	logger.Log("Locally running %s task %s", logger.Bold(task.Name), logger.Gray("("+cfg.root.Client.TaskURL(task.Slug)+")"))
 	logger.Log("")
 
-	path, err := filepath.Abs(cfg.file)
+	path, err := filepath.Abs(entrypoint)
 	if err != nil {
-		return errors.Wrapf(err, "absolute path of %s", cfg.file)
+		return errors.Wrapf(err, "absolute path of %s", entrypoint)
 	}
 
 	cmds, closer, err := r.PrepareRun(ctx, &logger.StdErrLogger{}, runtime.PrepareRunOptions{
@@ -245,12 +252,27 @@ func getDevEnv(r runtime.Interface, path string) (map[string]string, error) {
 	return env, errors.Wrap(err, "reading .env")
 }
 
-// slugFromScript attempts to extract a slug from a file based on its contents.
-func slugFromScript(file string) (string, error) {
-	slug, ok := runtime.Slug(file)
-	if !ok {
-		return "", runtime.ErrNotLinked{Path: file}
+func entrypointFrom(file string) (string, error) {
+	format := definitions.GetTaskDefFormat(file)
+	switch format {
+	case definitions.TaskDefFormatYAML, definitions.TaskDefFormatJSON:
+		return entrypointFromDefn(file)
+	default:
+		return file, nil
+	}
+}
+
+func entrypointFromDefn(file string) (string, error) {
+	dir, err := taskdir.Open(file)
+	if err != nil {
+		return "", err
+	}
+	defer dir.Close()
+
+	def, err := dir.ReadDefinition()
+	if err != nil {
+		return "", err
 	}
 
-	return slug, nil
+	return def.Entrypoint()
 }
