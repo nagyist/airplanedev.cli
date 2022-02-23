@@ -48,8 +48,8 @@ func TestDeployTasks(t *testing.T) {
 		gitRepo               *git.Repository
 		getDeploymentResponse *api.Deployment
 		expectedError         error
-		updatedTasks          map[string]libapi.Task
 		deploys               []api.CreateDeploymentRequest
+		resources             []libapi.Resource
 	}{
 		{
 			desc: "no tasks",
@@ -450,35 +450,64 @@ func TestDeployTasks(t *testing.T) {
 				},
 			},
 		},
-		// TODO uncomment when sql deploys work.
-		// {
-		// 	desc: "deploys and updates an SQL task",
-		// 	taskConfigs: []discover.TaskConfig{
-		// 		{
-		// 			TaskRoot: fixturesPath,
-		// 			Def: &definitions.Definition_0_3{
-		// 				Name: "My Task",
-		// 				Slug: "my_task",
-		// 				SQL: &definitions.SQLDefinition_0_3{
-		// 					Entrypoint: "./fixtures/test.sql",
-		// 				},
-		// 			},
-		// 			Task: libapi.Task{
-		// 				Slug: "my_task",
-		// 				Name: "My Task",
-		// 			},
-		// 		},
-		// 	},
-		// 	existingTasks: map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
-		// 	updatedTasks: map[string]libapi.Task{
-		// 		"my_task": {
-		// 			Name:       "My Task",
-		// 			Slug:       "my_task",
-		// 			Parameters: libapi.Parameters{},
-		// 			Kind:       "sql",
-		// 		},
-		// 	},
-		// },
+		{
+			desc: "deploys and updates an SQL task",
+			taskConfigs: []discover.TaskConfig{
+				{
+					TaskRoot: fixturesPath,
+					Def: &definitions.Definition_0_3{
+						Name: "My Task",
+						Slug: "my_task",
+						SQL: &definitions.SQLDefinition_0_3{
+							Entrypoint: "./fixtures/test.sql",
+							Parameters: map[string]interface{}{},
+							Resource:   "db",
+						},
+					},
+					Task: libapi.Task{
+						ID:   "my_task",
+						Slug: "my_task",
+						Name: "My Task",
+					},
+				},
+			},
+			existingTasks: map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
+			resources: []libapi.Resource{
+				{
+					ID:   "db_id",
+					Name: "db",
+				},
+			},
+			deploys: []api.CreateDeploymentRequest{
+				{
+					Tasks: []api.DeployTask{
+						{
+							TaskID: "my_task",
+							Kind:   "sql",
+							BuildConfig: libBuild.BuildConfig{
+								"entrypoint": "./fixtures/test.sql",
+								"query":      "SELECT 1;\n",
+								"queryArgs":  map[string]interface{}{},
+							},
+							UpdateTaskRequest: libapi.UpdateTaskRequest{
+								Slug:       "my_task",
+								Name:       "My Task",
+								Parameters: libapi.Parameters{},
+								Kind:       "sql",
+								KindOptions: libBuild.KindOptions{
+									"entrypoint": "./fixtures/test.sql",
+									"query":      "SELECT 1;\n",
+									"queryArgs":  map[string]interface{}{},
+								},
+								Resources: map[string]string{
+									"db": "db_id",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
@@ -487,6 +516,7 @@ func TestDeployTasks(t *testing.T) {
 			client := &api.MockClient{
 				Tasks:                 tC.existingTasks,
 				GetDeploymentResponse: tC.getDeploymentResponse,
+				Resources:             tC.resources,
 			}
 			for k, v := range tC.envVars {
 				os.Setenv(k, v)
@@ -510,11 +540,7 @@ func TestDeployTasks(t *testing.T) {
 				require.NoError(err)
 			}
 
-			if tC.updatedTasks != nil {
-				assert.Equal(tC.updatedTasks, client.Tasks)
-			} else {
-				assert.Equal(tC.existingTasks, client.Tasks)
-			}
+			assert.Equal(tC.existingTasks, client.Tasks)
 			assert.Equal(tC.deploys, client.Deploys)
 		})
 	}
@@ -536,6 +562,13 @@ func TestParseRemote(t *testing.T) {
 			vendor:    api.GitVendorGitHub,
 		},
 		{
+			desc:      "git http with .git suffix",
+			remote:    "https://github.com/airplanedev/airport.git",
+			ownerName: "airplanedev",
+			repoName:  "airport",
+			vendor:    api.GitVendorGitHub,
+		},
+		{
 			desc:      "git ssh",
 			remote:    "git@github.com:airplanedev/airport.git",
 			ownerName: "airplanedev",
@@ -549,7 +582,6 @@ func TestParseRemote(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			t.Parallel()
 			assert := assert.New(t)
 			require := require.New(t)
 

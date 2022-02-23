@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	libapi "github.com/airplanedev/lib/pkg/api"
@@ -12,6 +13,7 @@ type MockClient struct {
 	Tasks                 map[string]libapi.Task
 	Deploys               []CreateDeploymentRequest
 	GetDeploymentResponse *Deployment
+	Resources             []libapi.Resource
 }
 
 var _ APIClient = &MockClient{}
@@ -29,7 +31,7 @@ func (mc *MockClient) ListTasks(ctx context.Context, envSlug string) (res ListTa
 }
 
 func (mc *MockClient) ListResources(ctx context.Context) (res libapi.ListResourcesResponse, err error) {
-	return libapi.ListResourcesResponse{}, nil
+	return libapi.ListResourcesResponse{Resources: mc.Resources}, nil
 }
 func (mc *MockClient) SetConfig(ctx context.Context, req SetConfigRequest) (err error) {
 	panic("not implemented") // TODO: Implement
@@ -111,6 +113,11 @@ func (mc *MockClient) CreateDeployment(ctx context.Context, req CreateDeployment
 
 func (mc *MockClient) CancelDeployment(ctx context.Context, req CancelDeploymentRequest) error {
 	return nil
+}
+
+// DeploymentURL returns a URL for a deployment.
+func (mc *MockClient) DeploymentURL(ctx context.Context, deploymentID string) string {
+	return fmt.Sprintf("https://airplane.dev/%s", deploymentID)
 }
 
 func (mc *MockClient) CreateBuild(ctx context.Context, req CreateBuildRequest) (res CreateBuildResponse, err error) {

@@ -94,6 +94,7 @@ type APIClient interface {
 	GetDeployment(ctx context.Context, id string) (res Deployment, err error)
 	CreateDeployment(ctx context.Context, req CreateDeploymentRequest) (CreateDeploymentResponse, error)
 	CancelDeployment(ctx context.Context, req CancelDeploymentRequest) error
+	DeploymentURL(ctx context.Context, deploymentID string) string
 
 	GetBuild(ctx context.Context, id string) (res GetBuildResponse, err error)
 	GetBuildLogs(ctx context.Context, buildID string, prevToken string) (res GetBuildLogsResponse, err error)
@@ -130,6 +131,13 @@ func (c Client) LoginURL(uri string) string {
 func (c Client) LoginSuccessURL() string {
 	u := c.appURL()
 	u.Path = "/cli/success"
+	return u.String()
+}
+
+// DeploymentURL returns a URL for a deployment.
+func (c Client) DeploymentURL(ctx context.Context, deploymentID string) string {
+	u := c.appURL()
+	u.Path = fmt.Sprintf("/deployments/%s", deploymentID)
 	return u.String()
 }
 
