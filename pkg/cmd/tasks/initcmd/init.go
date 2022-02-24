@@ -168,6 +168,7 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		}
 	}
 
+	localExecutionSupported := false
 	entrypoint, err := def.Entrypoint()
 	if err == definitions.ErrNoEntrypoint {
 		// no-op
@@ -193,6 +194,7 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		if err != nil {
 			return errors.Wrapf(err, "unable to init %q - check that your CLI is up to date", entrypoint)
 		}
+		localExecutionSupported = r.SupportsLocalExecution()
 
 		if kind == build.TaskKindSQL {
 			doCreateEntrypoint := true
@@ -258,7 +260,7 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		return err
 	}
 	logger.Step("Created %s", defFn)
-	suggestNextSteps(defFn)
+	suggestNextSteps(defFn, localExecutionSupported)
 	return nil
 }
 
@@ -288,7 +290,7 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 	if fsx.Exists(cfg.file) {
 		if slug, ok := runtime.Slug(cfg.file); ok && slug == task.Slug {
 			logger.Step("%s is already linked to %s", cfg.file, cfg.slug)
-			suggestNextSteps(cfg.file)
+			suggestNextSteps(cfg.file, true)
 			return nil
 		}
 
@@ -313,7 +315,7 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 		}
 		logger.Step("Linked %s to %s", cfg.file, cfg.slug)
 
-		suggestNextSteps(cfg.file)
+		suggestNextSteps(cfg.file, true)
 		return nil
 	}
 
@@ -321,7 +323,7 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 		return err
 	}
 	logger.Step("Created %s", cfg.file)
-	suggestNextSteps(cfg.file)
+	suggestNextSteps(cfg.file, true)
 	return nil
 }
 
@@ -355,12 +357,14 @@ func prependComment(source []byte, comment string) []byte {
 	return buf.Bytes()
 }
 
-func suggestNextSteps(file string) {
-	logger.Suggest(
-		"⚡ To execute the task locally:",
-		"airplane dev %s",
-		file,
-	)
+func suggestNextSteps(file string, showLocalExecution bool) {
+	if showLocalExecution {
+		logger.Suggest(
+			"⚡ To execute the task locally:",
+			"airplane dev %s",
+			file,
+		)
+	}
 	logger.Suggest(
 		"🛫 To deploy your task to Airplane:",
 		"airplane deploy %s",

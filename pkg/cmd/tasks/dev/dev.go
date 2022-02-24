@@ -94,13 +94,21 @@ func run(ctx context.Context, cfg config) error {
 	}
 
 	entrypoint, err := entrypointFrom(cfg.file)
-	if err != nil {
+	if err == definitions.ErrNoEntrypoint {
+		logger.Warning("Local execution is not supported for this task (kind=%s)", task.Kind)
+		return nil
+	} else if err != nil {
 		return err
 	}
 
 	r, err := runtime.Lookup(entrypoint, task.Kind)
 	if err != nil {
 		return errors.Wrapf(err, "unsupported file type: %s", filepath.Base(entrypoint))
+	}
+
+	if !r.SupportsLocalExecution() {
+		logger.Warning("Local execution is not supported for this task (kind=%s)", task.Kind)
+		return nil
 	}
 
 	paramValues, err := params.CLI(cfg.args, task)
