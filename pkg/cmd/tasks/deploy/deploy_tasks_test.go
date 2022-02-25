@@ -40,6 +40,7 @@ func TestDeployTasks(t *testing.T) {
 	testCases := []struct {
 		desc                  string
 		taskConfigs           []discover.TaskConfig
+		absoluteEntrypoints   []string
 		existingTasks         map[string]libapi.Task
 		changedFiles          []string
 		envVars               map[string]string
@@ -460,7 +461,7 @@ func TestDeployTasks(t *testing.T) {
 						Slug: "my_task",
 						SQL: &definitions.SQLDefinition_0_3{
 							Entrypoint: "./fixtures/test.sql",
-							Parameters: map[string]interface{}{},
+							QueryArgs:  map[string]interface{}{},
 							Resource:   "db",
 						},
 					},
@@ -470,6 +471,9 @@ func TestDeployTasks(t *testing.T) {
 						Name: "My Task",
 					},
 				},
+			},
+			absoluteEntrypoints: []string{
+				fixturesPath + "/test.sql",
 			},
 			existingTasks: map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
 			resources: []libapi.Resource{
@@ -532,6 +536,9 @@ func TestDeployTasks(t *testing.T) {
 				Archiver:     &archive.MockArchiver{},
 				RepoGetter:   &MockGitRepoGetter{Repo: tC.gitRepo},
 			})
+			for i, absEntrypoint := range tC.absoluteEntrypoints {
+				tC.taskConfigs[i].Def.SetAbsoluteEntrypoint(absEntrypoint)
+			}
 			err := d.DeployTasks(context.Background(), tC.taskConfigs)
 			if tC.expectedError != nil {
 				assert.Error(err)
