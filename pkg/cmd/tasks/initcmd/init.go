@@ -39,7 +39,6 @@ type config struct {
 	slug   string
 
 	codeOnly  bool
-	defFormat string
 	assumeYes bool
 	assumeNo  bool
 	envSlug   string
@@ -81,7 +80,6 @@ func New(c *cli.Config) *cobra.Command {
 
 	cmd.Flags().StringVar(&cfg.slug, "from", "", "Slug of an existing task to initialize.")
 	cmd.Flags().BoolVar(&cfg.codeOnly, "code-only", false, "True to skip creating a task definition file; only generates an entrypoint file.")
-	cmd.Flags().StringVar(&cfg.defFormat, "def-format", "", `One of "json" or "yaml". Defaults to "yaml".`)
 	cmd.Flags().BoolVarP(&cfg.assumeYes, "yes", "y", false, "True to specify automatic yes to prompts.")
 	cmd.Flags().BoolVarP(&cfg.assumeNo, "no", "n", false, "True to specify automatic no to prompts.")
 
@@ -100,20 +98,11 @@ func New(c *cli.Config) *cobra.Command {
 
 func run(ctx context.Context, cfg config) error {
 	// Check for mutually exclusive flags.
-	if cfg.codeOnly && cfg.defFormat != "" {
-		return errors.New("Cannot specify both --code-only and --def-format")
-	}
 	if cfg.assumeYes && cfg.assumeNo {
 		return errors.New("Cannot specify both --yes and --no")
 	}
 	if cfg.codeOnly && cfg.slug == "" {
 		return errors.New("Required flag(s) \"slug\" not set")
-	}
-
-	// Extrapolate defFormat from the specified file, if it's a definition file.
-	defFormat := definitions.GetTaskDefFormat(cfg.file)
-	if defFormat != definitions.TaskDefFormatUnknown {
-		cfg.defFormat = string(defFormat)
 	}
 
 	if cfg.slug == "" {
@@ -132,14 +121,6 @@ func run(ctx context.Context, cfg config) error {
 
 func initWithTaskDef(ctx context.Context, cfg config) error {
 	client := cfg.client
-
-	// Check for a valid defFormat, add in a default if necessary.
-	if cfg.defFormat == "" {
-		cfg.defFormat = "yaml"
-	}
-	if cfg.defFormat != "yaml" && cfg.defFormat != "json" {
-		return errors.Errorf("Invalid \"def-format\" specified: %s", cfg.defFormat)
-	}
 
 	var def definitions.Definition_0_3
 	if cfg.slug != "" {
@@ -169,8 +150,7 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 	}
 
 	localExecutionSupported := false
-	entrypoint, err := def.Entrypoint()
-	if err == definitions.ErrNoEntrypoint {
+	if entrypoint, err := def.Entrypoint(); err == definitions.ErrNoEntrypoint {
 		// no-op
 	} else if err != nil {
 		return err
@@ -181,7 +161,7 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		}
 
 		if entrypoint == "" {
-			entrypoint, err = promptForNewFileName(def.GetSlug(), kind)
+			entrypoint, err = promptForNewEntrypoint(def.GetSlug(), kind)
 			if err != nil {
 				return err
 			}
@@ -236,13 +216,19 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 	}
 
 	// Create task defn file.
-	defFn := cfg.file
-	if !definitions.IsTaskDef(defFn) {
-		defFn = fmt.Sprintf("%s.task.%s", def.Slug, cfg.defFormat)
+	defnFilename := cfg.file
+	if !definitions.IsTaskDef(cfg.file) {
+		defaultDefnFn := fmt.Sprintf("%s.task.yaml", def.Slug)
+		entrypoint, _ := def.Entrypoint()
+		fn, err := promptForNewDefinition(defaultDefnFn, entrypoint)
+		if err != nil {
+			return err
+		}
+		defnFilename = fn
 	}
-	if fsx.Exists(defFn) {
+	if fsx.Exists(defnFilename) {
 		// If it exists, check for existence of this file before overwriting it.
-		question := fmt.Sprintf("Would you like to overwrite %s?", defFn)
+		question := fmt.Sprintf("Would you like to overwrite %s?", defnFilename)
 		if ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
 			return err
 		} else if !ok {
@@ -251,16 +237,42 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		}
 	}
 
-	buf, err := def.Marshal(definitions.TaskDefFormat(cfg.defFormat))
+	// Adjust entrypoint to be relative to the task defn.
+	if entrypoint, err := def.Entrypoint(); err == definitions.ErrNoEntrypoint {
+		// no-op
+	} else if err != nil {
+		return err
+	} else {
+		absEntrypoint, err := filepath.Abs(entrypoint)
+		if err != nil {
+			return errors.Wrap(err, "determining absolute entrypoint")
+		}
+
+		absDefnFn, err := filepath.Abs(defnFilename)
+		if err != nil {
+			return errors.Wrap(err, "determining absolute definition file")
+		}
+
+		defnDir := filepath.Dir(absDefnFn)
+		relpath, err := filepath.Rel(defnDir, absEntrypoint)
+		if err != nil {
+			return errors.Wrap(err, "determining relative entrypoint")
+		}
+		if err := def.SetEntrypoint(relpath); err != nil {
+			return err
+		}
+	}
+
+	buf, err := def.Marshal(definitions.GetTaskDefFormat(defnFilename))
 	if err != nil {
 		return err
 	}
 
-	if err := ioutil.WriteFile(defFn, buf, 0644); err != nil {
+	if err := ioutil.WriteFile(defnFilename, buf, 0644); err != nil {
 		return err
 	}
-	logger.Step("Created %s", defFn)
-	suggestNextSteps(defFn, localExecutionSupported)
+	logger.Step("Created %s", defnFilename)
+	suggestNextSteps(defnFilename, localExecutionSupported)
 	return nil
 }
 
@@ -276,7 +288,7 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 	}
 
 	if cfg.file == "" {
-		cfg.file, err = promptForNewFileName(task.Slug, task.Kind)
+		cfg.file, err = promptForNewEntrypoint(task.Slug, task.Kind)
 		if err != nil {
 			return err
 		}
@@ -386,7 +398,7 @@ func patch(slug, file string) (ok bool, err error) {
 	return
 }
 
-func promptForNewFileName(slug string, kind build.TaskKind) (string, error) {
+func promptForNewEntrypoint(slug string, kind build.TaskKind) (string, error) {
 	fileName := slug + runtime.SuggestExt(kind)
 
 	if cwdIsHome, err := cwdIsHome(); err != nil {
@@ -406,6 +418,29 @@ func promptForNewFileName(slug string, kind build.TaskKind) (string, error) {
 		return "", err
 	}
 	return fileName, nil
+}
+
+func promptForNewDefinition(defaultFilename, entrypoint string) (string, error) {
+	entrypointDir := filepath.Dir(entrypoint)
+	defaultFilename = filepath.Join(entrypointDir, defaultFilename)
+
+	for {
+		var filename string
+		if err := survey.AskOne(
+			&survey.Input{
+				Message: "Where should the definition file be created?",
+				Default: defaultFilename,
+			},
+			&filename,
+		); err != nil {
+			return "", err
+		}
+		if definitions.IsTaskDef(filename) {
+			return filename, nil
+		}
+
+		logger.Warning("Your definition file must end in *.task.yaml, *.task.yml, or *.task.json!")
+	}
 }
 
 var namesByKind = map[build.TaskKind]string{
