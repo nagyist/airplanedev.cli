@@ -21,7 +21,6 @@ require (
 	github.com/joho/godotenv v1.4.0
 	github.com/kr/text v0.2.0
 	github.com/mattn/go-isatty v0.0.14
-	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/analytics-go v1.2.1-0.20201110202747-0566e489c7b9
@@ -36,7 +35,7 @@ require (
 )
 
 require (
-	github.com/airplanedev/lib v0.3.9-0.20220224225224-5455bbb246b6
+	github.com/airplanedev/lib v0.3.9-0.20220228183819-a5e12b326cb4
 	github.com/airplanedev/ojson v0.1.0
 	github.com/briandowns/spinner v1.18.1
 )

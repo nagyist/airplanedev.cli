@@ -273,6 +273,7 @@ func TestDeployTasks(t *testing.T) {
 								Kind:       "image",
 								Command:    []string{},
 								Image:      pointers.String("myImage"),
+								Arguments:  []string{},
 							},
 						},
 					},
