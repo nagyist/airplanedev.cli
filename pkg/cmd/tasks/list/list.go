@@ -54,9 +54,11 @@ func run(ctx context.Context, cfg config) error {
 	}
 
 	if len(res.Tasks) == 0 {
-		logger.Log(`
-  There are no tasks yet. To create a sample task:
-    airplane deploy -f github.com/airplanedev/examples/node/hello-world-javascript/airplane.yml`)
+		logger.Log(heredoc.Doc(`
+			There are no tasks yet.
+
+			To get started, follow our quickstart guide: https://docs.airplane.dev/getting-started/quickstart-guide
+		`))
 		return nil
 	}
 

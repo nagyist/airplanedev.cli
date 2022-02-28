@@ -3,6 +3,7 @@ package latest
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/airplanedev/cli/pkg/analytics"
@@ -38,10 +39,11 @@ func CheckLatest(ctx context.Context) {
 			"https://docs.airplane.dev/platform/airplane-cli#upgrading-the-cli",
 		)
 	}
-	return
 }
 
 func getLatest(ctx context.Context) (string, error) {
+	// GitHub heavily rate limits this endpoint. We should proxy this through our API and use an API key.
+	// https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting
 	req, err := http.NewRequestWithContext(ctx, "GET", releaseURL, nil)
 	if err != nil {
 		return "", err
@@ -51,6 +53,18 @@ func getLatest(ctx context.Context) (string, error) {
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
+	}
+
+	if resp.StatusCode >= 400 {
+		// e.g. {"message":"API rate limit ..."}
+		var ghError struct {
+			Message string `json:"message"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&ghError); err != nil {
+			analytics.ReportError(err)
+			logger.Debug("Unable to decode GitHub %s API response: %s", resp.Status, err)
+		}
+		return "", fmt.Errorf("HTTP %s: %s", resp.Status, ghError.Message)
 	}
 
 	var releases []release
