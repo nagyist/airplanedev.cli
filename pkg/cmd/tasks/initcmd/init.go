@@ -149,17 +149,17 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		}
 	}
 
+	kind, err := def.Kind()
+	if err != nil {
+		return err
+	}
+
 	localExecutionSupported := false
 	if entrypoint, err := def.Entrypoint(); err == definitions.ErrNoEntrypoint {
 		// no-op
 	} else if err != nil {
 		return err
 	} else {
-		kind, err := def.Kind()
-		if err != nil {
-			return err
-		}
-
 		if entrypoint == "" {
 			entrypoint, err = promptForNewEntrypoint(def.GetSlug(), kind)
 			if err != nil {
@@ -238,7 +238,8 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 	}
 
 	// Adjust entrypoint to be relative to the task defn.
-	if entrypoint, err := def.Entrypoint(); err == definitions.ErrNoEntrypoint {
+	entrypoint, err := def.Entrypoint()
+	if err == definitions.ErrNoEntrypoint {
 		// no-op
 	} else if err != nil {
 		return err
@@ -272,7 +273,13 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		return err
 	}
 	logger.Step("Created %s", defnFilename)
-	suggestNextSteps(defnFilename, localExecutionSupported)
+	suggestNextSteps(suggestNextStepsRequest{
+		defnFile:           defnFilename,
+		entrypoint:         entrypoint,
+		showLocalExecution: localExecutionSupported,
+		kind:               kind,
+		isNew:              cfg.slug == "",
+	})
 	return nil
 }
 
@@ -302,7 +309,11 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 	if fsx.Exists(cfg.file) {
 		if slug, ok := runtime.Slug(cfg.file); ok && slug == task.Slug {
 			logger.Step("%s is already linked to %s", cfg.file, cfg.slug)
-			suggestNextSteps(cfg.file, true)
+			suggestNextSteps(suggestNextStepsRequest{
+				entrypoint:         cfg.file,
+				showLocalExecution: true,
+				kind:               task.Kind,
+			})
 			return nil
 		}
 
@@ -327,7 +338,11 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 		}
 		logger.Step("Linked %s to %s", cfg.file, cfg.slug)
 
-		suggestNextSteps(cfg.file, true)
+		suggestNextSteps(suggestNextStepsRequest{
+			entrypoint:         cfg.file,
+			showLocalExecution: true,
+			kind:               task.Kind,
+		})
 		return nil
 	}
 
@@ -335,7 +350,11 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 		return err
 	}
 	logger.Step("Created %s", cfg.file)
-	suggestNextSteps(cfg.file, true)
+	suggestNextSteps(suggestNextStepsRequest{
+		entrypoint:         cfg.file,
+		showLocalExecution: true,
+		kind:               task.Kind,
+	})
 	return nil
 }
 
@@ -369,8 +388,40 @@ func prependComment(source []byte, comment string) []byte {
 	return buf.Bytes()
 }
 
-func suggestNextSteps(file string, showLocalExecution bool) {
-	if showLocalExecution {
+type suggestNextStepsRequest struct {
+	defnFile           string
+	entrypoint         string
+	showLocalExecution bool
+	kind               build.TaskKind
+	isNew              bool
+}
+
+func suggestNextSteps(req suggestNextStepsRequest) {
+	if req.isNew {
+		steps := []string{}
+		switch req.kind {
+		case build.TaskKindSQL:
+			steps = append(steps, fmt.Sprintf("Add the name of a database resource to %s", req.defnFile))
+			steps = append(steps, fmt.Sprintf("Write your query in %s", req.entrypoint))
+		case build.TaskKindREST:
+			steps = append(steps, fmt.Sprintf("Add the name of a REST resource to %s", req.defnFile))
+			steps = append(steps, fmt.Sprintf("Specify the details of your REST request in %s", req.defnFile))
+		case build.TaskKindImage:
+			steps = append(steps, fmt.Sprintf("Add the name of a Docker image to %s", req.defnFile))
+		default:
+			steps = append(steps, fmt.Sprintf("Write your task logic in %s", req.entrypoint))
+		}
+		if req.defnFile != "" {
+			steps = append(steps, fmt.Sprintf("Add a description, parameters, and more details in %s", req.defnFile))
+		}
+		logger.SuggestSteps("✅ To complete your task:", steps...)
+	}
+
+	file := req.defnFile
+	if req.defnFile == "" {
+		file = req.entrypoint
+	}
+	if req.showLocalExecution {
 		logger.Suggest(
 			"⚡ To execute the task locally:",
 			"airplane dev %s",

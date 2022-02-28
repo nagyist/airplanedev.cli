@@ -37,3 +37,11 @@ func (l *MockLogger) Suggest(title, command string, args ...interface{}) {
 	fmt.Printf(command, args...)
 	fmt.Println()
 }
+
+func (l *MockLogger) SuggestSteps(title string, steps ...string) {
+	fmt.Println(title)
+	for _, step := range steps {
+		fmt.Println(step)
+	}
+	fmt.Println()
+}

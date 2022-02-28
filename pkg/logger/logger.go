@@ -21,6 +21,7 @@ type Logger interface {
 	Warning(msg string, args ...interface{})
 	Step(msg string, args ...interface{})
 	Suggest(title, command string, args ...interface{})
+	SuggestSteps(title string, steps ...string)
 	Debug(msg string, args ...interface{})
 	Error(msg string, args ...interface{})
 }
@@ -54,6 +55,10 @@ func (l *StdErrLogger) Suggest(title, command string, args ...interface{}) {
 	Suggest(title, command, args...)
 }
 
+func (l *StdErrLogger) SuggestSteps(title string, steps ...string) {
+	SuggestSteps(title, steps...)
+}
+
 // Log writes a log message to stderr, followed by a newline. Printf-style
 // formatting is applied to msg using args.
 func Log(msg string, args ...interface{}) {
@@ -73,6 +78,12 @@ func Step(msg string, args ...interface{}) {
 // Suggest suggests a command with title and args.
 func Suggest(title, command string, args ...interface{}) {
 	Log("\n"+Gray(title)+"\n  "+command, args...)
+}
+
+func SuggestSteps(title string, steps ...string) {
+	if len(steps) > 0 {
+		Log("\n" + Gray(title) + "\n- " + strings.Join(steps, "\n- "))
+	}
 }
 
 // Error logs an error message.
