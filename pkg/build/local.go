@@ -2,6 +2,7 @@ package build
 
 import (
 	"context"
+	"sync"
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/configs"
@@ -34,19 +35,25 @@ func (d *localBuildCreator) CreateBuild(ctx context.Context, req Request) (*buil
 		return nil, err
 	}
 
-	kind, options, err := req.Def.GetKindAndOptions()
+	kind, _, err := req.Def.GetKindAndOptions()
+	if err != nil {
+		return nil, err
+	}
+
+	buildConfig, err := req.Def.GetBuildConfig()
 	if err != nil {
 		return nil, err
 	}
 
 	if req.Shim {
-		options["shim"] = "true"
+		buildConfig["shim"] = "true"
 	}
 
 	b, err := build.New(build.LocalConfig{
 		Root:    req.Root,
 		Builder: string(kind),
-		Options: options,
+		// TODO(fleung): should be build.BuildConfig, not build.KindOptions
+		Options: build.KindOptions(buildConfig),
 		Auth: &build.RegistryAuth{
 			Token: registry.Token,
 			Repo:  registry.Repo,
@@ -96,4 +103,25 @@ func getBuildEnv(ctx context.Context, client api.APIClient, taskEnv libapi.TaskE
 		}
 	}
 	return buildEnv, nil
+}
+
+// registryTokenGetter gets registry tokens and is optimized for concurrent requests.
+type registryTokenGetter struct {
+	getRegistryTokenMutex sync.Mutex
+	cachedRegistryToken   *api.RegistryTokenResponse
+}
+
+func (d *registryTokenGetter) getRegistryToken(ctx context.Context, client api.APIClient) (registryToken api.RegistryTokenResponse, err error) {
+	d.getRegistryTokenMutex.Lock()
+	defer d.getRegistryTokenMutex.Unlock()
+	if d.cachedRegistryToken != nil {
+		registryToken = *d.cachedRegistryToken
+	} else {
+		registryToken, err = client.GetRegistryToken(ctx)
+		if err != nil {
+			return registryToken, errors.Wrap(err, "getting registry token")
+		}
+		d.cachedRegistryToken = &registryToken
+	}
+	return registryToken, nil
 }

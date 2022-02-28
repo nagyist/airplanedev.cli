@@ -6,7 +6,7 @@ require (
 	github.com/AlecAivazis/survey/v2 v2.3.2
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021 // indirect
-	github.com/alecthomas/jsonschema v0.0.0-20211228220459-151e3c21f49d // indirect
+	github.com/alecthomas/jsonschema v0.0.0-20220203024042-cc89723c9db0 // indirect
 	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
@@ -15,12 +15,11 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/getsentry/sentry-go v0.12.0
 	github.com/go-git/go-git/v5 v5.4.2
-	github.com/golang-jwt/jwt/v4 v4.2.0
+	github.com/golang-jwt/jwt/v4 v4.3.0
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gosimple/slug v1.12.0
 	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/joho/godotenv v1.4.0
-	github.com/kr/pty v1.1.8 // indirect
 	github.com/kr/text v0.2.0
 	github.com/mattn/go-isatty v0.0.14
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
@@ -38,12 +37,16 @@ require (
 )
 
 require (
-	github.com/airplanedev/lib v0.3.1
+	github.com/airplanedev/lib v0.3.8
 	github.com/airplanedev/ojson v0.1.0
-	github.com/briandowns/spinner v1.18.0
+	github.com/briandowns/spinner v1.18.1
 )
 
-require golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
+require (
+	github.com/go-git/go-billy/v5 v5.3.1
+	github.com/go-git/go-git-fixtures/v4 v4.3.1
+	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
+)
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
@@ -64,7 +67,6 @@ require (
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
-	github.com/go-git/go-billy/v5 v5.3.1 // indirect
 	github.com/goccy/go-yaml v1.9.4 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -79,6 +81,8 @@ require (
 	github.com/kevinburke/ssh_config v0.0.0-20201106050909-4977a11b4351 // indirect
 	github.com/klauspost/compress v1.11.13 // indirect
 	github.com/klauspost/pgzip v1.2.5 // indirect
+	github.com/kr/pretty v0.2.1 // indirect
+	github.com/kr/pty v1.1.8 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
@@ -111,5 +115,6 @@ require (
 	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
 	google.golang.org/grpc v1.42.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )

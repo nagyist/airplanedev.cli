@@ -6,13 +6,25 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/configs"
+	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
+type config struct {
+	root *cli.Config
+
+	name    string
+	value   *string
+	secret  bool
+	envSlug string
+}
+
 // New returns a new set command.
 func New(c *cli.Config) *cobra.Command {
-	var secret bool
+	cfg := config{
+		root: c,
+	}
 	cmd := &cobra.Command{
 		Use:   "set [--secret] <name> [<value>]",
 		Short: "Set a new or existing config variable",
@@ -29,37 +41,45 @@ func New(c *cli.Config) *cobra.Command {
 		`),
 		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var value *string
 			if len(args) == 2 {
-				value = &args[1]
+				cfg.value = &args[1]
 			}
-			return run(cmd.Root().Context(), c, args[0], value, secret)
+			cfg.name = args[0]
+			return run(cmd.Root().Context(), c, cfg)
 		},
 	}
-	cmd.Flags().BoolVar(&secret, "secret", false, "Whether to set config var as a secret")
+	cmd.Flags().BoolVar(&cfg.secret, "secret", false, "Whether to set config var as a secret")
+	// Unhide this flag once we release environments.
+	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
+	if err := cmd.Flags().MarkHidden("env"); err != nil {
+		logger.Debug("unable to hide --env: %s", err)
+	}
 	return cmd
 }
 
 // Run runs the set command.
-func run(ctx context.Context, c *cli.Config, name string, argValue *string, secret bool) error {
+func run(ctx context.Context, c *cli.Config, cfg config) error {
 	var client = c.Client
 
-	nt, err := configs.ParseName(name)
-	if err == configs.ErrInvalidConfigName {
-		return errors.Errorf("invalid config name: %s - expected my_config or my_config:tag", name)
-	} else if err != nil {
-		return errors.Wrap(err, "parsing config name")
+	nt, err := configs.ParseName(cfg.name)
+	if err != nil {
+		return errors.Errorf("invalid config name: %s - expected my_config or my_config:tag", cfg.name)
 	}
 
 	var value string
-	if argValue != nil {
-		value = *argValue
+	if cfg.value != nil {
+		value = *cfg.value
 	} else {
 		var err error
-		value, err = configs.ReadValue(secret)
+		value, err = configs.ReadValue(cfg.secret)
 		if err != nil {
 			return err
 		}
 	}
-	return configs.SetConfig(ctx, client, nt, value, secret)
+	return configs.SetConfig(ctx, client, configs.SetConfigRequest{
+		NameTag: nt,
+		Value:   value,
+		Secret:  cfg.secret,
+		EnvSlug: cfg.envSlug,
+	})
 }

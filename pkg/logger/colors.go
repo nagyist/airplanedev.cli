@@ -8,5 +8,6 @@ var (
 	Red    = color.New(color.FgHiRed).SprintfFunc()
 	Yellow = color.New(color.FgHiYellow).SprintfFunc()
 	Green  = color.New(color.FgHiGreen).SprintfFunc()
+	Purple = color.New(color.FgHiMagenta).SprintfFunc()
 	Bold   = color.New(color.Bold).SprintfFunc()
 )

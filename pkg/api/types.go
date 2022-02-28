@@ -26,7 +26,7 @@ type CreateTaskRequest struct {
 	Arguments        []string              `json:"arguments"`
 	Parameters       libapi.Parameters     `json:"parameters"`
 	Constraints      libapi.RunConstraints `json:"constraints"`
-	Env              libapi.TaskEnv        `json:"env"`
+	EnvVars          libapi.TaskEnv        `json:"env"`
 	ResourceRequests map[string]string     `json:"resourceRequests"`
 	Resources        map[string]string     `json:"resources"`
 	Kind             build.TaskKind        `json:"kind"`
@@ -48,12 +48,11 @@ type GetLogsResponse struct {
 	PrevPageToken string    `json:"prev_token"`
 }
 
-// GetBuildLogsResponse represents a get build logs response.
-type GetBuildLogsResponse struct {
-	BuildID       string    `json:"buildID"`
+// GetDeploymentLogsResponse represents a get deploy logs response.
+type GetDeploymentLogsResponse struct {
 	Logs          []LogItem `json:"logs"`
-	NextPageToken string    `json:"next_token"`
-	PrevPageToken string    `json:"prev_token"`
+	NextPageToken string    `json:"nextToken"`
+	PrevPageToken string    `json:"prevToken"`
 }
 
 // Outputs represents outputs.
@@ -93,6 +92,7 @@ type LogItem struct {
 	InsertID  string    `json:"insertID"`
 	Text      string    `json:"text"`
 	Level     LogLevel  `json:"level"`
+	TaskSlug  string    `json:"taskSlug"`
 }
 
 type LogLevel string
@@ -191,6 +191,7 @@ type Run struct {
 	FailedAt    *time.Time `json:"failedAt" yaml:"failedAt"`
 	CancelledAt *time.Time `json:"cancelledAt" yaml:"cancelledAt"`
 	CancelledBy *string    `json:"cancelledBy" yaml:"cancelledBy"`
+	EnvSlug     string     `json:"envSlug" yaml:"envSlug"`
 }
 
 // ListRunsRequest represents a list runs request.
@@ -213,6 +214,7 @@ type GetConfigRequest struct {
 	Name       string `json:"name"`
 	Tag        string `json:"tag"`
 	ShowSecret bool   `json:"showSecret"`
+	EnvSlug    string `json:"envSlug"`
 }
 
 // SetConfigRequest represents a set config request.
@@ -221,6 +223,7 @@ type SetConfigRequest struct {
 	Tag      string `json:"tag"`
 	Value    string `json:"value"`
 	IsSecret bool   `json:"isSecret"`
+	EnvSlug  string `json:"envSlug"`
 }
 
 // Config represents a config var.
@@ -236,6 +239,88 @@ type GetConfigResponse struct {
 	Config Config `json:"config"`
 }
 
+type CreateAPIKeyRequest struct {
+	Name string `json:"name"`
+}
+
+type CreateAPIKeyResponse struct {
+	APIKey APIKey `json:"apiKey"`
+}
+
+type ListAPIKeysResponse struct {
+	APIKeys []APIKey `json:"apiKeys"`
+}
+
+type DeleteAPIKeyRequest struct {
+	KeyID string `json:"keyID"`
+}
+
+type APIKey struct {
+	ID        string    `json:"id" yaml:"id"`
+	TeamID    string    `json:"teamID" yaml:"teamID"`
+	Name      string    `json:"name" yaml:"name"`
+	CreatedAt time.Time `json:"createdAt" yaml:"createdAt"`
+	Key       string    `json:"key" yaml:"key"`
+}
+
+type GetUniqueSlugResponse struct {
+	Slug string `json:"slug"`
+}
+
+type DeployTask struct {
+	TaskID            string                   `json:"taskID"`
+	InterpolationMode string                   `json:"interpolationMode"`
+	Kind              build.TaskKind           `json:"kind"`
+	BuildConfig       build.BuildConfig        `json:"buildConfig"`
+	UploadID          string                   `json:"uploadID"`
+	UpdateTaskRequest libapi.UpdateTaskRequest `json:"updateTaskRequest"`
+	EnvVars           libapi.TaskEnv           `json:"envVars"`
+	GitFilePath       string                   `json:"gitFilePath"`
+}
+
+type CreateDeploymentRequest struct {
+	Tasks       []DeployTask `json:"tasks"`
+	GitMetadata GitMetadata  `json:"gitMetadata"`
+}
+
+type CancelDeploymentRequest struct {
+	ID string `json:"id"`
+}
+
+type GitMetadata struct {
+	CommitHash          string    `json:"commitHash"`
+	Ref                 string    `json:"ref"`
+	User                string    `json:"user"`
+	RepositoryOwnerName string    `json:"repositoryOwnerName"`
+	RepositoryName      string    `json:"repositoryName"`
+	CommitMessage       string    `json:"commitMessage"`
+	Vendor              GitVendor `json:"vendor"`
+	IsDirty             bool      `json:"isDirty"`
+}
+
+type GitVendor string
+
+const (
+	GitVendorGitHub GitVendor = "GitHub"
+)
+
+type CreateDeploymentResponse struct {
+	Deployment       Deployment `json:"deployment"`
+	NumTasksUpdated  int        `json:"numTasksUpdated"`
+	NumBuildsCreated int        `json:"numBuildsCreated"`
+}
+
+type Deployment struct {
+	ID           string     `json:"id"`
+	TeamID       string     `json:"teamID"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	CreatedBy    string     `json:"createdBy"`
+	SucceededAt  *time.Time `json:"succeededAt,omitempty"`
+	CancelledAt  *time.Time `json:"cancelledAt,omitempty"`
+	FailedAt     *time.Time `json:"failedAt,omitempty"`
+	FailedReason string     `json:"failedReason,omitempty"`
+}
+
 type GetBuildResponse struct {
 	Build Build `json:"build"`
 }
@@ -243,7 +328,7 @@ type GetBuildResponse struct {
 type CreateBuildRequest struct {
 	TaskID         string            `json:"taskID"`
 	SourceUploadID string            `json:"sourceUploadID"`
-	Env            libapi.TaskEnv    `json:"env"`
+	EnvVars        libapi.TaskEnv    `json:"env"`
 	BuildConfig    build.KindOptions `json:"buildConfig"`
 	Kind           build.TaskKind    `json:"kind"`
 	GitMeta        BuildGitMeta      `json:"gitMeta"`
@@ -288,30 +373,10 @@ func (s BuildStatus) Stopped() bool {
 	return s == BuildSucceeded || s == BuildFailed || s == BuildCancelled
 }
 
-type CreateAPIKeyRequest struct {
-	Name string `json:"name"`
-}
-
-type CreateAPIKeyResponse struct {
-	APIKey APIKey `json:"apiKey"`
-}
-
-type ListAPIKeysResponse struct {
-	APIKeys []APIKey `json:"apiKeys"`
-}
-
-type DeleteAPIKeyRequest struct {
-	KeyID string `json:"keyID"`
-}
-
-type APIKey struct {
-	ID        string    `json:"id" yaml:"id"`
-	TeamID    string    `json:"teamID" yaml:"teamID"`
-	Name      string    `json:"name" yaml:"name"`
-	CreatedAt time.Time `json:"createdAt" yaml:"createdAt"`
-	Key       string    `json:"key" yaml:"key"`
-}
-
-type GetUniqueSlugResponse struct {
-	Slug string `json:"slug"`
+// GetBuildLogsResponse represents a get build logs response.
+type GetBuildLogsResponse struct {
+	BuildID       string    `json:"buildID"`
+	Logs          []LogItem `json:"logs"`
+	NextPageToken string    `json:"next_token"`
+	PrevPageToken string    `json:"prev_token"`
 }

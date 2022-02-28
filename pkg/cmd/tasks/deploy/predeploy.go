@@ -15,7 +15,7 @@ import (
 )
 
 // ensureConfigVarsExist checks for config references in env and asks users to create any missing ones
-func ensureConfigVarsExist(ctx context.Context, client api.APIClient, def definitions.DefinitionInterface) error {
+func ensureConfigVarsExist(ctx context.Context, client api.APIClient, def definitions.DefinitionInterface, envSlug string) error {
 	// Check if env vars exist
 	env, err := def.GetEnv()
 	if err != nil {
@@ -23,7 +23,11 @@ func ensureConfigVarsExist(ctx context.Context, client api.APIClient, def defini
 	}
 	for k, v := range env {
 		if v.Config != nil {
-			if err := ensureConfigVarExists(ctx, client, k, *v.Config); err != nil {
+			if err := ensureConfigVarExists(ctx, client, ensureConfigVarExistsParams{
+				EnvName:    k,
+				ConfigName: *v.Config,
+				EnvSlug:    envSlug,
+			}); err != nil {
 				return err
 			}
 		}
@@ -31,8 +35,14 @@ func ensureConfigVarsExist(ctx context.Context, client api.APIClient, def defini
 	return nil
 }
 
-func ensureConfigVarExists(ctx context.Context, client api.APIClient, envName, configName string) error {
-	cn, err := configs.ParseName(configName)
+type ensureConfigVarExistsParams struct {
+	EnvName    string
+	ConfigName string
+	EnvSlug    string
+}
+
+func ensureConfigVarExists(ctx context.Context, client api.APIClient, params ensureConfigVarExistsParams) error {
+	cn, err := configs.ParseName(params.ConfigName)
 	if err != nil {
 		return err
 	}
@@ -49,23 +59,23 @@ func ensureConfigVarExists(ctx context.Context, client api.APIClient, envName, c
 			return err
 		}
 		if !utils.CanPrompt() {
-			return errors.Errorf("config %s does not exist", configName)
+			return errors.Errorf("config %s does not exist", params.ConfigName)
 		}
-		logger.Log("Your task definition references config %s, which does not exist", logger.Bold(configName))
+		logger.Log("Your task definition references config %s, which does not exist", logger.Bold(params.ConfigName))
 		confirmed, errc := utils.Confirm("Create it now?")
 		if errc != nil {
 			return errc
 		}
 		if !confirmed {
-			return errors.Errorf("config %s does not exist", configName)
+			return errors.Errorf("config %s does not exist", params.ConfigName)
 		}
-		return createConfig(ctx, client, cn)
+		return createConfig(ctx, client, cn, params.EnvSlug)
 	default:
 		return err
 	}
 }
 
-func createConfig(ctx context.Context, client api.APIClient, cn configs.NameTag) error {
+func createConfig(ctx context.Context, client api.APIClient, cn configs.NameTag, envSlug string) error {
 	var secret bool
 	if err := survey.AskOne(
 		&survey.Confirm{
@@ -82,5 +92,10 @@ func createConfig(ctx context.Context, client api.APIClient, cn configs.NameTag)
 	if err != nil {
 		return err
 	}
-	return configs.SetConfig(ctx, client, cn, value, secret)
+	return configs.SetConfig(ctx, client, configs.SetConfigRequest{
+		NameTag: cn,
+		Value:   value,
+		Secret:  secret,
+		EnvSlug: envSlug,
+	})
 }

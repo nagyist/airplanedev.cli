@@ -19,6 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -31,6 +32,7 @@ type config struct {
 	task    string
 	args    []string
 	envSlug string
+	dev     bool
 }
 
 // New returns a new execute cobra command.
@@ -75,6 +77,12 @@ func New(c *cli.Config) *cobra.Command {
 		logger.Debug("unable to hide --env: %s", err)
 	}
 
+	// Unhide this flag once we release tasks-as-code.
+	cmd.Flags().BoolVar(&cfg.dev, "dev", false, "Dev mode: warning, not guaranteed to work and subject to change.")
+	if err := cmd.Flags().MarkHidden("dev"); err != nil {
+		logger.Debug("error: %s", err)
+	}
+
 	return cmd
 }
 
@@ -88,8 +96,8 @@ func run(ctx context.Context, cfg config) error {
 		// Not a file, assume it's a slug.
 		slug = cfg.task
 	} else {
-		// It's a file, look up the slug form the file.
-		slug, err = slugFrom(cfg.task)
+		// It's a file, look up the slug from the file.
+		slug, err = slugFrom(cfg.task, cfg.dev)
 		if err != nil {
 			return err
 		}
@@ -176,33 +184,43 @@ func run(ctx context.Context, cfg config) error {
 }
 
 // SlugFrom returns the slug from the given file.
-func slugFrom(file string) (string, error) {
+func slugFrom(file string, dev bool) (string, error) {
 	switch ext := filepath.Ext(file); ext {
-	case ".yml", ".yaml":
-		return slugFromYaml(file)
+	case ".yml", ".yaml", ".json":
+		return slugFromYaml(file, dev)
 	default:
 		return slugFromScript(file)
 	}
 }
 
 // slugFromYaml attempts to extract a slug from a yaml definition.
-func slugFromYaml(file string) (string, error) {
-	dir, err := taskdir.Open(file, false)
+func slugFromYaml(file string, dev bool) (string, error) {
+	dir, err := taskdir.Open(file, dev)
 	if err != nil {
 		return "", err
 	}
 	defer dir.Close()
 
-	def, err := dir.ReadDefinition()
-	if err != nil {
-		return "", err
+	var def definitions.DefinitionInterface
+	if dev {
+		d, err := dir.ReadDefinition_0_3()
+		if err != nil {
+			return "", err
+		}
+		def = &d
+	} else {
+		d, err := dir.ReadDefinition()
+		if err != nil {
+			return "", err
+		}
+		def = &d
 	}
 
-	if def.Slug == "" {
+	if def.GetSlug() == "" {
 		return "", errors.Errorf("no task slug found in task definition at %s", file)
 	}
 
-	return def.Slug, nil
+	return def.GetSlug(), nil
 }
 
 // slugFromScript attempts to extract a slug from a script.

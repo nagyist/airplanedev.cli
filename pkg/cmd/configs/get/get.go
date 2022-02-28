@@ -6,38 +6,54 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/configs"
+	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
+type config struct {
+	root *cli.Config
+
+	name    string
+	envSlug string
+}
+
 // New returns a new get command.
 func New(c *cli.Config) *cobra.Command {
-	var secret bool
+	cfg := config{
+		root: c,
+	}
 	cmd := &cobra.Command{
 		Use:   "get <name>",
 		Short: "Get a config variable's value",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return run(cmd.Root().Context(), c, args[0])
+			cfg.name = args[0]
+			return run(cmd.Root().Context(), cfg)
 		},
 	}
-	cmd.Flags().BoolVar(&secret, "secret", false, "Whether to set config var as a secret")
+	// Unhide this flag once we release environments.
+	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
+	if err := cmd.Flags().MarkHidden("env"); err != nil {
+		logger.Debug("unable to hide --env: %s", err)
+	}
 	return cmd
 }
 
 // Run runs the get command.
-func run(ctx context.Context, c *cli.Config, name string) error {
-	var client = c.Client
+func run(ctx context.Context, cfg config) error {
+	var client = cfg.root.Client
 
-	nt, err := configs.ParseName(name)
-	if err == configs.ErrInvalidConfigName {
-		return errors.Errorf("invalid config name: %s - expected my_config or my_config:tag", name)
+	nt, err := configs.ParseName(cfg.name)
+	if err != nil {
+		return errors.Errorf("invalid config name: %s - expected my_config or my_config:tag", cfg.name)
 	}
 	resp, err := client.GetConfig(ctx, api.GetConfigRequest{
 		Name:       nt.Name,
 		Tag:        nt.Tag,
 		ShowSecret: false,
+		EnvSlug:    cfg.envSlug,
 	})
 	if err != nil {
 		return errors.Wrap(err, "get config")

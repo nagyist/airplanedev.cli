@@ -7,7 +7,7 @@ import (
 
 // This struct mirrors api.Task, but with different json/yaml tags.
 type printTask struct {
-	URL                        string                  `json:"-" yaml:"-"`
+	URL                        string                  `json:"url" yaml:"url"`
 	ID                         string                  `json:"id" yaml:"id"`
 	Name                       string                  `json:"name" yaml:"name"`
 	Slug                       string                  `json:"slug" yaml:"slug"`

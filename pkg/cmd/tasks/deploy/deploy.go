@@ -3,6 +3,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"path/filepath"
 
 	"github.com/MakeNowJust/heredoc"
@@ -124,44 +125,66 @@ func run(ctx context.Context, cfg config) error {
 	}
 
 	l := &logger.StdErrLogger{}
+	loader := logger.NewLoader(logger.LoaderOpts{HideLoader: logger.EnableDebug})
+	loader.Start()
 
 	d := &discover.Discoverer{
-		TaskDiscoverers: []discover.TaskDiscoverer{
-			&discover.ScriptDiscoverer{},
-		},
-		Client:  cfg.client,
-		Logger:  l,
-		EnvSlug: cfg.envSlug,
+		TaskDiscoverers: []discover.TaskDiscoverer{},
+		Client:          cfg.client,
+		Logger:          l,
+		EnvSlug:         cfg.envSlug,
 	}
+	var defnDiscoverer *discover.DefnDiscoverer
 	if cfg.dev {
-		d.TaskDiscoverers = append(d.TaskDiscoverers, &discover.DefnDiscoverer{
+		defnDiscoverer := &discover.DefnDiscoverer{
 			Client:             cfg.client,
 			Logger:             l,
 			AssumeYes:          cfg.assumeYes,
 			AssumeNo:           cfg.assumeNo,
-			MissingTaskHandler: HandleMissingTask(cfg, l),
-		})
+			MissingTaskHandler: HandleMissingTask(cfg, l, loader),
+		}
+		d.TaskDiscoverers = append(d.TaskDiscoverers, defnDiscoverer)
 	}
+	d.TaskDiscoverers = append(d.TaskDiscoverers, &discover.ScriptDiscoverer{})
 
-	loader := logger.NewLoader(logger.LoaderOpts{HideLoader: logger.EnableDebug})
-	loader.Start()
 	taskConfigs, err := d.DiscoverTasks(ctx, cfg.paths...)
 	if err != nil {
 		return err
 	}
 	loader.Stop()
 
+	if cfg.dev {
+		for i, tc := range taskConfigs {
+			taskConfig, err := findDefinitionForScript(ctx, cfg, defnDiscoverer, tc)
+			if err != nil {
+				return err
+			}
+			if taskConfig != nil {
+				taskConfigs[i] = *taskConfig
+			}
+		}
+	}
+
 	return NewDeployer(cfg, l, DeployerOpts{}).DeployTasks(ctx, taskConfigs)
 }
 
-func HandleMissingTask(cfg config, l logger.Logger) func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.Task, error) {
+func HandleMissingTask(cfg config, l logger.Logger, loader logger.Loader) func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.Task, error) {
 	return func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.Task, error) {
 		if !utils.CanPrompt() {
 			return nil, nil
 		}
 
+		isActive := loader.IsActive()
+		loader.Stop()
+
 		question := fmt.Sprintf("Task with slug %s does not exist. Would you like to create a new task?", def.GetSlug())
-		if ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
+		ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo)
+
+		if isActive {
+			loader.Start()
+		}
+
+		if err != nil {
 			return nil, err
 		} else if !ok {
 			// User answered "no", so bail here.
@@ -183,7 +206,7 @@ func HandleMissingTask(cfg config, l logger.Logger) func(ctx context.Context, de
 			Arguments:        utr.Arguments,
 			Parameters:       utr.Parameters,
 			Constraints:      utr.Constraints,
-			Env:              utr.Env,
+			EnvVars:          utr.Env,
 			ResourceRequests: utr.ResourceRequests,
 			Resources:        utr.Resources,
 			Kind:             utr.Kind,
@@ -205,4 +228,55 @@ func HandleMissingTask(cfg config, l logger.Logger) func(ctx context.Context, de
 		}
 		return &task, nil
 	}
+}
+
+// Look for a defn file that matches this task config, in the directory where the entrypoint is
+// located & also in the current directory. Returns nil if the task config wasn't discovered via
+// the script discoverer. Used to find relevant definition files if the user accidentally deploys a
+// script file when a defn file exists.
+func findDefinitionForScript(ctx context.Context, cfg config, defnDiscoverer *discover.DefnDiscoverer, taskConfig discover.TaskConfig) (*discover.TaskConfig, error) {
+	if taskConfig.From != discover.TaskConfigSourceScript {
+		return nil, nil
+	}
+
+	dirs := []string{
+		filepath.Dir(taskConfig.TaskEntrypoint),
+		".",
+	}
+	for _, dir := range dirs {
+		contents, err := ioutil.ReadDir(dir)
+		if err != nil {
+			return nil, errors.Wrapf(err, "reading directory %s", dir)
+		}
+
+		for _, fileInfo := range contents {
+			// Ignore subdirectories.
+			if fileInfo.IsDir() {
+				continue
+			}
+
+			path := filepath.Join(dir, fileInfo.Name())
+			if slug, err := defnDiscoverer.IsAirplaneTask(ctx, path); err != nil {
+				return nil, err
+			} else if slug != taskConfig.Task.Slug {
+				continue
+			}
+			question := fmt.Sprintf("A definition file for task %s exists (%s).\nWould you like to use it?", taskConfig.Task.Slug, relpath(path))
+			ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo)
+			if err != nil {
+				return nil, err
+			} else if !ok {
+				return nil, nil
+			}
+
+			tc, err := defnDiscoverer.GetTaskConfig(ctx, taskConfig.Task, path)
+			if err != nil {
+				return nil, err
+			}
+			tc.From = discover.TaskConfigSourceDefn
+			return &tc, nil
+		}
+	}
+
+	return nil, nil
 }
