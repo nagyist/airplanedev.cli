@@ -5,7 +5,6 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	libapi "github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/ojson"
 	"gopkg.in/yaml.v3"
 )
 
@@ -47,7 +46,7 @@ func (YAML) run(run api.Run) {
 // Outputs implementation.
 func (YAML) outputs(outputs api.Outputs) {
 	// TODO: update ojson to handle yaml properly
-	yaml.NewEncoder(os.Stdout).Encode(ojson.Value(outputs).V)
+	yaml.NewEncoder(os.Stdout).Encode(outputs.V)
 }
 
 // Config implementation.
