@@ -58,6 +58,7 @@ brews:
       email: bot-github@airplane.dev
     install: |
       bin.install "airplane"
+    skip_upload: auto
 release:
   prerelease: auto
   extra_files:
@@ -65,7 +66,9 @@ release:
     - glob: ./scripts/install.sh
     - glob: ./scripts/install.ps1
 dockers:
-  - image_templates:
+  -
+    image_templates:
     - us-docker.pkg.dev/airplane-prod/public/cli:latest
     - us-docker.pkg.dev/airplane-prod/public/cli:{{ trimprefix .Tag "v" }}
     - us-docker.pkg.dev/airplane-prod/public/cli:{{ .Major }}.{{ .Minor }}
+    skip_push: auto
