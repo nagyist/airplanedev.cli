@@ -35,12 +35,12 @@ func (YAML) task(task libapi.Task) {
 
 // Runs implementation.
 func (YAML) runs(runs []api.Run) {
-	yaml.NewEncoder(os.Stdout).Encode(runs)
+	yaml.NewEncoder(os.Stdout).Encode(printRuns(runs))
 }
 
 // Run implementation.
 func (YAML) run(run api.Run) {
-	yaml.NewEncoder(os.Stdout).Encode(run)
+	yaml.NewEncoder(os.Stdout).Encode(printRun(run))
 }
 
 // Outputs implementation.

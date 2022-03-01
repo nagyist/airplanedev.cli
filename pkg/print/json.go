@@ -43,12 +43,12 @@ func (j *JSON) task(task libapi.Task) {
 
 // Runs implementation.
 func (j *JSON) runs(runs []api.Run) {
-	j.enc.Encode(runs)
+	j.enc.Encode(printRuns(runs))
 }
 
 // Run implementation.
 func (j *JSON) run(run api.Run) {
-	j.enc.Encode(run)
+	j.enc.Encode(printRun(run))
 }
 
 // Outputs implementation.
