@@ -177,21 +177,21 @@ const (
 
 // Run represents a run.
 type Run struct {
-	RunID       string     `json:"id" yaml:"id"`
-	TaskID      string     `json:"taskID" yaml:"taskID"`
-	TaskName    string     `json:"taskName" yaml:"taskName"`
-	TeamID      string     `json:"teamID" yaml:"teamID"`
-	Status      RunStatus  `json:"status" yaml:"status"`
-	ParamValues Values     `json:"paramValues" yaml:"paramValues"`
-	CreatedAt   time.Time  `json:"createdAt" yaml:"createdAt"`
-	CreatorID   string     `json:"creatorID" yaml:"creatorID"`
-	QueuedAt    *time.Time `json:"queuedAt" yaml:"queuedAt"`
-	ActiveAt    *time.Time `json:"activeAt" yaml:"activeAt"`
-	SucceededAt *time.Time `json:"succeededAt" yaml:"succeededAt"`
-	FailedAt    *time.Time `json:"failedAt" yaml:"failedAt"`
-	CancelledAt *time.Time `json:"cancelledAt" yaml:"cancelledAt"`
-	CancelledBy *string    `json:"cancelledBy" yaml:"cancelledBy"`
-	EnvSlug     string     `json:"envSlug" yaml:"envSlug"`
+	RunID       string     `json:"runID"`
+	TaskID      string     `json:"taskID"`
+	TaskName    string     `json:"taskName"`
+	TeamID      string     `json:"teamID"`
+	Status      RunStatus  `json:"status"`
+	ParamValues Values     `json:"paramValues"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	CreatorID   string     `json:"creatorID"`
+	QueuedAt    *time.Time `json:"queuedAt"`
+	ActiveAt    *time.Time `json:"activeAt"`
+	SucceededAt *time.Time `json:"succeededAt"`
+	FailedAt    *time.Time `json:"failedAt"`
+	CancelledAt *time.Time `json:"cancelledAt"`
+	CancelledBy *string    `json:"cancelledBy"`
+	EnvSlug     string     `json:"envSlug"`
 }
 
 // ListRunsRequest represents a list runs request.
