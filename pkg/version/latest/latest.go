@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -21,18 +22,23 @@ type release struct {
 
 // CheckLatest queries the GitHub API for newer releases and prints a warning if the CLI is outdated.
 func CheckLatest(ctx context.Context) {
+	if version.Get() == "<unknown>" || version.Prerelease() {
+		// Pass silently if we don't know the current CLI version or are on a pre-release.
+		return
+	}
+
 	latest, err := getLatest(ctx)
 	if err != nil {
 		analytics.ReportError(err)
 		logger.Debug("An error ocurred checking for the latest version: %s", err)
 		return
-	}
-	if latest == "" || version.Get() == "<unknown>" {
-		// No version found or CLI version unknown - pass silently.
+	} else if latest == "" {
+		// Pass silently if we can't identify the latest version.
 		return
 	}
+
 	// Assumes not matching latest means you are behind:
-	if latest != "v"+version.Get() {
+	if strings.TrimPrefix(latest, "v") != version.Get() {
 		logger.Warning("A newer version of the Airplane CLI is available: %s", latest)
 		logger.Suggest(
 			"Visit the docs for upgrade instructions:",
