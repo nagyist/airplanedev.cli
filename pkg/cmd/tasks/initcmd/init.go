@@ -160,14 +160,15 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 	} else if err != nil {
 		return err
 	} else {
-		if entrypoint == "" {
-			entrypoint, err = promptForNewEntrypoint(def.GetSlug(), kind)
-			if err != nil {
-				return err
-			}
-			if err := def.SetEntrypoint(entrypoint); err != nil {
-				return err
-			}
+		if cfg.file != "" && !definitions.IsTaskDef(cfg.file) {
+			entrypoint = cfg.file
+		}
+		entrypoint, err = promptForEntrypoint(def.GetSlug(), kind, entrypoint)
+		if err != nil {
+			return err
+		}
+		if err := def.SetEntrypoint(entrypoint); err != nil {
+			return err
 		}
 
 		r, err := runtime.Lookup(entrypoint, kind)
@@ -295,7 +296,7 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 	}
 
 	if cfg.file == "" {
-		cfg.file, err = promptForNewEntrypoint(task.Slug, task.Kind)
+		cfg.file, err = promptForEntrypoint(task.Slug, task.Kind, "")
 		if err != nil {
 			return err
 		}
@@ -449,26 +450,29 @@ func patch(slug, file string) (ok bool, err error) {
 	return
 }
 
-func promptForNewEntrypoint(slug string, kind build.TaskKind) (string, error) {
-	fileName := slug + runtime.SuggestExt(kind)
+func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint string) (string, error) {
+	if defaultEntrypoint == "" {
+		defaultEntrypoint = slug + runtime.SuggestExt(kind)
 
-	if cwdIsHome, err := cwdIsHome(); err != nil {
-		return "", err
-	} else if cwdIsHome {
-		// Suggest a subdirectory to avoid putting a file directly into home directory.
-		fileName = filepath.Join("airplane", fileName)
+		if cwdIsHome, err := cwdIsHome(); err != nil {
+			return "", err
+		} else if cwdIsHome {
+			// Suggest a subdirectory to avoid putting a file directly into home directory.
+			defaultEntrypoint = filepath.Join("airplane", defaultEntrypoint)
+		}
 	}
 
+	var entrypoint string
 	if err := survey.AskOne(
 		&survey.Input{
-			Message: "Where should the script be created?",
-			Default: fileName,
+			Message: "Where is the script for this task?",
+			Default: defaultEntrypoint,
 		},
-		&fileName,
+		&entrypoint,
 	); err != nil {
 		return "", err
 	}
-	return fileName, nil
+	return entrypoint, nil
 }
 
 func promptForNewDefinition(defaultFilename, entrypoint string) (string, error) {
@@ -516,7 +520,7 @@ var orderedKindNames = []string{
 func promptForNewTask(file string, info *newTaskInfo) error {
 	defFormat := definitions.GetTaskDefFormat(file)
 	ext := filepath.Ext(file)
-	base := strings.TrimSuffix(file, ext)
+	base := strings.TrimSuffix(filepath.Base(file), ext)
 	if defFormat != definitions.TaskDefFormatUnknown {
 		// Trim off the .task part, too
 		base = strings.TrimSuffix(base, ".task")
