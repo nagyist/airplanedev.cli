@@ -3,8 +3,11 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/pkg/api"
@@ -111,7 +114,6 @@ func run(ctx context.Context, cfg config) error {
 
 	l := &logger.StdErrLogger{}
 	loader := logger.NewLoader(logger.LoaderOpts{HideLoader: logger.EnableDebug})
-	loader.Start()
 
 	d := &discover.Discoverer{
 		TaskDiscoverers: []discover.TaskDiscoverer{},
@@ -131,6 +133,18 @@ func run(ctx context.Context, cfg config) error {
 		Client: cfg.client,
 	})
 
+	// If you're trying to deploy a .sql file, try to find a defn file instead.
+	for i, path := range cfg.paths {
+		p, err := findDefinitionFileForSQL(ctx, cfg, defnDiscoverer, path)
+		if err != nil {
+			return err
+		}
+		if p != "" {
+			cfg.paths[i] = p
+		}
+	}
+
+	loader.Start()
 	taskConfigs, err := d.DiscoverTasks(ctx, cfg.paths...)
 	if err != nil {
 		return err
@@ -223,8 +237,11 @@ func findDefinitionForScript(ctx context.Context, cfg config, defnDiscoverer *di
 
 	dirs := []string{
 		filepath.Dir(taskConfig.TaskEntrypoint),
-		".",
 	}
+	if filepath.Dir(taskConfig.TaskEntrypoint) != "." {
+		dirs = append(dirs, ".")
+	}
+
 	for _, dir := range dirs {
 		contents, err := ioutil.ReadDir(dir)
 		if err != nil {
@@ -261,4 +278,78 @@ func findDefinitionForScript(ctx context.Context, cfg config, defnDiscoverer *di
 	}
 
 	return nil, nil
+}
+
+// Look for a defn file that matches the base of the given path (i.e., for foo.sql, look for
+// foo.task.{yaml,yml,json}). If the given path is not a .sql file, returns empty string and nil.
+// Looks in the current working directory as well as the directory of the given path.
+func findDefinitionFileForSQL(ctx context.Context, cfg config, defnDiscoverer *discover.DefnDiscoverer, path string) (string, error) {
+	ext := filepath.Ext(path)
+	if strings.ToLower(ext) != ".sql" {
+		return "", nil
+	}
+	base := strings.TrimSuffix(filepath.Base(path), ext)
+
+	dirs := []string{
+		filepath.Dir(path),
+	}
+	if filepath.Dir(path) != "." {
+		dirs = append(dirs, ".")
+	}
+	extns := []string{
+		".task.yaml",
+		".task.yml",
+		".task.json",
+	}
+
+	for _, dir := range dirs {
+		for _, extn := range extns {
+			p := filepath.Join(dir, base+extn)
+
+			// Skip nonexistent paths.
+			fileInfo, err := os.Stat(p)
+			if errors.Is(err, fs.ErrNotExist) {
+				continue
+			} else if err != nil {
+				return "", err
+			}
+
+			// Skip directories.
+			if fileInfo.IsDir() {
+				continue
+			}
+
+			slug, err := defnDiscoverer.IsAirplaneTask(ctx, p)
+			if err != nil {
+				return "", err
+			}
+			if slug == "" {
+				continue
+			}
+
+			// Skip it if the task doesn't exist.
+			if _, err := cfg.client.GetTask(ctx, libapi.GetTaskRequest{
+				Slug:    slug,
+				EnvSlug: cfg.envSlug,
+			}); err != nil {
+				switch errors.Cause(err).(type) {
+				case *libapi.TaskMissingError:
+					continue
+				default:
+					return "", err
+				}
+			}
+
+			question := fmt.Sprintf("File %s is not linked to a task.\nFound definition file %s linked to task %s instead.\nWould you like to use it?", path, p, slug)
+			ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo)
+			if err != nil {
+				return "", err
+			} else if !ok {
+				return "", nil
+			}
+
+			return p, nil
+		}
+	}
+	return "", nil
 }
