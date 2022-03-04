@@ -6,8 +6,10 @@ import (
 	"testing"
 
 	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/logger"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -24,10 +26,10 @@ func TestFindDefinition(t *testing.T) {
 			name: "from defn",
 			taskConfig: discover.TaskConfig{
 				TaskEntrypoint: fixturesPath + "/single_task.js",
-				Task: libapi.Task{
+				Def: &definitions.Definition_0_3{
 					Slug: "my_task",
 				},
-				From: discover.TaskConfigSourceDefn,
+				Source: discover.TaskConfigSourceDefn,
 			},
 			expectedNil: true,
 		},
@@ -38,10 +40,10 @@ func TestFindDefinition(t *testing.T) {
 			},
 			taskConfig: discover.TaskConfig{
 				TaskEntrypoint: fixturesPath + "/single_task.js",
-				Task: libapi.Task{
+				Def: &definitions.Definition_0_3{
 					Slug: "my_task",
 				},
-				From: discover.TaskConfigSourceScript,
+				Source: discover.TaskConfigSourceScript,
 			},
 			expectedNil: false,
 		},
@@ -52,10 +54,10 @@ func TestFindDefinition(t *testing.T) {
 			},
 			taskConfig: discover.TaskConfig{
 				TaskEntrypoint: fixturesPath + "/single_task.js",
-				Task: libapi.Task{
+				Def: &definitions.Definition_0_3{
 					Slug: "my_task",
 				},
-				From: discover.TaskConfigSourceScript,
+				Source: discover.TaskConfigSourceScript,
 			},
 			expectedNil: true,
 		},
@@ -66,7 +68,10 @@ func TestFindDefinition(t *testing.T) {
 
 			ctx := context.Background()
 			defnDiscoverer := &discover.DefnDiscoverer{
-				Client:    &api.MockClient{},
+				Client: &api.MockClient{
+					Tasks: map[string]libapi.Task{"my_task": {ID: "tsk123", Slug: "my_task"}},
+				},
+				Logger:    &logger.MockLogger{},
 				AssumeYes: test.cfg.assumeYes,
 				AssumeNo:  test.cfg.assumeNo,
 			}
@@ -76,10 +81,8 @@ func TestFindDefinition(t *testing.T) {
 			if test.expectedNil {
 				require.Nil(tc)
 			} else {
-				// Assert that slug + From are equal
 				require.NotNil(tc)
-				assert.Equal(test.taskConfig.Task.Slug, tc.Task.Slug)
-				assert.Equal(discover.TaskConfigSourceDefn, tc.From)
+				assert.Equal(discover.TaskConfigSourceDefn, tc.Source)
 			}
 		})
 	}

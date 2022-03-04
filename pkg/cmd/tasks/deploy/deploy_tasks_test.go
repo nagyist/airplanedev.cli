@@ -58,25 +58,21 @@ func TestDeployTasks(t *testing.T) {
 			desc: "deploys a task",
 			taskConfigs: []discover.TaskConfig{
 				{
+					TaskID:   "tsk123",
 					TaskRoot: fixturesPath,
 					Def: &definitions.Definition_0_3{
 						Name: "My Task",
 						Slug: "my_task",
 						Node: &definitions.NodeDefinition_0_3{},
 					},
-					Task: libapi.Task{
-						ID:   "my_task",
-						Slug: "my_task",
-						Name: "My Task",
-					},
 				},
 			},
-			existingTasks: map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
+			existingTasks: map[string]libapi.Task{"my_task": {ID: "tsk123", Slug: "my_task", Name: "My Task", InterpolationMode: "jst"}},
 			deploys: []api.CreateDeploymentRequest{
 				{
 					Tasks: []api.DeployTask{
 						{
-							TaskID: "my_task",
+							TaskID: "tsk123",
 							Kind:   "node",
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
@@ -93,6 +89,11 @@ func TestDeployTasks(t *testing.T) {
 									"entrypoint":  "",
 									"nodeVersion": "",
 								},
+								ExecuteRules: libapi.UpdateExecuteRulesRequest{
+									DisallowSelfApprove: pointers.Bool(false),
+									RequireRequests:     pointers.Bool(false),
+								},
+								InterpolationMode: pointers.String("jst"),
 							},
 						},
 					},
@@ -103,27 +104,23 @@ func TestDeployTasks(t *testing.T) {
 			desc: "deploys a task - deployment fails",
 			taskConfigs: []discover.TaskConfig{
 				{
+					TaskID:   "tsk123",
 					TaskRoot: fixturesPath,
 					Def: &definitions.Definition_0_3{
 						Name: "My Task",
 						Slug: "my_task",
 						Node: &definitions.NodeDefinition_0_3{},
 					},
-					Task: libapi.Task{
-						ID:   "my_task",
-						Slug: "my_task",
-						Name: "My Task",
-					},
 				},
 			},
-			existingTasks:         map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
+			existingTasks:         map[string]libapi.Task{"my_task": {ID: "tsk123", Slug: "my_task", Name: "My Task", InterpolationMode: "jst"}},
 			getDeploymentResponse: &api.Deployment{FailedAt: &now},
 			expectedError:         errors.New("Deploy failed"),
 			deploys: []api.CreateDeploymentRequest{
 				{
 					Tasks: []api.DeployTask{
 						{
-							TaskID: "my_task",
+							TaskID: "tsk123",
 							Kind:   "node",
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
@@ -140,6 +137,11 @@ func TestDeployTasks(t *testing.T) {
 									"entrypoint":  "",
 									"nodeVersion": "",
 								},
+								ExecuteRules: libapi.UpdateExecuteRulesRequest{
+									DisallowSelfApprove: pointers.Bool(false),
+									RequireRequests:     pointers.Bool(false),
+								},
+								InterpolationMode: pointers.String("jst"),
 							},
 						},
 					},
@@ -150,27 +152,23 @@ func TestDeployTasks(t *testing.T) {
 			desc: "deploys a task - deployment cancelled",
 			taskConfigs: []discover.TaskConfig{
 				{
+					TaskID:   "tsk123",
 					TaskRoot: fixturesPath,
 					Def: &definitions.Definition_0_3{
 						Name: "My Task",
 						Slug: "my_task",
 						Node: &definitions.NodeDefinition_0_3{},
 					},
-					Task: libapi.Task{
-						ID:   "my_task",
-						Slug: "my_task",
-						Name: "My Task",
-					},
 				},
 			},
-			existingTasks:         map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
+			existingTasks:         map[string]libapi.Task{"my_task": {ID: "tsk123", Slug: "my_task", Name: "My Task", InterpolationMode: "jst"}},
 			getDeploymentResponse: &api.Deployment{CancelledAt: &now},
 			expectedError:         errors.New("Deploy cancelled"),
 			deploys: []api.CreateDeploymentRequest{
 				{
 					Tasks: []api.DeployTask{
 						{
-							TaskID: "my_task",
+							TaskID: "tsk123",
 							Kind:   "node",
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
@@ -187,6 +185,11 @@ func TestDeployTasks(t *testing.T) {
 									"entrypoint":  "",
 									"nodeVersion": "",
 								},
+								ExecuteRules: libapi.UpdateExecuteRulesRequest{
+									DisallowSelfApprove: pointers.Bool(false),
+									RequireRequests:     pointers.Bool(false),
+								},
+								InterpolationMode: pointers.String("jst"),
 							},
 						},
 					},
@@ -197,26 +200,22 @@ func TestDeployTasks(t *testing.T) {
 			desc: "deploys a task to an environment",
 			taskConfigs: []discover.TaskConfig{
 				{
+					TaskID:   "tsk123",
 					TaskRoot: fixturesPath,
 					Def: &definitions.Definition_0_3{
 						Name: "My Task",
 						Slug: "my_task",
 						Node: &definitions.NodeDefinition_0_3{},
 					},
-					Task: libapi.Task{
-						ID:   "my_task",
-						Slug: "my_task",
-						Name: "My Task",
-					},
 				},
 			},
-			existingTasks: map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
+			existingTasks: map[string]libapi.Task{"my_task": {ID: "tsk123", Slug: "my_task", Name: "My Task", InterpolationMode: "jst"}},
 			envSlug:       "myEnv",
 			deploys: []api.CreateDeploymentRequest{
 				{
 					Tasks: []api.DeployTask{
 						{
-							TaskID: "my_task",
+							TaskID: "tsk123",
 							Kind:   "node",
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
@@ -233,7 +232,12 @@ func TestDeployTasks(t *testing.T) {
 									"entrypoint":  "",
 									"nodeVersion": "",
 								},
-								EnvSlug: "myEnv",
+								ExecuteRules: libapi.UpdateExecuteRulesRequest{
+									DisallowSelfApprove: pointers.Bool(false),
+									RequireRequests:     pointers.Bool(false),
+								},
+								InterpolationMode: pointers.String("jst"),
+								EnvSlug:           "myEnv",
 							},
 						},
 					},
@@ -244,25 +248,21 @@ func TestDeployTasks(t *testing.T) {
 			desc: "deploys a task that doesn't need to be built",
 			taskConfigs: []discover.TaskConfig{
 				{
+					TaskID:   "tsk123",
 					TaskRoot: fixturesPath,
 					Def: &definitions.Definition_0_3{
 						Name:  "My Task",
 						Slug:  "my_task",
 						Image: &definitions.ImageDefinition_0_3{Image: "myImage"},
 					},
-					Task: libapi.Task{
-						ID:   "my_task",
-						Slug: "my_task",
-						Name: "My Task",
-					},
 				},
 			},
-			existingTasks: map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
+			existingTasks: map[string]libapi.Task{"my_task": {ID: "tsk123", Slug: "my_task", Name: "My Task", InterpolationMode: "jst"}},
 			deploys: []api.CreateDeploymentRequest{
 				{
 					Tasks: []api.DeployTask{
 						{
-							TaskID:      "my_task",
+							TaskID:      "tsk123",
 							Kind:        "image",
 							BuildConfig: libBuild.BuildConfig{},
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
@@ -272,6 +272,11 @@ func TestDeployTasks(t *testing.T) {
 								Kind:       "image",
 								Command:    []string{},
 								Image:      pointers.String("myImage"),
+								ExecuteRules: libapi.UpdateExecuteRulesRequest{
+									DisallowSelfApprove: pointers.Bool(false),
+									RequireRequests:     pointers.Bool(false),
+								},
+								InterpolationMode: pointers.String("jst"),
 							},
 						},
 					},
@@ -282,31 +287,28 @@ func TestDeployTasks(t *testing.T) {
 			desc: "deploys a task - local",
 			taskConfigs: []discover.TaskConfig{
 				{
+					TaskID:   "tsk123",
 					TaskRoot: fixturesPath,
 					Def: &definitions.Definition_0_3{
 						Name: "My Task",
 						Slug: "my_task",
 						Node: &definitions.NodeDefinition_0_3{},
 					},
-					Task: libapi.Task{
-						ID:   "my_task",
-						Slug: "my_task",
-						Name: "My Task",
-					},
 				},
 			},
-			existingTasks: map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
+			existingTasks: map[string]libapi.Task{"my_task": {ID: "tsk123", Slug: "my_task", Name: "My Task", InterpolationMode: "jst"}},
 			deploys: []api.CreateDeploymentRequest{
 				{
 					Tasks: []api.DeployTask{
 						{
-							TaskID: "my_task",
+							TaskID: "tsk123",
 							Kind:   "node",
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
 								"shim":        "true",
 							},
+
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
 								Slug:       "my_task",
 								Name:       "My Task",
@@ -317,6 +319,11 @@ func TestDeployTasks(t *testing.T) {
 									"nodeVersion": "",
 								},
 								Image: pointers.String("imageURL"),
+								ExecuteRules: libapi.UpdateExecuteRulesRequest{
+									DisallowSelfApprove: pointers.Bool(false),
+									RequireRequests:     pointers.Bool(false),
+								},
+								InterpolationMode: pointers.String("jst"),
 							},
 						},
 					},
@@ -337,6 +344,7 @@ func TestDeployTasks(t *testing.T) {
 			desc: "deploys a task with git metadata",
 			taskConfigs: []discover.TaskConfig{
 				{
+					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: "/json/short.json",
 					Def: &definitions.Definition_0_3{
@@ -344,20 +352,15 @@ func TestDeployTasks(t *testing.T) {
 						Slug: "my_task",
 						Node: &definitions.NodeDefinition_0_3{},
 					},
-					Task: libapi.Task{
-						ID:   "my_task",
-						Slug: "my_task",
-						Name: "My Task",
-					},
 				},
 			},
-			existingTasks: map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
+			existingTasks: map[string]libapi.Task{"my_task": {ID: "tsk123", Slug: "my_task", Name: "My Task", InterpolationMode: "jst"}},
 			gitRepo:       mockRepo,
 			deploys: []api.CreateDeploymentRequest{
 				{
 					Tasks: []api.DeployTask{
 						{
-							TaskID: "my_task",
+							TaskID: "tsk123",
 							Kind:   "node",
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
@@ -374,6 +377,11 @@ func TestDeployTasks(t *testing.T) {
 									"entrypoint":  "",
 									"nodeVersion": "",
 								},
+								ExecuteRules: libapi.UpdateExecuteRulesRequest{
+									DisallowSelfApprove: pointers.Bool(false),
+									RequireRequests:     pointers.Bool(false),
+								},
+								InterpolationMode: pointers.String("jst"),
 							},
 							GitFilePath: "json/short.json",
 						},
@@ -394,6 +402,7 @@ func TestDeployTasks(t *testing.T) {
 			desc: "deploys a task with owner and repo from env var",
 			taskConfigs: []discover.TaskConfig{
 				{
+					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: "/json/short.json",
 					Def: &definitions.Definition_0_3{
@@ -401,14 +410,9 @@ func TestDeployTasks(t *testing.T) {
 						Slug: "my_task",
 						Node: &definitions.NodeDefinition_0_3{},
 					},
-					Task: libapi.Task{
-						ID:   "my_task",
-						Slug: "my_task",
-						Name: "My Task",
-					},
 				},
 			},
-			existingTasks: map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
+			existingTasks: map[string]libapi.Task{"my_task": {ID: "tsk123", Slug: "my_task", Name: "My Task", InterpolationMode: "jst"}},
 			gitRepo:       mockRepo,
 			envVars: map[string]string{
 				"AP_GIT_REPO": "airplanedev/airport",
@@ -417,7 +421,7 @@ func TestDeployTasks(t *testing.T) {
 				{
 					Tasks: []api.DeployTask{
 						{
-							TaskID: "my_task",
+							TaskID: "tsk123",
 							Kind:   "node",
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
@@ -434,6 +438,11 @@ func TestDeployTasks(t *testing.T) {
 									"entrypoint":  "",
 									"nodeVersion": "",
 								},
+								ExecuteRules: libapi.UpdateExecuteRulesRequest{
+									DisallowSelfApprove: pointers.Bool(false),
+									RequireRequests:     pointers.Bool(false),
+								},
+								InterpolationMode: pointers.String("jst"),
 							},
 							GitFilePath: "json/short.json",
 						},
@@ -454,24 +463,20 @@ func TestDeployTasks(t *testing.T) {
 			desc: "deploys and updates an SQL task",
 			taskConfigs: []discover.TaskConfig{
 				{
+					TaskID:   "tsk123",
 					TaskRoot: fixturesPath,
 					Def: &definitions.Definition_0_3{
 						Name: "My Task",
 						Slug: "my_task",
 						SQL: &definitions.SQLDefinition_0_3{
 							Entrypoint: "./fixtures/test.sql",
-							Parameters: map[string]interface{}{},
+							QueryArgs:  map[string]interface{}{},
 							Resource:   "db",
 						},
 					},
-					Task: libapi.Task{
-						ID:   "my_task",
-						Slug: "my_task",
-						Name: "My Task",
-					},
 				},
 			},
-			existingTasks: map[string]libapi.Task{"my_task": {Slug: "my_task", Name: "My Task"}},
+			existingTasks: map[string]libapi.Task{"my_task": {ID: "tsk123", Slug: "my_task", Name: "My Task", InterpolationMode: "jst"}},
 			resources: []libapi.Resource{
 				{
 					ID:   "db_id",
@@ -482,7 +487,7 @@ func TestDeployTasks(t *testing.T) {
 				{
 					Tasks: []api.DeployTask{
 						{
-							TaskID: "my_task",
+							TaskID: "tsk123",
 							Kind:   "sql",
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint": "./fixtures/test.sql",
@@ -502,6 +507,11 @@ func TestDeployTasks(t *testing.T) {
 								Resources: map[string]string{
 									"db": "db_id",
 								},
+								ExecuteRules: libapi.UpdateExecuteRulesRequest{
+									DisallowSelfApprove: pointers.Bool(false),
+									RequireRequests:     pointers.Bool(false),
+								},
+								InterpolationMode: pointers.String("jst"),
 							},
 						},
 					},

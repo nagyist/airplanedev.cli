@@ -247,8 +247,8 @@ func getDevEnv(r runtime.Interface, path string) (map[string]string, error) {
 
 // slugFromScript attempts to extract a slug from a file based on its contents.
 func slugFromScript(file string) (string, error) {
-	slug, ok := runtime.Slug(file)
-	if !ok {
+	slug := runtime.Slug(file)
+	if slug == "" {
 		return "", runtime.ErrNotLinked{Path: file}
 	}
 

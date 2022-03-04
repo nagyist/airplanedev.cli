@@ -20,12 +20,12 @@ import (
 func deployFromYaml(ctx context.Context, cfg config) (rErr error) {
 	client := cfg.client
 	props := taskDeployedProps{
-		from: "yaml",
+		source: "yaml",
 	}
 	start := time.Now()
 	defer func() {
 		analytics.Track(cfg.root, "Task Deployed", map[string]interface{}{
-			"from":             props.from,
+			"source":           props.source,
 			"kind":             props.kind,
 			"task_id":          props.taskID,
 			"task_slug":        props.taskSlug,
@@ -188,10 +188,10 @@ More information: https://apn.sh/jst-upgrade`)
 		Kind:                       kind,
 		KindOptions:                kindOptions,
 		Repo:                       def.Repo,
-		RequireExplicitPermissions: task.RequireExplicitPermissions,
-		Permissions:                task.Permissions,
+		RequireExplicitPermissions: &task.RequireExplicitPermissions,
+		Permissions:                &task.Permissions,
 		Timeout:                    def.Timeout,
-		InterpolationMode:          interpolationMode,
+		InterpolationMode:          &interpolationMode,
 	})
 	if err != nil {
 		return errors.Wrapf(err, "updating task %s", def.Slug)

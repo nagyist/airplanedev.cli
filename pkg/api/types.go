@@ -269,7 +269,6 @@ type GetUniqueSlugResponse struct {
 
 type DeployTask struct {
 	TaskID            string                   `json:"taskID"`
-	InterpolationMode string                   `json:"interpolationMode"`
 	Kind              build.TaskKind           `json:"kind"`
 	BuildConfig       build.BuildConfig        `json:"buildConfig"`
 	UploadID          string                   `json:"uploadID"`

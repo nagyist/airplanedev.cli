@@ -15,6 +15,7 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	libBuild "github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/archive"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
@@ -31,10 +32,6 @@ type deployer struct {
 	loader       logger.Loader
 	archiver     archive.Archiver
 	repoGetter   GitRepoGetter
-
-	erroredTaskSlugs  map[string]error
-	deployedTaskSlugs []string
-	mu                sync.Mutex
 }
 
 type DeployerOpts struct {
@@ -103,7 +100,7 @@ func (d *deployer) DeployTasks(ctx context.Context, taskConfigs []discover.TaskC
 		if err != nil {
 			d.logger.Debug("failed to get git repo for %s: %v", tc.TaskEntrypoint, err)
 		}
-		taskToDeploy, err := d.getDeployTask(ctx, tc, uploadIDs[tc.Task.ID], repo)
+		taskToDeploy, err := d.getDeployTask(ctx, tc, uploadIDs[tc.TaskID], repo)
 		if err != nil {
 			return err
 		}
@@ -179,17 +176,17 @@ func (d *deployer) getDeployTask(ctx context.Context, tc discover.TaskConfig, up
 		return api.DeployTask{}, err
 	}
 	tp := taskDeployedProps{
-		from:       string(tc.From),
+		source:     string(tc.Source),
 		kind:       kind,
-		taskID:     tc.Task.ID,
-		taskSlug:   tc.Task.Slug,
-		taskName:   tc.Task.Name,
+		taskID:     tc.TaskID,
+		taskSlug:   tc.Def.GetSlug(),
+		taskName:   tc.Def.GetName(),
 		buildLocal: d.cfg.local,
 	}
 	start := time.Now()
 	defer func() {
 		analytics.Track(d.cfg.root, "Task Deployed", map[string]interface{}{
-			"from":             tp.from,
+			"source":           tp.source,
 			"kind":             tp.kind,
 			"task_id":          tp.taskID,
 			"task_slug":        tp.taskSlug,
@@ -201,7 +198,27 @@ func (d *deployer) getDeployTask(ctx context.Context, tc discover.TaskConfig, up
 		})
 	}()
 
-	interpolationMode := tc.Task.InterpolationMode
+	// Look up the task that we are deploying to get its interpolation mode. A few legacy tasks still
+	// use handlebars interpolation.
+	interpolationMode := "jst"
+	if task, err := client.GetTask(ctx, libapi.GetTaskRequest{
+		Slug: tp.taskSlug,
+		// This task won't exist if deploying into a new environment. Therefore, we look up the
+		// interpolation mode from the default environment. All handlebars tasks will have been
+		// deployed into the default environment (unless the default environment was changed,
+		// but we choose not to handle that).
+		EnvSlug: "",
+	}); err != nil {
+		// If the task does not exist in the default environment, this task was created after we
+		// launched environments which is well after we deprecated handlebars templating. We can
+		// assume the interpolation mode is JSTs.
+		if _, ok := err.(*libapi.TaskMissingError); !ok {
+			return api.DeployTask{}, errors.Wrap(err, "unable to look up interpolation mode")
+		}
+	} else {
+		interpolationMode = task.InterpolationMode
+	}
+
 	if interpolationMode != "jst" {
 		if d.cfg.upgradeInterpolation {
 			d.logger.Warning(`Your task is being migrated from handlebars to Airplane JS Templates.
@@ -245,7 +262,7 @@ More information: https://apn.sh/jst-upgrade`)
 		if d.cfg.local {
 			resp, err := d.buildCreator.CreateBuild(ctx, build.Request{
 				Client:  client,
-				TaskID:  tc.Task.ID,
+				TaskID:  tc.TaskID,
 				Root:    tc.TaskRoot,
 				Def:     tc.Def,
 				TaskEnv: env,
@@ -258,14 +275,14 @@ More information: https://apn.sh/jst-upgrade`)
 		}
 	}
 
-	utr, err := tc.Def.GetUpdateTaskRequest(ctx, d.cfg.client, &tc.Task)
+	utr, err := tc.Def.GetUpdateTaskRequest(ctx, d.cfg.client)
 	if err != nil {
 		return api.DeployTask{}, err
 	}
 	if image != nil {
 		utr.Image = image
 	}
-	utr.InterpolationMode = interpolationMode
+	utr.InterpolationMode = &interpolationMode
 	utr.EnvSlug = d.cfg.envSlug
 
 	var filePath string
@@ -277,14 +294,13 @@ More information: https://apn.sh/jst-upgrade`)
 	}
 
 	return api.DeployTask{
-		TaskID:            tc.Task.ID,
+		TaskID:            tc.TaskID,
 		Kind:              kind,
 		BuildConfig:       buildConfig,
 		UploadID:          uploadID,
 		UpdateTaskRequest: utr,
 		EnvVars:           env,
 		GitFilePath:       filePath,
-		InterpolationMode: interpolationMode,
 	}, nil
 }
 
@@ -308,12 +324,12 @@ func (d *deployer) tarAndUploadTasks(ctx context.Context, taskConfigs []discover
 		}
 
 		g.Go(func() error {
-			uploadID, err := d.tarAndUpload(ctx, tc.Task.Slug, tc.TaskRoot)
+			uploadID, err := d.tarAndUpload(ctx, tc.Def.GetSlug(), tc.TaskRoot)
 			if err != nil {
 				return err
 			}
 			mu.Lock()
-			uploadIDs[tc.Task.ID] = uploadID
+			uploadIDs[tc.TaskID] = uploadID
 			mu.Unlock()
 			return nil
 		})
@@ -366,10 +382,13 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []disc
 	}
 	d.logger.Log("Deploying %v %v:\n", len(taskConfigs), noun)
 	for _, tc := range taskConfigs {
-		d.logger.Log(logger.Bold(tc.Task.Slug))
-		d.logger.Log("Type: %s", tc.Task.Kind)
+		slug := tc.Def.GetSlug()
+		kind, _, _ := tc.Def.GetKindAndOptions()
+
+		d.logger.Log(logger.Bold(slug))
+		d.logger.Log("Type: %s", kind)
 		d.logger.Log("Root directory: %s", relpath(tc.TaskRoot))
-		d.logger.Log("URL: %s", d.cfg.client.TaskURL(tc.Task.Slug))
+		d.logger.Log("URL: %s", d.cfg.client.TaskURL(slug))
 		d.logger.Log("")
 	}
 }

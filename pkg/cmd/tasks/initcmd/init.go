@@ -310,7 +310,7 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 	}
 
 	if fsx.Exists(cfg.file) {
-		if slug, ok := runtime.Slug(cfg.file); ok && slug == task.Slug {
+		if slug := runtime.Slug(cfg.file); slug == task.Slug {
 			logger.Step("%s is already linked to %s", cfg.file, cfg.slug)
 			suggestNextSteps(cfg.file)
 			return nil
