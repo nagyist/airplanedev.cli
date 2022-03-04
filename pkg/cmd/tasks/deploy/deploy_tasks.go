@@ -144,6 +144,7 @@ func (d *deployer) DeployTasks(ctx context.Context, taskConfigs []discover.TaskC
 	resp, err := d.cfg.client.CreateDeployment(ctx, api.CreateDeploymentRequest{
 		Tasks:       tasksToDeploy,
 		GitMetadata: gitMeta,
+		EnvSlug:     d.cfg.envSlug,
 	})
 	if err != nil {
 		return err
@@ -235,6 +236,10 @@ of just the url string).
 
 To upgrade, update your task to support the new format and re-deploy with --jst.
 More information: https://apn.sh/jst-upgrade`)
+
+			if d.cfg.envSlug != "" {
+				return api.DeployTask{}, errors.New("Tasks using handlebars do not support --env")
+			}
 		}
 	}
 

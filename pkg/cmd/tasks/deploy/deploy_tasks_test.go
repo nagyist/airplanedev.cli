@@ -241,6 +241,7 @@ func TestDeployTasks(t *testing.T) {
 							},
 						},
 					},
+					EnvSlug: "myEnv",
 				},
 			},
 		},

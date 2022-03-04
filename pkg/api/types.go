@@ -280,6 +280,7 @@ type DeployTask struct {
 type CreateDeploymentRequest struct {
 	Tasks       []DeployTask `json:"tasks"`
 	GitMetadata GitMetadata  `json:"gitMetadata"`
+	EnvSlug     string       `json:"envSlug"`
 }
 
 type CancelDeploymentRequest struct {
