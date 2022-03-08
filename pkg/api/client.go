@@ -76,7 +76,10 @@ type Client struct {
 }
 
 type APIClient interface {
+	// GetTask fetches a task by slug. If the slug does not match a task, a *TaskMissingError is returned.
 	GetTask(ctx context.Context, req libapi.GetTaskRequest) (res libapi.Task, err error)
+	// GetTaskMetadata fetches a task's metadata by slug. If the slug does not match a task, a *TaskMissingError is returned.
+	GetTaskMetadata(ctx context.Context, slug string) (res libapi.TaskMetadata, err error)
 	ListTasks(ctx context.Context, envSlug string) (res ListTasksResponse, err error)
 	CreateTask(ctx context.Context, req CreateTaskRequest) (res CreateTaskResponse, err error)
 	UpdateTask(ctx context.Context, req libapi.UpdateTaskRequest) (res UpdateTaskResponse, err error)
@@ -295,7 +298,7 @@ func (c Client) GetOutputs(ctx context.Context, runID string) (res GetOutputsRes
 	return
 }
 
-// GetTask returns a task by its slug.
+// GetTask fetches a task by slug. If the slug does not match a task, a *TaskMissingError is returned.
 func (c Client) GetTask(ctx context.Context, req libapi.GetTaskRequest) (res libapi.Task, err error) {
 	err = c.do(ctx, "GET", encodeQueryString("/tasks/get", url.Values{
 		"slug":    []string{req.Slug},
@@ -313,6 +316,22 @@ func (c Client) GetTask(ctx context.Context, req libapi.GetTaskRequest) (res lib
 		return
 	}
 	res.URL = c.TaskURL(res.Slug)
+	return
+}
+
+// GetTaskMetadata fetches a task's metadata by slug. If the slug does not match a task, a *TaskMissingError is returned.
+func (c Client) GetTaskMetadata(ctx context.Context, slug string) (res libapi.TaskMetadata, err error) {
+	err = c.do(ctx, "GET", encodeQueryString("/tasks/getMetadata", url.Values{
+		"slug": []string{slug},
+	}), nil, &res)
+
+	if err, ok := err.(Error); ok && err.Code == 404 {
+		return res, &libapi.TaskMissingError{
+			AppURL: c.appURL().String(),
+			Slug:   slug,
+		}
+	}
+
 	return
 }
 

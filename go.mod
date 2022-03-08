@@ -10,7 +10,7 @@ require (
 	github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/dustin/go-humanize v1.0.0
-	github.com/evanw/esbuild v0.14.2 // indirect
+	github.com/evanw/esbuild v0.14.25 // indirect
 	github.com/fatih/color v1.13.0
 	github.com/getsentry/sentry-go v0.12.0
 	github.com/go-git/go-git/v5 v5.4.2
@@ -35,12 +35,12 @@ require (
 )
 
 require (
-	github.com/airplanedev/lib v0.3.9-0.20220228183819-a5e12b326cb4
 	github.com/airplanedev/ojson v0.1.0
 	github.com/briandowns/spinner v1.18.1
 )
 
 require (
+	github.com/airplanedev/lib v0.3.10-0.20220307162231-01b4693b0403
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git-fixtures/v4 v4.3.1
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
@@ -65,7 +65,7 @@ require (
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
-	github.com/goccy/go-yaml v1.9.4 // indirect
+	github.com/goccy/go-yaml v1.9.5 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect

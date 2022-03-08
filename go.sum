@@ -111,8 +111,8 @@ github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021 h1:epOU0k9y
 github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021/go.mod h1:Dsagf3j6EvFajY16ZIuDnVL64yFCWtvfXE0tfG33w/U=
 github.com/airplanedev/dlog v0.0.0-20210615011719-ca8d3becde5e h1:MeoR75I33g2XHKnTfRE67THlKm6fCoKQ3KcxsElHL4w=
 github.com/airplanedev/dlog v0.0.0-20210615011719-ca8d3becde5e/go.mod h1:jTwpOa6MfHZELuUd5UGfKDxZOqBi6fAbI3aFRnLvcA4=
-github.com/airplanedev/lib v0.3.9-0.20220228183819-a5e12b326cb4 h1:GAdnHFzAEzkm0Euf6h2Q5gys3umsH5BBBRfCGqvTjQQ=
-github.com/airplanedev/lib v0.3.9-0.20220228183819-a5e12b326cb4/go.mod h1:EGsOqeUdSrlYbTXWlWsUsBEE73YprkNPfmEqIXnbtPI=
+github.com/airplanedev/lib v0.3.10-0.20220307162231-01b4693b0403 h1:rzpbIGRiw2e+f68GLGiNfqEvkazy3yDt6NP2VSLb5t8=
+github.com/airplanedev/lib v0.3.10-0.20220307162231-01b4693b0403/go.mod h1:b+kVKnD2KGaR2fnIVLtyrJN4P719ZZLqgr+WU2ss/RQ=
 github.com/airplanedev/ojson v0.1.0 h1:KpEO5zr/9S2xj38Vijky5MWZQ5l2mtDLUoxkxBPVCoI=
 github.com/airplanedev/ojson v0.1.0/go.mod h1:OinOlkiLgGwp+/RkH/9vVAIs78tP+oku4bt5v+jshoA=
 github.com/airplanedev/path v0.0.1 h1:3xW/3y6gaKmIeBcHqzieMl5RcUubcazzoHblMqvk6W4=
@@ -366,8 +366,8 @@ github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7
 github.com/envoyproxy/protoc-gen-validate v0.6.2/go.mod h1:2t7qjJNvHPx8IjnBOzl9E9/baC+qXE/TeeyBRzgJDws=
 github.com/etcd-io/bbolt v1.3.3/go.mod h1:ZF2nL25h33cCyBtcyWeZ2/I3HQOfTP+0PIEvHjkjCrw=
 github.com/evanphx/json-patch v4.9.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
-github.com/evanw/esbuild v0.14.2 h1:vAvIfHk0SxXE6OV+LzZHnlvUk6RigWOFAl7GyS7J9tY=
-github.com/evanw/esbuild v0.14.2/go.mod h1:GG+zjdi59yh3ehDn4ZWfPcATxjPDUH53iU4ZJbp7dkY=
+github.com/evanw/esbuild v0.14.25 h1:8rWEnEcckD5XF1ZdIGEh4G5MOvFA7ESphjFbmq4Fbr0=
+github.com/evanw/esbuild v0.14.25/go.mod h1:GG+zjdi59yh3ehDn4ZWfPcATxjPDUH53iU4ZJbp7dkY=
 github.com/fasthttp-contrib/websocket v0.0.0-20160511215533-1f3b11f56072/go.mod h1:duJ4Jxv5lDcvg4QuQr0oowTf7dz4/CR8NtyCooz9HL8=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/fatih/color v1.9.0/go.mod h1:eQcE1qtQxscV5RaZvpXrrb8Drkc3/DdQ+uUYCNjL+zU=
@@ -439,8 +439,8 @@ github.com/go-stack/stack v1.8.0/go.mod h1:v0f6uXyyMGvRgIKkXu+yp6POWl0qKG85gN/me
 github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee/go.mod h1:L0fX3K22YWvt/FAX9NnzrNzcI4wNYi9Yku4O0LKYflo=
 github.com/gobwas/pool v0.2.0/go.mod h1:q8bcK0KcYlCgd9e7WYLm9LpyS+YeLd8JVDW6WezmKEw=
 github.com/gobwas/ws v1.0.2/go.mod h1:szmBTxLgaFppYjEmNtny/v3w89xOydFnnZMcgRRu/EM=
-github.com/goccy/go-yaml v1.9.4 h1:S0GCYjwHKVI6IHqio7QWNKNThUl6NLzFd/g8Z65Axw8=
-github.com/goccy/go-yaml v1.9.4/go.mod h1:U/jl18uSupI5rdI2jmuCswEA2htH9eXfferR3KfscvA=
+github.com/goccy/go-yaml v1.9.5 h1:Eh/+3uk9kLxG4koCX6lRMAPS1OaMSAi+FJcya0INdB0=
+github.com/goccy/go-yaml v1.9.5/go.mod h1:U/jl18uSupI5rdI2jmuCswEA2htH9eXfferR3KfscvA=
 github.com/godbus/dbus v0.0.0-20151105175453-c7fdd8b5cd55/go.mod h1:/YcGZj5zSblfDWMMoOzV4fas9FZnQYTkDnsGvmh2Grw=
 github.com/godbus/dbus v0.0.0-20180201030542-885f9cc04c9c/go.mod h1:/YcGZj5zSblfDWMMoOzV4fas9FZnQYTkDnsGvmh2Grw=
 github.com/godbus/dbus v0.0.0-20190422162347-ade71ed3457e/go.mod h1:bBOAhwG1umN6/6ZUMtDFBMQR8jRg9O75tm9K00oMsK4=

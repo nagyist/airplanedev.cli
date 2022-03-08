@@ -26,6 +26,17 @@ func (mc *MockClient) GetTask(ctx context.Context, req libapi.GetTaskRequest) (r
 	return task, nil
 }
 
+func (mc *MockClient) GetTaskMetadata(ctx context.Context, slug string) (res libapi.TaskMetadata, err error) {
+	task, ok := mc.Tasks[slug]
+	if !ok {
+		return libapi.TaskMetadata{}, &libapi.TaskMissingError{AppURL: "api/", Slug: slug}
+	}
+	return libapi.TaskMetadata{
+		ID:   task.ID,
+		Slug: task.Slug,
+	}, nil
+}
+
 func (mc *MockClient) ListTasks(ctx context.Context, envSlug string) (res ListTasksResponse, err error) {
 	panic("not implemented") // TODO: Implement
 }
@@ -63,10 +74,16 @@ func (mc *MockClient) UpdateTask(ctx context.Context, req libapi.UpdateTaskReque
 	task.Kind = req.Kind
 	task.KindOptions = req.KindOptions
 	task.Repo = req.Repo
-	task.RequireExplicitPermissions = req.RequireExplicitPermissions
-	task.Permissions = req.Permissions
+	if req.RequireExplicitPermissions != nil {
+		task.RequireExplicitPermissions = *req.RequireExplicitPermissions
+	}
+	if req.Permissions != nil {
+		task.Permissions = *req.Permissions
+	}
 	task.Timeout = req.Timeout
-	task.InterpolationMode = req.InterpolationMode
+	if req.InterpolationMode != nil {
+		task.InterpolationMode = *req.InterpolationMode
+	}
 	mc.Tasks[req.Slug] = task
 
 	return UpdateTaskResponse{}, nil

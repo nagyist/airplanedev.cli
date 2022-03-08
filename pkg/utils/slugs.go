@@ -64,8 +64,8 @@ func slugFromDefn(file string) (string, error) {
 
 // slugFromScript attempts to extract a slug from a script.
 func slugFromScript(file string) (string, error) {
-	slug, ok := runtime.Slug(file)
-	if !ok {
+	slug := runtime.Slug(file)
+	if slug == "" {
 		return "", runtime.ErrNotLinked{Path: file}
 	}
 

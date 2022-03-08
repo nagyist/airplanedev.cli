@@ -95,7 +95,7 @@ func New(c *cli.Config) *cobra.Command {
 
 // Set of properties to track when deploying
 type taskDeployedProps struct {
-	from       string
+	source     string
 	kind       build.TaskKind
 	taskID     string
 	taskSlug   string
@@ -130,7 +130,9 @@ func run(ctx context.Context, cfg config) error {
 	}
 	d.TaskDiscoverers = append(d.TaskDiscoverers, defnDiscoverer)
 	d.TaskDiscoverers = append(d.TaskDiscoverers, &discover.ScriptDiscoverer{
-		Client: cfg.client,
+		Client:  cfg.client,
+		Logger:  l,
+		EnvSlug: cfg.envSlug,
 	})
 
 	// If you're trying to deploy a .sql file, try to find a defn file instead.
@@ -164,8 +166,8 @@ func run(ctx context.Context, cfg config) error {
 	return NewDeployer(cfg, l, DeployerOpts{}).DeployTasks(ctx, taskConfigs)
 }
 
-func HandleMissingTask(cfg config, l logger.Logger, loader logger.Loader) func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.Task, error) {
-	return func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.Task, error) {
+func HandleMissingTask(cfg config, l logger.Logger, loader logger.Loader) func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.TaskMetadata, error) {
+	return func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.TaskMetadata, error) {
 		if !utils.CanPrompt() {
 			return nil, nil
 		}
@@ -173,7 +175,7 @@ func HandleMissingTask(cfg config, l logger.Logger, loader logger.Loader) func(c
 		isActive := loader.IsActive()
 		loader.Stop()
 
-		question := fmt.Sprintf("Task with slug %s does not exist. Would you like to create a new task?", def.GetSlug())
+		question := fmt.Sprintf("A task with slug %s does not exist. Would you like to create one?", def.GetSlug())
 		ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo)
 
 		if isActive {
@@ -188,12 +190,12 @@ func HandleMissingTask(cfg config, l logger.Logger, loader logger.Loader) func(c
 		}
 
 		l.Log("Creating task...")
-		utr, err := def.GetUpdateTaskRequest(ctx, cfg.client, nil)
+		utr, err := def.GetUpdateTaskRequest(ctx, cfg.client)
 		if err != nil {
 			return nil, err
 		}
 
-		_, err = cfg.client.CreateTask(ctx, api.CreateTaskRequest{
+		resp, err := cfg.client.CreateTask(ctx, api.CreateTaskRequest{
 			Slug:             utr.Slug,
 			Name:             utr.Name,
 			Description:      utr.Description,
@@ -215,14 +217,10 @@ func HandleMissingTask(cfg config, l logger.Logger, loader logger.Loader) func(c
 			return nil, errors.Wrapf(err, "creating task %s", def.GetSlug())
 		}
 
-		task, err := cfg.client.GetTask(ctx, libapi.GetTaskRequest{
-			Slug:    def.GetSlug(),
-			EnvSlug: cfg.envSlug,
-		})
-		if err != nil {
-			return nil, errors.Wrap(err, "fetching created task")
-		}
-		return &task, nil
+		return &libapi.TaskMetadata{
+			ID:   resp.TaskID,
+			Slug: resp.Slug,
+		}, nil
 	}
 }
 
@@ -231,7 +229,7 @@ func HandleMissingTask(cfg config, l logger.Logger, loader logger.Loader) func(c
 // the script discoverer. Used to find relevant definition files if the user accidentally deploys a
 // script file when a defn file exists.
 func findDefinitionForScript(ctx context.Context, cfg config, defnDiscoverer *discover.DefnDiscoverer, taskConfig discover.TaskConfig) (*discover.TaskConfig, error) {
-	if taskConfig.From != discover.TaskConfigSourceScript {
+	if taskConfig.Source != discover.TaskConfigSourceScript {
 		return nil, nil
 	}
 
@@ -255,12 +253,17 @@ func findDefinitionForScript(ctx context.Context, cfg config, defnDiscoverer *di
 			}
 
 			path := filepath.Join(dir, fileInfo.Name())
-			if slug, err := defnDiscoverer.IsAirplaneTask(ctx, path); err != nil {
+
+			// Attempt to read a definition task config from this file.
+			slug, err := defnDiscoverer.IsAirplaneTask(ctx, path)
+			if err != nil {
 				return nil, err
-			} else if slug != taskConfig.Task.Slug {
+			} else if slug != taskConfig.Def.GetSlug() {
+				// This is either not a task definition or it is a task definition for a different task.
 				continue
 			}
-			question := fmt.Sprintf("A definition file for task %s exists (%s).\nWould you like to use it?", taskConfig.Task.Slug, relpath(path))
+
+			question := fmt.Sprintf("A definition file for task %q exists (%s).\nWould you like to use it?", taskConfig.Def.GetSlug(), relpath(path))
 			ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo)
 			if err != nil {
 				return nil, err
@@ -268,12 +271,7 @@ func findDefinitionForScript(ctx context.Context, cfg config, defnDiscoverer *di
 				return nil, nil
 			}
 
-			tc, err := defnDiscoverer.GetTaskConfig(ctx, taskConfig.Task, path)
-			if err != nil {
-				return nil, err
-			}
-			tc.From = discover.TaskConfigSourceDefn
-			return &tc, nil
+			return defnDiscoverer.GetTaskConfig(ctx, path)
 		}
 	}
 

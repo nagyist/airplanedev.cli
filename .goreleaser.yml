@@ -9,7 +9,10 @@ builds:
     env:
       - CGO_ENABLED=0
     ldflags:
-      - -s -w -X github.com/airplanedev/cli/pkg/version.version={{.Version}} -X github.com/airplanedev/cli/pkg/version.date={{.Date}}
+      - -s -w
+      - -X github.com/airplanedev/cli/pkg/version.version={{.Version}}
+      - -X github.com/airplanedev/cli/pkg/version.prerelease={{.Prerelease}}
+      - -X github.com/airplanedev/cli/pkg/version.date={{.Date}}
       - -X github.com/airplanedev/cli/pkg/analytics.segmentWriteKey={{.Env.SEGMENT_WRITE_KEY}}
       - -X github.com/airplanedev/cli/pkg/analytics.sentryDSN={{.Env.SENTRY_DSN}}
     goos:
