@@ -33,6 +33,8 @@ func deployFromYaml(ctx context.Context, cfg config) (rErr error) {
 			"build_id":         props.buildID,
 			"errored":          rErr != nil,
 			"duration_seconds": time.Since(start).Seconds(),
+		}, analytics.TrackOpts{
+			SkipSlack: true,
 		})
 	}()
 

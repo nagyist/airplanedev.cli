@@ -99,7 +99,12 @@ type TrackOpts struct {
 
 // Track sends a track event to Segment.
 // event should match "[event] by [user]" - e.g. "[Invite Sent] by [Alice]"
-func Track(c *cli.Config, event string, properties map[string]interface{}) {
+func Track(c *cli.Config, event string, properties map[string]interface{}, opts ...TrackOpts) {
+	var opt TrackOpts
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+
 	if segmentClient == nil {
 		return
 	}
@@ -115,7 +120,7 @@ func Track(c *cli.Config, event string, properties map[string]interface{}) {
 		Event:      event,
 		Properties: props,
 		Integrations: map[string]interface{}{
-			"Slack": true,
+			"Slack": !opt.SkipSlack,
 		},
 	})
 }

@@ -196,6 +196,8 @@ func (d *deployer) getDeployTask(ctx context.Context, tc discover.TaskConfig, up
 			"errored":          rErr != nil,
 			"duration_seconds": time.Since(start).Seconds(),
 			"env_slug":         d.cfg.envSlug,
+		}, analytics.TrackOpts{
+			SkipSlack: true,
 		})
 	}()
 
