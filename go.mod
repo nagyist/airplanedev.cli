@@ -13,7 +13,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/evanw/esbuild v0.14.2 // indirect
 	github.com/fatih/color v1.13.0
-	github.com/getsentry/sentry-go v0.12.0
+	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/golang-jwt/jwt/v4 v4.3.0
 	github.com/golang/snappy v0.0.4 // indirect
