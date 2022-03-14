@@ -1,4 +1,4 @@
-package httpd
+package httpdexec
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/httpd"
 	"github.com/alessio/shellescape"
 	"github.com/spf13/cobra"
 )
@@ -61,11 +62,11 @@ func New(c *cli.Config) *cobra.Command {
 
 // Run runs the execute command.
 func run(ctx context.Context, cfg config) error {
-	return ServeWithGracefulShutdown(
+	return httpd.ServeWithGracefulShutdown(
 		ctx,
 		&http.Server{
 			Addr:    fmt.Sprintf("%s:%d", cfg.host, cfg.port),
-			Handler: Route(cfg.cmd, cfg.args, map[string]*CmdExecutor{}),
+			Handler: httpd.Route(cfg.cmd, cfg.args, map[string]*httpd.CmdExecutor{}),
 		},
 	)
 }
