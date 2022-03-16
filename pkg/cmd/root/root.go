@@ -50,6 +50,7 @@ func New() *cobra.Command {
 			}
 			cfg.Client.APIKey = conf.GetAPIKey()
 			cfg.Client.TeamID = conf.GetTeamID()
+			cfg.Client.Source = conf.GetSource()
 			if err := analytics.Init(cfg); err != nil {
 				logger.Debug("error in analytics.Init: %v", err)
 			}

@@ -115,3 +115,8 @@ func GetGitRepo() GetGitRepoReponse {
 func GetGitUser() string {
 	return os.Getenv("AP_GIT_USER")
 }
+
+// GetSource gets the source from an env var, if it exists.
+func GetSource() string {
+	return os.Getenv("AP_SOURCE")
+}

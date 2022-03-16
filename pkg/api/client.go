@@ -70,6 +70,10 @@ type Client struct {
 	// When empty the client will return an error.
 	Token string
 
+	// Extra information about what context the CLI is being used.
+	// e.g. in a GitHub action.
+	Source string
+
 	// Alternative to token-based authn.
 	APIKey string
 	TeamID string
@@ -467,6 +471,9 @@ func (c Client) do(ctx context.Context, method, path string, payload, reply inte
 
 	req.Header.Set("X-Airplane-Client-Kind", "cli")
 	req.Header.Set("X-Airplane-Client-Version", version.Get())
+	if c.Source != "" {
+		req.Header.Set("X-Airplane-Client-Source", c.Source)
+	}
 
 	resp, err := client.Do(req)
 
