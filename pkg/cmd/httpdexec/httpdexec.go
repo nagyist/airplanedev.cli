@@ -9,7 +9,6 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/httpd"
-	"github.com/alessio/shellescape"
 	"github.com/spf13/cobra"
 )
 
@@ -31,22 +30,19 @@ func New(c *cli.Config) *cobra.Command {
 	var cfg = config{root: c}
 
 	cmd := &cobra.Command{
-		Use:   "httpdexec cmd [--port] [--host] [cmd_args...]",
+		Use:   "httpdexec cmd... [--port] [--host]",
 		Short: "Start the Airplane runtime.",
 		Long:  "Start an http server that implements the Airplane runtime.",
 		Example: heredoc.Doc(`
-			airplane httpdexec ./helloworld.py [-- <parameters...>]
-			airplane httpdexec ./helloworld.py --port 5000 --host localhost [-- <parameters...>]
+			airplane httpdexec ./helloworld.py [parameters ...]
+			airplane httpdexec --port 5000 --host localhost ./helloworld.py -- [parameters ...]
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
-				for i, arg := range args {
-					args[i] = shellescape.Quote(arg)
-				}
 				cfg.cmd = args[0]
 				cfg.args = args[1:]
 			} else {
-				return errors.New("expected 1 argument: airplane httpdexec [cmd]")
+				return errors.New("expected 1 argument: airplane httpdexec cmd...")
 			}
 
 			return run(cmd.Root().Context(), cfg)

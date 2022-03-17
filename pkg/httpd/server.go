@@ -189,6 +189,7 @@ func ServeWithGracefulShutdown(
 	server *http.Server,
 ) error {
 	signalChan := make(chan os.Signal, 1)
+	// TODO(eric): gracefully shutdown running executions
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
