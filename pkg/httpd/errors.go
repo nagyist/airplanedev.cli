@@ -13,8 +13,8 @@ type StartCmdError struct {
 	Err error
 }
 
-func (r *StartCmdError) Error() string {
-	return fmt.Sprintf("cmd %s: err %v", r.Cmd, r.Err)
+func (e *StartCmdError) Error() string {
+	return fmt.Sprintf("cmd %s: err %v", e.Cmd, e.Err)
 }
 
 type AlreadyRunningCmdError struct {
@@ -22,14 +22,34 @@ type AlreadyRunningCmdError struct {
 	ExistingCmd *exec.Cmd
 }
 
-func (r *AlreadyRunningCmdError) Error() string {
-	return fmt.Sprintf("unable to run: %s, already running: %s", r.NewCmd, r.ExistingCmd)
+func (e *AlreadyRunningCmdError) Error() string {
+	return fmt.Sprintf("unable to run: %s, already running: %s", e.NewCmd, e.ExistingCmd)
 }
 
 type NoExistingCmdError struct{}
 
-func (r *NoExistingCmdError) Error() string {
+func (e *NoExistingCmdError) Error() string {
 	return "no existing command"
+}
+
+type AmbiguousCancelError struct{}
+
+func (e *AmbiguousCancelError) Error() string {
+	return "multiple executions found, must specify execution id to cancel"
+}
+
+type NoExecutionToCancelError struct{}
+
+func (e *NoExecutionToCancelError) Error() string {
+	return "no executions to cancel"
+}
+
+type InvalidExecIDError struct {
+	ExecID string
+}
+
+func (e *InvalidExecIDError) Error() string {
+	return fmt.Sprintf("invalid execID: %s", e.ExecID)
 }
 
 type errorResponse struct {
@@ -44,6 +64,12 @@ func WriteHTTPError(w http.ResponseWriter, r *http.Request, err error) {
 		status = http.StatusServiceUnavailable
 	case *NoExistingCmdError:
 		status = http.StatusServiceUnavailable
+	case *InvalidExecIDError:
+		status = http.StatusBadRequest
+	case *NoExecutionToCancelError:
+		status = http.StatusBadRequest
+	case *AmbiguousCancelError:
+		status = http.StatusBadRequest
 	case *StartCmdError:
 		status = http.StatusInternalServerError
 	default:

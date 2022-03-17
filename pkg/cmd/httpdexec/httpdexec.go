@@ -66,7 +66,7 @@ func run(ctx context.Context, cfg config) error {
 		ctx,
 		&http.Server{
 			Addr:    fmt.Sprintf("%s:%d", cfg.host, cfg.port),
-			Handler: httpd.Route(cfg.cmd, cfg.args, map[string]*httpd.CmdExecutor{}),
+			Handler: httpd.Route(cfg.cmd, cfg.args),
 		},
 	)
 }
