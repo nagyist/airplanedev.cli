@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alessio/shellescape"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
@@ -140,7 +139,7 @@ func TestGetCmd(t *testing.T) {
 		"MY_FOO": "bar",
 	})
 	require.Equal(cmd.Path, "my_python")
-	require.Equal(cmd.Args, []string{"my_python", "-c", shellescape.Quote("print('helloworld')")})
+	require.Equal(cmd.Args, []string{"my_python", "-c", "print('helloworld')"})
 	require.Contains(cmd.Env, "MY_FOO=bar")
 }
 

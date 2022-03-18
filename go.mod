@@ -43,7 +43,6 @@ require (
 )
 
 require (
-	github.com/alessio/shellescape v1.4.1
 	github.com/gavv/httpexpect/v2 v2.3.1
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git-fixtures/v4 v4.3.1
@@ -60,6 +59,7 @@ require (
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/airplanedev/path v0.0.1 // indirect
 	github.com/ajg/form v1.5.1 // indirect
+	github.com/alessio/shellescape v1.4.1 // indirect
 	github.com/containerd/cgroups v1.0.1 // indirect
 	github.com/containerd/containerd v1.5.7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
