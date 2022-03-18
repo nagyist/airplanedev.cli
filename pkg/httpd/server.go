@@ -170,6 +170,11 @@ func CancelCmdHandler(manager *CmdExecutorManager) http.HandlerFunc {
 	}
 }
 
+func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "ok")
+}
+
 func Route(cmd string, args []string) *mux.Router {
 	router := mux.NewRouter()
 	mutex := sync.Mutex{}
@@ -179,6 +184,7 @@ func Route(cmd string, args []string) *mux.Router {
 	}
 	router.HandleFunc("/", ExecuteCmdHandler(cmd, args, &manager)).Methods("POST")
 	router.HandleFunc("/cancel", CancelCmdHandler(&manager)).Methods("POST")
+	router.HandleFunc("/healthz", healthCheckHandler).Methods("GET")
 	return router
 }
 
