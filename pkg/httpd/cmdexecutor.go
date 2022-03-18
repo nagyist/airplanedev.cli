@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/alessio/shellescape"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -24,12 +23,8 @@ var (
 )
 
 func GetCmd(cmd string, args []string, env map[string]interface{}) *exec.Cmd {
-	escapedArgs := make([]string, len(args))
-	for i, arg := range args {
-		escapedArgs[i] = shellescape.Quote(arg)
-	}
-	// Set up command to run and escape arguments.
-	execCmd := exec.Command(cmd, escapedArgs...)
+	// Set up command to run and arguments.
+	execCmd := exec.Command(cmd, args...)
 	execCmd.Env = os.Environ()
 	for k, v := range env {
 		execCmd.Env = append(execCmd.Env, fmt.Sprintf("%s=%s", k, v))
