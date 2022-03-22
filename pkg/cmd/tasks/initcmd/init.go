@@ -38,9 +38,7 @@ type config struct {
 	file   string
 	slug   string
 
-	dev       bool
 	codeOnly  bool
-	defFormat string
 	assumeYes bool
 	assumeNo  bool
 	envSlug   string
@@ -61,9 +59,10 @@ func New(c *cli.Config) *cobra.Command {
 		Use:   "init",
 		Short: "Initialize a task definition",
 		Example: heredoc.Doc(`
-			$ airplane tasks init --slug task-slug
-			$ airplane tasks init --slug task-slug ./my/task.js
-			$ airplane tasks init --slug task-slug ./my/task.ts
+			$ airplane tasks init --from task_slug
+			$ airplane tasks init --from task_slug ./folder/my_task.js
+			$ airplane tasks init --from task_slug ./folder/my_task.task.json
+			$ airplane tasks init --from task_slug ./folder/my_task.task.yaml
 		`),
 		Args: cobra.MaximumNArgs(1),
 		PersistentPreRunE: utils.WithParentPersistentPreRunE(func(cmd *cobra.Command, args []string) error {
@@ -79,30 +78,12 @@ func New(c *cli.Config) *cobra.Command {
 
 	cmd.Flags().StringVar(&cfg.slug, "slug", "", "Slug of an existing task to generate from.")
 
-	// Remove dev flag + unhide these flags + deprecate `slug` before release!
-	cmd.Flags().BoolVar(&cfg.dev, "dev", false, "Dev mode: warning, not guaranteed to work and subject to change.")
 	cmd.Flags().StringVar(&cfg.slug, "from", "", "Slug of an existing task to initialize.")
-	cmd.Flags().BoolVar(&cfg.codeOnly, "code-only", false, "True to skip creating a task definition file; only generates an entrypoint file.")
-	cmd.Flags().StringVar(&cfg.defFormat, "def-format", "", `One of "json" or "yaml". Defaults to "yaml".`)
+	cmd.Flags().BoolVar(&cfg.codeOnly, "code-only", true, "True to skip creating a task definition file; only generates an entrypoint file.")
 	cmd.Flags().BoolVarP(&cfg.assumeYes, "yes", "y", false, "True to specify automatic yes to prompts.")
 	cmd.Flags().BoolVarP(&cfg.assumeNo, "no", "n", false, "True to specify automatic no to prompts.")
 
-	if err := cmd.Flags().MarkHidden("dev"); err != nil {
-		logger.Debug("error: %s", err)
-	}
-	if err := cmd.Flags().MarkHidden("from"); err != nil {
-		logger.Debug("error: %s", err)
-	}
-	if err := cmd.Flags().MarkHidden("code-only"); err != nil {
-		logger.Debug("error: %s", err)
-	}
-	if err := cmd.Flags().MarkHidden("def-format"); err != nil {
-		logger.Debug("error: %s", err)
-	}
-	if err := cmd.Flags().MarkHidden("yes"); err != nil {
-		logger.Debug("error: %s", err)
-	}
-	if err := cmd.Flags().MarkHidden("no"); err != nil {
+	if err := cmd.Flags().MarkHidden("slug"); err != nil {
 		logger.Debug("error: %s", err)
 	}
 
@@ -116,22 +97,12 @@ func New(c *cli.Config) *cobra.Command {
 }
 
 func run(ctx context.Context, cfg config) error {
-	if !cfg.dev {
-		return initCodeOnly(ctx, cfg)
-	}
-
 	// Check for mutually exclusive flags.
-	if cfg.codeOnly && cfg.defFormat != "" {
-		return errors.New("Cannot specify both --code-only and --def-format")
-	}
 	if cfg.assumeYes && cfg.assumeNo {
 		return errors.New("Cannot specify both --yes and --no")
 	}
-
-	// Extrapolate defFormat from the specified file, if it's a definition file.
-	defFormat := definitions.GetTaskDefFormat(cfg.file)
-	if defFormat != definitions.TaskDefFormatUnknown {
-		cfg.defFormat = string(defFormat)
+	if cfg.codeOnly && cfg.slug == "" {
+		return errors.New("Required flag(s) \"slug\" not set")
 	}
 
 	if cfg.slug == "" {
@@ -150,14 +121,6 @@ func run(ctx context.Context, cfg config) error {
 
 func initWithTaskDef(ctx context.Context, cfg config) error {
 	client := cfg.client
-
-	// Check for a valid defFormat, add in a default if necessary.
-	if cfg.defFormat == "" {
-		cfg.defFormat = "yaml"
-	}
-	if cfg.defFormat != "yaml" && cfg.defFormat != "json" {
-		return errors.Errorf("Invalid \"def-format\" specified: %s", cfg.defFormat)
-	}
 
 	var def definitions.Definition_0_3
 	if cfg.slug != "" {
@@ -186,31 +149,33 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		}
 	}
 
-	entrypoint, err := def.Entrypoint()
-	if err == definitions.ErrNoEntrypoint {
+	kind, err := def.Kind()
+	if err != nil {
+		return err
+	}
+
+	localExecutionSupported := false
+	if entrypoint, err := def.Entrypoint(); err == definitions.ErrNoEntrypoint {
 		// no-op
 	} else if err != nil {
 		return err
 	} else {
-		kind, err := def.Kind()
+		if cfg.file != "" && !definitions.IsTaskDef(cfg.file) {
+			entrypoint = cfg.file
+		}
+		entrypoint, err = promptForEntrypoint(def.GetSlug(), kind, entrypoint)
 		if err != nil {
 			return err
 		}
-
-		if entrypoint == "" {
-			entrypoint, err = promptForNewFileName(def.GetSlug(), kind)
-			if err != nil {
-				return err
-			}
-			if err := def.SetEntrypoint(entrypoint); err != nil {
-				return err
-			}
+		if err := def.SetEntrypoint(entrypoint); err != nil {
+			return err
 		}
 
 		r, err := runtime.Lookup(entrypoint, kind)
 		if err != nil {
 			return errors.Wrapf(err, "unable to init %q - check that your CLI is up to date", entrypoint)
 		}
+		localExecutionSupported = r.SupportsLocalExecution()
 
 		if kind == build.TaskKindSQL {
 			doCreateEntrypoint := true
@@ -252,13 +217,19 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 	}
 
 	// Create task defn file.
-	defFn := cfg.file
-	if !definitions.IsTaskDef(defFn) {
-		defFn = fmt.Sprintf("%s.task.%s", def.Slug, cfg.defFormat)
+	defnFilename := cfg.file
+	if !definitions.IsTaskDef(cfg.file) {
+		defaultDefnFn := fmt.Sprintf("%s.task.yaml", def.Slug)
+		entrypoint, _ := def.Entrypoint()
+		fn, err := promptForNewDefinition(defaultDefnFn, entrypoint)
+		if err != nil {
+			return err
+		}
+		defnFilename = fn
 	}
-	if fsx.Exists(defFn) {
+	if fsx.Exists(defnFilename) {
 		// If it exists, check for existence of this file before overwriting it.
-		question := fmt.Sprintf("Would you like to overwrite %s?", defFn)
+		question := fmt.Sprintf("Would you like to overwrite %s?", defnFilename)
 		if ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
 			return err
 		} else if !ok {
@@ -267,27 +238,54 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		}
 	}
 
-	buf, err := def.Marshal(definitions.TaskDefFormat(cfg.defFormat))
+	// Adjust entrypoint to be relative to the task defn.
+	entrypoint, err := def.Entrypoint()
+	if err == definitions.ErrNoEntrypoint {
+		// no-op
+	} else if err != nil {
+		return err
+	} else {
+		absEntrypoint, err := filepath.Abs(entrypoint)
+		if err != nil {
+			return errors.Wrap(err, "determining absolute entrypoint")
+		}
+
+		absDefnFn, err := filepath.Abs(defnFilename)
+		if err != nil {
+			return errors.Wrap(err, "determining absolute definition file")
+		}
+
+		defnDir := filepath.Dir(absDefnFn)
+		relpath, err := filepath.Rel(defnDir, absEntrypoint)
+		if err != nil {
+			return errors.Wrap(err, "determining relative entrypoint")
+		}
+		if err := def.SetEntrypoint(relpath); err != nil {
+			return err
+		}
+	}
+
+	buf, err := def.GenerateCommentedFile(definitions.GetTaskDefFormat(defnFilename))
 	if err != nil {
 		return err
 	}
 
-	if err := ioutil.WriteFile(defFn, buf, 0644); err != nil {
+	if err := ioutil.WriteFile(defnFilename, buf, 0644); err != nil {
 		return err
 	}
-	logger.Step("Created %s", defFn)
-	suggestNextSteps(defFn)
+	logger.Step("Created %s", defnFilename)
+	suggestNextSteps(suggestNextStepsRequest{
+		defnFile:           defnFilename,
+		entrypoint:         entrypoint,
+		showLocalExecution: localExecutionSupported,
+		kind:               kind,
+		isNew:              cfg.slug == "",
+	})
 	return nil
 }
 
 func initCodeOnly(ctx context.Context, cfg config) error {
 	client := cfg.client
-
-	// Require slug for now. If `dev` is specified and `slug` is not, we should initialize based on
-	// the new task info.
-	if cfg.slug == "" {
-		return errors.New("Required flag(s) \"slug\" not set")
-	}
 
 	task, err := client.GetTask(ctx, libapi.GetTaskRequest{
 		Slug:    cfg.slug,
@@ -298,7 +296,7 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 	}
 
 	if cfg.file == "" {
-		cfg.file, err = promptForNewFileName(task.Slug, task.Kind)
+		cfg.file, err = promptForEntrypoint(task.Slug, task.Kind, "")
 		if err != nil {
 			return err
 		}
@@ -312,7 +310,11 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 	if fsx.Exists(cfg.file) {
 		if slug := runtime.Slug(cfg.file); slug == task.Slug {
 			logger.Step("%s is already linked to %s", cfg.file, cfg.slug)
-			suggestNextSteps(cfg.file)
+			suggestNextSteps(suggestNextStepsRequest{
+				entrypoint:         cfg.file,
+				showLocalExecution: true,
+				kind:               task.Kind,
+			})
 			return nil
 		}
 
@@ -337,7 +339,11 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 		}
 		logger.Step("Linked %s to %s", cfg.file, cfg.slug)
 
-		suggestNextSteps(cfg.file)
+		suggestNextSteps(suggestNextStepsRequest{
+			entrypoint:         cfg.file,
+			showLocalExecution: true,
+			kind:               task.Kind,
+		})
 		return nil
 	}
 
@@ -345,7 +351,11 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 		return err
 	}
 	logger.Step("Created %s", cfg.file)
-	suggestNextSteps(cfg.file)
+	suggestNextSteps(suggestNextStepsRequest{
+		entrypoint:         cfg.file,
+		showLocalExecution: true,
+		kind:               task.Kind,
+	})
 	return nil
 }
 
@@ -379,12 +389,46 @@ func prependComment(source []byte, comment string) []byte {
 	return buf.Bytes()
 }
 
-func suggestNextSteps(file string) {
-	logger.Suggest(
-		"⚡ To execute the task locally:",
-		"airplane dev %s",
-		file,
-	)
+type suggestNextStepsRequest struct {
+	defnFile           string
+	entrypoint         string
+	showLocalExecution bool
+	kind               build.TaskKind
+	isNew              bool
+}
+
+func suggestNextSteps(req suggestNextStepsRequest) {
+	if req.isNew {
+		steps := []string{}
+		switch req.kind {
+		case build.TaskKindSQL:
+			steps = append(steps, fmt.Sprintf("Add the name of a database resource to %s", req.defnFile))
+			steps = append(steps, fmt.Sprintf("Write your query in %s", req.entrypoint))
+		case build.TaskKindREST:
+			steps = append(steps, fmt.Sprintf("Add the name of a REST resource to %s", req.defnFile))
+			steps = append(steps, fmt.Sprintf("Specify the details of your REST request in %s", req.defnFile))
+		case build.TaskKindImage:
+			steps = append(steps, fmt.Sprintf("Add the name of a Docker image to %s", req.defnFile))
+		default:
+			steps = append(steps, fmt.Sprintf("Write your task logic in %s", req.entrypoint))
+		}
+		if req.defnFile != "" {
+			steps = append(steps, fmt.Sprintf("Add a description, parameters, and more details in %s", req.defnFile))
+		}
+		logger.SuggestSteps("✅ To complete your task:", steps...)
+	}
+
+	file := req.defnFile
+	if req.defnFile == "" {
+		file = req.entrypoint
+	}
+	if req.showLocalExecution {
+		logger.Suggest(
+			"⚡ To execute the task locally:",
+			"airplane dev %s",
+			file,
+		)
+	}
 	logger.Suggest(
 		"🛫 To deploy your task to Airplane:",
 		"airplane deploy %s",
@@ -406,26 +450,106 @@ func patch(slug, file string) (ok bool, err error) {
 	return
 }
 
-func promptForNewFileName(slug string, kind build.TaskKind) (string, error) {
-	fileName := slug + runtime.SuggestExt(kind)
+func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint string) (string, error) {
+	exts := runtime.SuggestExts(kind)
+	if defaultEntrypoint == "" {
+		defaultEntrypoint = slug
+		if len(exts) > 0 {
+			defaultEntrypoint += exts[0]
+		}
 
-	if cwdIsHome, err := cwdIsHome(); err != nil {
-		return "", err
-	} else if cwdIsHome {
-		// Suggest a subdirectory to avoid putting a file directly into home directory.
-		fileName = filepath.Join("airplane", fileName)
+		if cwdIsHome, err := cwdIsHome(); err != nil {
+			return "", err
+		} else if cwdIsHome {
+			// Suggest a subdirectory to avoid putting a file directly into home directory.
+			defaultEntrypoint = filepath.Join("airplane", defaultEntrypoint)
+		}
 	}
 
+	var entrypoint string
 	if err := survey.AskOne(
 		&survey.Input{
-			Message: "Where should the script be created?",
-			Default: fileName,
+			Message: "Where is the script for this task?",
+			Default: defaultEntrypoint,
+			Suggest: func(toComplete string) []string {
+				files, _ := filepath.Glob(toComplete + "*")
+				return files
+			},
 		},
-		&fileName,
+		&entrypoint,
+		survey.WithValidator(func(val interface{}) error {
+			if len(exts) == 0 {
+				return nil
+			}
+			if str, ok := val.(string); ok {
+				for _, ext := range exts {
+					if strings.HasSuffix(str, ext) {
+						return nil
+					}
+				}
+				return errors.Errorf("File must have a valid extension: %s", exts)
+			}
+			return errors.New("expected string")
+		}),
 	); err != nil {
 		return "", err
 	}
-	return fileName, nil
+
+	directory := filepath.Dir(entrypoint)
+	if err := createFolder(directory); err != nil {
+		return "", errors.Wrapf(err, "Error creating directory for script.")
+	}
+
+	return entrypoint, nil
+}
+
+func promptForNewDefinition(defaultFilename, entrypoint string) (string, error) {
+	entrypointDir := filepath.Dir(entrypoint)
+	defaultFilename = filepath.Join(entrypointDir, defaultFilename)
+
+	var filename string
+	if err := survey.AskOne(
+		&survey.Input{
+			Message: "Where should the definition file be created?",
+			Default: defaultFilename,
+			Suggest: func(toComplete string) []string {
+				files, _ := filepath.Glob(toComplete + "*")
+				return files
+			},
+		},
+		&filename,
+		survey.WithValidator(func(val interface{}) error {
+			if str, ok := val.(string); ok {
+				if definitions.IsTaskDef(str) {
+					return nil
+				}
+				return errors.Errorf("Definition file must have extension .task.yaml or .task.json")
+			}
+			return errors.New("expected string")
+		}),
+	); err != nil {
+		return "", err
+	}
+
+	directory := filepath.Dir(filename)
+	if err := createFolder(directory); err != nil {
+		return "", errors.Wrapf(err, "Error creating directory for definition file.")
+	}
+	return filename, nil
+}
+
+func createFolder(directory string) error {
+	if _, err := os.Stat(directory); err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+
+		// Directory doesn't exist, make it.
+		if err := os.MkdirAll(directory, 0755); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 var namesByKind = map[build.TaskKind]string{
@@ -450,10 +574,13 @@ var orderedKindNames = []string{
 func promptForNewTask(file string, info *newTaskInfo) error {
 	defFormat := definitions.GetTaskDefFormat(file)
 	ext := filepath.Ext(file)
-	base := strings.TrimSuffix(file, ext)
+	base := strings.TrimSuffix(filepath.Base(file), ext)
 	if defFormat != definitions.TaskDefFormatUnknown {
 		// Trim off the .task part, too
 		base = strings.TrimSuffix(base, ".task")
+	}
+	if base == "." {
+		base = ""
 	}
 
 	// Ask for a name.
@@ -495,31 +622,6 @@ func promptForNewTask(file string, info *newTaskInfo) error {
 	}
 	if info.kind == "" {
 		return errors.Errorf("Unknown kind selected: %s", selectedKindName)
-	}
-
-	// Ask for an entrypoint, maybe.
-	if info.kind != build.TaskKindREST && info.kind != build.TaskKindImage {
-		if file != "" && !definitions.IsTaskDef(file) {
-			info.entrypoint = file
-		} else {
-			fileName := utils.MakeSlug(info.name) + runtime.SuggestExt(info.kind)
-			if cwdIsHome, err := cwdIsHome(); err != nil {
-				return err
-			} else if cwdIsHome {
-				// Suggest a subdirectory to avoid putting a file directly into home directory.
-				fileName = filepath.Join("airplane", fileName)
-			}
-
-			if err := survey.AskOne(
-				&survey.Input{
-					Message: "Where should the script be created?",
-					Default: fileName,
-				},
-				&info.entrypoint,
-			); err != nil {
-				return err
-			}
-		}
 	}
 
 	return nil

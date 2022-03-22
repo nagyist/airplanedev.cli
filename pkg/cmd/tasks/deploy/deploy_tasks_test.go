@@ -40,6 +40,7 @@ func TestDeployTasks(t *testing.T) {
 	testCases := []struct {
 		desc                  string
 		taskConfigs           []discover.TaskConfig
+		absoluteEntrypoints   []string
 		existingTasks         map[string]libapi.Task
 		changedFiles          []string
 		envVars               map[string]string
@@ -273,6 +274,7 @@ func TestDeployTasks(t *testing.T) {
 								Kind:       "image",
 								Command:    []string{},
 								Image:      pointers.String("myImage"),
+								Arguments:  []string{},
 								ExecuteRules: libapi.UpdateExecuteRulesRequest{
 									DisallowSelfApprove: pointers.Bool(false),
 									RequireRequests:     pointers.Bool(false),
@@ -477,6 +479,9 @@ func TestDeployTasks(t *testing.T) {
 					},
 				},
 			},
+			absoluteEntrypoints: []string{
+				fixturesPath + "/test.sql",
+			},
 			existingTasks: map[string]libapi.Task{"my_task": {ID: "tsk123", Slug: "my_task", Name: "My Task", InterpolationMode: "jst"}},
 			resources: []libapi.Resource{
 				{
@@ -543,6 +548,9 @@ func TestDeployTasks(t *testing.T) {
 				Archiver:     &archive.MockArchiver{},
 				RepoGetter:   &MockGitRepoGetter{Repo: tC.gitRepo},
 			})
+			for i, absEntrypoint := range tC.absoluteEntrypoints {
+				tC.taskConfigs[i].Def.SetAbsoluteEntrypoint(absEntrypoint)
+			}
 			err := d.DeployTasks(context.Background(), tC.taskConfigs)
 			if tC.expectedError != nil {
 				assert.Error(err)

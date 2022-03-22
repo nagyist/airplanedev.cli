@@ -71,9 +71,7 @@ func TestFindDefinition(t *testing.T) {
 				Client: &api.MockClient{
 					Tasks: map[string]libapi.Task{"my_task": {ID: "tsk123", Slug: "my_task"}},
 				},
-				Logger:    &logger.MockLogger{},
-				AssumeYes: test.cfg.assumeYes,
-				AssumeNo:  test.cfg.assumeNo,
+				Logger: &logger.MockLogger{},
 			}
 
 			tc, err := findDefinitionForScript(ctx, test.cfg, defnDiscoverer, test.taskConfig)

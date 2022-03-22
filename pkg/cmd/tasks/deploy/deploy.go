@@ -3,8 +3,11 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/pkg/api"
@@ -30,7 +33,6 @@ type config struct {
 
 	upgradeInterpolation bool
 
-	dev       bool
 	assumeYes bool
 	assumeNo  bool
 
@@ -50,9 +52,10 @@ func New(c *cli.Config) *cobra.Command {
 		Example: heredoc.Doc(`
 			airplane tasks deploy ./task.ts
 			airplane tasks deploy --local ./task.js
-			airplane tasks deploy ./my-task.yml
+			airplane tasks deploy ./my_task.task.yml
+			airplane tasks deploy --local ./my_task.task.yml
 			airplane tasks deploy my-directory
-			airplane tasks deploy ./my-task1.yml ./my-task2.yml
+			airplane tasks deploy ./my_task1.task.yml ./my_task2.task.json my-directory
 		`),
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -71,14 +74,9 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().BoolVarP(&cfg.local, "local", "L", false, "use a local Docker daemon (instead of an Airplane-hosted builder)")
 	cmd.Flags().BoolVar(&cfg.upgradeInterpolation, "jst", false, "Upgrade interpolation to JST")
 	cmd.Flags().Var(&cfg.changedFiles, "changed-files", "A file with a list of file paths that were changed, one path per line. Only tasks with changed files will be deployed")
-	// Remove dev flag + unhide these flags before release!
-	cmd.Flags().BoolVar(&cfg.dev, "dev", false, "Dev mode: warning, not guaranteed to work and subject to change.")
 	cmd.Flags().BoolVarP(&cfg.assumeYes, "yes", "y", false, "True to specify automatic yes to prompts.")
 	cmd.Flags().BoolVarP(&cfg.assumeNo, "no", "n", false, "True to specify automatic no to prompts.")
 
-	if err := cmd.Flags().MarkHidden("dev"); err != nil {
-		logger.Debug("error: %s", err)
-	}
 	if err := cmd.Flags().MarkHidden("yes"); err != nil {
 		logger.Debug("error: %s", err)
 	}
@@ -114,19 +112,8 @@ func run(ctx context.Context, cfg config) error {
 		return errors.New("Cannot specify both --yes and --no")
 	}
 
-	ext := filepath.Ext(cfg.paths[0])
-	if !cfg.dev && (ext == ".yml" || ext == ".yaml") && len(cfg.paths) == 1 {
-		if cfg.envSlug != "" {
-			return errors.New("--env is not supported by the legacy YAML format")
-		}
-
-		// Legacy YAML.
-		return deployFromYaml(ctx, cfg)
-	}
-
 	l := &logger.StdErrLogger{}
 	loader := logger.NewLoader(logger.LoaderOpts{HideLoader: logger.EnableDebug})
-	loader.Start()
 
 	d := &discover.Discoverer{
 		TaskDiscoverers: []discover.TaskDiscoverer{},
@@ -134,38 +121,43 @@ func run(ctx context.Context, cfg config) error {
 		Logger:          l,
 		EnvSlug:         cfg.envSlug,
 	}
-	var defnDiscoverer *discover.DefnDiscoverer
-	if cfg.dev {
-		defnDiscoverer := &discover.DefnDiscoverer{
-			Client:             cfg.client,
-			Logger:             l,
-			AssumeYes:          cfg.assumeYes,
-			AssumeNo:           cfg.assumeNo,
-			MissingTaskHandler: HandleMissingTask(cfg, l, loader),
-		}
-		d.TaskDiscoverers = append(d.TaskDiscoverers, defnDiscoverer)
+	defnDiscoverer := &discover.DefnDiscoverer{
+		Client:             cfg.client,
+		Logger:             l,
+		MissingTaskHandler: HandleMissingTask(cfg, l, loader),
 	}
+	d.TaskDiscoverers = append(d.TaskDiscoverers, defnDiscoverer)
 	d.TaskDiscoverers = append(d.TaskDiscoverers, &discover.ScriptDiscoverer{
 		Client:  cfg.client,
 		Logger:  l,
 		EnvSlug: cfg.envSlug,
 	})
 
+	// If you're trying to deploy a .sql file, try to find a defn file instead.
+	for i, path := range cfg.paths {
+		p, err := findDefinitionFileForSQL(ctx, cfg, defnDiscoverer, path)
+		if err != nil {
+			return err
+		}
+		if p != "" {
+			cfg.paths[i] = p
+		}
+	}
+
+	loader.Start()
 	taskConfigs, err := d.DiscoverTasks(ctx, cfg.paths...)
 	if err != nil {
 		return err
 	}
 	loader.Stop()
 
-	if cfg.dev {
-		for i, tc := range taskConfigs {
-			taskConfig, err := findDefinitionForScript(ctx, cfg, defnDiscoverer, tc)
-			if err != nil {
-				return err
-			}
-			if taskConfig != nil {
-				taskConfigs[i] = *taskConfig
-			}
+	for i, tc := range taskConfigs {
+		taskConfig, err := findDefinitionForScript(ctx, cfg, defnDiscoverer, tc)
+		if err != nil {
+			return err
+		}
+		if taskConfig != nil {
+			taskConfigs[i] = *taskConfig
 		}
 	}
 
@@ -241,8 +233,11 @@ func findDefinitionForScript(ctx context.Context, cfg config, defnDiscoverer *di
 
 	dirs := []string{
 		filepath.Dir(taskConfig.TaskEntrypoint),
-		".",
 	}
+	if filepath.Dir(taskConfig.TaskEntrypoint) != "." {
+		dirs = append(dirs, ".")
+	}
+
 	for _, dir := range dirs {
 		contents, err := ioutil.ReadDir(dir)
 		if err != nil {
@@ -279,4 +274,78 @@ func findDefinitionForScript(ctx context.Context, cfg config, defnDiscoverer *di
 	}
 
 	return nil, nil
+}
+
+// Look for a defn file that matches the base of the given path (i.e., for foo.sql, look for
+// foo.task.{yaml,yml,json}). If the given path is not a .sql file, returns empty string and nil.
+// Looks in the current working directory as well as the directory of the given path.
+func findDefinitionFileForSQL(ctx context.Context, cfg config, defnDiscoverer *discover.DefnDiscoverer, path string) (string, error) {
+	ext := filepath.Ext(path)
+	if strings.ToLower(ext) != ".sql" {
+		return "", nil
+	}
+	base := strings.TrimSuffix(filepath.Base(path), ext)
+
+	dirs := []string{
+		filepath.Dir(path),
+	}
+	if filepath.Dir(path) != "." {
+		dirs = append(dirs, ".")
+	}
+	extns := []string{
+		".task.yaml",
+		".task.yml",
+		".task.json",
+	}
+
+	for _, dir := range dirs {
+		for _, extn := range extns {
+			p := filepath.Join(dir, base+extn)
+
+			// Skip nonexistent paths.
+			fileInfo, err := os.Stat(p)
+			if errors.Is(err, fs.ErrNotExist) {
+				continue
+			} else if err != nil {
+				return "", err
+			}
+
+			// Skip directories.
+			if fileInfo.IsDir() {
+				continue
+			}
+
+			slug, err := defnDiscoverer.IsAirplaneTask(ctx, p)
+			if err != nil {
+				return "", err
+			}
+			if slug == "" {
+				continue
+			}
+
+			// Skip it if the task doesn't exist.
+			if _, err := cfg.client.GetTask(ctx, libapi.GetTaskRequest{
+				Slug:    slug,
+				EnvSlug: cfg.envSlug,
+			}); err != nil {
+				switch errors.Cause(err).(type) {
+				case *libapi.TaskMissingError:
+					continue
+				default:
+					return "", err
+				}
+			}
+
+			question := fmt.Sprintf("File %s is not linked to a task.\nFound definition file %s linked to task %s instead.\nWould you like to use it?", path, p, slug)
+			ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo)
+			if err != nil {
+				return "", err
+			} else if !ok {
+				return "", nil
+			}
+
+			return p, nil
+		}
+	}
+	return "", nil
 }
