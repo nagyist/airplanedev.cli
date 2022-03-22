@@ -139,8 +139,6 @@ func run(ctx context.Context, cfg config) error {
 		defnDiscoverer := &discover.DefnDiscoverer{
 			Client:             cfg.client,
 			Logger:             l,
-			AssumeYes:          cfg.assumeYes,
-			AssumeNo:           cfg.assumeNo,
 			MissingTaskHandler: HandleMissingTask(cfg, l, loader),
 		}
 		d.TaskDiscoverers = append(d.TaskDiscoverers, defnDiscoverer)

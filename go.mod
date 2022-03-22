@@ -6,12 +6,11 @@ require (
 	github.com/AlecAivazis/survey/v2 v2.3.2
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021 // indirect
-	github.com/alecthomas/jsonschema v0.0.0-20220203024042-cc89723c9db0 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/dustin/go-humanize v1.0.0
-	github.com/evanw/esbuild v0.14.2 // indirect
+	github.com/evanw/esbuild v0.14.27 // indirect
 	github.com/fatih/color v1.13.0
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-git/go-git/v5 v5.4.2
@@ -37,7 +36,7 @@ require (
 )
 
 require (
-	github.com/airplanedev/lib v0.3.9
+	github.com/airplanedev/lib v0.3.11-0.20220322173016-436525bfc81f
 	github.com/airplanedev/ojson v0.1.0
 	github.com/briandowns/spinner v1.18.1
 )
@@ -72,7 +71,7 @@ require (
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
-	github.com/goccy/go-yaml v1.9.4 // indirect
+	github.com/goccy/go-yaml v1.9.5 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -84,6 +83,7 @@ require (
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/imkira/go-interpol v1.1.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/invopop/jsonschema v0.3.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/kevinburke/ssh_config v0.0.0-20201106050909-4977a11b4351 // indirect
