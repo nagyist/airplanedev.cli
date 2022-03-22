@@ -50,7 +50,7 @@ func TestExecuteCmdSimpleEcho(t *testing.T) {
 		t,
 		Route("echo", []string{"hello"}),
 	)
-	body := h.POST("/").
+	body := h.POST("/execute").
 		WithJSON(map[string]interface{}{}).
 		Expect().
 		Status(http.StatusOK).Body()
@@ -82,7 +82,7 @@ func TestExecuteCmdLongPrint(t *testing.T) {
 		t,
 		Route("printf", []string{}),
 	)
-	body := h.POST("/").
+	body := h.POST("/execute").
 		WithJSON(ExecuteCmdRequest{
 			Args: []string{s},
 		}).
@@ -103,7 +103,7 @@ func TestExecuteCmdError(t *testing.T) {
 		t,
 		Route("nonexistingbinary", []string{""}),
 	)
-	body := h.POST("/").
+	body := h.POST("/execute").
 		WithJSON(map[string]interface{}{}).
 		Expect().
 		Status(http.StatusInternalServerError).Body()
@@ -124,7 +124,7 @@ func TestExecuteCmdExitError(t *testing.T) {
 		t,
 		Route("grep", []string{""}),
 	)
-	body := h.POST("/").
+	body := h.POST("/execute").
 		WithJSON(ExecuteCmdRequest{
 			Args: []string{"--non-existing-flag"},
 		}).
@@ -150,7 +150,7 @@ func TestExecuteCmdEnv(t *testing.T) {
 		t,
 		Route("env", []string{}),
 	)
-	body := h.POST("/").
+	body := h.POST("/execute").
 		WithJSON(ExecuteCmdRequest{
 			Args: []string{},
 			Env:  map[string]interface{}{"MY_FOO_ENVIRONMENT": "bar"},
@@ -179,7 +179,7 @@ func TestExecuteCmdContextCancel(t *testing.T) {
 		t,
 		Route("sleep", []string{}),
 	)
-	body := h.POST("/").
+	body := h.POST("/execute").
 		WithJSON(ExecuteCmdRequest{
 			Args: []string{"100"},
 		}).
@@ -208,7 +208,7 @@ func TestExecuteCmdCancel(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		body := h.POST("/").
+		body := h.POST("/execute").
 			WithJSON(ExecuteCmdRequest{
 				Args: []string{"100"},
 				Env:  map[string]interface{}{},
@@ -240,7 +240,7 @@ func TestExecuteCmdCancel(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		body := h.POST("/").
+		body := h.POST("/execute").
 			WithJSON(ExecuteCmdRequest{
 				Args: []string{"100"},
 				Env:  map[string]interface{}{},
@@ -283,7 +283,7 @@ func TestExecuteCmdContextCancelThenCmdCancel(t *testing.T) {
 		t,
 		Route("sleep", []string{}),
 	)
-	body := h.POST("/").
+	body := h.POST("/execute").
 		WithJSON(ExecuteCmdRequest{
 			Args: []string{"100"},
 		}).
@@ -307,7 +307,7 @@ func TestExecuteCmdContextCancelThenCmdCancel(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		body := h.POST("/").
+		body := h.POST("/execute").
 			WithJSON(ExecuteCmdRequest{
 				Args: []string{"100"},
 				Env:  map[string]interface{}{},

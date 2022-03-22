@@ -13,8 +13,8 @@ import (
 	"github.com/airplanedev/cli/pkg/cmd/auth/login"
 	"github.com/airplanedev/cli/pkg/cmd/auth/logout"
 	"github.com/airplanedev/cli/pkg/cmd/configs"
-	"github.com/airplanedev/cli/pkg/cmd/httpdexec"
 	"github.com/airplanedev/cli/pkg/cmd/runs"
+	"github.com/airplanedev/cli/pkg/cmd/serve"
 	"github.com/airplanedev/cli/pkg/cmd/tasks"
 	"github.com/airplanedev/cli/pkg/cmd/tasks/deploy"
 	"github.com/airplanedev/cli/pkg/cmd/tasks/dev"
@@ -108,7 +108,7 @@ func New() *cobra.Command {
 	cmd.AddCommand(execute.New(cfg))
 	cmd.AddCommand(login.New(cfg))
 	cmd.AddCommand(logout.New(cfg))
-	cmd.AddCommand(httpdexec.New(cfg))
+	cmd.AddCommand(serve.New(cfg))
 
 	// Sub-commands:
 	cmd.AddCommand(apikeys.New(cfg))

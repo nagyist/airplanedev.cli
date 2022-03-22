@@ -182,7 +182,7 @@ func Route(cmd string, args []string) *mux.Router {
 		Executors: map[string]*CmdExecutor{},
 		Mutex:     &mutex,
 	}
-	router.HandleFunc("/", ExecuteCmdHandler(cmd, args, &manager)).Methods("POST")
+	router.HandleFunc("/execute", ExecuteCmdHandler(cmd, args, &manager)).Methods("POST")
 	router.HandleFunc("/cancel", CancelCmdHandler(&manager)).Methods("POST")
 	router.HandleFunc("/healthz", healthCheckHandler).Methods("GET")
 	return router
