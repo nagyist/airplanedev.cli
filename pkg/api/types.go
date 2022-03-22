@@ -228,10 +228,10 @@ type SetConfigRequest struct {
 
 // Config represents a config var.
 type Config struct {
-	Name     string `json:"name"`
-	Tag      string `json:"tag"`
-	Value    string `json:"value"`
-	IsSecret bool   `json:"isSecret"`
+	Name     string `json:"name" yaml:"name"`
+	Tag      string `json:"tag" yaml:"tag"`
+	Value    string `json:"value" yaml:"value"`
+	IsSecret bool   `json:"isSecret" yaml:"isSecret"`
 }
 
 // GetConfigResponse represents a get config response.
