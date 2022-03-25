@@ -19,18 +19,18 @@ import (
 //
 // A flag.ErrHelp error will be returned if a -h or --help was provided, in which case
 // this function will print out help text on how to pass this task's parameters as flags.
-func CLI(args []string, task libapi.Task) (api.Values, error) {
+func CLI(args []string, taskName string, parameters libapi.Parameters) (api.Values, error) {
 	values := api.Values{}
 
 	if len(args) > 0 {
 		// If args have been passed in, parse them as flags
-		set := flagset(task, values)
+		set := flagset(taskName, parameters, values)
 		if err := set.Parse(args); err != nil {
 			return nil, err
 		}
 	} else {
 		// Otherwise, try to prompt for parameters
-		if err := promptForParamValues(task, values); err != nil {
+		if err := promptForParamValues(taskName, parameters, values); err != nil {
 			return nil, err
 		}
 	}
@@ -39,21 +39,21 @@ func CLI(args []string, task libapi.Task) (api.Values, error) {
 }
 
 // Flagset returns a new flagset from the given task parameters.
-func flagset(task libapi.Task, args api.Values) *flag.FlagSet {
-	var set = flag.NewFlagSet(task.Name, flag.ContinueOnError)
+func flagset(taskName string, parameters libapi.Parameters, args api.Values) *flag.FlagSet {
+	var set = flag.NewFlagSet(taskName, flag.ContinueOnError)
 
 	set.Usage = func() {
-		logger.Log("\n%s Usage:", task.Name)
+		logger.Log("\n%s Usage:", taskName)
 		set.VisitAll(func(f *flag.Flag) {
 			logger.Log("  --%s %s (default: %q)", f.Name, f.Usage, f.DefValue)
 		})
 		logger.Log("")
 	}
 
-	for i := range task.Parameters {
+	for i := range parameters {
 		// Scope p here (& not above) so we can use it in the closure.
 		// See also: https://github.com/golang/go/wiki/CommonMistakes#using-goroutines-on-loop-iterator-variables
-		p := task.Parameters[i]
+		p := parameters[i]
 		set.Func(p.Slug, p.Desc, func(v string) (err error) {
 			args[p.Slug], err = ParseInput(p, v)
 			if err != nil {
@@ -70,16 +70,16 @@ func flagset(task libapi.Task, args api.Values) *flag.FlagSet {
 // If there are no parameters, does nothing.
 // If TTY, prompts for parameters and then asks user to confirm.
 // If no TTY, errors.
-func promptForParamValues(task libapi.Task, paramValues map[string]interface{}) error {
-	if len(task.Parameters) == 0 {
+func promptForParamValues(taskName string, parameters libapi.Parameters, paramValues map[string]interface{}) error {
+	if len(parameters) == 0 {
 		return nil
 	}
 
 	if !utils.CanPrompt() {
 		// Error since we have no params and no way to prompt for it
 		// TODO: if all parameters optional (or have defaults), do not error.
-		logger.Log("Parameters were not specified! Task has %d parameter(s):\n", len(task.Parameters))
-		for _, param := range task.Parameters {
+		logger.Log("Parameters were not specified! Task has %d parameter(s):\n", len(parameters))
+		for _, param := range parameters {
 			var req string
 			if !param.Constraints.Optional {
 				req = "*"
@@ -90,7 +90,7 @@ func promptForParamValues(task libapi.Task, paramValues map[string]interface{}) 
 		return errors.New("missing parameters")
 	}
 
-	for _, param := range task.Parameters {
+	for _, param := range parameters {
 		if param.Type == libapi.TypeUpload {
 			logger.Log(logger.Yellow("Skipping %s - uploads are not supported in CLI", param.Name))
 			continue

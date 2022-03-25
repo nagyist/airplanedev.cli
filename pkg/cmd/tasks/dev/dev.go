@@ -19,7 +19,6 @@ import (
 	"github.com/airplanedev/cli/pkg/params"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/utils"
-	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/outputs"
@@ -80,45 +79,37 @@ func run(ctx context.Context, cfg config) error {
 		return errors.Errorf("Unable to open file: %s", cfg.file)
 	}
 
-	slug, err := utils.SlugFrom(cfg.file)
+	taskInfo, err := getTaskInfo(ctx, cfg)
 	if err != nil {
-		return err
-	}
-
-	task, err := cfg.root.Client.GetTask(ctx, libapi.GetTaskRequest{
-		Slug:    slug,
-		EnvSlug: cfg.envSlug,
-	})
-	if err != nil {
-		return errors.Wrap(err, "getting task")
+		return errors.Wrap(err, "getting task info")
 	}
 
 	entrypoint, err := entrypointFrom(cfg.file)
 	if err == definitions.ErrNoEntrypoint {
-		logger.Warning("Local execution is not supported for this task (kind=%s)", task.Kind)
+		logger.Warning("Local execution is not supported for this task (kind=%s)", taskInfo.kind)
 		return nil
 	} else if err != nil {
 		return err
 	}
 
-	r, err := runtime.Lookup(entrypoint, task.Kind)
+	r, err := runtime.Lookup(entrypoint, taskInfo.kind)
 	if err != nil {
 		return errors.Wrapf(err, "unsupported file type: %s", filepath.Base(entrypoint))
 	}
 
 	if !r.SupportsLocalExecution() {
-		logger.Warning("Local execution is not supported for this task (kind=%s)", task.Kind)
+		logger.Warning("Local execution is not supported for this task (kind=%s)", taskInfo.kind)
 		return nil
 	}
 
-	paramValues, err := params.CLI(cfg.args, task)
+	paramValues, err := params.CLI(cfg.args, taskInfo.name, taskInfo.parameters)
 	if errors.Is(err, flag.ErrHelp) {
 		return nil
 	} else if err != nil {
 		return err
 	}
 
-	logger.Log("Locally running %s task %s", logger.Bold(task.Name), logger.Gray("("+cfg.root.Client.TaskURL(task.Slug)+")"))
+	logger.Log("Locally running %s task %s", logger.Bold(taskInfo.name), logger.Gray("("+cfg.root.Client.TaskURL(taskInfo.slug)+")"))
 	logger.Log("")
 
 	path, err := filepath.Abs(entrypoint)
@@ -129,7 +120,7 @@ func run(ctx context.Context, cfg config) error {
 	cmds, closer, err := r.PrepareRun(ctx, &logger.StdErrLogger{}, runtime.PrepareRunOptions{
 		Path:        path,
 		ParamValues: paramValues,
-		KindOptions: task.KindOptions,
+		KindOptions: taskInfo.kindOptions,
 	})
 	if err != nil {
 		return err

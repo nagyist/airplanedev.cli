@@ -113,7 +113,7 @@ func run(ctx context.Context, cfg config) error {
 
 	logger.Log("Executing %s task: %s", logger.Bold(task.Name), logger.Gray(client.TaskURL(task.Slug)))
 
-	req.ParamValues, err = params.CLI(cfg.args, task)
+	req.ParamValues, err = params.CLI(cfg.args, task.Name, task.Parameters)
 	if errors.Is(err, flag.ErrHelp) {
 		return nil
 	} else if err != nil {
