@@ -36,7 +36,7 @@ import (
 type config struct {
 	client *api.Client
 	file   string
-	slug   string
+	from   string
 
 	codeOnly  bool
 	assumeYes bool
@@ -63,6 +63,7 @@ func New(c *cli.Config) *cobra.Command {
 			$ airplane tasks init --from task_slug ./folder/my_task.js
 			$ airplane tasks init --from task_slug ./folder/my_task.task.json
 			$ airplane tasks init --from task_slug ./folder/my_task.task.yaml
+			$ airplane tasks init --from github.com/airplanedev/examples/node/hello-world-javascript/airplane.task.yaml
 		`),
 		Args: cobra.MaximumNArgs(1),
 		PersistentPreRunE: utils.WithParentPersistentPreRunE(func(cmd *cobra.Command, args []string) error {
@@ -76,9 +77,9 @@ func New(c *cli.Config) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&cfg.slug, "slug", "", "Slug of an existing task to generate from.")
+	cmd.Flags().StringVar(&cfg.from, "slug", "", "Slug of an existing task to generate from.")
 
-	cmd.Flags().StringVar(&cfg.slug, "from", "", "Slug of an existing task to initialize.")
+	cmd.Flags().StringVar(&cfg.from, "from", "", "Slug of an existing task to initialize.")
 	cmd.Flags().BoolVar(&cfg.codeOnly, "code-only", true, "True to skip creating a task definition file; only generates an entrypoint file.")
 	cmd.Flags().BoolVarP(&cfg.assumeYes, "yes", "y", false, "True to specify automatic yes to prompts.")
 	cmd.Flags().BoolVarP(&cfg.assumeNo, "no", "n", false, "True to specify automatic no to prompts.")
@@ -101,11 +102,15 @@ func run(ctx context.Context, cfg config) error {
 	if cfg.assumeYes && cfg.assumeNo {
 		return errors.New("Cannot specify both --yes and --no")
 	}
-	if cfg.codeOnly && cfg.slug == "" {
-		return errors.New("Required flag(s) \"slug\" not set")
+	if cfg.codeOnly && cfg.from == "" {
+		return errors.New("Required flag(s) \"from\" not set")
 	}
 
-	if cfg.slug == "" {
+	if strings.HasPrefix(cfg.from, "github.com/") || strings.HasPrefix(cfg.from, "https://github.com/") {
+		return initWithExample(ctx, cfg)
+	}
+
+	if cfg.from == "" {
 		// Prompt for new task information.
 		if err := promptForNewTask(cfg.file, &cfg.newTaskInfo); err != nil {
 			return err
@@ -123,9 +128,9 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 	client := cfg.client
 
 	var def definitions.Definition_0_3
-	if cfg.slug != "" {
+	if cfg.from != "" {
 		task, err := client.GetTask(ctx, libapi.GetTaskRequest{
-			Slug:    cfg.slug,
+			Slug:    cfg.from,
 			EnvSlug: cfg.envSlug,
 		})
 		if err != nil {
@@ -279,7 +284,7 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		entrypoint:         entrypoint,
 		showLocalExecution: localExecutionSupported,
 		kind:               kind,
-		isNew:              cfg.slug == "",
+		isNew:              cfg.from == "",
 	})
 	return nil
 }
@@ -288,7 +293,7 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 	client := cfg.client
 
 	task, err := client.GetTask(ctx, libapi.GetTaskRequest{
-		Slug:    cfg.slug,
+		Slug:    cfg.from,
 		EnvSlug: cfg.envSlug,
 	})
 	if err != nil {
@@ -309,7 +314,7 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 
 	if fsx.Exists(cfg.file) {
 		if slug := runtime.Slug(cfg.file); slug == task.Slug {
-			logger.Step("%s is already linked to %s", cfg.file, cfg.slug)
+			logger.Step("%s is already linked to %s", cfg.file, cfg.from)
 			suggestNextSteps(suggestNextStepsRequest{
 				entrypoint:         cfg.file,
 				showLocalExecution: true,
@@ -318,13 +323,13 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 			return nil
 		}
 
-		patch, err := patch(cfg.slug, cfg.file)
+		patch, err := patch(cfg.from, cfg.file)
 		if err != nil {
 			return err
 		}
 
 		if !patch {
-			logger.Log("You canceled linking %s to %s", cfg.file, cfg.slug)
+			logger.Log("You canceled linking %s to %s", cfg.file, cfg.from)
 			return nil
 		}
 
@@ -337,7 +342,7 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 		if err := ioutil.WriteFile(cfg.file, code, 0644); err != nil {
 			return err
 		}
-		logger.Step("Linked %s to %s", cfg.file, cfg.slug)
+		logger.Step("Linked %s to %s", cfg.file, cfg.from)
 
 		suggestNextSteps(suggestNextStepsRequest{
 			entrypoint:         cfg.file,
