@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/cmd/auth/login"
@@ -204,6 +205,17 @@ func run(ctx context.Context, cfg config) error {
 	}
 
 	print.Outputs(api.Outputs(o))
+
+	analytics.Track(cfg.root, "Run Executed Locally", map[string]interface{}{
+		"kind":         taskInfo.kind,
+		"task_slug":    taskInfo.slug,
+		"task_name":    taskInfo.name,
+		"env_slug":     cfg.envSlug,
+		"num_params":   len(paramValues),
+		"num_env_vars": len(cmd.Env),
+	}, analytics.TrackOpts{
+		SkipSlack: true,
+	})
 
 	return nil
 }
