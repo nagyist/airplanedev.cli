@@ -5,7 +5,6 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/lib/pkg/api"
 	"github.com/spf13/cobra"
@@ -41,9 +40,6 @@ func New(c *cli.Config) *cobra.Command {
 
 	// Unhide this flag once we release environments.
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
-	if err := cmd.Flags().MarkHidden("env"); err != nil {
-		logger.Debug("unable to hide --env: %s", err)
-	}
 
 	return cmd
 }
