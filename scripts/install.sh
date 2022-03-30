@@ -28,8 +28,7 @@ if [ ! -d "$bin_dir" ]; then
 fi
 
 curl --fail --location --progress-bar --output "$exe.tar.gz" "$download_uri"
-cd "$bin_dir"
-tar xzf "$exe.tar.gz"
+tar xzf "$exe.tar.gz" -C $bin_dir
 chmod +x "$exe"
 rm "$exe.tar.gz"
 
