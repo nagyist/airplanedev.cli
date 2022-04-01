@@ -496,9 +496,10 @@ func TestDeployTasks(t *testing.T) {
 							TaskID: "tsk123",
 							Kind:   "sql",
 							BuildConfig: libBuild.BuildConfig{
-								"entrypoint": "./fixtures/test.sql",
-								"query":      "SELECT 1;\n",
-								"queryArgs":  map[string]interface{}{},
+								"entrypoint":      "./fixtures/test.sql",
+								"query":           "SELECT 1;\n",
+								"queryArgs":       map[string]interface{}{},
+								"transactionMode": "auto",
 							},
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
 								Slug:       "my_task",
@@ -506,9 +507,10 @@ func TestDeployTasks(t *testing.T) {
 								Parameters: libapi.Parameters{},
 								Kind:       "sql",
 								KindOptions: libBuild.KindOptions{
-									"entrypoint": "./fixtures/test.sql",
-									"query":      "SELECT 1;\n",
-									"queryArgs":  map[string]interface{}{},
+									"entrypoint":      "./fixtures/test.sql",
+									"query":           "SELECT 1;\n",
+									"queryArgs":       map[string]interface{}{},
+									"transactionMode": "auto",
 								},
 								Resources: map[string]string{
 									"db": "db_id",

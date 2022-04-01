@@ -10,7 +10,7 @@ require (
 	github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/dustin/go-humanize v1.0.0
-	github.com/evanw/esbuild v0.14.27 // indirect
+	github.com/evanw/esbuild v0.14.29 // indirect
 	github.com/fatih/color v1.13.0
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-git/go-git/v5 v5.4.2
@@ -40,7 +40,7 @@ require (
 )
 
 require (
-	github.com/airplanedev/lib v0.4.1
+	github.com/airplanedev/lib v0.4.3
 	github.com/gavv/httpexpect/v2 v2.3.1
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git-fixtures/v4 v4.3.1
