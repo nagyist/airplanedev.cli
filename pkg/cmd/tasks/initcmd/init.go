@@ -80,7 +80,7 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().StringVar(&cfg.from, "slug", "", "Slug of an existing task to generate from.")
 
 	cmd.Flags().StringVar(&cfg.from, "from", "", "Slug of an existing task to initialize.")
-	cmd.Flags().BoolVar(&cfg.codeOnly, "code-only", true, "True to skip creating a task definition file; only generates an entrypoint file.")
+	cmd.Flags().BoolVar(&cfg.codeOnly, "code-only", false, "True to skip creating a task definition file; only generates an entrypoint file.")
 	cmd.Flags().BoolVarP(&cfg.assumeYes, "yes", "y", false, "True to specify automatic yes to prompts.")
 	cmd.Flags().BoolVarP(&cfg.assumeNo, "no", "n", false, "True to specify automatic no to prompts.")
 
