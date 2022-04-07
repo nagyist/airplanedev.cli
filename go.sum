@@ -817,8 +817,8 @@ github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 h1:ZuhckGJ10ula
 github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3/go.mod h1:9/Rh6yILuLysoQnZ2oNooD2g7aBnvM7r/fNVxRNWfBc=
 github.com/segmentio/conf v1.2.0/go.mod h1:Y3B9O/PqqWqjyxyWWseyj/quPEtMu1zDp/kVbSWWaB0=
 github.com/segmentio/encoding v0.1.11/go.mod h1:RWhr02uzMB9gQC1x+MfYxedtmBibb9cZ6Vv9VxRSSbw=
-github.com/segmentio/events/v2 v2.4.0 h1:8XZA/OlHFBLDIKtHwn6riWjCq8etZr8kBu2rx2DvFgM=
-github.com/segmentio/events/v2 v2.4.0/go.mod h1:pj4K4ln5dpEa4grVeDLvnDyw+m7AO2lBbRjRPVNcPjo=
+github.com/segmentio/events/v2 v2.5.0 h1:WTMNzgQbWGAIyrpukl+TooYyXfpgBc7E4g4vQXS1wAY=
+github.com/segmentio/events/v2 v2.5.0/go.mod h1:88k9wr07+trKieS7wqeVSvAzGha+Md0x1eCA/iMwIyA=
 github.com/segmentio/go-snakecase v1.1.0/go.mod h1:jk1miR5MS7Na32PZUykG89Arm+1BUSYhuGR6b7+hJto=
 github.com/segmentio/ksuid v1.0.4 h1:sBo2BdShXjmcugAMwjugoGUdUV0pcxY5mW4xKRn3v4c=
 github.com/segmentio/ksuid v1.0.4/go.mod h1:/XUiZBD3kVx5SmUOl55voK5yeAbBNNIed+2O73XgrPE=

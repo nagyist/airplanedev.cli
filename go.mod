@@ -24,7 +24,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/analytics-go v1.2.1-0.20201110202747-0566e489c7b9
-	github.com/segmentio/events/v2 v2.4.0
+	github.com/segmentio/events/v2 v2.5.0
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.1
