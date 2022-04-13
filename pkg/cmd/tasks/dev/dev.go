@@ -110,13 +110,8 @@ func run(ctx context.Context, cfg config) error {
 	logger.Log("Locally running %s task %s", logger.Bold(taskInfo.name), logger.Gray("("+cfg.root.Client.TaskURL(taskInfo.slug)+")"))
 	logger.Log("")
 
-	path, err := filepath.Abs(entrypoint)
-	if err != nil {
-		return errors.Wrapf(err, "absolute path of %s", entrypoint)
-	}
-
 	cmds, closer, err := r.PrepareRun(ctx, &logger.StdErrLogger{}, runtime.PrepareRunOptions{
-		Path:        path,
+		Path:        entrypoint,
 		ParamValues: paramValues,
 		KindOptions: taskInfo.kindOptions,
 	})
@@ -139,7 +134,7 @@ func run(ctx context.Context, cfg config) error {
 	}
 
 	// Load environment variables from .env files:
-	env, err := getDevEnv(r, path)
+	env, err := getDevEnv(r, entrypoint)
 	if err != nil {
 		return err
 	}
@@ -260,13 +255,18 @@ func getDevEnv(r runtime.Interface, path string) (map[string]string, error) {
 	return env, errors.Wrap(err, "reading .env")
 }
 
+// Returns an absolute entrypoint.
 func entrypointFrom(file string) (string, error) {
 	format := definitions.GetTaskDefFormat(file)
 	switch format {
 	case definitions.TaskDefFormatYAML, definitions.TaskDefFormatJSON:
 		return entrypointFromDefn(file)
 	default:
-		return file, nil
+		path, err := filepath.Abs(file)
+		if err != nil {
+			return "", errors.Wrapf(err, "absolute path of %s", file)
+		}
+		return path, nil
 	}
 }
 
@@ -282,5 +282,5 @@ func entrypointFromDefn(file string) (string, error) {
 		return "", err
 	}
 
-	return def.Entrypoint()
+	return def.GetAbsoluteEntrypoint()
 }
