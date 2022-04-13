@@ -30,7 +30,7 @@ fi
 if command -v curl &> /dev/null; then
   curl --fail --location --progress-bar --output "$exe.tar.gz" "$download_uri"
 elif command -v wget &> /dev/null; then
-  wget --show-progress -O "$exe.tar.gz" "$download_uri"
+  wget -O "$exe.tar.gz" "$download_uri"
 else
   echo "Not able to download the Airplane CLI - neither curl nor wget was found"
   exit 1
