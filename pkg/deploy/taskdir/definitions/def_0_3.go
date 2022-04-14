@@ -468,6 +468,7 @@ type SQLDefinition_0_3 struct {
 	Entrypoint      string                 `json:"entrypoint"`
 	QueryArgs       map[string]interface{} `json:"queryArgs,omitempty"`
 	TransactionMode SQLTransactionMode     `json:"transactionMode,omitempty"`
+	Configs         []string               `json:"configs,omitempty"`
 
 	// Contents of Entrypoint, cached
 	entrypointContents string `json:"-"`
@@ -515,6 +516,13 @@ func (d *SQLDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client 
 	} else {
 		return errors.Errorf("unknown resource: %s", d.Resource)
 	}
+	configs := make([]api.ConfigAttachment, len(d.Configs))
+	for i, configName := range d.Configs {
+		configs[i] = api.ConfigAttachment{
+			NameTag: configName,
+		}
+	}
+	req.Configs = &configs
 	return nil
 }
 
@@ -556,6 +564,12 @@ func (d *SQLDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAPI
 			return errors.Errorf("expected string transactionMode, got %T instead", v)
 		}
 	}
+
+	d.Configs = make([]string, len(t.Configs))
+	for idx, config := range t.Configs {
+		d.Configs[idx] = config.NameTag
+	}
+
 	return nil
 }
 
@@ -611,6 +625,7 @@ type RESTDefinition_0_3 struct {
 	BodyType  string                 `json:"bodyType"`
 	Body      interface{}            `json:"body,omitempty"`
 	FormData  map[string]interface{} `json:"formData,omitempty"`
+	Configs   []string               `json:"configs,omitempty"`
 }
 
 func (d *RESTDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest) error {
@@ -625,6 +640,13 @@ func (d *RESTDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client
 	} else {
 		return errors.Errorf("unknown resource: %s", d.Resource)
 	}
+	configs := make([]api.ConfigAttachment, len(d.Configs))
+	for i, configName := range d.Configs {
+		configs[i] = api.ConfigAttachment{
+			NameTag: configName,
+		}
+	}
+	req.Configs = &configs
 	return nil
 }
 
@@ -683,6 +705,12 @@ func (d *RESTDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAP
 			return errors.Errorf("expected map formData, got %T instead", v)
 		}
 	}
+
+	d.Configs = make([]string, len(t.Configs))
+	for idx, config := range t.Configs {
+		d.Configs[idx] = config.NameTag
+	}
+
 	return nil
 }
 
