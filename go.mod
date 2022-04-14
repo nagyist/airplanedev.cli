@@ -10,14 +10,14 @@ require (
 	github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/dustin/go-humanize v1.0.0
-	github.com/evanw/esbuild v0.14.29 // indirect
+	github.com/evanw/esbuild v0.14.34 // indirect
 	github.com/fatih/color v1.13.0
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/golang-jwt/jwt/v4 v4.4.1
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gosimple/slug v1.12.0
-	github.com/hashicorp/go-retryablehttp v0.7.0
+	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/joho/godotenv v1.4.0
 	github.com/kr/text v0.2.0
 	github.com/mattn/go-isatty v0.0.14
@@ -40,7 +40,7 @@ require (
 )
 
 require (
-	github.com/airplanedev/lib v0.4.3
+	github.com/airplanedev/lib v0.4.4
 	github.com/gavv/httpexpect/v2 v2.3.1
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git-fixtures/v4 v4.3.1
