@@ -463,7 +463,7 @@ func TestDeployTasks(t *testing.T) {
 			},
 		},
 		{
-			desc: "deploys and updates an SQL task",
+			desc: "deploys and updates an SQL task with config attachments",
 			taskConfigs: []discover.TaskConfig{
 				{
 					TaskID:   "tsk123",
@@ -475,6 +475,7 @@ func TestDeployTasks(t *testing.T) {
 							Entrypoint: "./fixtures/test.sql",
 							QueryArgs:  map[string]interface{}{},
 							Resource:   "db",
+							Configs:    []string{"API_KEY"},
 						},
 					},
 				},
@@ -505,7 +506,10 @@ func TestDeployTasks(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
-								Kind:       "sql",
+								Configs: &[]libapi.ConfigAttachment{{
+									NameTag: "API_KEY",
+								}},
+								Kind: "sql",
 								KindOptions: libBuild.KindOptions{
 									"entrypoint":      "./fixtures/test.sql",
 									"query":           "SELECT 1;\n",

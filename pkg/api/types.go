@@ -18,22 +18,23 @@ type GetTaskRequest struct {
 
 // CreateTaskRequest creates a new task.
 type CreateTaskRequest struct {
-	Slug             string                `json:"slug"`
-	Name             string                `json:"name"`
-	Description      string                `json:"description"`
-	Image            *string               `json:"image"`
-	Command          []string              `json:"command"`
-	Arguments        []string              `json:"arguments"`
-	Parameters       libapi.Parameters     `json:"parameters"`
-	Constraints      libapi.RunConstraints `json:"constraints"`
-	EnvVars          libapi.TaskEnv        `json:"env"`
-	ResourceRequests map[string]string     `json:"resourceRequests"`
-	Resources        map[string]string     `json:"resources"`
-	Kind             build.TaskKind        `json:"kind"`
-	KindOptions      build.KindOptions     `json:"kindOptions"`
-	Repo             string                `json:"repo"`
-	Timeout          int                   `json:"timeout"`
-	EnvSlug          string                `json:"envSlug"`
+	Slug             string                    `json:"slug"`
+	Name             string                    `json:"name"`
+	Description      string                    `json:"description"`
+	Image            *string                   `json:"image"`
+	Command          []string                  `json:"command"`
+	Arguments        []string                  `json:"arguments"`
+	Parameters       libapi.Parameters         `json:"parameters"`
+	Configs          []libapi.ConfigAttachment `json:"configs"`
+	Constraints      libapi.RunConstraints     `json:"constraints"`
+	EnvVars          libapi.TaskEnv            `json:"env"`
+	ResourceRequests map[string]string         `json:"resourceRequests"`
+	Resources        map[string]string         `json:"resources"`
+	Kind             build.TaskKind            `json:"kind"`
+	KindOptions      build.KindOptions         `json:"kindOptions"`
+	Repo             string                    `json:"repo"`
+	Timeout          int                       `json:"timeout"`
+	EnvSlug          string                    `json:"envSlug"`
 }
 
 type UpdateTaskResponse struct {

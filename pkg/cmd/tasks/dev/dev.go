@@ -215,7 +215,7 @@ func run(ctx context.Context, cfg config) error {
 // getDevEnv will return a map of env vars, loading from .env and airplane.env
 // files inside the task root.
 //
-// Env variabels are first loaded by looking for any .env files between the root
+// Env variables are first loaded by looking for any .env files between the root
 // and entrypoint dir (inclusive). A second pass is done to look for airplane.env
 // files. Env vars from successive files are merged in and overwrite duplicate keys.
 func getDevEnv(r runtime.Interface, path string) (map[string]string, error) {

@@ -32,6 +32,8 @@ func ensureConfigVarsExist(ctx context.Context, client api.APIClient, def defini
 			}
 		}
 	}
+
+	// TODO(justin): Check that configs in config attachments exist
 	return nil
 }
 

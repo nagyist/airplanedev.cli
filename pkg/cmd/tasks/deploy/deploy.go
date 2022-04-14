@@ -190,7 +190,7 @@ func HandleMissingTask(cfg config, l logger.Logger, loader logger.Loader) func(c
 			return nil, err
 		}
 
-		resp, err := cfg.client.CreateTask(ctx, api.CreateTaskRequest{
+		createTaskRequest := api.CreateTaskRequest{
 			Slug:             utr.Slug,
 			Name:             utr.Name,
 			Description:      utr.Description,
@@ -207,7 +207,12 @@ func HandleMissingTask(cfg config, l logger.Logger, loader logger.Loader) func(c
 			Repo:             utr.Repo,
 			Timeout:          utr.Timeout,
 			EnvSlug:          cfg.envSlug,
-		})
+		}
+		if utr.Configs != nil {
+			createTaskRequest.Configs = *utr.Configs
+		}
+
+		resp, err := cfg.client.CreateTask(ctx, createTaskRequest)
 		if err != nil {
 			return nil, errors.Wrapf(err, "creating task %s", def.GetSlug())
 		}
