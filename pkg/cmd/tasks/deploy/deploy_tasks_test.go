@@ -85,6 +85,7 @@ func TestDeployTasks(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
 									"entrypoint":  "",
@@ -133,6 +134,7 @@ func TestDeployTasks(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
 									"entrypoint":  "",
@@ -181,6 +183,7 @@ func TestDeployTasks(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
 									"entrypoint":  "",
@@ -228,6 +231,7 @@ func TestDeployTasks(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
 									"entrypoint":  "",
@@ -271,6 +275,7 @@ func TestDeployTasks(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "image",
 								Command:    []string{},
 								Image:      pointers.String("myImage"),
@@ -316,6 +321,7 @@ func TestDeployTasks(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
 									"entrypoint":  "",
@@ -375,6 +381,7 @@ func TestDeployTasks(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
 									"entrypoint":  "",
@@ -436,6 +443,7 @@ func TestDeployTasks(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
 									"entrypoint":  "",
@@ -539,6 +547,11 @@ func TestDeployTasks(t *testing.T) {
 				Tasks:                 tC.existingTasks,
 				GetDeploymentResponse: tC.getDeploymentResponse,
 				Resources:             tC.resources,
+				Configs: []api.Config{
+					{
+						Name: "API_KEY",
+					},
+				},
 			}
 			for k, v := range tC.envVars {
 				os.Setenv(k, v)

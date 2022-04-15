@@ -14,6 +14,7 @@ type MockClient struct {
 	Deploys               []CreateDeploymentRequest
 	GetDeploymentResponse *Deployment
 	Resources             []libapi.Resource
+	Configs               []Config
 }
 
 var _ APIClient = &MockClient{}
@@ -49,7 +50,13 @@ func (mc *MockClient) SetConfig(ctx context.Context, req SetConfigRequest) (err 
 }
 
 func (mc *MockClient) GetConfig(ctx context.Context, req GetConfigRequest) (res GetConfigResponse, err error) {
-	panic("not implemented") // TODO: Implement
+	for _, c := range mc.Configs {
+		if c.Name == req.Name && c.Tag == req.Tag {
+			return GetConfigResponse{Config: c}, nil
+		}
+	}
+
+	return GetConfigResponse{}, errors.Errorf("config %s does not exist", req.Name)
 }
 
 func (mc *MockClient) TaskURL(slug string) string {

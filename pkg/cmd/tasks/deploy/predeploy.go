@@ -16,15 +16,14 @@ import (
 
 // ensureConfigVarsExist checks for config references in env and asks users to create any missing ones
 func ensureConfigVarsExist(ctx context.Context, client api.APIClient, def definitions.DefinitionInterface, envSlug string) error {
-	// Check if env vars exist
+	// Check if configs exist for env vars populated from configs
 	env, err := def.GetEnv()
 	if err != nil {
 		return err
 	}
-	for k, v := range env {
+	for _, v := range env {
 		if v.Config != nil {
 			if err := ensureConfigVarExists(ctx, client, ensureConfigVarExistsParams{
-				EnvName:    k,
 				ConfigName: *v.Config,
 				EnvSlug:    envSlug,
 			}); err != nil {
@@ -33,12 +32,26 @@ func ensureConfigVarsExist(ctx context.Context, client api.APIClient, def defini
 		}
 	}
 
-	// TODO(justin): Check that configs in config attachments exist
+	// Check if configs exist for config attachments
+	configAttachments, err := def.GetConfigAttachments()
+	if err != nil {
+		return err
+	}
+	for _, ca := range configAttachments {
+		if err != nil {
+			return err
+		}
+		if err := ensureConfigVarExists(ctx, client, ensureConfigVarExistsParams{
+			ConfigName: ca.NameTag,
+			EnvSlug:    envSlug,
+		}); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 type ensureConfigVarExistsParams struct {
-	EnvName    string
 	ConfigName string
 	EnvSlug    string
 }
