@@ -159,7 +159,7 @@ func run(ctx context.Context, cfg config) error {
 		for scanner.Scan() {
 			line := scanner.Text()
 			mu.Lock()
-			parsed, err := outputs.Parse(chunks, line)
+			parsed, err := outputs.Parse(chunks, line, outputs.ParseOptions{})
 			if err != nil {
 				mu.Unlock()
 				logger.Error("[%s] %+v", logger.Gray("outputs"), err)

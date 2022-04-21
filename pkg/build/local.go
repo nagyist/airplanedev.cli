@@ -58,7 +58,7 @@ func (d *localBuildCreator) CreateBuild(ctx context.Context, req Request) (*buil
 			Token: registry.Token,
 			Repo:  registry.Repo,
 		},
-		BuildEnv: buildEnv,
+		BuildArgs: buildEnv,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "new build")
