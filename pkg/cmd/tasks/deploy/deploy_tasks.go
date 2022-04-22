@@ -19,8 +19,12 @@ import (
 	libBuild "github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/archive"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/dustin/go-humanize"
 	"github.com/go-git/go-git/v5"
+	"github.com/hexops/gotextdiff"
+	"github.com/hexops/gotextdiff/myers"
+	"github.com/hexops/gotextdiff/span"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
@@ -68,7 +72,7 @@ func NewDeployer(cfg config, l logger.Logger, opts DeployerOpts) *deployer {
 }
 
 // DeployTasks deploys all taskConfigs as Airplane tasks.
-func (d *deployer) DeployTasks(ctx context.Context, taskConfigs []discover.TaskConfig) error {
+func (d *deployer) DeployTasks(ctx context.Context, taskConfigs []discover.TaskConfig, createdTasks map[string]bool) error {
 	var err error
 	if len(d.cfg.changedFiles) > 0 {
 		taskConfigs, err = d.filterTaskConfigsByChangedFiles(ctx, taskConfigs)
@@ -82,7 +86,9 @@ func (d *deployer) DeployTasks(ctx context.Context, taskConfigs []discover.TaskC
 		return nil
 	}
 
-	d.printPreDeploySummary(ctx, taskConfigs)
+	if err := d.printPreDeploySummary(ctx, taskConfigs, createdTasks); err != nil {
+		return err
+	}
 
 	var uploadIDs map[string]string
 	if !d.cfg.local {
@@ -382,7 +388,7 @@ func (d *deployer) filterTaskConfigsByChangedFiles(ctx context.Context, taskConf
 	return filteredTaskConfigs, nil
 }
 
-func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []discover.TaskConfig) {
+func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []discover.TaskConfig, createdTasks map[string]bool) error {
 	noun := "task"
 	if len(taskConfigs) > 1 {
 		noun = fmt.Sprintf("%ss", noun)
@@ -394,10 +400,104 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []disc
 
 		d.logger.Log(logger.Bold(slug))
 		d.logger.Log("Type: %s", kind)
-		d.logger.Log("Root directory: %s", relpath(tc.TaskRoot))
+
+		// Log root directory only if there's an entrypoint.
+		if _, err := tc.Def.Entrypoint(); err == definitions.ErrNoEntrypoint {
+			// nothing
+		} else if err != nil {
+			return err
+		} else {
+			d.logger.Log("Root directory: %s", relpath(tc.TaskRoot))
+		}
+
+		// Log definition file if this came from a definition file.
+		if tc.Source == discover.TaskConfigSourceDefn {
+			defPath := relpath(tc.Def.GetDefnFilePath())
+			d.logger.Log("Definition file: %s", defPath)
+		}
+
 		d.logger.Log("URL: %s", d.cfg.client.TaskURL(slug))
+
+		// Skip printing diff if this didn't come from a defn file.
+		if tc.Source == discover.TaskConfigSourceDefn {
+			difflines, err := d.getDefinitionDiff(ctx, tc, createdTasks[tc.TaskID])
+			if err != nil {
+				return err
+			}
+
+			if len(difflines) == 1 {
+				// If it's just one line, it's not actually a diff.
+				d.logger.Log(difflines[0])
+			} else {
+				// Otherwise, indent it for readability.
+				for _, line := range difflines {
+					d.logger.Log("  %s", line)
+				}
+			}
+		}
+
 		d.logger.Log("")
 	}
+
+	return nil
+}
+
+func (d *deployer) getDefinitionDiff(ctx context.Context, taskConfig discover.TaskConfig, isNew bool) ([]string, error) {
+	if isNew {
+		return []string{"(new task)"}, nil
+	}
+
+	// Task should always exist in this environment.
+	task, err := d.cfg.client.GetTask(ctx, libapi.GetTaskRequest{
+		Slug:    taskConfig.Def.GetSlug(),
+		EnvSlug: d.cfg.envSlug,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	defPath := relpath(taskConfig.Def.GetDefnFilePath())
+	defPath = strings.TrimPrefix(defPath, "./")
+
+	oldDef, err := definitions.NewDefinitionFromTask_0_3(ctx, d.cfg.client, task)
+	if err != nil {
+		return nil, err
+	}
+	oldYAML, err := oldDef.Marshal(definitions.TaskDefFormatYAML)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error marshalling current task definition")
+	}
+	oldYAMLStr := string(oldYAML)
+	oldLabel := fmt.Sprintf("a/%s", defPath)
+
+	newYAML, err := taskConfig.Def.Marshal(definitions.TaskDefFormatYAML)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error marshalling new task definition")
+	}
+	newYAMLStr := string(newYAML)
+	newLabel := fmt.Sprintf("b/%s", defPath)
+
+	edits := myers.ComputeEdits(span.URI(oldLabel), oldYAMLStr, newYAMLStr)
+	edits = gotextdiff.LineEdits(oldYAMLStr, edits)
+	diff := fmt.Sprint(gotextdiff.ToUnified(oldLabel, newLabel, oldYAMLStr, edits))
+	if diff == "" {
+		return []string{"(no changes)"}, nil
+	}
+
+	// Log deletes in red & additions in green.
+	difflines := strings.Split(diff, "\n")
+	pretty := make([]string, len(difflines))
+	for i, line := range difflines {
+		if strings.HasPrefix(line, "-") {
+			pretty[i] = logger.Red("%s", line)
+		} else if strings.HasPrefix(line, "+") {
+			pretty[i] = logger.Green("%s", line)
+		} else {
+			pretty[i] = line
+		}
+	}
+
+	return pretty, nil
 }
 
 func waitForDeploy(ctx context.Context, loader logger.Loader, client api.APIClient, deploymentID string) error {

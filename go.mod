@@ -46,6 +46,7 @@ require (
 	github.com/go-git/go-git-fixtures/v4 v4.3.1
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
+	github.com/hexops/gotextdiff v1.0.3
 	golang.org/x/term v0.0.0-20220411215600-e5f449aeb171
 )
 

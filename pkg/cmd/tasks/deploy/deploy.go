@@ -112,6 +112,7 @@ func run(ctx context.Context, cfg config) error {
 	l := &logger.StdErrLogger{}
 	loader := logger.NewLoader(logger.LoaderOpts{HideLoader: logger.EnableDebug})
 
+	createdTasks := map[string]bool{}
 	d := &discover.Discoverer{
 		TaskDiscoverers: []discover.TaskDiscoverer{},
 		Client:          cfg.client,
@@ -121,7 +122,7 @@ func run(ctx context.Context, cfg config) error {
 	defnDiscoverer := &discover.DefnDiscoverer{
 		Client:             cfg.client,
 		Logger:             l,
-		MissingTaskHandler: HandleMissingTask(cfg, l, loader),
+		MissingTaskHandler: HandleMissingTask(cfg, l, loader, &createdTasks),
 	}
 	d.TaskDiscoverers = append(d.TaskDiscoverers, defnDiscoverer)
 	d.TaskDiscoverers = append(d.TaskDiscoverers, &discover.ScriptDiscoverer{
@@ -158,10 +159,10 @@ func run(ctx context.Context, cfg config) error {
 		}
 	}
 
-	return NewDeployer(cfg, l, DeployerOpts{}).DeployTasks(ctx, taskConfigs)
+	return NewDeployer(cfg, l, DeployerOpts{}).DeployTasks(ctx, taskConfigs, createdTasks)
 }
 
-func HandleMissingTask(cfg config, l logger.Logger, loader logger.Loader) func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.TaskMetadata, error) {
+func HandleMissingTask(cfg config, l logger.Logger, loader logger.Loader, createdTasks *map[string]bool) func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.TaskMetadata, error) {
 	return func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.TaskMetadata, error) {
 		isActive := loader.IsActive()
 		loader.Stop()
@@ -215,6 +216,10 @@ func HandleMissingTask(cfg config, l logger.Logger, loader logger.Loader) func(c
 		resp, err := cfg.client.CreateTask(ctx, createTaskRequest)
 		if err != nil {
 			return nil, errors.Wrapf(err, "creating task %s", def.GetSlug())
+		}
+
+		if createdTasks != nil {
+			(*createdTasks)[resp.TaskID] = true
 		}
 
 		return &libapi.TaskMetadata{

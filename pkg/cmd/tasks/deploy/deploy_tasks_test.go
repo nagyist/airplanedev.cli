@@ -570,7 +570,7 @@ func TestDeployTasks(t *testing.T) {
 			for i, absEntrypoint := range tC.absoluteEntrypoints {
 				tC.taskConfigs[i].Def.SetAbsoluteEntrypoint(absEntrypoint)
 			}
-			err := d.DeployTasks(context.Background(), tC.taskConfigs)
+			err := d.DeployTasks(context.Background(), tC.taskConfigs, map[string]bool{})
 			if tC.expectedError != nil {
 				assert.Error(err)
 				return
@@ -629,6 +629,98 @@ func TestParseRemote(t *testing.T) {
 			assert.Equal(tC.ownerName, owner)
 			assert.Equal(tC.repoName, name)
 			assert.Equal(tC.vendor, vendor)
+		})
+	}
+}
+
+func TestGetDefinitionDiff(t *testing.T) {
+	for _, test := range []struct {
+		name          string
+		taskConfig    discover.TaskConfig
+		isNew         bool
+		existingTasks map[string]libapi.Task
+		expected      []string
+	}{
+		{
+			name:     "new task",
+			isNew:    true,
+			expected: []string{"(new task)"},
+		},
+		{
+			name: "no changes",
+			taskConfig: discover.TaskConfig{
+				TaskID: "my_task",
+				Def: &definitions.Definition_0_3{
+					Name: "My Task",
+					Slug: "my_task",
+					Image: &definitions.ImageDefinition_0_3{
+						Image:   "ubuntu:latest",
+						Command: "echo 'hello world'",
+					},
+				},
+			},
+			existingTasks: map[string]libapi.Task{
+				"my_task": libapi.Task{
+					ID:        "my_task",
+					Slug:      "my_task",
+					Name:      "My Task",
+					Kind:      "image",
+					Image:     pointers.String("ubuntu:latest"),
+					Arguments: []string{"echo", "hello world"},
+				},
+			},
+			expected: []string{"(no changes)"},
+		},
+		{
+			name: "show diff",
+			taskConfig: discover.TaskConfig{
+				TaskID: "my_task",
+				Def: &definitions.Definition_0_3{
+					Name:        "My Task",
+					Description: "Says hello!",
+					Slug:        "my_task",
+					Image: &definitions.ImageDefinition_0_3{
+						Image:   "ubuntu:latest",
+						Command: "echo 'hello world'",
+					},
+				},
+			},
+			existingTasks: map[string]libapi.Task{
+				"my_task": libapi.Task{
+					ID:        "my_task",
+					Slug:      "my_task",
+					Name:      "My Task",
+					Kind:      "image",
+					Image:     pointers.String("ubuntu:latest"),
+					Arguments: []string{"echo", "hello world"},
+				},
+			},
+			expected: []string{
+				"--- a/",
+				"+++ b/",
+				"@@ -1,5 +1,6 @@",
+				" name: My Task",
+				" slug: my_task",
+				"+description: Says hello!",
+				" docker:",
+				"   image: ubuntu:latest",
+				"   command: echo 'hello world'",
+				"",
+			},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			require := require.New(t)
+
+			cfg := config{
+				client: &api.MockClient{
+					Tasks: test.existingTasks,
+				},
+			}
+			d := NewDeployer(cfg, &logger.MockLogger{}, DeployerOpts{})
+			diff, err := d.getDefinitionDiff(context.Background(), test.taskConfig, test.isNew)
+			require.NoError(err)
+			require.Equal(test.expected, diff)
 		})
 	}
 }
