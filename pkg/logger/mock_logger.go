@@ -2,7 +2,7 @@ package logger
 
 import "fmt"
 
-var _ Logger = &MockLogger{}
+var _ LoggerWithLoader = &MockLogger{}
 
 type MockLogger struct {
 }
@@ -44,4 +44,11 @@ func (l *MockLogger) SuggestSteps(title string, steps ...string) {
 		fmt.Println(step)
 	}
 	fmt.Println()
+}
+
+func (l *MockLogger) StopLoader() bool {
+	return false
+}
+
+func (l *MockLogger) StartLoader() {
 }

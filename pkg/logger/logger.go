@@ -26,33 +26,98 @@ type Logger interface {
 	Error(msg string, args ...interface{})
 }
 
-var _ Logger = &StdErrLogger{}
+type LoggerWithLoader interface {
+	Logger
+	StopLoader() bool
+	StartLoader()
+}
+
+var _ LoggerWithLoader = &StdErrLogger{}
 
 type StdErrLogger struct {
+	loader Loader
+}
+
+type StdErrLoggerOpts struct {
+	WithLoader bool
+}
+
+// NewStdErrLogger creates a new logger that logs to stderr.
+// If created WithLoader, the loader must be stopped in a defer.
+func NewStdErrLogger(opts StdErrLoggerOpts) LoggerWithLoader {
+	var loader Loader
+	if opts.WithLoader {
+		loader = NewLoader()
+	} else {
+		loader = &NoopLoader{}
+	}
+	loader.Start()
+	return &StdErrLogger{
+		loader: loader,
+	}
 }
 
 func (l *StdErrLogger) Log(msg string, args ...interface{}) {
+	wasActive := l.StopLoader()
+	if wasActive {
+		defer l.StartLoader()
+	}
 	Log(msg, args...)
 }
 
 func (l *StdErrLogger) Debug(msg string, args ...interface{}) {
+	wasActive := l.StopLoader()
+	if wasActive {
+		defer l.StartLoader()
+	}
 	Debug(msg, args...)
 }
 
 func (l *StdErrLogger) Warning(msg string, args ...interface{}) {
+	wasActive := l.StopLoader()
+	if wasActive {
+		defer l.StartLoader()
+	}
 	Warning(msg, args...)
 }
 
 func (l *StdErrLogger) Error(msg string, args ...interface{}) {
+	wasActive := l.StopLoader()
+	if wasActive {
+		defer l.StartLoader()
+	}
 	Error(msg, args...)
 }
 
 func (l *StdErrLogger) Step(msg string, args ...interface{}) {
+	wasActive := l.StopLoader()
+	if wasActive {
+		defer l.StartLoader()
+	}
 	Step(msg, args...)
 }
 
 func (l *StdErrLogger) Suggest(title, command string, args ...interface{}) {
+	wasActive := l.StopLoader()
+	if wasActive {
+		defer l.StartLoader()
+	}
 	Suggest(title, command, args...)
+}
+
+func (l *StdErrLogger) StopLoader() bool {
+	if l.loader != nil {
+		isActive := l.loader.IsActive()
+		l.loader.Stop()
+		return isActive
+	}
+	return false
+}
+
+func (l *StdErrLogger) StartLoader() {
+	if l.loader != nil {
+		l.loader.Start()
+	}
 }
 
 func (l *StdErrLogger) SuggestSteps(title string, steps ...string) {
@@ -131,12 +196,8 @@ type SpinnerLoader struct {
 type NoopLoader struct {
 }
 
-type LoaderOpts struct {
-	HideLoader bool
-}
-
-func NewLoader(opts LoaderOpts) Loader {
-	if opts.HideLoader || !term.IsTerminal(int(os.Stderr.Fd())) {
+func NewLoader() Loader {
+	if !term.IsTerminal(int(os.Stderr.Fd())) {
 		return &NoopLoader{}
 	}
 	return &SpinnerLoader{

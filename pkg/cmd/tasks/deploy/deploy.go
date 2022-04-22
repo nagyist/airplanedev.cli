@@ -109,8 +109,8 @@ func run(ctx context.Context, cfg config) error {
 		return errors.New("Cannot specify both --yes and --no")
 	}
 
-	l := &logger.StdErrLogger{}
-	loader := logger.NewLoader(logger.LoaderOpts{HideLoader: logger.EnableDebug})
+	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{WithLoader: true})
+	defer l.StopLoader()
 
 	createdTasks := map[string]bool{}
 	d := &discover.Discoverer{
@@ -122,7 +122,7 @@ func run(ctx context.Context, cfg config) error {
 	defnDiscoverer := &discover.DefnDiscoverer{
 		Client:             cfg.client,
 		Logger:             l,
-		MissingTaskHandler: HandleMissingTask(cfg, l, loader, &createdTasks),
+		MissingTaskHandler: HandleMissingTask(cfg, l, &createdTasks),
 	}
 	d.TaskDiscoverers = append(d.TaskDiscoverers, defnDiscoverer)
 	d.TaskDiscoverers = append(d.TaskDiscoverers, &discover.ScriptDiscoverer{
@@ -133,7 +133,7 @@ func run(ctx context.Context, cfg config) error {
 
 	// If you're trying to deploy a .sql file, try to find a defn file instead.
 	for i, path := range cfg.paths {
-		p, err := findDefinitionFileForSQL(ctx, cfg, defnDiscoverer, path)
+		p, err := findDefinitionFileForSQL(ctx, cfg, l, defnDiscoverer, path)
 		if err != nil {
 			return err
 		}
@@ -142,15 +142,13 @@ func run(ctx context.Context, cfg config) error {
 		}
 	}
 
-	loader.Start()
 	taskConfigs, err := d.DiscoverTasks(ctx, cfg.paths...)
 	if err != nil {
 		return err
 	}
-	loader.Stop()
 
 	for i, tc := range taskConfigs {
-		taskConfig, err := findDefinitionForScript(ctx, cfg, defnDiscoverer, tc)
+		taskConfig, err := findDefinitionForScript(ctx, cfg, l, defnDiscoverer, tc)
 		if err != nil {
 			return err
 		}
@@ -162,17 +160,14 @@ func run(ctx context.Context, cfg config) error {
 	return NewDeployer(cfg, l, DeployerOpts{}).DeployTasks(ctx, taskConfigs, createdTasks)
 }
 
-func HandleMissingTask(cfg config, l logger.Logger, loader logger.Loader, createdTasks *map[string]bool) func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.TaskMetadata, error) {
+func HandleMissingTask(cfg config, l logger.LoggerWithLoader, createdTasks *map[string]bool) func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.TaskMetadata, error) {
 	return func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.TaskMetadata, error) {
-		isActive := loader.IsActive()
-		loader.Stop()
-
 		if utils.CanPrompt() {
+			wasActive := l.StopLoader()
 			question := fmt.Sprintf("A task with slug %s does not exist. Would you like to create one?", def.GetSlug())
 			ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo)
-
-			if isActive {
-				loader.Start()
+			if wasActive {
+				l.StartLoader()
 			}
 
 			if err != nil {
@@ -233,7 +228,7 @@ func HandleMissingTask(cfg config, l logger.Logger, loader logger.Loader, create
 // located & also in the current directory. Returns nil if the task config wasn't discovered via
 // the script discoverer. Used to find relevant definition files if the user accidentally deploys a
 // script file when a defn file exists.
-func findDefinitionForScript(ctx context.Context, cfg config, defnDiscoverer *discover.DefnDiscoverer, taskConfig discover.TaskConfig) (*discover.TaskConfig, error) {
+func findDefinitionForScript(ctx context.Context, cfg config, l logger.LoggerWithLoader, defnDiscoverer *discover.DefnDiscoverer, taskConfig discover.TaskConfig) (*discover.TaskConfig, error) {
 	if taskConfig.Source != discover.TaskConfigSourceScript {
 		return nil, nil
 	}
@@ -268,6 +263,11 @@ func findDefinitionForScript(ctx context.Context, cfg config, defnDiscoverer *di
 				continue
 			}
 
+			wasActive := l.StopLoader()
+			if wasActive {
+				defer l.StartLoader()
+			}
+
 			question := fmt.Sprintf("A definition file for task %q exists (%s).\nWould you like to use it?", taskConfig.Def.GetSlug(), relpath(path))
 			ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo)
 			if err != nil {
@@ -286,7 +286,7 @@ func findDefinitionForScript(ctx context.Context, cfg config, defnDiscoverer *di
 // Look for a defn file that matches the base of the given path (i.e., for foo.sql, look for
 // foo.task.{yaml,yml,json}). If the given path is not a .sql file, returns empty string and nil.
 // Looks in the current working directory as well as the directory of the given path.
-func findDefinitionFileForSQL(ctx context.Context, cfg config, defnDiscoverer *discover.DefnDiscoverer, path string) (string, error) {
+func findDefinitionFileForSQL(ctx context.Context, cfg config, l logger.LoggerWithLoader, defnDiscoverer *discover.DefnDiscoverer, path string) (string, error) {
 	ext := filepath.Ext(path)
 	if strings.ToLower(ext) != ".sql" {
 		return "", nil
@@ -343,6 +343,10 @@ func findDefinitionFileForSQL(ctx context.Context, cfg config, defnDiscoverer *d
 				}
 			}
 
+			wasActive := l.StopLoader()
+			if wasActive {
+				defer l.StartLoader()
+			}
 			question := fmt.Sprintf("File %s is not linked to a task.\nFound definition file %s linked to task %s instead.\nWould you like to use it?", path, p, slug)
 			ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo)
 			if err != nil {

@@ -74,7 +74,7 @@ func TestFindDefinition(t *testing.T) {
 				Logger: &logger.MockLogger{},
 			}
 
-			tc, err := findDefinitionForScript(ctx, test.cfg, defnDiscoverer, test.taskConfig)
+			tc, err := findDefinitionForScript(ctx, test.cfg, &logger.MockLogger{}, defnDiscoverer, test.taskConfig)
 			require.NoError(err)
 			if test.expectedNil {
 				require.Nil(tc)

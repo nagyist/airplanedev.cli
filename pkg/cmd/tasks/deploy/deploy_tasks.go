@@ -32,8 +32,7 @@ import (
 type deployer struct {
 	buildCreator build.BuildCreator
 	cfg          config
-	logger       logger.Logger
-	loader       logger.Loader
+	logger       logger.LoggerWithLoader
 	archiver     archive.Archiver
 	repoGetter   GitRepoGetter
 }
@@ -44,7 +43,7 @@ type DeployerOpts struct {
 	RepoGetter   GitRepoGetter
 }
 
-func NewDeployer(cfg config, l logger.Logger, opts DeployerOpts) *deployer {
+func NewDeployer(cfg config, l logger.LoggerWithLoader, opts DeployerOpts) *deployer {
 	var bc build.BuildCreator
 	if cfg.local {
 		bc = build.NewLocalBuildCreator()
@@ -65,7 +64,6 @@ func NewDeployer(cfg config, l logger.Logger, opts DeployerOpts) *deployer {
 		buildCreator: bc,
 		cfg:          cfg,
 		logger:       l,
-		loader:       logger.NewLoader(logger.LoaderOpts{HideLoader: logger.EnableDebug}),
 		archiver:     a,
 		repoGetter:   rg,
 	}
@@ -156,10 +154,10 @@ func (d *deployer) DeployTasks(ctx context.Context, taskConfigs []discover.TaskC
 		return err
 	}
 
-	deployLog(ctx, api.LogLevelInfo, d.loader, deployLogReq{msg: logger.Gray("Creating deployment...")})
+	d.deployLog(ctx, api.LogLevelInfo, deployLogReq{msg: logger.Gray("Creating deployment...")})
 	d.logger.Log(logger.Purple(fmt.Sprintf("\nView deployment: %s\n", d.cfg.client.DeploymentURL(ctx, resp.Deployment.ID))))
 
-	err = waitForDeploy(ctx, d.loader, d.cfg.client, resp.Deployment.ID)
+	err = d.waitForDeploy(ctx, d.cfg.client, resp.Deployment.ID)
 	if errors.Is(err, context.Canceled) {
 		cerr := d.cfg.client.CancelDeployment(context.Background(), api.CancelDeploymentRequest{ID: resp.Deployment.ID})
 		if cerr != nil {
@@ -251,7 +249,7 @@ More information: https://apn.sh/jst-upgrade`)
 		}
 	}
 
-	err = ensureConfigVarsExist(ctx, client, tc.Def, d.cfg.envSlug)
+	err = ensureConfigVarsExist(ctx, client, d.logger, tc.Def, d.cfg.envSlug)
 	if err != nil {
 		return api.DeployTask{}, err
 	}
@@ -352,18 +350,18 @@ func (d *deployer) tarAndUploadTasks(ctx context.Context, taskConfigs []discover
 }
 
 func (d *deployer) tarAndUpload(ctx context.Context, taskSlug, taskRoot string) (string, error) {
-	if err := confirmBuildRoot(taskRoot); err != nil {
+	if err := d.confirmBuildRoot(taskRoot); err != nil {
 		return "", err
 	}
 
-	deployLog(ctx, api.LogLevelInfo, d.loader, deployLogReq{taskSlug, logger.Gray("Packaging and uploading %s...", taskRoot)})
+	d.deployLog(ctx, api.LogLevelInfo, deployLogReq{taskSlug, logger.Gray("Packaging and uploading %s...", taskRoot)})
 
 	uploadID, sizeBytes, err := d.archiver.Archive(ctx, taskRoot)
 	if err != nil {
 		return "", err
 	}
 	if sizeBytes > 0 {
-		deployLog(ctx, api.LogLevelInfo, d.loader, deployLogReq{taskSlug, logger.Gray("Uploaded %s build archive.",
+		d.deployLog(ctx, api.LogLevelInfo, deployLogReq{taskSlug, logger.Gray("Uploaded %s build archive.",
 			humanize.Bytes(uint64(sizeBytes)),
 		)})
 	}
@@ -500,10 +498,8 @@ func (d *deployer) getDefinitionDiff(ctx context.Context, taskConfig discover.Ta
 	return pretty, nil
 }
 
-func waitForDeploy(ctx context.Context, loader logger.Loader, client api.APIClient, deploymentID string) error {
-	loader.Start()
-	defer loader.Stop()
-	deployLog(ctx, api.LogLevelInfo, loader, deployLogReq{msg: logger.Gray("Waiting for deployer...")})
+func (d *deployer) waitForDeploy(ctx context.Context, client api.APIClient, deploymentID string) error {
+	d.deployLog(ctx, api.LogLevelInfo, deployLogReq{msg: logger.Gray("Waiting for deployer...")})
 
 	t := time.NewTicker(time.Second)
 
@@ -529,23 +525,23 @@ func waitForDeploy(ctx context.Context, loader logger.Loader, client api.APIClie
 					text = logger.Gray(strings.TrimPrefix(text, "[builder] "))
 				}
 
-				deployLog(ctx, l.Level, loader, deployLogReq{l.TaskSlug, text})
+				d.deployLog(ctx, l.Level, deployLogReq{l.TaskSlug, text})
 			}
 
-			d, err := client.GetDeployment(ctx, deploymentID)
+			deployment, err := client.GetDeployment(ctx, deploymentID)
 			if err != nil {
 				return errors.Wrap(err, "getting deployment")
 			}
 
 			switch {
-			case d.FailedAt != nil:
-				deployLog(ctx, api.LogLevelInfo, loader, deployLogReq{msg: logger.Bold(logger.Red("failed: %s", d.FailedReason))})
+			case deployment.FailedAt != nil:
+				d.deployLog(ctx, api.LogLevelInfo, deployLogReq{msg: logger.Bold(logger.Red("failed: %s", deployment.FailedReason))})
 				return errors.New("Deploy failed")
-			case d.SucceededAt != nil:
-				deployLog(ctx, api.LogLevelInfo, loader, deployLogReq{msg: logger.Bold(logger.Green("succeeded"))})
+			case deployment.SucceededAt != nil:
+				d.deployLog(ctx, api.LogLevelInfo, deployLogReq{msg: logger.Bold(logger.Green("succeeded"))})
 				return nil
-			case d.CancelledAt != nil:
-				deployLog(ctx, api.LogLevelInfo, loader, deployLogReq{msg: logger.Bold(logger.Red("cancelled"))})
+			case deployment.CancelledAt != nil:
+				d.deployLog(ctx, api.LogLevelInfo, deployLogReq{msg: logger.Bold(logger.Red("cancelled"))})
 				return errors.New("Deploy cancelled")
 			}
 		}
@@ -557,31 +553,30 @@ type deployLogReq struct {
 	msg      string
 }
 
-func deployLog(ctx context.Context, level api.LogLevel, loader logger.Loader, req deployLogReq, args ...interface{}) {
-	loaderActive := loader.IsActive()
-	loader.Stop()
+func (d *deployer) deployLog(ctx context.Context, level api.LogLevel, req deployLogReq, args ...interface{}) {
 	buildMsg := fmt.Sprintf("[%s %s] ", logger.Yellow("deploy"), req.taskSlug)
 	if req.taskSlug == "" {
 		buildMsg = fmt.Sprintf("[%s] ", logger.Yellow("deploy"))
 	}
 	if level == api.LogLevelDebug {
-		logger.Log(buildMsg+"["+logger.Blue("debug")+"] "+req.msg, args...)
+		d.logger.Log(buildMsg+"["+logger.Blue("debug")+"] "+req.msg, args...)
 	} else {
-		logger.Log(buildMsg+req.msg, args...)
-	}
-	if loaderActive {
-		loader.Start()
+		d.logger.Log(buildMsg+req.msg, args...)
 	}
 }
 
-func confirmBuildRoot(root string) error {
+func (d *deployer) confirmBuildRoot(root string) error {
 	if home, err := os.UserHomeDir(); err != nil {
 		return errors.Wrap(err, "getting home dir")
 	} else if home != root {
 		return nil
 	}
-	logger.Warning("This task's root is your home directory — deploying will attempt to upload the entire directory.")
-	logger.Warning("Consider moving your task entrypoint to a subdirectory.")
+	d.logger.Warning("This task's root is your home directory — deploying will attempt to upload the entire directory.")
+	d.logger.Warning("Consider moving your task entrypoint to a subdirectory.")
+	wasActive := d.logger.StopLoader()
+	if wasActive {
+		defer d.logger.StartLoader()
+	}
 	if ok, err := utils.Confirm("Are you sure?"); err != nil {
 		return err
 	} else if !ok {

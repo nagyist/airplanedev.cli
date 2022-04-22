@@ -102,10 +102,6 @@ type APIClient interface {
 	CreateDeployment(ctx context.Context, req CreateDeploymentRequest) (CreateDeploymentResponse, error)
 	CancelDeployment(ctx context.Context, req CancelDeploymentRequest) error
 	DeploymentURL(ctx context.Context, deploymentID string) string
-
-	GetBuild(ctx context.Context, id string) (res GetBuildResponse, err error)
-	GetBuildLogs(ctx context.Context, buildID string, prevToken string) (res GetBuildLogsResponse, err error)
-	CreateBuild(ctx context.Context, req CreateBuildRequest) (res CreateBuildResponse, err error)
 }
 
 var _ APIClient = Client{}
@@ -407,33 +403,6 @@ func (c Client) GetDeploymentLogs(ctx context.Context, deploymentID string, prev
 
 func (c Client) ListResources(ctx context.Context) (res libapi.ListResourcesResponse, err error) {
 	err = c.do(ctx, "GET", "/resources/list", nil, &res)
-	return
-}
-
-// GetBuild returns metadata about a hosted build.
-func (c Client) GetBuild(ctx context.Context, id string) (res GetBuildResponse, err error) {
-	q := url.Values{"id": []string{id}}
-	err = c.do(ctx, "GET", "/builds/get?"+q.Encode(), nil, &res)
-	return
-}
-
-// CreateBuild creates an Airplane build and returns metadata about it.
-func (c Client) CreateBuild(ctx context.Context, req CreateBuildRequest) (res CreateBuildResponse, err error) {
-	err = c.do(ctx, "POST", "/builds/create", req, &res)
-	return
-}
-
-func (c Client) GetBuildLogs(ctx context.Context, buildID string, prevToken string) (res GetBuildLogsResponse, err error) {
-	q := url.Values{
-		"buildID": []string{buildID},
-	}
-	if logger.EnableDebug {
-		q.Set("level", "debug")
-	}
-	if prevToken != "" {
-		q.Set("prev_token", prevToken)
-	}
-	err = c.do(ctx, "GET", "/builds/getLogs?"+q.Encode(), nil, &res)
 	return
 }
 

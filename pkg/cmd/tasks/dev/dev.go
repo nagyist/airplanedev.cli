@@ -110,7 +110,7 @@ func run(ctx context.Context, cfg config) error {
 	logger.Log("Locally running %s task %s", logger.Bold(taskInfo.name), logger.Gray("("+cfg.root.Client.TaskURL(taskInfo.slug)+")"))
 	logger.Log("")
 
-	cmds, closer, err := r.PrepareRun(ctx, &logger.StdErrLogger{}, runtime.PrepareRunOptions{
+	cmds, closer, err := r.PrepareRun(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), runtime.PrepareRunOptions{
 		Path:        entrypoint,
 		ParamValues: paramValues,
 		KindOptions: taskInfo.kindOptions,

@@ -15,7 +15,7 @@ import (
 )
 
 // ensureConfigVarsExist checks for config references in env and asks users to create any missing ones
-func ensureConfigVarsExist(ctx context.Context, client api.APIClient, def definitions.DefinitionInterface, envSlug string) error {
+func ensureConfigVarsExist(ctx context.Context, client api.APIClient, l logger.LoggerWithLoader, def definitions.DefinitionInterface, envSlug string) error {
 	// Check if configs exist for env vars populated from configs
 	env, err := def.GetEnv()
 	if err != nil {
@@ -23,7 +23,7 @@ func ensureConfigVarsExist(ctx context.Context, client api.APIClient, def defini
 	}
 	for _, v := range env {
 		if v.Config != nil {
-			if err := ensureConfigVarExists(ctx, client, ensureConfigVarExistsParams{
+			if err := ensureConfigVarExists(ctx, client, l, ensureConfigVarExistsParams{
 				ConfigName: *v.Config,
 				EnvSlug:    envSlug,
 			}); err != nil {
@@ -41,7 +41,7 @@ func ensureConfigVarsExist(ctx context.Context, client api.APIClient, def defini
 		if err != nil {
 			return err
 		}
-		if err := ensureConfigVarExists(ctx, client, ensureConfigVarExistsParams{
+		if err := ensureConfigVarExists(ctx, client, l, ensureConfigVarExistsParams{
 			ConfigName: ca.NameTag,
 			EnvSlug:    envSlug,
 		}); err != nil {
@@ -56,7 +56,7 @@ type ensureConfigVarExistsParams struct {
 	EnvSlug    string
 }
 
-func ensureConfigVarExists(ctx context.Context, client api.APIClient, params ensureConfigVarExistsParams) error {
+func ensureConfigVarExists(ctx context.Context, client api.APIClient, l logger.LoggerWithLoader, params ensureConfigVarExistsParams) error {
 	cn, err := configs.ParseName(params.ConfigName)
 	if err != nil {
 		return err
@@ -76,7 +76,11 @@ func ensureConfigVarExists(ctx context.Context, client api.APIClient, params ens
 		if !utils.CanPrompt() {
 			return errors.Errorf("config %s does not exist", params.ConfigName)
 		}
-		logger.Log("Your task definition references config %s, which does not exist", logger.Bold(params.ConfigName))
+		l.Log("Your task definition references config %s, which does not exist", logger.Bold(params.ConfigName))
+		wasActive := l.StopLoader()
+		if wasActive {
+			defer l.StartLoader()
+		}
 		confirmed, errc := utils.Confirm("Create it now?")
 		if errc != nil {
 			return errc

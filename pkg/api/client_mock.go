@@ -143,15 +143,3 @@ func (mc *MockClient) CancelDeployment(ctx context.Context, req CancelDeployment
 func (mc *MockClient) DeploymentURL(ctx context.Context, deploymentID string) string {
 	return fmt.Sprintf("https://airplane.dev/%s", deploymentID)
 }
-
-func (mc *MockClient) CreateBuild(ctx context.Context, req CreateBuildRequest) (res CreateBuildResponse, err error) {
-	panic("not implemented") // TODO: Implement
-}
-
-func (mc *MockClient) GetBuildLogs(ctx context.Context, buildID string, prevToken string) (res GetBuildLogsResponse, err error) {
-	panic("not implemented") // TODO: Implement
-}
-
-func (mc *MockClient) GetBuild(ctx context.Context, id string) (res GetBuildResponse, err error) {
-	panic("not implemented") // TODO: Implement
-}
