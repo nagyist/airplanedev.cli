@@ -172,7 +172,9 @@ func (c Client) GetRegistryToken(ctx context.Context) (res RegistryTokenResponse
 
 // CreateTask creates a task with the given request.
 func (c Client) CreateTask(ctx context.Context, req CreateTaskRequest) (res CreateTaskResponse, err error) {
-	err = c.do(ctx, "POST", "/tasks/create", req, &res)
+	err = c.do(ctx, "POST", encodeQueryString("/tasks/create", url.Values{
+		"envSlug": []string{req.EnvSlug},
+	}), req, &res)
 	return
 }
 
@@ -258,7 +260,9 @@ func (c Client) ListRuns(ctx context.Context, req ListRunsRequest) (ListRunsResp
 
 // RunTask runs a task.
 func (c Client) RunTask(ctx context.Context, req RunTaskRequest) (res RunTaskResponse, err error) {
-	err = c.do(ctx, "POST", "/tasks/execute", req, &res)
+	err = c.do(ctx, "POST", encodeQueryString("/tasks/execute", url.Values{
+		"envSlug": []string{req.EnvSlug},
+	}), req, &res)
 	return
 }
 
@@ -337,13 +341,17 @@ func (c Client) GetTaskMetadata(ctx context.Context, slug string) (res libapi.Ta
 
 // GetConfig returns a config by name and tag.
 func (c Client) GetConfig(ctx context.Context, req GetConfigRequest) (res GetConfigResponse, err error) {
-	err = c.do(ctx, "POST", "/configs/get", req, &res)
+	err = c.do(ctx, "POST", encodeQueryString("/configs/get", url.Values{
+		"envSlug": []string{req.EnvSlug},
+	}), req, &res)
 	return
 }
 
 // SetConfig sets a config, creating it if new and updating it if already exists.
 func (c Client) SetConfig(ctx context.Context, req SetConfigRequest) (err error) {
-	err = c.do(ctx, "POST", "/configs/set", req, nil)
+	err = c.do(ctx, "POST", encodeQueryString("/configs/set", url.Values{
+		"envSlug": []string{req.EnvSlug},
+	}), req, nil)
 	return
 }
 
@@ -379,7 +387,9 @@ func (c Client) DeleteAPIKey(ctx context.Context, req DeleteAPIKeyRequest) (err 
 }
 
 func (c Client) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) (res CreateDeploymentResponse, err error) {
-	err = c.do(ctx, "POST", "/deployments/create", req, &res)
+	err = c.do(ctx, "POST", encodeQueryString("/deployments/create", url.Values{
+		"envSlug": []string{req.EnvSlug},
+	}), req, &res)
 	return
 }
 
