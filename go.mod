@@ -40,7 +40,7 @@ require (
 )
 
 require (
-	github.com/airplanedev/lib v0.5.2
+	github.com/airplanedev/lib v0.5.4
 	github.com/gavv/httpexpect/v2 v2.3.1
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git-fixtures/v4 v4.3.1
