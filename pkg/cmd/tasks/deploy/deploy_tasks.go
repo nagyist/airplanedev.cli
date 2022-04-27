@@ -445,12 +445,15 @@ func (d *deployer) getDefinitionDiff(ctx context.Context, taskConfig discover.Ta
 		return []string{"(new task)"}, nil
 	}
 
-	// Task should always exist in this environment.
 	task, err := d.cfg.client.GetTask(ctx, libapi.GetTaskRequest{
 		Slug:    taskConfig.Def.GetSlug(),
 		EnvSlug: d.cfg.envSlug,
 	})
 	if err != nil {
+		if _, ok := err.(*libapi.TaskMissingError); ok {
+			// The task is being promoted into a new environment, proceed as normal.
+			return []string{"(task created in new environment)"}, nil
+		}
 		return nil, err
 	}
 
