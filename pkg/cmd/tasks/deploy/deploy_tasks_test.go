@@ -708,6 +708,22 @@ func TestGetDefinitionDiff(t *testing.T) {
 				"",
 			},
 		},
+		{
+			name: "deploy task into new environment",
+			taskConfig: discover.TaskConfig{
+				TaskID: "my_task",
+				Def: &definitions.Definition_0_3{
+					Name: "My Task",
+					Slug: "my_task",
+					Image: &definitions.ImageDefinition_0_3{
+						Image:   "ubuntu:latest",
+						Command: "echo 'hello world'",
+					},
+				},
+			},
+			existingTasks: map[string]libapi.Task{},
+			expected:      []string{"(task created in new environment)"},
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			require := require.New(t)
