@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"sync"
 	"syscall"
 	"time"
@@ -25,7 +26,6 @@ func GetCmd(cmd string, args []string, env map[string]interface{}) *exec.Cmd {
 	// Set up command to run and arguments.
 	execCmd := exec.Command(cmd, args...)
 	execCmd.Env = os.Environ()
-	execCmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	for k, v := range env {
 		execCmd.Env = append(execCmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
@@ -95,12 +95,13 @@ func (c *CmdExecutorManager) DeleteExecutor(executionID *string) error {
 type CmdExecutor struct {
 	ActiveCmd      *exec.Cmd
 	ActiveCmdMutex *sync.Mutex
-	SignalC        chan syscall.Signal
+	SignalC        chan os.Signal
 	ExecutionID    string
 }
 
 func newCmdExecutor(executionID string) *CmdExecutor {
-	signalC := make(chan syscall.Signal, 1)
+	signalC := make(chan os.Signal, 1)
+	signal.Notify(signalC, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	mutex := sync.Mutex{}
 	return &CmdExecutor{
 		ActiveCmd:      nil,
@@ -140,15 +141,8 @@ func (c *CmdExecutor) Run(outputC <-chan Output, outputDoneC <-chan interface{},
 			if !c.hasActiveProcess() {
 				return errors.New("unable to signal, command already exited")
 			}
-			// Kill all processes in the process group by sending signal to -pid.
-			err := syscall.Kill(-c.ActiveCmd.Process.Pid, signal)
-			// If for some reason we aren't able to kill the process group, try to at least kill the
-			// parent process.
-			if err != nil && err.Error() == "no such process" {
-				err = syscall.Kill(c.ActiveCmd.Process.Pid, signal)
-			}
-			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("unable to signal: %s", c.ExecutionID))
+			if err := c.ActiveCmd.Process.Signal(signal); err != nil {
+				return errors.Wrap(err, "unable to signal, command already exited")
 			}
 		case output := <-outputC:
 			if err := encoder.Encode(output); err != nil {
