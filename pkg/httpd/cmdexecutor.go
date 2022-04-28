@@ -141,7 +141,13 @@ func (c *CmdExecutor) Run(outputC <-chan Output, outputDoneC <-chan interface{},
 				return errors.New("unable to signal, command already exited")
 			}
 			// Kill all processes in the process group by sending signal to -pid.
-			if err := syscall.Kill(-c.ActiveCmd.Process.Pid, signal); err != nil {
+			err := syscall.Kill(-c.ActiveCmd.Process.Pid, signal)
+			// If for some reason we aren't able to kill the process group, try to at least kill the
+			// parent process.
+			if err != nil && err.Error() == "no such process" {
+				err = syscall.Kill(c.ActiveCmd.Process.Pid, signal)
+			}
+			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("unable to signal: %s", c.ExecutionID))
 			}
 		case output := <-outputC:
