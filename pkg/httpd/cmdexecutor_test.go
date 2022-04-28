@@ -292,7 +292,7 @@ func TestCmdExecutorManager(t *testing.T) {
 			defer wg.Done()
 			executor := manager.CreateExecutor()
 			time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
-			require.NoError(manager.DeleteExecutor(&executor.ExecutionID))
+			require.NoError(manager.DeleteExecutor(&executor.ExecutionID, true))
 		}(i)
 	}
 	wg.Wait()
@@ -300,10 +300,10 @@ func TestCmdExecutorManager(t *testing.T) {
 
 	// Missing exec id
 	missingID := "missing"
-	require.Error(manager.DeleteExecutor(&missingID))
+	require.Error(manager.DeleteExecutor(&missingID, true))
 	// Nothing to cancel
-	require.Error(manager.DeleteExecutor(nil))
-	require.Error(manager.DeleteExecutor(&missingID))
+	require.Error(manager.DeleteExecutor(nil, true))
+	require.Error(manager.DeleteExecutor(&missingID, true))
 
 	executor := manager.CreateExecutor()
 	stdoutPipe, stderrPipe, err := executor.Execute(exec.Command("sleep", "100"))
@@ -325,7 +325,7 @@ func TestCmdExecutorManager(t *testing.T) {
 	}()
 
 	require.Len(manager.Executors, 1)
-	require.NoError(manager.DeleteExecutor(nil))
+	require.NoError(manager.DeleteExecutor(nil, true))
 	require.Len(manager.Executors, 0)
 	wg.Wait()
 
@@ -347,7 +347,7 @@ func TestCmdExecutorManager(t *testing.T) {
 	}()
 
 	require.Len(manager.Executors, 1)
-	require.NoError(manager.DeleteExecutor(&executor.ExecutionID))
+	require.NoError(manager.DeleteExecutor(&executor.ExecutionID, true))
 	require.Len(manager.Executors, 0)
 	wg.Wait()
 }

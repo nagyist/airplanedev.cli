@@ -49,10 +49,10 @@ func (c *CmdExecutorManager) CreateExecutor() *CmdExecutor {
 	return executor
 }
 
-// DeleteExecutor deletes a executor from a global map of executions. If the executor is currently
-// running, we cancel it. If a nil executionID is passed, we default to deleting the only
+// DeleteExecutor deletes a executor from a global map of executions and returns the deleted executor.
+// Try to cancel the executor if tryCancel is set. If a nil executionID is passed, we default to deleting the only
 // executor in the global map if there is exactly one, otherwise we error.
-func (c *CmdExecutorManager) DeleteExecutor(executionID *string) error {
+func (c *CmdExecutorManager) DeleteExecutor(executionID *string, tryCancel bool) error {
 	cmdExecutor, err := func() (*CmdExecutor, error) {
 		c.Mutex.Lock()
 		defer c.Mutex.Unlock()
@@ -84,7 +84,7 @@ func (c *CmdExecutorManager) DeleteExecutor(executionID *string) error {
 		delete(c.Executors, idToDelete)
 		return cmdExecutor, nil
 	}()
-	if err != nil {
+	if err != nil || !tryCancel {
 		return err
 	}
 	return cmdExecutor.Cancel()

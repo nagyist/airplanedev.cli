@@ -62,9 +62,11 @@ func ExecuteCmdHandler(cmd string, args []string, manager *CmdExecutorManager, s
 
 		cmdExecutor := manager.CreateExecutor()
 		defer func() {
+			close(cmdExecutor.SignalC)
 			// It's possible that this executor has already been deleted if /cancel has been called on this executor, so we discard
-			// InvalidExecIDError.
-			if err := manager.DeleteExecutor(&cmdExecutor.ExecutionID); err != nil && errors.Is(err, &InvalidExecIDError{cmdExecutor.ExecutionID}) {
+			// InvalidExecIDError. Don't try to cancel the executor since this cleanup routine is called after
+			// cmdExector.Run, which handles processing signals, has returned.
+			if err := manager.DeleteExecutor(&cmdExecutor.ExecutionID, false); err != nil && errors.Is(err, &InvalidExecIDError{cmdExecutor.ExecutionID}) {
 				logger.Error("unable to delete executor: %+v", err)
 			}
 		}()
@@ -173,7 +175,7 @@ func CancelCmdHandler(manager *CmdExecutorManager) http.HandlerFunc {
 			http.Error(w, "invalid body", http.StatusBadRequest)
 			return
 		}
-		if err := manager.DeleteExecutor(req.ExecutionID); err != nil {
+		if err := manager.DeleteExecutor(req.ExecutionID, true); err != nil {
 			WriteHTTPError(w, r, err)
 			return
 		}
