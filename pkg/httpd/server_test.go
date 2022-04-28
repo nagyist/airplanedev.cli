@@ -44,17 +44,18 @@ func parseOutputs(s string, require *require.Assertions) []Output {
 
 func TestExecuteCmdSimpleEcho(t *testing.T) {
 	require := require.New(t)
-
+	slots := make(chan interface{}, 1)
+	slots <- true
+	serverDoneC := make(chan interface{})
 	h := getHttpExpect(
 		context.Background(),
 		t,
-		Route("echo", []string{"hello"}),
+		Route("echo", []string{"hello"}, slots, serverDoneC),
 	)
 	body := h.POST("/execute").
 		WithJSON(map[string]interface{}{}).
 		Expect().
 		Status(http.StatusOK).Body()
-
 	outputs := parseOutputs(body.Raw(), require)
 	execID := outputs[0].ExecutionID
 	require.Equal(
@@ -69,6 +70,9 @@ func TestExecuteCmdSimpleEcho(t *testing.T) {
 
 func TestExecuteCmdLongPrint(t *testing.T) {
 	require := require.New(t)
+	slots := make(chan interface{}, 1)
+	slots <- true
+	serverDoneC := make(chan interface{})
 
 	// Check that long output finishes correctly.
 	const numOutputs = 1000
@@ -80,7 +84,7 @@ func TestExecuteCmdLongPrint(t *testing.T) {
 	h := getHttpExpect(
 		context.Background(),
 		t,
-		Route("printf", []string{}),
+		Route("printf", []string{}, slots, serverDoneC),
 	)
 	body := h.POST("/execute").
 		WithJSON(ExecuteCmdRequest{
@@ -97,11 +101,14 @@ func TestExecuteCmdLongPrint(t *testing.T) {
 
 func TestExecuteCmdError(t *testing.T) {
 	require := require.New(t)
+	slots := make(chan interface{}, 1)
+	slots <- true
+	serverDoneC := make(chan interface{})
 
 	h := getHttpExpect(
 		context.Background(),
 		t,
-		Route("nonexistingbinary", []string{""}),
+		Route("nonexistingbinary", []string{""}, slots, serverDoneC),
 	)
 	body := h.POST("/execute").
 		WithJSON(map[string]interface{}{}).
@@ -118,11 +125,14 @@ func TestExecuteCmdError(t *testing.T) {
 
 func TestExecuteCmdExitError(t *testing.T) {
 	require := require.New(t)
+	slots := make(chan interface{}, 1)
+	slots <- true
+	serverDoneC := make(chan interface{})
 
 	h := getHttpExpect(
 		context.Background(),
 		t,
-		Route("grep", []string{""}),
+		Route("grep", []string{""}, slots, serverDoneC),
 	)
 	body := h.POST("/execute").
 		WithJSON(ExecuteCmdRequest{
@@ -144,11 +154,14 @@ func TestExecuteCmdExitError(t *testing.T) {
 }
 func TestExecuteCmdEnv(t *testing.T) {
 	require := require.New(t)
+	slots := make(chan interface{}, 1)
+	slots <- true
+	serverDoneC := make(chan interface{})
 
 	h := getHttpExpect(
 		context.Background(),
 		t,
-		Route("env", []string{}),
+		Route("env", []string{}, slots, serverDoneC),
 	)
 	body := h.POST("/execute").
 		WithJSON(ExecuteCmdRequest{
@@ -168,6 +181,9 @@ func TestExecuteCmdEnv(t *testing.T) {
 func TestExecuteCmdContextCancel(t *testing.T) {
 	require := require.New(t)
 	ctx, cancel := context.WithCancel(context.Background())
+	slots := make(chan interface{}, 1)
+	slots <- true
+	serverDoneC := make(chan interface{})
 
 	go func() {
 		time.Sleep(time.Second)
@@ -177,7 +193,7 @@ func TestExecuteCmdContextCancel(t *testing.T) {
 	h := getHttpExpect(
 		ctx,
 		t,
-		Route("sleep", []string{}),
+		Route("sleep", []string{}, slots, serverDoneC),
 	)
 	body := h.POST("/execute").
 		WithJSON(ExecuteCmdRequest{
@@ -197,11 +213,14 @@ func TestExecuteCmdContextCancel(t *testing.T) {
 
 func TestExecuteCmdCancel(t *testing.T) {
 	require := require.New(t)
+	slots := make(chan interface{}, 1)
+	slots <- true
+	serverDoneC := make(chan interface{})
 
 	h := getHttpExpect(
 		context.Background(),
 		t,
-		Route("sleep", []string{}),
+		Route("sleep", []string{}, slots, serverDoneC),
 	)
 
 	var wg sync.WaitGroup
@@ -272,6 +291,9 @@ func TestExecuteCmdCancel(t *testing.T) {
 func TestExecuteCmdContextCancelThenCmdCancel(t *testing.T) {
 	require := require.New(t)
 	ctx, cancel := context.WithCancel(context.Background())
+	slots := make(chan interface{}, 1)
+	slots <- true
+	serverDoneC := make(chan interface{})
 
 	go func() {
 		time.Sleep(time.Second)
@@ -281,7 +303,7 @@ func TestExecuteCmdContextCancelThenCmdCancel(t *testing.T) {
 	h := getHttpExpect(
 		ctx,
 		t,
-		Route("sleep", []string{}),
+		Route("sleep", []string{}, slots, serverDoneC),
 	)
 	body := h.POST("/execute").
 		WithJSON(ExecuteCmdRequest{
@@ -301,7 +323,7 @@ func TestExecuteCmdContextCancelThenCmdCancel(t *testing.T) {
 	h = getHttpExpect(
 		context.Background(),
 		t,
-		Route("sleep", []string{}),
+		Route("sleep", []string{}, slots, serverDoneC),
 	)
 	var wg sync.WaitGroup
 	wg.Add(1)

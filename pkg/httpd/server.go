@@ -34,8 +34,19 @@ type ExecuteCmdRequest struct {
 
 // ExecuteCmdHandler executes a command as a subprocess and streams the process's outputs to the client
 // via HTTP chunked encoding.
-func ExecuteCmdHandler(cmd string, args []string, manager *CmdExecutorManager) http.HandlerFunc {
+func ExecuteCmdHandler(cmd string, args []string, manager *CmdExecutorManager, slots chan interface{}, serverDoneC <-chan interface{}) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Consume a slot for each assignment. If we happened to get more execute requests
+		// than slots, then later processes will end up blocking on earlier processes.
+		select {
+		case <-slots:
+		case <-serverDoneC:
+			return
+		}
+		defer func() {
+			// Return the slot for future assignments
+			slots <- true
+		}()
 		var req ExecuteCmdRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "invalid body", http.StatusBadRequest)
@@ -175,14 +186,14 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "ok")
 }
 
-func Route(cmd string, args []string) *mux.Router {
+func Route(cmd string, args []string, slots chan interface{}, serverDoneC <-chan interface{}) *mux.Router {
 	router := mux.NewRouter()
 	mutex := sync.Mutex{}
 	manager := CmdExecutorManager{
 		Executors: map[string]*CmdExecutor{},
 		Mutex:     &mutex,
 	}
-	router.HandleFunc("/execute", ExecuteCmdHandler(cmd, args, &manager)).Methods("POST")
+	router.HandleFunc("/execute", ExecuteCmdHandler(cmd, args, &manager, slots, serverDoneC)).Methods("POST")
 	router.HandleFunc("/cancel", CancelCmdHandler(&manager)).Methods("POST")
 	router.HandleFunc("/healthz", healthCheckHandler).Methods("GET")
 	return router
@@ -193,9 +204,11 @@ func Route(cmd string, args []string) *mux.Router {
 func ServeWithGracefulShutdown(
 	ctx context.Context,
 	server *http.Server,
+	parallelism int,
+	slots chan interface{},
+	serverDoneC chan<- interface{},
 ) error {
 	signalChan := make(chan os.Signal, 1)
-	// TODO(eric): gracefully shutdown running executions
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
@@ -206,9 +219,15 @@ func ServeWithGracefulShutdown(
 		}
 	}()
 
-	<-signalChan
-	logger.Warning("server shutting down: waiting up to %s", shutdownTimeoutDuration)
+	sig := <-signalChan
+	logger.Warning("received signal %v, waiting for processes to finish", sig)
+	close(serverDoneC)
+	for i := 0; i < parallelism; i++ {
+		// Wait for any pending processes to finish before exiting.
+		<-slots
+	}
 
+	logger.Warning("server shutting down: waiting up to %s", shutdownTimeoutDuration)
 	ctx, cancel := context.WithTimeout(ctx, shutdownTimeoutDuration)
 	defer cancel()
 
