@@ -124,6 +124,10 @@ func (l *StdErrLogger) SuggestSteps(title string, steps ...string) {
 	SuggestSteps(title, steps...)
 }
 
+func prependTimeToMsg(msg string) string {
+	return time.Now().Format(time.RFC3339Nano) + ": " + msg
+}
+
 // Log writes a log message to stderr, followed by a newline. Printf-style
 // formatting is applied to msg using args.
 func Log(msg string, args ...interface{}) {
@@ -133,6 +137,10 @@ func Log(msg string, args ...interface{}) {
 	} else {
 		fmt.Fprintf(os.Stderr, msg+"\n", args...)
 	}
+}
+
+func LogWithTime(msg string, args ...interface{}) {
+	Log(prependTimeToMsg(msg), args...)
 }
 
 // Step prints a step that was performed.
@@ -156,9 +164,17 @@ func Error(msg string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, Red("Error: ")+msg+"\n", args...)
 }
 
+func ErrorWithTime(msg string, args ...interface{}) {
+	Error(prependTimeToMsg(msg), args...)
+}
+
 // Warning logs a warning message.
 func Warning(msg string, args ...interface{}) {
 	fmt.Fprint(os.Stderr, Yellow("[warning] "+msg+"\n", args...))
+}
+
+func WarningWithTime(msg string, args ...interface{}) {
+	Warning(prependTimeToMsg(msg), args...)
 }
 
 // Debug writes a log message to stderr, followed by a newline, if the CLI
@@ -178,6 +194,10 @@ func Debug(msg string, args ...interface{}) {
 	msgf = debugPrefix + strings.Join(strings.Split(msgf, "\n"), "\n"+debugPrefix)
 
 	fmt.Fprint(os.Stderr, msgf+"\n")
+}
+
+func DebugWithTime(msg string, args ...interface{}) {
+	Debug(prependTimeToMsg(msg), args...)
 }
 
 type Loader interface {

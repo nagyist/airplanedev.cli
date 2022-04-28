@@ -136,9 +136,9 @@ func (c *CmdExecutor) Run(outputC <-chan Output, outputDoneC <-chan interface{},
 	for {
 		select {
 		case signal := <-c.SignalC:
-			logger.Log("recieved signal: %v", signal)
+			logger.LogWithTime("recieved signal %v: %s", signal, c.ExecutionID)
 			if !c.hasActiveProcess() {
-				return errors.New("unable to signal, command already exited")
+				return errors.Errorf("unable to signal, command already exited: %s", c.ExecutionID)
 			}
 			// Kill all processes in the process group by sending signal to -pid.
 			err := syscall.Kill(-c.ActiveCmd.Process.Pid, signal)
@@ -171,7 +171,7 @@ func (c *CmdExecutor) Run(outputC <-chan Output, outputDoneC <-chan interface{},
 				}
 			}
 		case err := <-outputErrC:
-			logger.Log("recieved err: %v", err)
+			logger.WarningWithTime("recieved err %v: %s", c.ExecutionID, err)
 			return err
 		}
 	}
@@ -187,7 +187,7 @@ func (c *CmdExecutor) hasActiveProcess() bool {
 // the subprocess are finished being consumed.
 func (c *CmdExecutor) Wait() error {
 	if !c.hasActiveProcess() {
-		return errors.New("waiting on inactive command")
+		return errors.Errorf("waiting on inactive command: %s", c.ExecutionID)
 	}
 	err := c.ActiveCmd.Wait()
 	c.ActiveCmdMutex.Lock()
@@ -207,7 +207,6 @@ func (c *CmdExecutor) Execute(cmd *exec.Cmd) (io.ReadCloser, io.ReadCloser, erro
 			NewCmd:      cmd,
 		}
 	}
-	logger.Log("starting up: %s", cmd)
 
 	// Configure stdout/stderr pipes for streaming outputs.
 	stdoutPipe, err := cmd.StdoutPipe()
@@ -238,7 +237,7 @@ func (c *CmdExecutor) Cancel() error {
 	select {
 	case c.SignalC <- syscall.SIGTERM:
 	default:
-		logger.Warning("already processing signal, discarding sigterm")
+		logger.WarningWithTime("already processing signal, discarding SIGTERM: %s", c.ExecutionID)
 	}
 	sigintTimer := time.NewTimer(sigtermCancelWaitDuration)
 	sigkillTimer := time.NewTimer(sigtermCancelWaitDuration + sigkillCancelWaitDuration)
@@ -249,10 +248,13 @@ func (c *CmdExecutor) Cancel() error {
 			select {
 			case c.SignalC <- syscall.SIGKILL:
 			default:
-				logger.Warning("already processing signal, discarding sigkill")
+				logger.WarningWithTime("already processing signal, discarding SIGKILL: %s", c.ExecutionID)
 			}
 		case <-sigkillTimer.C:
-			return errors.New("unable to determine if process has been cancelled")
+			return errors.Errorf(
+				"unable to determine if process has been cancelled: %s",
+				c.ExecutionID,
+			)
 		case <-checkCancelledTicker.C:
 			if !c.hasActiveProcess() {
 				return nil

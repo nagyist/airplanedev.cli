@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -70,6 +71,9 @@ func ExecuteCmdHandler(cmd string, args []string, manager *CmdExecutorManager, s
 		}()
 
 		// Begin executing the command.
+		logger.LogWithTime("starting to execute: %s (%s)", cmdExecutor.ExecutionID,
+			strings.Join(append([]string{cmd}, append(args, req.Args...)...), " "),
+		)
 		stdoutPipe, stderrPipe, err := cmdExecutor.Execute(
 			GetCmd(cmd, append(args, req.Args...), req.Env),
 		)
@@ -118,6 +122,7 @@ func ExecuteCmdHandler(cmd string, args []string, manager *CmdExecutorManager, s
 		}
 		// Run the command until completion.
 		runErr := cmdExecutor.Run(outputC, outputDoneC, outputErrC, encoder)
+		logger.LogWithTime("waiting for process to complete: %s", cmdExecutor.ExecutionID)
 		if runErr == context.Canceled {
 			// Since the request context has been cancelled, there's no more content
 			// we can write.
@@ -130,7 +135,7 @@ func ExecuteCmdHandler(cmd string, args []string, manager *CmdExecutorManager, s
 				Status:      OutputStatusError,
 				ExecutionID: cmdExecutor.ExecutionID,
 			}); err != nil {
-				log.Fatalf("unable to write system error: %+v", err)
+				log.Fatalf("unable to write system error %s: %+v", cmdExecutor.ExecutionID, err)
 			}
 		}
 
@@ -150,6 +155,7 @@ func ExecuteCmdHandler(cmd string, args []string, manager *CmdExecutorManager, s
 				outputStatus = OutputStatusError
 			}
 		}
+		logger.LogWithTime("process completed: %s (exitMsg=%s, outputType=%s, outputStatus=%s)", cmdExecutor.ExecutionID, exitMsg, outputType, outputStatus)
 
 		if err := json.NewEncoder(w).Encode(Output{
 			Msg:         exitMsg,
@@ -173,6 +179,7 @@ func CancelCmdHandler(manager *CmdExecutorManager) http.HandlerFunc {
 			http.Error(w, "invalid body", http.StatusBadRequest)
 			return
 		}
+		logger.LogWithTime("received cancel %+v", req)
 		if err := manager.DeleteExecutor(req.ExecutionID); err != nil {
 			WriteHTTPError(w, r, err)
 			return
@@ -212,7 +219,7 @@ func ServeWithGracefulShutdown(
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		logger.Log("listening and serving on %s", server.Addr)
+		logger.LogWithTime("listening and serving on %s", server.Addr)
 		err := server.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			log.Fatalln(err)
@@ -220,14 +227,14 @@ func ServeWithGracefulShutdown(
 	}()
 
 	sig := <-signalChan
-	logger.Warning("received signal %v, waiting for processes to finish", sig)
+	logger.WarningWithTime("received signal %v, waiting for processes to finish", sig)
 	close(serverDoneC)
 	for i := 0; i < parallelism; i++ {
 		// Wait for any pending processes to finish before exiting.
 		<-slots
 	}
 
-	logger.Warning("server shutting down: waiting up to %s", shutdownTimeoutDuration)
+	logger.WarningWithTime("server shutting down: waiting up to %s", shutdownTimeoutDuration)
 	ctx, cancel := context.WithTimeout(ctx, shutdownTimeoutDuration)
 	defer cancel()
 
@@ -236,6 +243,6 @@ func ServeWithGracefulShutdown(
 		return err
 	}
 
-	logger.Warning("server shutdown successfully")
+	logger.WarningWithTime("server shutdown successfully")
 	return nil
 }
