@@ -50,13 +50,12 @@ func TestExecuteCmdSimpleEcho(t *testing.T) {
 	h := getHttpExpect(
 		context.Background(),
 		t,
-		Route("echo", []string{"hello"}, serverDoneC, slots),
+		Route("echo", []string{"hello"}, slots, serverDoneC),
 	)
 	body := h.POST("/execute").
 		WithJSON(map[string]interface{}{}).
 		Expect().
 		Status(http.StatusOK).Body()
-
 	outputs := parseOutputs(body.Raw(), require)
 	execID := outputs[0].ExecutionID
 	require.Equal(
