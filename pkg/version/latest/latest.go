@@ -60,6 +60,7 @@ func getLatest(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
 		// e.g. {"message":"API rate limit ..."}

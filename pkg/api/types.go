@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/airplanedev/lib/pkg/build"
 	// Some types are imported from lib. Eventually we might want all of these types to live in lib. For now,
 	// we can move tasks from here -> lib on an as-needed basis.
 	libapi "github.com/airplanedev/lib/pkg/api"
+	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/ojson"
 )
 

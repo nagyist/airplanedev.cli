@@ -16,95 +16,93 @@ func init() {
 }
 
 func TestWatcher(t *testing.T) {
-	t.Run("paginates logs", func(t *testing.T) {
-		var ctx = context.Background()
-		var assert = require.New(t)
-		var lcm = logsClientMock{}
+	var ctx = context.Background()
+	var assert = require.New(t)
+	var lcm = logsClientMock{}
 
-		var a = LogItem{
-			Timestamp: time.Now().Add(time.Second),
-			InsertID:  "001",
-			Text:      "A",
+	var a = LogItem{
+		Timestamp: time.Now().Add(time.Second),
+		InsertID:  "001",
+		Text:      "A",
+	}
+	var b = LogItem{
+		Timestamp: time.Now().Add(2 * time.Second),
+		InsertID:  "002",
+		Text:      "B",
+	}
+
+	var responses = []GetLogsResponse{
+		{Logs: []LogItem{a}, PrevPageToken: "001"},
+		{Logs: []LogItem{b}, PrevPageToken: "002"},
+	}
+
+	outputs := GetOutputsResponse{
+		Outputs: Outputs{
+			V: ojson.NewObject().SetAndReturn("output", []interface{}{
+				ojson.NewObject().SetAndReturn("test key", "test value"),
+			}),
+		},
+	}
+
+	var reqs int64
+	lcm.getLogs = func(runID, prevToken string) (GetLogsResponse, error) {
+		atomic.AddInt64(&reqs, 1)
+		if prevToken == "" {
+			return responses[0], nil
 		}
-		var b = LogItem{
-			Timestamp: time.Now().Add(2 * time.Second),
-			InsertID:  "002",
-			Text:      "B",
-		}
-
-		var responses = []GetLogsResponse{
-			{Logs: []LogItem{a}, PrevPageToken: "001"},
-			{Logs: []LogItem{b}, PrevPageToken: "002"},
-		}
-
-		outputs := GetOutputsResponse{
-			Outputs: Outputs{
-				V: ojson.NewObject().SetAndReturn("output", []interface{}{
-					ojson.NewObject().SetAndReturn("test key", "test value"),
-				}),
-			},
-		}
-
-		var reqs int64
-		lcm.getLogs = func(runID, prevToken string) (GetLogsResponse, error) {
-			atomic.AddInt64(&reqs, 1)
-			if prevToken == "" {
-				return responses[0], nil
-			}
-			foundResponseIndex := -1
-			for i, r := range responses {
-				if prevToken == r.Logs[0].InsertID {
-					foundResponseIndex = i
-				}
-			}
-			if foundResponseIndex == -1 {
-				return GetLogsResponse{}, nil
-			}
-			if foundResponseIndex+1 == len(responses) {
-				return GetLogsResponse{}, nil
-			}
-			return responses[foundResponseIndex+1], nil
-		}
-
-		lcm.getRun = func(string) (resp GetRunResponse, err error) {
-			var run = Run{Status: RunActive}
-
-			if atomic.LoadInt64(&reqs) > 1 {
-				run.Status = RunSucceeded
-			}
-
-			return GetRunResponse{run}, nil
-		}
-
-		lcm.getOutputs = func(string) (GetOutputsResponse, error) {
-			fmt.Println("get outputs", outputs)
-			return outputs, nil
-		}
-
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
-		var w = newWatcher(ctx, lcm, "run_id")
-		var state RunState
-		var printed []string
-
-		for {
-			if state = w.Next(); state.Err() != nil {
-				break
-			}
-
-			for _, l := range state.Logs {
-				printed = append(printed, l.Text)
-			}
-
-			if state.Stopped() {
-				break
+		foundResponseIndex := -1
+		for i, r := range responses {
+			if prevToken == r.Logs[0].InsertID {
+				foundResponseIndex = i
 			}
 		}
+		if foundResponseIndex == -1 {
+			return GetLogsResponse{}, nil
+		}
+		if foundResponseIndex+1 == len(responses) {
+			return GetLogsResponse{}, nil
+		}
+		return responses[foundResponseIndex+1], nil
+	}
 
-		assert.NoError(state.Err())
-		assert.Equal([]string{"A", "B"}, printed)
-	})
+	lcm.getRun = func(string) (resp GetRunResponse, err error) {
+		var run = Run{Status: RunActive}
+
+		if atomic.LoadInt64(&reqs) > 1 {
+			run.Status = RunSucceeded
+		}
+
+		return GetRunResponse{run}, nil
+	}
+
+	lcm.getOutputs = func(string) (GetOutputsResponse, error) {
+		fmt.Println("get outputs", outputs)
+		return outputs, nil
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	var w = newWatcher(ctx, lcm, "run_id")
+	var state RunState
+	var printed []string
+
+	for {
+		if state = w.Next(); state.Err() != nil {
+			break
+		}
+
+		for _, l := range state.Logs {
+			printed = append(printed, l.Text)
+		}
+
+		if state.Stopped() {
+			break
+		}
+	}
+
+	assert.NoError(state.Err())
+	assert.Equal([]string{"A", "B"}, printed)
 }
 
 type logsClientMock struct {

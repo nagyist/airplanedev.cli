@@ -1,7 +1,8 @@
-package print
+package print //nolint: predeclared
 
 import (
 	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/logger"
 	libapi "github.com/airplanedev/lib/pkg/api"
 )
 
@@ -70,5 +71,11 @@ func Print(obj interface{}, defaultPrintFunc func()) {
 		f.Encode(obj)
 	default:
 		defaultPrintFunc()
+	}
+}
+
+func handleErr(err error) {
+	if err != nil {
+		logger.Error("failed to print output: %+v", err)
 	}
 }

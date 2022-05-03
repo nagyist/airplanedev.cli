@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Checks if `go mod tidy` produces any changes and prints the diff.
-# 
+#
 # Based on https://github.com/google/cadvisor/blob/master/build/check_gotidy.sh
 # Could eventually be replaced by `go mod tidy --check`:
 # https://github.com/golang/go/issues/27005

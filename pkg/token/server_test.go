@@ -16,17 +16,17 @@ func TestServer(t *testing.T) {
 		srv, err := NewServer(ctx, "https://fake.airplane.so/cli/success")
 		assert.NoError(err)
 
-		send(t, srv.URL(), "token")
+		send(ctx, t, srv.URL(), "token")
 
 		assert.Equal("token", <-srv.Token())
 		assert.NoError(srv.Close())
 	})
 }
 
-func send(t testing.TB, url, token string) {
+func send(ctx context.Context, t testing.TB, url, token string) {
 	t.Helper()
 
-	req, err := http.NewRequest("GET", url+"?token="+token, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url+"?token="+token, nil)
 	if err != nil {
 		t.Fatalf("new request: %s", err)
 	}

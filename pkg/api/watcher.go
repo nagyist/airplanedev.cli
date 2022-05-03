@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -126,8 +127,11 @@ func (w *Watcher) send(ctx context.Context, state RunState) {
 
 // Fetch fetches the next state.
 func (w *Watcher) fetch(ctx context.Context, prev RunState) (RunState, error) {
-	var eg, subctx = errgroup.WithContext(ctx)
-	var state = new(RunState)
+	eg, subctx := errgroup.WithContext(ctx)
+
+	// mu guards state
+	mu := sync.Mutex{}
+	state := &RunState{}
 
 	eg.Go(func() error {
 		run, err := w.client.GetRun(subctx, w.runID)
@@ -135,16 +139,25 @@ func (w *Watcher) fetch(ctx context.Context, prev RunState) (RunState, error) {
 			return errors.Wrap(err, "get run")
 		}
 
-		state.Status = run.Run.Status
+		mu.Lock()
+		stopped := state.Stopped()
+		mu.Unlock()
 
-		if state.Stopped() {
+		outputs := Outputs{}
+		if stopped {
 			resp, err := w.client.GetOutputs(subctx, w.runID)
 			if err != nil {
 				return errors.Wrap(err, "get outputs")
 			}
 
-			state.Outputs = resp.Outputs
+			outputs = resp.Outputs
 		}
+
+		mu.Lock()
+		state.Status = run.Run.Status
+		state.Outputs = outputs
+		mu.Unlock()
+
 		return nil
 	})
 
@@ -155,11 +168,14 @@ func (w *Watcher) fetch(ctx context.Context, prev RunState) (RunState, error) {
 		}
 		SortLogs(resp.Logs)
 
+		mu.Lock()
 		state.Logs = resp.Logs
 		state.PrevToken = prev.PrevToken
 		if len(resp.Logs) > 0 {
 			state.PrevToken = resp.PrevPageToken
 		}
+		mu.Unlock()
+
 		return nil
 	})
 

@@ -5,3 +5,4 @@ bin/
 .buildinfo
 .google_credentials
 .idea/
+coverage.out

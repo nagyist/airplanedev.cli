@@ -31,7 +31,7 @@ func New(c *cli.Config) *cobra.Command {
 			# Pass in a value to the prompt
 			$ airplane configs set --secret db/url
 			Config value: my_value_here
-			
+
 			# Pass in a value by piping it in via stdin
 			$ cat my_secret_value.txt | airplane configs set --secret secret_config
 

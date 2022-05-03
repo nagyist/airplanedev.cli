@@ -7,6 +7,7 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/airplanedev/lib v0.5.6
 	github.com/airplanedev/ojson v0.1.0
+	github.com/airplanedev/trap v0.1.0
 	github.com/briandowns/spinner v1.18.1
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.13.0

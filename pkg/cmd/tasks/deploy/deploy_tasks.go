@@ -159,6 +159,8 @@ func (d *deployer) DeployTasks(ctx context.Context, taskConfigs []discover.TaskC
 
 	err = d.waitForDeploy(ctx, d.cfg.client, resp.Deployment.ID)
 	if errors.Is(err, context.Canceled) {
+		// Since `ctx` is cancelled, use a fresh context to cancel the deployment.
+		//nolint: contextcheck
 		cerr := d.cfg.client.CancelDeployment(context.Background(), api.CancelDeploymentRequest{ID: resp.Deployment.ID})
 		if cerr != nil {
 			d.logger.Warning("Failed to cancel deployment: %v", cerr)

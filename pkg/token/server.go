@@ -83,7 +83,7 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (srv *Server) start() {
 	srv.wg.Add(1)
 	go func() {
-		srv.server.Serve(srv.lstn)
+		srv.server.Serve(srv.lstn) //nolint:errcheck
 		srv.wg.Done()
 	}()
 }

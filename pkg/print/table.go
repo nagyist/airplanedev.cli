@@ -1,12 +1,12 @@
+//nolint: predeclared
 package print
 
 import (
 	"encoding/json"
-	"strconv"
-	"strings"
-
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
@@ -169,7 +169,7 @@ func (t Table) outputs(outputs api.Outputs) {
 	case *ojson.Object:
 		for _, key := range t.KeyOrder() {
 			fmt.Fprintln(os.Stdout, "")
-			fmt.Fprintln(os.Stdout, logger.Bold(formatOutputName(key)))
+			fmt.Fprintln(os.Stdout, logger.Bold(key))
 
 			v, _ := t.Get(key)
 			switch t2 := v.(type) {
@@ -197,11 +197,6 @@ func (t Table) outputs(outputs api.Outputs) {
 			fmt.Fprintf(os.Stdout, "%v\n", v)
 		}
 	}
-}
-
-// formatOutputName converts output_name -> Output Name.
-func formatOutputName(key string) string {
-	return strings.Title(strings.ReplaceAll(key, "_", " "))
 }
 
 func parseArrayOfJsonObject(values []interface{}) (bool, []*ojson.Object) {

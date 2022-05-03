@@ -458,7 +458,9 @@ func (c Client) do(ctx context.Context, method, path string, payload, reply inte
 
 	if resp != nil {
 		defer func() {
-			io.Copy(ioutil.Discard, resp.Body)
+			if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
+				logger.Error("failed to read request body: %+v", err)
+			}
 			resp.Body.Close()
 		}()
 	}

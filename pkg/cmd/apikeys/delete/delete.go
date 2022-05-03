@@ -1,4 +1,4 @@
-package delete
+package delete //nolint: predeclared
 
 import (
 	"context"

@@ -23,7 +23,7 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
-	"github.com/airplanedev/cli/pkg/trap"
+	"github.com/airplanedev/trap"
 	isatty "github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 )

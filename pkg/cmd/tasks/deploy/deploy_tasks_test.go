@@ -724,7 +724,7 @@ func TestGetDefinitionDiff(t *testing.T) {
 				},
 			},
 			existingTasks: map[string]libapi.Task{
-				"my_task": libapi.Task{
+				"my_task": {
 					ID:        "my_task",
 					Slug:      "my_task",
 					Name:      "My Task",
@@ -750,7 +750,7 @@ func TestGetDefinitionDiff(t *testing.T) {
 				},
 			},
 			existingTasks: map[string]libapi.Task{
-				"my_task": libapi.Task{
+				"my_task": {
 					ID:        "my_task",
 					Slug:      "my_task",
 					Name:      "My Task",
