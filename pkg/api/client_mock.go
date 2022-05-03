@@ -80,6 +80,7 @@ func (mc *MockClient) UpdateTask(ctx context.Context, req libapi.UpdateTaskReque
 	task.Resources = req.Resources
 	task.Kind = req.Kind
 	task.KindOptions = req.KindOptions
+	task.Runtime = req.Runtime
 	task.Repo = req.Repo
 	if req.RequireExplicitPermissions != nil {
 		task.RequireExplicitPermissions = *req.RequireExplicitPermissions

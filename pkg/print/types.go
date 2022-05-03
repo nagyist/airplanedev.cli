@@ -26,6 +26,7 @@ type printTask struct {
 	Resources                  libapi.Resources          `json:"resources" yaml:"resources"`
 	Kind                       build.TaskKind            `json:"builder" yaml:"builder"`
 	KindOptions                build.KindOptions         `json:"builderConfig" yaml:"builderConfig"`
+	Runtime                    build.TaskRuntime         `json:"runtime" yaml:"runtime"`
 	Repo                       string                    `json:"repo" yaml:"repo"`
 	RequireExplicitPermissions bool                      `json:"requireExplicitPermissions" yaml:"-"`
 	Permissions                libapi.Permissions        `json:"permissions" yaml:"-"`

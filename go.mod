@@ -5,19 +5,19 @@ go 1.17
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.4
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021 // indirect
-	github.com/andybalholm/brotli v1.0.4 // indirect
-	github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible // indirect
-	github.com/blang/semver/v4 v4.0.0 // indirect
+	github.com/airplanedev/lib v0.5.6
+	github.com/airplanedev/ojson v0.1.0
+	github.com/briandowns/spinner v1.18.1
 	github.com/dustin/go-humanize v1.0.0
-	github.com/evanw/esbuild v0.14.37 // indirect
 	github.com/fatih/color v1.13.0
 	github.com/getsentry/sentry-go v0.13.0
+	github.com/go-git/go-billy/v5 v5.3.1
+	github.com/go-git/go-git-fixtures/v4 v4.3.1
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/golang-jwt/jwt/v4 v4.4.1
-	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gosimple/slug v1.12.0
 	github.com/hashicorp/go-retryablehttp v0.7.1
+	github.com/hexops/gotextdiff v1.0.3
 	github.com/joho/godotenv v1.4.0
 	github.com/kr/text v0.2.0
 	github.com/mattn/go-isatty v0.0.14
@@ -28,23 +28,9 @@ require (
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.1
-	github.com/ulikunitz/xz v0.5.10 // indirect
-	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
-)
-
-require (
-	github.com/airplanedev/ojson v0.1.0
-	github.com/briandowns/spinner v1.18.1
-)
-
-require (
-	github.com/airplanedev/lib v0.5.5
-	github.com/go-git/go-billy/v5 v5.3.1
-	github.com/go-git/go-git-fixtures/v4 v4.3.1
-	github.com/hexops/gotextdiff v1.0.3
 	golang.org/x/term v0.0.0-20220411215600-e5f449aeb171
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
 
 require (
@@ -53,8 +39,12 @@ require (
 	github.com/Microsoft/hcsshim v0.9.1 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20210428141323-04723f9f07d7 // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
+	github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021 // indirect
 	github.com/airplanedev/path v0.0.1 // indirect
 	github.com/alessio/shellescape v1.4.1 // indirect
+	github.com/andybalholm/brotli v1.0.4 // indirect
+	github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible // indirect
+	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/containerd/cgroups v1.0.1 // indirect
 	github.com/containerd/containerd v1.5.7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -64,12 +54,14 @@ require (
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dsnet/compress v0.0.2-0.20210315054119-f66993602bf5 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
+	github.com/evanw/esbuild v0.14.38 // indirect
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/goccy/go-yaml v1.9.5 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
@@ -98,9 +90,11 @@ require (
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
+	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/xanzy/ssh-agent v0.3.0 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
+	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	go.opencensus.io v0.23.0 // indirect

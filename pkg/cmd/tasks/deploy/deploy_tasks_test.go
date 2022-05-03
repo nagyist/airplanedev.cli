@@ -78,6 +78,7 @@ func TestDeployTasks(t *testing.T) {
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
+								"runtime":     libBuild.TaskRuntimeLegacy,
 								"shim":        "true",
 							},
 							UploadID: "uploadID",
@@ -91,6 +92,57 @@ func TestDeployTasks(t *testing.T) {
 									"entrypoint":  "",
 									"nodeVersion": "",
 								},
+								Runtime: "",
+								ExecuteRules: libapi.UpdateExecuteRulesRequest{
+									DisallowSelfApprove: pointers.Bool(false),
+									RequireRequests:     pointers.Bool(false),
+								},
+								InterpolationMode: pointers.String("jst"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			desc: "deploys a durable task",
+			taskConfigs: []discover.TaskConfig{
+				{
+					TaskID:   "tsk123",
+					TaskRoot: fixturesPath,
+					Def: &definitions.Definition_0_3{
+						Name:    "My Task",
+						Slug:    "my_durable_task",
+						Node:    &definitions.NodeDefinition_0_3{},
+						Runtime: libBuild.TaskRuntimeDurable,
+					},
+				},
+			},
+			existingTasks: map[string]libapi.Task{"my_durable_task": {ID: "tsk123", Slug: "my_durable_task", Name: "My Task", InterpolationMode: "jst"}},
+			deploys: []api.CreateDeploymentRequest{
+				{
+					Tasks: []api.DeployTask{
+						{
+							TaskID: "tsk123",
+							Kind:   "node",
+							BuildConfig: libBuild.BuildConfig{
+								"entrypoint":  "",
+								"nodeVersion": "",
+								"runtime":     libBuild.TaskRuntimeDurable,
+								"shim":        "true",
+							},
+							UploadID: "uploadID",
+							UpdateTaskRequest: libapi.UpdateTaskRequest{
+								Slug:       "my_durable_task",
+								Name:       "My Task",
+								Parameters: libapi.Parameters{},
+								Configs:    &[]libapi.ConfigAttachment{},
+								Kind:       "node",
+								KindOptions: libBuild.KindOptions{
+									"entrypoint":  "",
+									"nodeVersion": "",
+								},
+								Runtime: libBuild.TaskRuntimeDurable,
 								ExecuteRules: libapi.UpdateExecuteRulesRequest{
 									DisallowSelfApprove: pointers.Bool(false),
 									RequireRequests:     pointers.Bool(false),
@@ -224,6 +276,7 @@ func TestDeployTasks(t *testing.T) {
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
+								"runtime":     libBuild.TaskRuntimeLegacy,
 								"shim":        "true",
 							},
 							UploadID: "uploadID",
@@ -268,15 +321,18 @@ func TestDeployTasks(t *testing.T) {
 				{
 					Tasks: []api.DeployTask{
 						{
-							TaskID:      "tsk123",
-							Kind:        "image",
-							BuildConfig: libBuild.BuildConfig{},
+							TaskID: "tsk123",
+							Kind:   "image",
+							BuildConfig: libBuild.BuildConfig{
+								"runtime": libBuild.TaskRuntimeLegacy,
+							},
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "image",
+								Runtime:    "",
 								Command:    []string{},
 								Image:      pointers.String("myImage"),
 								Arguments:  []string{},
@@ -314,6 +370,7 @@ func TestDeployTasks(t *testing.T) {
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
+								"runtime":     libBuild.TaskRuntimeLegacy,
 								"shim":        "true",
 							},
 
@@ -327,7 +384,8 @@ func TestDeployTasks(t *testing.T) {
 									"entrypoint":  "",
 									"nodeVersion": "",
 								},
-								Image: pointers.String("imageURL"),
+								Runtime: "",
+								Image:   pointers.String("imageURL"),
 								ExecuteRules: libapi.UpdateExecuteRulesRequest{
 									DisallowSelfApprove: pointers.Bool(false),
 									RequireRequests:     pointers.Bool(false),
@@ -374,6 +432,7 @@ func TestDeployTasks(t *testing.T) {
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
+								"runtime":     libBuild.TaskRuntimeLegacy,
 								"shim":        "true",
 							},
 							UploadID: "uploadID",
@@ -436,6 +495,7 @@ func TestDeployTasks(t *testing.T) {
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
+								"runtime":     libBuild.TaskRuntimeLegacy,
 								"shim":        "true",
 							},
 							UploadID: "uploadID",
@@ -449,6 +509,7 @@ func TestDeployTasks(t *testing.T) {
 									"entrypoint":  "",
 									"nodeVersion": "",
 								},
+								Runtime: "",
 								ExecuteRules: libapi.UpdateExecuteRulesRequest{
 									DisallowSelfApprove: pointers.Bool(false),
 									RequireRequests:     pointers.Bool(false),
@@ -508,6 +569,7 @@ func TestDeployTasks(t *testing.T) {
 								"entrypoint":      "./fixtures/test.sql",
 								"query":           "SELECT 1;\n",
 								"queryArgs":       map[string]interface{}{},
+								"runtime":         libBuild.TaskRuntimeLegacy,
 								"transactionMode": "auto",
 							},
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
@@ -524,6 +586,7 @@ func TestDeployTasks(t *testing.T) {
 									"queryArgs":       map[string]interface{}{},
 									"transactionMode": "auto",
 								},
+								Runtime: "",
 								Resources: map[string]string{
 									"db": "db_id",
 								},
@@ -568,7 +631,8 @@ func TestDeployTasks(t *testing.T) {
 				RepoGetter:   &MockGitRepoGetter{Repo: tC.gitRepo},
 			})
 			for i, absEntrypoint := range tC.absoluteEntrypoints {
-				tC.taskConfigs[i].Def.SetAbsoluteEntrypoint(absEntrypoint)
+				err := tC.taskConfigs[i].Def.SetAbsoluteEntrypoint(absEntrypoint)
+				require.NoError(err)
 			}
 			err := d.DeployTasks(context.Background(), tC.taskConfigs, map[string]bool{})
 			if tC.expectedError != nil {
