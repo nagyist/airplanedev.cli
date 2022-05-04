@@ -55,6 +55,5 @@ func run(ctx context.Context, cfg config) error {
 		return errors.Wrap(err, "get config")
 	}
 
-	print.Config(resp.Config)
-	return nil
+	return print.Config(resp.Config)
 }

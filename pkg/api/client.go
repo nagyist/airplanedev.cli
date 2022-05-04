@@ -417,7 +417,7 @@ func (c Client) ListResources(ctx context.Context) (res libapi.ListResourcesResp
 }
 
 // Do sends a request with `method`, `path`, `payload` and `reply`.
-func (c Client) do(ctx context.Context, method, path string, payload, reply interface{}) error {
+func (c Client) do(ctx context.Context, method, path string, payload, reply interface{}) (err error) {
 	var url = "https://" + c.host() + "/v0" + path
 	var body io.Reader
 
@@ -458,8 +458,11 @@ func (c Client) do(ctx context.Context, method, path string, payload, reply inte
 
 	if resp != nil {
 		defer func() {
-			io.Copy(ioutil.Discard, resp.Body)
+			_, rerr := io.Copy(ioutil.Discard, resp.Body)
 			resp.Body.Close()
+			if rerr != nil {
+				err = rerr
+			}
 		}()
 	}
 
@@ -484,7 +487,7 @@ func (c Client) do(ctx context.Context, method, path string, payload, reply inte
 		}
 	}
 
-	return nil
+	return err
 }
 
 // Host returns the configured endpoint.

@@ -78,6 +78,5 @@ func run(ctx context.Context, c *cli.Config, cfg config) error {
 		return errors.Wrap(err, "list runs")
 	}
 
-	print.Runs(resp.Runs)
-	return nil
+	return print.Runs(resp.Runs)
 }

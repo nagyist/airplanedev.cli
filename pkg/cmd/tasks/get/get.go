@@ -56,6 +56,5 @@ func run(ctx context.Context, cfg config) error {
 		return err
 	}
 
-	print.Task(task)
-	return nil
+	return print.Task(task)
 }

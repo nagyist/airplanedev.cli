@@ -55,9 +55,9 @@ func NewServer(ctx context.Context, loginSuccessURL string) (*Server, error) {
 	srv.server = &http.Server{
 		Handler: srv,
 	}
-	srv.start()
+	err = srv.start()
 
-	return srv, nil
+	return srv, err
 }
 
 // URL returns the server's URL.
@@ -80,12 +80,13 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // Start starts the server.
-func (srv *Server) start() {
+func (srv *Server) start() (err error) {
 	srv.wg.Add(1)
 	go func() {
-		srv.server.Serve(srv.lstn)
+		err = srv.server.Serve(srv.lstn)
 		srv.wg.Done()
 	}()
+	return err
 }
 
 // Close closes the server.

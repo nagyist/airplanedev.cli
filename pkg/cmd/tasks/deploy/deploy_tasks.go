@@ -153,6 +153,10 @@ func (d *deployer) DeployTasks(ctx context.Context, taskConfigs []discover.TaskC
 	if err != nil {
 		return err
 	}
+	if resp.NumTasksUpdated == 0 {
+		d.logger.Warning("nothing to deploy")
+		return nil
+	}
 
 	d.deployLog(ctx, api.LogLevelInfo, deployLogReq{msg: logger.Gray("Creating deployment...")})
 	d.logger.Log(logger.Purple(fmt.Sprintf("\nView deployment: %s\n", d.cfg.client.DeploymentURL(ctx, resp.Deployment.ID))))

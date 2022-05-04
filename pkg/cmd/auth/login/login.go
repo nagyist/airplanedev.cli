@@ -147,8 +147,6 @@ func login(ctx context.Context, c *cli.Config) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	case tkn := <-srv.Token():
-		writeToken(tkn)
+		return writeToken(tkn)
 	}
-
-	return nil
 }

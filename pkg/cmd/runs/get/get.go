@@ -36,6 +36,5 @@ func run(ctx context.Context, c *cli.Config, id string) error {
 		return err
 	}
 
-	print.Run(resp.Run)
-	return nil
+	return print.Run(resp.Run)
 }

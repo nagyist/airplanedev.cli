@@ -31,6 +31,5 @@ func run(ctx context.Context, c *cli.Config) error {
 		return errors.Wrap(err, "creating API key")
 	}
 
-	print.APIKeys(resp.APIKeys)
-	return nil
+	return print.APIKeys(resp.APIKeys)
 }

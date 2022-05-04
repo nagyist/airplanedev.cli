@@ -196,7 +196,9 @@ func run(ctx context.Context, cfg config) error {
 		return errors.Wrap(err, "waiting")
 	}
 
-	print.Outputs(api.Outputs(o))
+	if err := print.Outputs(api.Outputs(o)); err != nil {
+		return err
+	}
 
 	analytics.Track(cfg.root, "Run Executed Locally", map[string]interface{}{
 		"kind":         taskInfo.kind,

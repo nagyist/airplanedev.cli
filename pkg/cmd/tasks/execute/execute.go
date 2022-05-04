@@ -153,7 +153,9 @@ func run(ctx context.Context, cfg config) error {
 		return err
 	}
 
-	print.Outputs(state.Outputs)
+	if err := print.Outputs(state.Outputs); err != nil {
+		return err
+	}
 
 	analytics.Track(cfg.root, "Run Executed", map[string]interface{}{
 		"task_id":   task.ID,

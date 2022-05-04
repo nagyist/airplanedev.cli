@@ -22,8 +22,10 @@ import (
 // Its zero-value is ready for use.
 type Table struct{}
 
+var _ Formatter = Table{}
+
 // APIKeys implementation.
-func (t Table) apiKeys(apiKeys []api.APIKey) {
+func (t Table) apiKeys(apiKeys []api.APIKey) error {
 	tw := tablewriter.NewWriter(os.Stdout)
 	tw.SetBorder(false)
 	tw.SetHeader([]string{"id", "created at", "name"})
@@ -37,10 +39,11 @@ func (t Table) apiKeys(apiKeys []api.APIKey) {
 	}
 
 	tw.Render()
+	return nil
 }
 
 // Tasks implementation.
-func (t Table) tasks(tasks []libapi.Task) {
+func (t Table) tasks(tasks []libapi.Task) error {
 	tw := tablewriter.NewWriter(os.Stdout)
 	tw.SetBorder(false)
 	tw.SetHeader([]string{"name", "slug", "builder", "parameters"})
@@ -83,10 +86,11 @@ func (t Table) tasks(tasks []libapi.Task) {
 	}
 
 	tw.Render()
+	return nil
 }
 
 // Task implementation.
-func (t Table) task(task libapi.Task) {
+func (t Table) task(task libapi.Task) error {
 	builderStr := task.Kind
 
 	fmt.Fprintln(os.Stdout, "Name:       ", task.Name)
@@ -125,10 +129,11 @@ func (t Table) task(task libapi.Task) {
 
 		tw.Render()
 	}
+	return nil
 }
 
 // Runs implementation.
-func (t Table) runs(runs []api.Run) {
+func (t Table) runs(runs []api.Run) error {
 	tw := tablewriter.NewWriter(os.Stdout)
 	tw.SetBorder(false)
 	tw.SetHeader([]string{"id", "task", "status", "created at", "ended at"})
@@ -155,15 +160,16 @@ func (t Table) runs(runs []api.Run) {
 	}
 
 	tw.Render()
+	return nil
 }
 
 // Run implementation.
-func (t Table) run(run api.Run) {
-	t.runs([]api.Run{run})
+func (t Table) run(run api.Run) error {
+	return t.runs([]api.Run{run})
 }
 
 // print outputs as table
-func (t Table) outputs(outputs api.Outputs) {
+func (t Table) outputs(outputs api.Outputs) error {
 	// Sort the output keys to match the UI.
 	switch t := ojson.Value(outputs).V.(type) {
 	case *ojson.Object:
@@ -197,6 +203,7 @@ func (t Table) outputs(outputs api.Outputs) {
 			fmt.Fprintf(os.Stdout, "%v\n", v)
 		}
 	}
+	return nil
 }
 
 // formatOutputName converts output_name -> Output Name.
@@ -279,7 +286,7 @@ func getCellValue(value interface{}) string {
 }
 
 // print config as table
-func (t Table) config(config api.Config) {
+func (t Table) config(config api.Config) error {
 	// Nothing fancy, just the value
 	var valueStr string
 	if config.IsSecret {
@@ -288,4 +295,5 @@ func (t Table) config(config api.Config) {
 		valueStr = config.Value
 	}
 	fmt.Fprintln(os.Stdout, valueStr)
+	return nil
 }

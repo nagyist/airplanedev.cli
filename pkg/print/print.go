@@ -15,60 +15,61 @@ var (
 
 // Formatter represents an output formatter.
 type Formatter interface {
-	apiKeys([]api.APIKey)
-	tasks([]libapi.Task)
-	task(libapi.Task)
-	runs([]api.Run)
-	run(api.Run)
-	outputs(api.Outputs)
-	config(api.Config)
+	apiKeys([]api.APIKey) error
+	tasks([]libapi.Task) error
+	task(libapi.Task) error
+	runs([]api.Run) error
+	run(api.Run) error
+	outputs(api.Outputs) error
+	config(api.Config) error
 }
 
 // APIKeys prints one or more API keys.
-func APIKeys(apiKeys []api.APIKey) {
-	DefaultFormatter.apiKeys(apiKeys)
+func APIKeys(apiKeys []api.APIKey) error {
+	return DefaultFormatter.apiKeys(apiKeys)
 }
 
 // Tasks prints the given slice of tasks using the default formatter.
-func Tasks(tasks []libapi.Task) {
-	DefaultFormatter.tasks(tasks)
+func Tasks(tasks []libapi.Task) error {
+	return DefaultFormatter.tasks(tasks)
 }
 
 // Task prints a single task.
-func Task(task libapi.Task) {
-	DefaultFormatter.task(task)
+func Task(task libapi.Task) error {
+	return DefaultFormatter.task(task)
 }
 
 // Runs prints the given runs.
-func Runs(runs []api.Run) {
-	DefaultFormatter.runs(runs)
+func Runs(runs []api.Run) error {
+	return DefaultFormatter.runs(runs)
 }
 
 // Run prints a single run.
-func Run(run api.Run) {
-	DefaultFormatter.run(run)
+func Run(run api.Run) error {
+	return DefaultFormatter.run(run)
 }
 
 // Outputs prints a collection of outputs.
-func Outputs(outputs api.Outputs) {
-	DefaultFormatter.outputs(outputs)
+func Outputs(outputs api.Outputs) error {
+	return DefaultFormatter.outputs(outputs)
 }
 
 // Config prints a single config var.
-func Config(config api.Config) {
-	DefaultFormatter.config(config)
+func Config(config api.Config) error {
+	return DefaultFormatter.config(config)
 }
 
 // Print outputs obj based on DefaultFormatter
 // If JSON or YAML, uses that formatter to encode obj
 // Otherwise, calls defaultPrintFunc to render the obj
-func Print(obj interface{}, defaultPrintFunc func()) {
+func Print(obj interface{}, defaultPrintFunc func()) error {
 	switch f := DefaultFormatter.(type) {
 	case *JSON:
-		f.Encode(obj)
+		return f.Encode(obj)
 	case YAML:
-		f.Encode(obj)
+		return f.Encode(obj)
 	default:
 		defaultPrintFunc()
 	}
+	return nil
 }

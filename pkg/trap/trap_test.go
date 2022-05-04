@@ -19,7 +19,7 @@ func reset() {
 func TestTrap(t *testing.T) {
 	t.Run("cancels the context on signal", func(t *testing.T) {
 		var assert = require.New(t)
-		var sigc = make(chan os.Signal)
+		var sigc = make(chan os.Signal, 1)
 
 		signal.Notify(sigc, os.Interrupt)
 
@@ -36,7 +36,7 @@ func TestTrap(t *testing.T) {
 		reset()
 
 		var assert = require.New(t)
-		var sigc = make(chan os.Signal)
+		var sigc = make(chan os.Signal, 1)
 		var code = -1
 
 		signal.Notify(sigc, os.Interrupt)
@@ -56,7 +56,7 @@ func TestTrap(t *testing.T) {
 
 	t.Run("exit with 1 when ForceExit is true and a second signal is sent", func(t *testing.T) {
 		var assert = require.New(t)
-		var sigc = make(chan os.Signal)
+		var sigc = make(chan os.Signal, 1)
 		var code = -1
 
 		signal.Notify(sigc, os.Interrupt)
