@@ -165,7 +165,7 @@ func (t Table) run(run api.Run) {
 // print outputs as table
 func (t Table) outputs(outputs api.Outputs) {
 	// Sort the output keys to match the UI.
-	switch t := ojson.Value(outputs).V.(type) {
+	switch t := outputs.V.(type) {
 	case *ojson.Object:
 		for _, key := range t.KeyOrder() {
 			fmt.Fprintln(os.Stdout, "")
@@ -192,9 +192,10 @@ func (t Table) outputs(outputs api.Outputs) {
 			printOutputArray(t)
 		}
 	default:
-		v, err := json.Marshal(t)
-		if err != nil {
-			fmt.Fprintf(os.Stdout, "%v\n", v)
+		if v, err := json.Marshal(t); err != nil {
+			handleErr(err)
+		} else {
+			fmt.Fprintf(os.Stdout, "%s\n", v)
 		}
 	}
 }
@@ -251,6 +252,8 @@ func newTableWriter() *tablewriter.Table {
 	tw.SetBorder(true)
 	tw.SetAutoWrapText(true)
 	tw.SetColWidth(70)
+	// Do not automatically uppercase table headers:
+	tw.SetAutoFormatHeaders(false)
 	return tw
 }
 

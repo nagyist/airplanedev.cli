@@ -140,6 +140,7 @@ func (w *Watcher) fetch(ctx context.Context, prev RunState) (RunState, error) {
 		}
 
 		mu.Lock()
+		state.Status = run.Run.Status
 		stopped := state.Stopped()
 		mu.Unlock()
 
@@ -154,7 +155,6 @@ func (w *Watcher) fetch(ctx context.Context, prev RunState) (RunState, error) {
 		}
 
 		mu.Lock()
-		state.Status = run.Run.Status
 		state.Outputs = outputs
 		mu.Unlock()
 
