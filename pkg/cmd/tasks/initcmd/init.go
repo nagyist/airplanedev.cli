@@ -63,7 +63,7 @@ func New(c *cli.Config) *cobra.Command {
 			$ airplane tasks init --from task_slug ./folder/my_task.js
 			$ airplane tasks init --from task_slug ./folder/my_task.task.json
 			$ airplane tasks init --from task_slug ./folder/my_task.task.yaml
-			$ airplane tasks init --from github.com/airplanedev/examples/node/hello-world-javascript/airplane.task.yaml
+			$ airplane tasks init --from github.com/airplanedev/examples/node/hello-world-javascript/node_hello_world_js.task.yaml
 		`),
 		Args: cobra.MaximumNArgs(1),
 		PersistentPreRunE: utils.WithParentPersistentPreRunE(func(cmd *cobra.Command, args []string) error {

@@ -32,6 +32,7 @@ type printTask struct {
 	Permissions                libapi.Permissions        `json:"permissions" yaml:"-"`
 	ExecuteRules               libapi.ExecuteRules       `json:"executeRules" yaml:"executeRules"`
 	Timeout                    int                       `json:"timeout" yaml:"timeout"`
+	IsArchived                 bool                      `json:"isArchived" yaml:"isArchived"`
 	InterpolationMode          string                    `json:"-" yaml:"-"`
 }
 
