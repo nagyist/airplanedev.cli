@@ -37,6 +37,8 @@ type config struct {
 	assumeNo  bool
 
 	envSlug string
+
+	dev bool
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -84,8 +86,13 @@ func New(c *cli.Config) *cobra.Command {
 		logger.Debug("error: %s", err)
 	}
 
-	// Unhide this flag once we release environments.
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
+
+	// Unhide this flag once we release tasks-as-code.
+	cmd.Flags().BoolVar(&cfg.dev, "dev", false, "Dev mode: warning, not guaranteed to work and subject to change.")
+	if err := cmd.Flags().MarkHidden("dev"); err != nil {
+		logger.Debug("error: %s", err)
+	}
 
 	return cmd
 }
@@ -130,6 +137,9 @@ func run(ctx context.Context, cfg config) error {
 		Logger:  l,
 		EnvSlug: cfg.envSlug,
 	})
+	if cfg.dev {
+		d.AppDiscoverers = append(d.AppDiscoverers, &discover.AppDefnDiscoverer{Client: cfg.client, Logger: l})
+	}
 
 	// If you're trying to deploy a .sql file, try to find a defn file instead.
 	for i, path := range cfg.paths {
@@ -142,7 +152,7 @@ func run(ctx context.Context, cfg config) error {
 		}
 	}
 
-	taskConfigs, err := d.DiscoverTasks(ctx, cfg.paths...)
+	taskConfigs, appConfigs, err := d.Discover(ctx, cfg.paths...)
 	if err != nil {
 		return err
 	}
@@ -157,7 +167,7 @@ func run(ctx context.Context, cfg config) error {
 		}
 	}
 
-	return NewDeployer(cfg, l, DeployerOpts{}).DeployTasks(ctx, taskConfigs, createdTasks)
+	return NewDeployer(cfg, l, DeployerOpts{}).Deploy(ctx, taskConfigs, appConfigs, createdTasks)
 }
 
 func HandleMissingTask(cfg config, l logger.LoggerWithLoader, createdTasks *map[string]bool) func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.TaskMetadata, error) {
@@ -229,7 +239,7 @@ func HandleMissingTask(cfg config, l logger.LoggerWithLoader, createdTasks *map[
 // the script discoverer. Used to find relevant definition files if the user accidentally deploys a
 // script file when a defn file exists.
 func findDefinitionForScript(ctx context.Context, cfg config, l logger.LoggerWithLoader, defnDiscoverer *discover.DefnDiscoverer, taskConfig discover.TaskConfig) (*discover.TaskConfig, error) {
-	if taskConfig.Source != discover.TaskConfigSourceScript {
+	if taskConfig.Source != discover.ConfigSourceScript {
 		return nil, nil
 	}
 

@@ -21,7 +21,7 @@ type taskInfo struct {
 
 func getTaskInfo(ctx context.Context, cfg config) (taskInfo, error) {
 	switch definitions.GetTaskDefFormat(cfg.file) {
-	case definitions.TaskDefFormatYAML, definitions.TaskDefFormatJSON:
+	case definitions.DefFormatYAML, definitions.DefFormatJSON:
 		return getTaskInfoFromDefn(ctx, cfg)
 	default:
 		return getTaskInfoFromScript(ctx, cfg)

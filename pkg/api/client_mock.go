@@ -11,6 +11,7 @@ import (
 
 type MockClient struct {
 	Tasks                 map[string]libapi.Task
+	Apps                  map[string]libapi.App
 	Deploys               []CreateDeploymentRequest
 	GetDeploymentResponse *Deployment
 	Resources             []libapi.Resource
@@ -143,4 +144,12 @@ func (mc *MockClient) CancelDeployment(ctx context.Context, req CancelDeployment
 // DeploymentURL returns a URL for a deployment.
 func (mc *MockClient) DeploymentURL(ctx context.Context, deploymentID string) string {
 	return fmt.Sprintf("https://airplane.dev/%s", deploymentID)
+}
+
+func (mc *MockClient) GetApp(ctx context.Context, req libapi.GetAppRequest) (res libapi.App, err error) {
+	a, ok := mc.Apps[req.Slug]
+	if !ok {
+		return libapi.App{}, &libapi.AppMissingError{AppURL: "api/", Slug: req.Slug}
+	}
+	return a, nil
 }

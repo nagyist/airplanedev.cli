@@ -29,7 +29,7 @@ func TestFindDefinition(t *testing.T) {
 				Def: &definitions.Definition_0_3{
 					Slug: "my_task",
 				},
-				Source: discover.TaskConfigSourceDefn,
+				Source: discover.ConfigSourceDefn,
 			},
 			expectedNil: true,
 		},
@@ -43,7 +43,7 @@ func TestFindDefinition(t *testing.T) {
 				Def: &definitions.Definition_0_3{
 					Slug: "my_task",
 				},
-				Source: discover.TaskConfigSourceScript,
+				Source: discover.ConfigSourceScript,
 			},
 			expectedNil: false,
 		},
@@ -57,7 +57,7 @@ func TestFindDefinition(t *testing.T) {
 				Def: &definitions.Definition_0_3{
 					Slug: "my_task",
 				},
-				Source: discover.TaskConfigSourceScript,
+				Source: discover.ConfigSourceScript,
 			},
 			expectedNil: true,
 		},
@@ -80,7 +80,7 @@ func TestFindDefinition(t *testing.T) {
 				require.Nil(tc)
 			} else {
 				require.NotNil(tc)
-				assert.Equal(discover.TaskConfigSourceDefn, tc.Source)
+				assert.Equal(discover.ConfigSourceDefn, tc.Source)
 			}
 		})
 	}

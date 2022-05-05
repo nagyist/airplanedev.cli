@@ -35,7 +35,7 @@ func IsSlug(text string) bool {
 func SlugFrom(file string) (string, error) {
 	format := definitions.GetTaskDefFormat(file)
 	switch format {
-	case definitions.TaskDefFormatYAML, definitions.TaskDefFormatJSON:
+	case definitions.DefFormatYAML, definitions.DefFormatJSON:
 		return slugFromDefn(file)
 	default:
 		return slugFromScript(file)

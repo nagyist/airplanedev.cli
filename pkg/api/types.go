@@ -279,8 +279,18 @@ type DeployTask struct {
 	GitFilePath       string                   `json:"gitFilePath"`
 }
 
+type DeployApp struct {
+	ID       string `json:"id"`
+	UploadID string `json:"uploadID"`
+	// Path from the git root to the entrypoint of the app if the app was deployed
+	// from a git repository.
+	GitFilePath string `json:"gitFilePath"`
+	// TODO: add UpdateAppRequest
+}
+
 type CreateDeploymentRequest struct {
 	Tasks       []DeployTask `json:"tasks"`
+	Apps        []DeployApp  `json:"apps"`
 	GitMetadata GitMetadata  `json:"gitMetadata"`
 	EnvSlug     string       `json:"envSlug"`
 }
@@ -309,6 +319,7 @@ const (
 type CreateDeploymentResponse struct {
 	Deployment       Deployment `json:"deployment"`
 	NumTasksUpdated  int        `json:"numTasksUpdated"`
+	NumAppsUpdated   int        `json:"numAppsUpdated"`
 	NumBuildsCreated int        `json:"numBuildsCreated"`
 }
 
@@ -321,4 +332,15 @@ type Deployment struct {
 	CancelledAt  *time.Time `json:"cancelledAt,omitempty"`
 	FailedAt     *time.Time `json:"failedAt,omitempty"`
 	FailedReason string     `json:"failedReason,omitempty"`
+}
+
+type App struct {
+	ID          string     `json:"id"`
+	Slug        string     `json:"slug"`
+	ArchivedAt  *time.Time `json:"archivedAt"`
+	ArchivedBy  *string    `json:"archivedBy"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	CreatedBy   string     `json:"createdBy"`
+	CreatedAt   time.Time  `json:"createdAt"`
 }

@@ -69,28 +69,29 @@ func NewDeployer(cfg config, l logger.LoggerWithLoader, opts DeployerOpts) *depl
 	}
 }
 
-// DeployTasks deploys all taskConfigs as Airplane tasks.
-func (d *deployer) DeployTasks(ctx context.Context, taskConfigs []discover.TaskConfig, createdTasks map[string]bool) error {
+// Deploy deploys all configs.
+func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig, appConfigs []discover.AppConfig, createdTasks map[string]bool) error {
 	var err error
 	if len(d.cfg.changedFiles) > 0 {
 		taskConfigs, err = d.filterTaskConfigsByChangedFiles(ctx, taskConfigs)
 		if err != nil {
 			return err
 		}
+		// TODO implement for apps
 	}
 
-	if len(taskConfigs) == 0 {
-		d.logger.Log("No tasks to deploy")
+	if len(taskConfigs) == 0 && len(appConfigs) == 0 {
+		d.logger.Log("Nothing to deploy")
 		return nil
 	}
 
-	if err := d.printPreDeploySummary(ctx, taskConfigs, createdTasks); err != nil {
+	if err := d.printPreDeploySummary(ctx, taskConfigs, appConfigs, createdTasks); err != nil {
 		return err
 	}
 
 	var uploadIDs map[string]string
 	if !d.cfg.local {
-		uploadIDs, err = d.tarAndUploadTasks(ctx, taskConfigs)
+		uploadIDs, err = d.tarAndUploadBatch(ctx, taskConfigs, appConfigs)
 		if err != nil {
 			return err
 		}
@@ -109,6 +110,39 @@ func (d *deployer) DeployTasks(ctx context.Context, taskConfigs []discover.TaskC
 			return err
 		}
 		tasksToDeploy = append(tasksToDeploy, taskToDeploy)
+
+		// Get the root directory of the git repo with which the task is associated.
+		var gitRoot string
+		if repo != nil {
+			w, err := repo.Worktree()
+			if err == nil {
+				gitRoot = w.Filesystem.Root()
+			}
+		}
+		gitRoots[gitRoot] = true
+	}
+	var appsToDeploy []api.DeployApp
+	for _, ac := range appConfigs {
+		repo, err = d.repoGetter.GetGitRepo(ac.Root)
+		if err != nil {
+			d.logger.Debug("failed to get git repo for %s: %v", ac.Root, err)
+		}
+
+		var filePath string
+		if repo != nil {
+			filePath, err = GetEntrypointRelativeToGitRoot(repo, ac.Root)
+			if err != nil {
+				d.logger.Debug("failed to get entrypoint relative to git root %s: %v", ac.Root, err)
+			}
+		}
+
+		appToDeploy := api.DeployApp{
+			ID:          ac.ID,
+			UploadID:    uploadIDs[ac.ID],
+			GitFilePath: filePath,
+		}
+
+		appsToDeploy = append(appsToDeploy, appToDeploy)
 
 		// Get the root directory of the git repo with which the task is associated.
 		var gitRoot string
@@ -147,6 +181,7 @@ func (d *deployer) DeployTasks(ctx context.Context, taskConfigs []discover.TaskC
 
 	resp, err := d.cfg.client.CreateDeployment(ctx, api.CreateDeploymentRequest{
 		Tasks:       tasksToDeploy,
+		Apps:        appsToDeploy,
 		GitMetadata: gitMeta,
 		EnvSlug:     d.cfg.envSlug,
 	})
@@ -317,8 +352,8 @@ More information: https://apn.sh/jst-upgrade`)
 	}, nil
 }
 
-// tarAndUploadTasks concurrently tars and uploads tasks that need building.
-func (d *deployer) tarAndUploadTasks(ctx context.Context, taskConfigs []discover.TaskConfig) (map[string]string, error) {
+// tarAndUploadBatch concurrently tars and uploads configs that need building.
+func (d *deployer) tarAndUploadBatch(ctx context.Context, taskConfigs []discover.TaskConfig, appConfigs []discover.AppConfig) (map[string]string, error) {
 	uploadIDs := make(map[string]string)
 	var mu = sync.Mutex{}
 	g, ctx := errgroup.WithContext(ctx)
@@ -347,23 +382,38 @@ func (d *deployer) tarAndUploadTasks(ctx context.Context, taskConfigs []discover
 			return nil
 		})
 	}
+
+	for _, ac := range appConfigs {
+		ac := ac
+		g.Go(func() error {
+			uploadID, err := d.tarAndUpload(ctx, ac.Slug, ac.Root)
+			if err != nil {
+				return err
+			}
+			mu.Lock()
+			uploadIDs[ac.ID] = uploadID
+			mu.Unlock()
+			return nil
+		})
+	}
+
 	groupErr := g.Wait()
 	return uploadIDs, groupErr
 }
 
-func (d *deployer) tarAndUpload(ctx context.Context, taskSlug, taskRoot string) (string, error) {
-	if err := d.confirmBuildRoot(taskRoot); err != nil {
+func (d *deployer) tarAndUpload(ctx context.Context, slug, root string) (string, error) {
+	if err := d.confirmBuildRoot(root); err != nil {
 		return "", err
 	}
 
-	d.deployLog(ctx, api.LogLevelInfo, deployLogReq{taskSlug, logger.Gray("Packaging and uploading %s...", taskRoot)})
+	d.deployLog(ctx, api.LogLevelInfo, deployLogReq{slug, logger.Gray("Packaging and uploading %s...", root)})
 
-	uploadID, sizeBytes, err := d.archiver.Archive(ctx, taskRoot)
+	uploadID, sizeBytes, err := d.archiver.Archive(ctx, root)
 	if err != nil {
 		return "", err
 	}
 	if sizeBytes > 0 {
-		d.deployLog(ctx, api.LogLevelInfo, deployLogReq{taskSlug, logger.Gray("Uploaded %s build archive.",
+		d.deployLog(ctx, api.LogLevelInfo, deployLogReq{slug, logger.Gray("Uploaded %s build archive.",
 			humanize.Bytes(uint64(sizeBytes)),
 		)})
 	}
@@ -388,12 +438,14 @@ func (d *deployer) filterTaskConfigsByChangedFiles(ctx context.Context, taskConf
 	return filteredTaskConfigs, nil
 }
 
-func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []discover.TaskConfig, createdTasks map[string]bool) error {
+func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []discover.TaskConfig, appConfigs []discover.AppConfig, createdTasks map[string]bool) error {
 	noun := "task"
 	if len(taskConfigs) > 1 {
 		noun = fmt.Sprintf("%ss", noun)
 	}
-	d.logger.Log("Deploying %v %v:\n", len(taskConfigs), noun)
+	if len(taskConfigs) > 0 {
+		d.logger.Log("Deploying %v %v:\n", len(taskConfigs), noun)
+	}
 	for _, tc := range taskConfigs {
 		slug := tc.Def.GetSlug()
 		kind, _, _ := tc.Def.GetKindAndOptions()
@@ -411,7 +463,7 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []disc
 		}
 
 		// Log definition file if this came from a definition file.
-		if tc.Source == discover.TaskConfigSourceDefn {
+		if tc.Source == discover.ConfigSourceDefn {
 			defPath := relpath(tc.Def.GetDefnFilePath())
 			d.logger.Log("Definition file: %s", defPath)
 		}
@@ -419,7 +471,7 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []disc
 		d.logger.Log("URL: %s", d.cfg.client.TaskURL(slug))
 
 		// Skip printing diff if this didn't come from a defn file.
-		if tc.Source == discover.TaskConfigSourceDefn {
+		if tc.Source == discover.ConfigSourceDefn {
 			difflines, err := d.getDefinitionDiff(ctx, tc, createdTasks[tc.TaskID])
 			if err != nil {
 				return err
@@ -436,6 +488,19 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []disc
 			}
 		}
 
+		d.logger.Log("")
+	}
+
+	noun = "app"
+	if len(appConfigs) > 1 {
+		noun = fmt.Sprintf("%ss", noun)
+	}
+	if len(appConfigs) > 0 {
+		d.logger.Log("Deploying %v %v:\n", len(appConfigs), noun)
+	}
+	for _, ac := range appConfigs {
+		d.logger.Log(logger.Bold(ac.Slug))
+		d.logger.Log("Root directory: %s", relpath(ac.Root))
 		d.logger.Log("")
 	}
 
@@ -466,14 +531,14 @@ func (d *deployer) getDefinitionDiff(ctx context.Context, taskConfig discover.Ta
 	if err != nil {
 		return nil, err
 	}
-	oldYAML, err := oldDef.Marshal(definitions.TaskDefFormatYAML)
+	oldYAML, err := oldDef.Marshal(definitions.DefFormatYAML)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error marshalling current task definition")
 	}
 	oldYAMLStr := string(oldYAML)
 	oldLabel := fmt.Sprintf("a/%s", defPath)
 
-	newYAML, err := taskConfig.Def.Marshal(definitions.TaskDefFormatYAML)
+	newYAML, err := taskConfig.Def.Marshal(definitions.DefFormatYAML)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error marshalling new task definition")
 	}
@@ -576,7 +641,7 @@ func (d *deployer) confirmBuildRoot(root string) error {
 	} else if home != root {
 		return nil
 	}
-	d.logger.Warning("This task's root is your home directory — deploying will attempt to upload the entire directory.")
+	d.logger.Warning("This root is your home directory — deploying will attempt to upload the entire directory.")
 	d.logger.Warning("Consider moving your task entrypoint to a subdirectory.")
 	wasActive := d.logger.StopLoader()
 	if wasActive {

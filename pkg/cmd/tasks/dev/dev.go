@@ -259,7 +259,7 @@ func getDevEnv(r runtime.Interface, path string) (map[string]string, error) {
 func entrypointFrom(file string) (string, error) {
 	format := definitions.GetTaskDefFormat(file)
 	switch format {
-	case definitions.TaskDefFormatYAML, definitions.TaskDefFormatJSON:
+	case definitions.DefFormatYAML, definitions.DefFormatJSON:
 		return entrypointFromDefn(file)
 	default:
 		path, err := filepath.Abs(file)

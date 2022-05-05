@@ -577,7 +577,7 @@ func promptForNewTask(file string, info *newTaskInfo) error {
 	defFormat := definitions.GetTaskDefFormat(file)
 	ext := filepath.Ext(file)
 	base := strings.TrimSuffix(filepath.Base(file), ext)
-	if defFormat != definitions.TaskDefFormatUnknown {
+	if defFormat != definitions.DefFormatUnknown {
 		// Trim off the .task part, too
 		base = strings.TrimSuffix(base, ".task")
 	}

@@ -102,6 +102,8 @@ type APIClient interface {
 	CreateDeployment(ctx context.Context, req CreateDeploymentRequest) (CreateDeploymentResponse, error)
 	CancelDeployment(ctx context.Context, req CancelDeploymentRequest) error
 	DeploymentURL(ctx context.Context, deploymentID string) string
+
+	GetApp(ctx context.Context, req libapi.GetAppRequest) (libapi.App, error)
 }
 
 var _ APIClient = Client{}
@@ -333,6 +335,23 @@ func (c Client) GetTaskMetadata(ctx context.Context, slug string) (res libapi.Ta
 		return res, &libapi.TaskMissingError{
 			AppURL: c.appURL().String(),
 			Slug:   slug,
+		}
+	}
+
+	return
+}
+
+// GetApp fetches an app. If the app does not exist, a *AppMissingError is returned.
+func (c Client) GetApp(ctx context.Context, req libapi.GetAppRequest) (res libapi.App, err error) {
+	err = c.do(ctx, "GET", encodeQueryString("/apps/get", url.Values{
+		"slug": []string{req.Slug},
+		"id":   []string{req.ID},
+	}), nil, &res)
+
+	if err, ok := err.(Error); ok && err.Code == 404 {
+		return res, &libapi.AppMissingError{
+			AppURL: c.appURL().String(),
+			Slug:   req.Slug,
 		}
 	}
 
