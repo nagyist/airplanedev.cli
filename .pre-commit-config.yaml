@@ -1,12 +1,6 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
-  - repo: https://github.com/golangci/golangci-lint
-    rev: v1.45.2
-    hooks:
-      - id: golangci-lint
-        args:
-          - --timeout=5m
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.2.0
     hooks:
