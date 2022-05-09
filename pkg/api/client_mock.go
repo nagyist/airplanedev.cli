@@ -60,8 +60,11 @@ func (mc *MockClient) GetConfig(ctx context.Context, req GetConfigRequest) (res 
 	return GetConfigResponse{}, errors.Errorf("config %s does not exist", req.Name)
 }
 
-func (mc *MockClient) TaskURL(slug string) string {
-	return "api/t/" + slug
+func (mc *MockClient) TaskURL(slug string, envSlug string) string {
+	if envSlug != "" {
+		return fmt.Sprintf("api/t/%s?__env=%s", slug, envSlug)
+	}
+	return fmt.Sprintf("api/t/%s", slug)
 }
 
 func (mc *MockClient) UpdateTask(ctx context.Context, req libapi.UpdateTaskRequest) (res UpdateTaskResponse, err error) {
@@ -142,7 +145,10 @@ func (mc *MockClient) CancelDeployment(ctx context.Context, req CancelDeployment
 }
 
 // DeploymentURL returns a URL for a deployment.
-func (mc *MockClient) DeploymentURL(ctx context.Context, deploymentID string) string {
+func (mc *MockClient) DeploymentURL(deploymentID string, envSlug string) string {
+	if envSlug != "" {
+		return fmt.Sprintf("https://airplane.dev/%s?__env=%s", deploymentID, envSlug)
+	}
 	return fmt.Sprintf("https://airplane.dev/%s", deploymentID)
 }
 

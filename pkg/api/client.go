@@ -87,7 +87,7 @@ type APIClient interface {
 	ListTasks(ctx context.Context, envSlug string) (res ListTasksResponse, err error)
 	CreateTask(ctx context.Context, req CreateTaskRequest) (res CreateTaskResponse, err error)
 	UpdateTask(ctx context.Context, req libapi.UpdateTaskRequest) (res UpdateTaskResponse, err error)
-	TaskURL(slug string) string
+	TaskURL(slug string, envSlug string) string
 
 	ListResources(ctx context.Context) (res libapi.ListResourcesResponse, err error)
 
@@ -101,7 +101,7 @@ type APIClient interface {
 	GetDeployment(ctx context.Context, id string) (res Deployment, err error)
 	CreateDeployment(ctx context.Context, req CreateDeploymentRequest) (CreateDeploymentResponse, error)
 	CancelDeployment(ctx context.Context, req CancelDeploymentRequest) error
-	DeploymentURL(ctx context.Context, deploymentID string) string
+	DeploymentURL(deploymentID string, envSlug string) string
 
 	GetApp(ctx context.Context, req libapi.GetAppRequest) (libapi.App, error)
 }
@@ -140,23 +140,32 @@ func (c Client) LoginSuccessURL() string {
 }
 
 // DeploymentURL returns a URL for a deployment.
-func (c Client) DeploymentURL(ctx context.Context, deploymentID string) string {
+func (c Client) DeploymentURL(deploymentID string, envSlug string) string {
 	u := c.appURL()
 	u.Path = fmt.Sprintf("/deployments/%s", deploymentID)
+	if envSlug != "" {
+		u.RawQuery = url.Values{"__env": []string{envSlug}}.Encode()
+	}
 	return u.String()
 }
 
 // RunURL returns a run URL for a run ID.
-func (c Client) RunURL(id string) string {
+func (c Client) RunURL(id string, envSlug string) string {
 	u := c.appURL()
 	u.Path = "/runs/" + id
+	if envSlug != "" {
+		u.RawQuery = url.Values{"__env": []string{envSlug}}.Encode()
+	}
 	return u.String()
 }
 
 // TaskURL returns a task URL for a task slug.
-func (c Client) TaskURL(slug string) string {
+func (c Client) TaskURL(slug string, envSlug string) string {
 	u := c.appURL()
 	u.Path = "/t/" + slug
+	if envSlug != "" {
+		u.RawQuery = url.Values{"__env": []string{envSlug}}.Encode()
+	}
 	return u.String()
 }
 
@@ -195,7 +204,7 @@ func (c Client) ListTasks(ctx context.Context, envSlug string) (res ListTasksRes
 		return
 	}
 	for j, t := range res.Tasks {
-		res.Tasks[j].URL = c.TaskURL(t.Slug)
+		res.Tasks[j].URL = c.TaskURL(t.Slug, envSlug)
 	}
 	return
 }
@@ -321,7 +330,7 @@ func (c Client) GetTask(ctx context.Context, req libapi.GetTaskRequest) (res lib
 	if err != nil {
 		return
 	}
-	res.URL = c.TaskURL(res.Slug)
+	res.URL = c.TaskURL(res.Slug, req.EnvSlug)
 	return
 }
 

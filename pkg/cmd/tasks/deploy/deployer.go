@@ -190,7 +190,7 @@ func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig
 	}
 
 	d.deployLog(ctx, api.LogLevelInfo, deployLogReq{msg: logger.Gray("Creating deployment...")})
-	d.logger.Log(logger.Purple(fmt.Sprintf("\nView deployment: %s\n", d.cfg.client.DeploymentURL(ctx, resp.Deployment.ID))))
+	d.logger.Log(logger.Purple(fmt.Sprintf("\nView deployment: %s\n", d.cfg.client.DeploymentURL(resp.Deployment.ID, d.cfg.envSlug))))
 
 	err = d.waitForDeploy(ctx, d.cfg.client, resp.Deployment.ID)
 	if errors.Is(err, context.Canceled) {
@@ -468,7 +468,7 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []disc
 			d.logger.Log("Definition file: %s", defPath)
 		}
 
-		d.logger.Log("URL: %s", d.cfg.client.TaskURL(slug))
+		d.logger.Log("URL: %s", d.cfg.client.TaskURL(slug, d.cfg.envSlug))
 
 		// Skip printing diff if this didn't come from a defn file.
 		if tc.Source == discover.ConfigSourceDefn {

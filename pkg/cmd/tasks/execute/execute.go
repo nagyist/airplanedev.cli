@@ -108,7 +108,7 @@ func run(ctx context.Context, cfg config) error {
 		EnvSlug:     cfg.envSlug,
 	}
 
-	logger.Log("Executing %s task: %s", logger.Bold(task.Name), logger.Gray(client.TaskURL(task.Slug)))
+	logger.Log("Executing %s task: %s", logger.Bold(task.Name), logger.Gray(client.TaskURL(task.Slug, cfg.envSlug)))
 
 	req.ParamValues, err = params.CLI(cfg.args, task.Name, task.Parameters)
 	if errors.Is(err, flag.ErrHelp) {
@@ -122,7 +122,7 @@ func run(ctx context.Context, cfg config) error {
 		return err
 	}
 
-	logger.Log(logger.Gray("Queued run: %s", client.RunURL(w.RunID())))
+	logger.Log(logger.Gray("Queued run: %s", client.RunURL(w.RunID(), cfg.envSlug)))
 
 	var state api.RunState
 	agentPrefix := "[agent]"

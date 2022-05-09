@@ -15,9 +15,10 @@ import (
 
 // Config is the open config.
 type config struct {
-	root *cli.Config
-	slug string
-	file string
+	root    *cli.Config
+	slug    string
+	file    string
+	envSlug string
 }
 
 // New returns a new open command.
@@ -39,6 +40,7 @@ func New(c *cli.Config) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVarP(&cfg.file, "file", "f", "", "Path to a task definition file.")
+	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
 
 	return cmd
 }
@@ -77,7 +79,7 @@ func run(ctx context.Context, cfg config) error {
 		return errors.Wrap(err, "get task")
 	}
 
-	taskURL := client.TaskURL(task.Slug)
+	taskURL := client.TaskURL(task.Slug, cfg.envSlug)
 	logger.Log("Opening %s", taskURL)
 	if !utils.Open(taskURL) {
 		logger.Log("Could not open browser - try copying and pasting the above URL")
