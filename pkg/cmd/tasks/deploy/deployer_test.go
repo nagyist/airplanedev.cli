@@ -80,7 +80,7 @@ func TestDeploy(t *testing.T) {
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
-								"runtime":     libBuild.TaskRuntimeLegacy,
+								"runtime":     libBuild.TaskRuntimeStandard,
 								"shim":        "true",
 							},
 							UploadID: "uploadID",
@@ -278,7 +278,7 @@ func TestDeploy(t *testing.T) {
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
-								"runtime":     libBuild.TaskRuntimeLegacy,
+								"runtime":     libBuild.TaskRuntimeStandard,
 								"shim":        "true",
 							},
 							UploadID: "uploadID",
@@ -326,7 +326,7 @@ func TestDeploy(t *testing.T) {
 							TaskID: "tsk123",
 							Kind:   "image",
 							BuildConfig: libBuild.BuildConfig{
-								"runtime": libBuild.TaskRuntimeLegacy,
+								"runtime": libBuild.TaskRuntimeStandard,
 							},
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
 								Slug:       "my_task",
@@ -372,7 +372,7 @@ func TestDeploy(t *testing.T) {
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
-								"runtime":     libBuild.TaskRuntimeLegacy,
+								"runtime":     libBuild.TaskRuntimeStandard,
 								"shim":        "true",
 							},
 
@@ -434,7 +434,7 @@ func TestDeploy(t *testing.T) {
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
-								"runtime":     libBuild.TaskRuntimeLegacy,
+								"runtime":     libBuild.TaskRuntimeStandard,
 								"shim":        "true",
 							},
 							UploadID: "uploadID",
@@ -497,7 +497,7 @@ func TestDeploy(t *testing.T) {
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
-								"runtime":     libBuild.TaskRuntimeLegacy,
+								"runtime":     libBuild.TaskRuntimeStandard,
 								"shim":        "true",
 							},
 							UploadID: "uploadID",
@@ -571,7 +571,7 @@ func TestDeploy(t *testing.T) {
 								"entrypoint":      "./fixtures/test.sql",
 								"query":           "SELECT 1;\n",
 								"queryArgs":       map[string]interface{}{},
-								"runtime":         libBuild.TaskRuntimeLegacy,
+								"runtime":         libBuild.TaskRuntimeStandard,
 								"transactionMode": "auto",
 							},
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
