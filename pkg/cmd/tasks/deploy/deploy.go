@@ -15,7 +15,6 @@ import (
 	"github.com/airplanedev/cli/pkg/cmd/auth/login"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
-	"github.com/airplanedev/cli/pkg/version/latest"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
@@ -109,8 +108,6 @@ type taskDeployedProps struct {
 }
 
 func run(ctx context.Context, cfg config) error {
-	latest.CheckLatest(ctx)
-
 	// Check for mutually exclusive flags.
 	if cfg.assumeYes && cfg.assumeNo {
 		return errors.New("Cannot specify both --yes and --no")

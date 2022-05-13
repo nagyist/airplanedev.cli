@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os/exec"
+	"runtime"
 	"strings"
+	"time"
 
 	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -37,17 +40,38 @@ func CheckLatest(ctx context.Context) {
 		return
 	}
 
+	latestWithoutPrefix := strings.TrimPrefix(latest, "v")
 	// Assumes not matching latest means you are behind:
-	if strings.TrimPrefix(latest, "v") != version.Get() {
-		logger.Warning("A newer version of the Airplane CLI is available: %s", latest)
-		logger.Suggest(
-			"Visit the docs for upgrade instructions:",
-			"https://docs.airplane.dev/platform/airplane-cli#upgrading-the-cli",
-		)
+	if latestWithoutPrefix != version.Get() {
+		logger.Warning("A newer CLI version is available (%s -> %s). To upgrade, run", version.Get(), latestWithoutPrefix)
+		logger.Log(logger.Gray("  " + getUpgradeCommand()))
+	}
+}
+
+func getUpgradeCommand() string {
+	curlCmd := "curl -L https://github.com/airplanedev/cli/releases/latest/download/install.sh | sh"
+	os := runtime.GOOS
+	switch os {
+	case "windows":
+		return "iwr https://github.com/airplanedev/cli/releases/latest/download/install.ps1 -useb | iex"
+	case "darwin":
+		cmd := curlCmd
+		_, err := exec.Command("brew", "list", "airplane").Output()
+		if err == nil {
+			cmd = "brew update && brew upgrade airplanedev/tap/airplane"
+		}
+		return cmd
+	default:
+		return curlCmd
 	}
 }
 
 func getLatest(ctx context.Context) (string, error) {
+	curTime := time.Now()
+	defer func() {
+		totalTime := time.Since(curTime)
+		logger.Debug("Time to get latest version: %s", totalTime)
+	}()
 	// GitHub heavily rate limits this endpoint. We should proxy this through our API and use an API key.
 	// https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting
 	req, err := http.NewRequestWithContext(ctx, "GET", releaseURL, nil)

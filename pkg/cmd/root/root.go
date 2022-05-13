@@ -23,6 +23,7 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
+	"github.com/airplanedev/cli/pkg/version/latest"
 	"github.com/airplanedev/trap"
 	isatty "github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
@@ -71,6 +72,7 @@ func New() *cobra.Command {
 			// Log the version every time the CLI is run with `--debug`. This aligns
 			// customer debugging output with a specific release of the CLI.
 			logger.Debug(version.Version())
+			latest.CheckLatest(cmd.Context())
 
 			return nil
 		},
