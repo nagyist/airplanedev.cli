@@ -406,6 +406,10 @@ func TestDeploy(t *testing.T) {
 				{
 					TaskRoot: "some/other/root.js",
 				},
+				// Task that has no root e.g. a REST task.
+				{
+					TaskRoot: "",
+				},
 			},
 			changedFiles: []string{"some/random/path.js"},
 		},

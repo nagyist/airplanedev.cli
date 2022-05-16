@@ -424,12 +424,28 @@ func (d *deployer) tarAndUpload(ctx context.Context, slug, root string) (string,
 func (d *deployer) filterTaskConfigsByChangedFiles(ctx context.Context, taskConfigs []discover.TaskConfig) ([]discover.TaskConfig, error) {
 	var filteredTaskConfigs []discover.TaskConfig
 	for _, tc := range taskConfigs {
-		contains, err := containsFile(tc.TaskRoot, d.cfg.changedFiles)
-		if err != nil {
-			return nil, err
+		if tc.TaskRoot != "" {
+			contains, err := containsFile(tc.TaskRoot, d.cfg.changedFiles)
+			if err != nil {
+				return nil, err
+			}
+			if contains {
+				filteredTaskConfigs = append(filteredTaskConfigs, tc)
+				continue
+			}
 		}
-		if contains {
-			filteredTaskConfigs = append(filteredTaskConfigs, tc)
+		// If the definition file changed, then the task should be included.
+		if tc.Def != nil {
+			defnFilePath := tc.Def.GetDefnFilePath()
+			if defnFilePath != "" {
+				equals, err := equalsFile(defnFilePath, d.cfg.changedFiles)
+				if err != nil {
+					return nil, err
+				}
+				if equals {
+					filteredTaskConfigs = append(filteredTaskConfigs, tc)
+				}
+			}
 		}
 	}
 	if len(taskConfigs) != len(filteredTaskConfigs) {
@@ -668,6 +684,24 @@ func containsFile(dir string, filePaths []string) (bool, error) {
 		}
 		changedFileDir := filepath.Dir(absCF)
 		if strings.HasPrefix(changedFileDir, absDir) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// equalsFile returns true if the target file is equal to one of the files.
+func equalsFile(target string, files []string) (bool, error) {
+	absTarget, err := filepath.Abs(target)
+	if err != nil {
+		return false, errors.Wrapf(err, "calculating absolute path of file %s", target)
+	}
+	for _, cf := range files {
+		absCF, err := filepath.Abs(cf)
+		if err != nil {
+			return false, errors.Wrapf(err, "calculating absolute path of file %s", cf)
+		}
+		if absTarget == absCF {
 			return true, nil
 		}
 	}
