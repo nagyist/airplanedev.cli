@@ -165,10 +165,28 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		if cfg.file != "" && !definitions.IsTaskDef(cfg.file) {
 			entrypoint = cfg.file
 		}
-		entrypoint, err = promptForEntrypoint(def.GetSlug(), kind, entrypoint)
-		if err != nil {
-			return err
+
+		for {
+			entrypoint, err = promptForEntrypoint(def.GetSlug(), kind, entrypoint)
+			if err != nil {
+				return err
+			}
+
+			if fsx.Exists(entrypoint) {
+				question := fmt.Sprintf("Are you sure you want to link %s? You should only existing Airplane scripts.", entrypoint)
+				if kind == build.TaskKindSQL {
+					question = fmt.Sprintf("Would you like to overwrite %s?", entrypoint)
+				}
+				if ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
+					return err
+				} else if ok {
+					break
+				}
+			} else {
+				break
+			}
 		}
+
 		if err := def.SetEntrypoint(entrypoint); err != nil {
 			return err
 		}
@@ -180,31 +198,19 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		localExecutionSupported = r.SupportsLocalExecution()
 
 		if kind == build.TaskKindSQL {
-			doCreateEntrypoint := true
-			if fsx.Exists(entrypoint) {
-				question := fmt.Sprintf("Would you like to overwrite %s?", entrypoint)
-				if ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
-					return err
-				} else if !ok {
-					doCreateEntrypoint = false
+			query, err := def.SQL.GetQuery()
+			if err != nil {
+				// Create a generic entrypoint.
+				if err := createEntrypoint(r, entrypoint, nil); err != nil {
+					return errors.Wrapf(err, "unable to create entrypoint")
+				}
+			} else {
+				// Write the query to the entrypoint.
+				if err := writeEntrypoint(entrypoint, []byte(query), 0644); err != nil {
+					return errors.Wrapf(err, "unable to create entrypoint")
 				}
 			}
-
-			if doCreateEntrypoint {
-				query, err := def.SQL.GetQuery()
-				if err != nil {
-					// Create a generic entrypoint.
-					if err := createEntrypoint(r, entrypoint, nil); err != nil {
-						return errors.Wrapf(err, "unable to create entrypoint")
-					}
-				} else {
-					// Write the query to the entrypoint.
-					if err := writeEntrypoint(entrypoint, []byte(query), 0644); err != nil {
-						return errors.Wrapf(err, "unable to create entrypoint")
-					}
-				}
-				logger.Step("Created %s", entrypoint)
-			}
+			logger.Step("Created %s", entrypoint)
 		} else {
 			// Create entrypoint, without comment link, if it doesn't exist.
 			if !fsx.Exists(entrypoint) {
@@ -212,8 +218,6 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 					return errors.Wrapf(err, "unable to create entrypoint")
 				}
 				logger.Step("Created %s", entrypoint)
-			} else {
-				logger.Step("%s already exists", entrypoint)
 			}
 		}
 	}
