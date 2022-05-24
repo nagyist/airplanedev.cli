@@ -45,6 +45,7 @@ func CheckLatest(ctx context.Context) {
 	if latestWithoutPrefix != version.Get() {
 		logger.Warning("A newer CLI version is available (%s -> %s). To upgrade, run", version.Get(), latestWithoutPrefix)
 		logger.Log(logger.Gray("  " + getUpgradeCommand()))
+		logger.Log("")
 	}
 }
 

@@ -86,6 +86,9 @@ func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig
 	}
 
 	if err := d.printPreDeploySummary(ctx, taskConfigs, appConfigs, createdTasks); err != nil {
+		if err == skippedDeployErr {
+			return nil
+		}
 		return err
 	}
 
@@ -454,6 +457,8 @@ func (d *deployer) filterTaskConfigsByChangedFiles(ctx context.Context, taskConf
 	return filteredTaskConfigs, nil
 }
 
+var skippedDeployErr = errors.New("Skipped deploy")
+
 func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []discover.TaskConfig, appConfigs []discover.AppConfig, createdTasks map[string]bool) error {
 	noun := "task"
 	if len(taskConfigs) > 1 {
@@ -462,6 +467,8 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []disc
 	if len(taskConfigs) > 0 {
 		d.logger.Log("Deploying %v %v:\n", len(taskConfigs), noun)
 	}
+
+	var hasDiff bool
 	for _, tc := range taskConfigs {
 		slug := tc.Def.GetSlug()
 		kind, _, _ := tc.Def.GetKindAndOptions()
@@ -496,11 +503,12 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []disc
 			if len(difflines) == 1 {
 				// If it's just one line, it's not actually a diff.
 				d.logger.Log(difflines[0])
-			} else {
+			} else if len(difflines) > 1 {
 				// Otherwise, indent it for readability.
 				for _, line := range difflines {
 					d.logger.Log("  %s", line)
 				}
+				hasDiff = true
 			}
 		}
 
@@ -514,10 +522,15 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []disc
 	if len(appConfigs) > 0 {
 		d.logger.Log("Deploying %v %v:\n", len(appConfigs), noun)
 	}
+	// TODO diff app configs and update hasDiff if any apps have changed.
 	for _, ac := range appConfigs {
 		d.logger.Log(logger.Bold(ac.Slug))
 		d.logger.Log("Root directory: %s", relpath(ac.Root))
 		d.logger.Log("")
+	}
+
+	if hasDiff {
+		return d.confirmDeployment(ctx)
 	}
 
 	return nil
@@ -565,7 +578,7 @@ func (d *deployer) getDefinitionDiff(ctx context.Context, taskConfig discover.Ta
 	edits = gotextdiff.LineEdits(oldYAMLStr, edits)
 	diff := fmt.Sprint(gotextdiff.ToUnified(oldLabel, newLabel, oldYAMLStr, edits))
 	if diff == "" {
-		return []string{"(no changes)"}, nil
+		return []string{"(no changes to task definition)"}, nil
 	}
 
 	// Log deletes in red & additions in green.
@@ -582,6 +595,27 @@ func (d *deployer) getDefinitionDiff(ctx context.Context, taskConfig discover.Ta
 	}
 
 	return pretty, nil
+}
+
+func (d *deployer) confirmDeployment(ctx context.Context) error {
+	if !utils.CanPrompt() {
+		// Deploy without confirmation.
+		return nil
+	}
+	wasActive := d.logger.StopLoader()
+	question := fmt.Sprintf("Are you sure you want to deploy?")
+	ok, err := utils.ConfirmWithAssumptions(question, d.cfg.assumeYes, d.cfg.assumeNo)
+	if wasActive {
+		d.logger.StartLoader()
+	}
+
+	if err != nil {
+		return err
+	} else if !ok {
+		// User answered "no", so bail here.
+		return skippedDeployErr
+	}
+	return nil
 }
 
 func (d *deployer) waitForDeploy(ctx context.Context, client api.APIClient, deploymentID string) error {

@@ -756,7 +756,7 @@ func TestGetDefinitionDiff(t *testing.T) {
 					Arguments: []string{"echo", "hello world"},
 				},
 			},
-			expected: []string{"(no changes)"},
+			expected: []string{"(no changes to task definition)"},
 		},
 		{
 			name: "show diff",
