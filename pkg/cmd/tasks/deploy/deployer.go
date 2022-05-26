@@ -352,6 +352,7 @@ More information: https://apn.sh/jst-upgrade`)
 		UpdateTaskRequest: utr,
 		EnvVars:           env,
 		GitFilePath:       filePath,
+		Schedules:         tc.Def.GetSchedules(),
 	}, nil
 }
 

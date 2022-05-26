@@ -46,6 +46,7 @@ func (mc *MockClient) ListTasks(ctx context.Context, envSlug string) (res ListTa
 func (mc *MockClient) ListResources(ctx context.Context) (res libapi.ListResourcesResponse, err error) {
 	return libapi.ListResourcesResponse{Resources: mc.Resources}, nil
 }
+
 func (mc *MockClient) SetConfig(ctx context.Context, req SetConfigRequest) (err error) {
 	panic("not implemented") // TODO: Implement
 }

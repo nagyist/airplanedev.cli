@@ -270,13 +270,14 @@ type GetUniqueSlugResponse struct {
 }
 
 type DeployTask struct {
-	TaskID            string                   `json:"taskID"`
-	Kind              build.TaskKind           `json:"kind"`
-	BuildConfig       build.BuildConfig        `json:"buildConfig"`
-	UploadID          string                   `json:"uploadID"`
-	UpdateTaskRequest libapi.UpdateTaskRequest `json:"updateTaskRequest"`
-	EnvVars           libapi.TaskEnv           `json:"envVars"`
-	GitFilePath       string                   `json:"gitFilePath"`
+	TaskID            string                     `json:"taskID"`
+	Kind              build.TaskKind             `json:"kind"`
+	BuildConfig       build.BuildConfig          `json:"buildConfig"`
+	UploadID          string                     `json:"uploadID"`
+	UpdateTaskRequest libapi.UpdateTaskRequest   `json:"updateTaskRequest"`
+	EnvVars           libapi.TaskEnv             `json:"envVars"`
+	GitFilePath       string                     `json:"gitFilePath"`
+	Schedules         map[string]libapi.Schedule `json:"schedules"`
 }
 
 type DeployApp struct {

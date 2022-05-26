@@ -608,6 +608,75 @@ func TestDeploy(t *testing.T) {
 			},
 		},
 		{
+			desc: "deploys a task with schedules",
+			taskConfigs: []discover.TaskConfig{
+				{
+					TaskID:   "tsk123",
+					TaskRoot: fixturesPath,
+					Def: &definitions.Definition_0_3{
+						Name: "My Task",
+						Slug: "my_task",
+						Node: &definitions.NodeDefinition_0_3{},
+						Schedules: map[string]definitions.ScheduleDefinition_0_3{
+							"my_schedule": {
+								Name:        "foo",
+								Description: "foo",
+								CronExpr:    "0 0 * * *",
+								ParamValues: map[string]interface{}{
+									"my_param": 5,
+								},
+							},
+						},
+					},
+				},
+			},
+			existingTasks: map[string]libapi.Task{"my_task": {ID: "tsk123", Slug: "my_task", Name: "My Task", InterpolationMode: "jst"}},
+			deploys: []api.CreateDeploymentRequest{
+				{
+					Tasks: []api.DeployTask{
+						{
+							TaskID: "tsk123",
+							Kind:   "node",
+							BuildConfig: libBuild.BuildConfig{
+								"entrypoint":  "",
+								"nodeVersion": "",
+								"runtime":     libBuild.TaskRuntimeStandard,
+								"shim":        "true",
+							},
+							UploadID: "uploadID",
+							UpdateTaskRequest: libapi.UpdateTaskRequest{
+								Slug:       "my_task",
+								Name:       "My Task",
+								Parameters: libapi.Parameters{},
+								Configs:    &[]libapi.ConfigAttachment{},
+								Kind:       "node",
+								KindOptions: libBuild.KindOptions{
+									"entrypoint":  "",
+									"nodeVersion": "",
+								},
+								Runtime: "",
+								ExecuteRules: libapi.UpdateExecuteRulesRequest{
+									DisallowSelfApprove: pointers.Bool(false),
+									RequireRequests:     pointers.Bool(false),
+								},
+								InterpolationMode: pointers.String("jst"),
+							},
+							Schedules: map[string]libapi.Schedule{
+								"my_schedule": {
+									Name:        "foo",
+									Description: "foo",
+									CronExpr:    "0 0 * * *",
+									ParamValues: map[string]interface{}{
+										"my_param": 5,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			desc: "deploys an app",
 			appConfigs: []discover.AppConfig{
 				{Slug: "my_app", Root: fixturesPath, Source: discover.ConfigSourceDefn, ID: "app123"},
