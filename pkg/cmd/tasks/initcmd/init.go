@@ -173,7 +173,7 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 			}
 
 			if fsx.Exists(entrypoint) {
-				question := fmt.Sprintf("Are you sure you want to link %s? You should only existing Airplane scripts.", entrypoint)
+				question := fmt.Sprintf("Are you sure you want to link %s? You should only link existing Airplane scripts.", entrypoint)
 				if kind == build.TaskKindSQL {
 					question = fmt.Sprintf("Would you like to overwrite %s?", entrypoint)
 				}
