@@ -34,7 +34,7 @@ type printTask struct {
 	Timeout                    int                       `json:"timeout" yaml:"timeout"`
 	IsArchived                 bool                      `json:"isArchived" yaml:"isArchived"`
 	InterpolationMode          string                    `json:"-" yaml:"-"`
-	Triggers                   []libapi.Trigger          `json:"triggers" yaml:"-"`
+	Triggers                   []libapi.Trigger          `json:"-" yaml:"-"`
 }
 
 func printTasks(tasks []libapi.Task) []printTask {

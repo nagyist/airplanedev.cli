@@ -158,6 +158,7 @@ func run(ctx context.Context, cfg config) error {
 		scanner := bufiox.NewScanner(r)
 		for scanner.Scan() {
 			line := scanner.Text()
+			scanForErrors(cfg.root, line)
 			mu.Lock()
 			parsed, err := outputs.Parse(chunks, line, outputs.ParseOptions{})
 			if err != nil {
