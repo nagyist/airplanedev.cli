@@ -37,11 +37,11 @@ type Definition_0_3 struct {
 	SQL  *SQLDefinition_0_3  `json:"sql,omitempty"`
 	REST *RESTDefinition_0_3 `json:"rest,omitempty"`
 
-	Constraints        map[string]string `json:"constraints,omitempty"`
-	RequireRequests    bool              `json:"requireRequests,omitempty"`
-	AllowSelfApprovals *bool             `json:"allowSelfApprovals,omitempty"`
-	Timeout            int               `json:"timeout,omitempty"`
-	Runtime            build.TaskRuntime `json:"runtime,omitempty"`
+	Constraints        map[string]string        `json:"constraints,omitempty"`
+	RequireRequests    bool                     `json:"requireRequests,omitempty"`
+	AllowSelfApprovals DefaultTrueDefinition    `json:"allowSelfApprovals,omitempty"`
+	Timeout            DefaultTimeoutDefinition `json:"timeout,omitempty"`
+	Runtime            build.TaskRuntime        `json:"runtime,omitempty"`
 
 	Schedules map[string]ScheduleDefinition_0_3 `json:"schedules,omitempty"`
 
@@ -800,7 +800,7 @@ type ParameterDefinition_0_3 struct {
 	Type        string                 `json:"type"`
 	Description string                 `json:"description,omitempty"`
 	Default     interface{}            `json:"default,omitempty"`
-	Required    *bool                  `json:"required,omitempty"`
+	Required    DefaultTrueDefinition  `json:"required,omitempty"`
 	Options     []OptionDefinition_0_3 `json:"options,omitempty"`
 	Regex       string                 `json:"regex,omitempty"`
 }
@@ -902,18 +902,30 @@ func NewDefinition_0_3(name string, slug string, kind build.TaskKind, entrypoint
 func (d Definition_0_3) Marshal(format DefFormat) ([]byte, error) {
 	switch format {
 	case DefFormatYAML:
-		buf, err := yaml.MarshalWithOptions(d, yaml.UseLiteralStyleIfMultiline(true))
+		// Use the JSON marshaler so we use MarshalJSON methods.
+		buf, err := yaml.MarshalWithOptions(d,
+			yaml.UseJSONMarshaler(),
+			yaml.UseLiteralStyleIfMultiline(true))
 		if err != nil {
 			return nil, err
 		}
 		return buf, nil
 
 	case DefFormatJSON:
-		buf, err := json.MarshalIndent(d, "", "\t")
+		// Use the YAML marshaler so we can take advantage of the yaml.IsZeroer check on omitempty.
+		// But make it use the JSON marshaler so we use MarshalJSON methods.
+		buf, err := yaml.MarshalWithOptions(d,
+			yaml.UseJSONMarshaler(),
+			yaml.JSON())
 		if err != nil {
 			return nil, err
 		}
-		return buf, nil
+		// `yaml.Marshal` doesn't allow configuring JSON indentation, so do it after the fact.
+		var out bytes.Buffer
+		if err := json.Indent(&out, buf, "", "\t"); err != nil {
+			return nil, err
+		}
+		return out.Bytes(), nil
 
 	default:
 		return nil, errors.Errorf("unknown format: %s", format)
@@ -930,8 +942,8 @@ func (d Definition_0_3) GenerateCommentedFile(format DefFormat) ([]byte, error) 
 		len(d.Parameters) > 0 ||
 		len(d.Constraints) > 0 ||
 		d.RequireRequests ||
-		(d.AllowSelfApprovals != nil && !*d.AllowSelfApprovals) ||
-		d.Timeout > 0 {
+		!d.AllowSelfApprovals.IsZero() ||
+		!d.Timeout.IsZero() {
 		return d.Marshal(format)
 	}
 
@@ -1133,7 +1145,7 @@ func (d Definition_0_3) GetUpdateTaskRequest(ctx context.Context, client api.IAP
 		Slug:        d.Slug,
 		Name:        d.Name,
 		Description: d.Description,
-		Timeout:     d.Timeout,
+		Timeout:     d.Timeout.Value(),
 		Runtime:     d.Runtime,
 		ExecuteRules: api.UpdateExecuteRulesRequest{
 			RequireRequests: &d.RequireRequests,
@@ -1157,12 +1169,7 @@ func (d Definition_0_3) GetUpdateTaskRequest(ctx context.Context, client api.IAP
 		}
 	}
 
-	if d.AllowSelfApprovals != nil {
-		disallow := !*d.AllowSelfApprovals
-		req.ExecuteRules.DisallowSelfApprove = &disallow
-	} else {
-		req.ExecuteRules.DisallowSelfApprove = pointers.Bool(false)
-	}
+	req.ExecuteRules.DisallowSelfApprove = pointers.Bool(!d.AllowSelfApprovals.Value())
 
 	if err := d.addKindSpecificsToUpdateTaskRequest(ctx, client, &req); err != nil {
 		return api.UpdateTaskRequest{}, err
@@ -1231,7 +1238,7 @@ func (d Definition_0_3) addParametersToUpdateTaskRequest(ctx context.Context, re
 			}
 		}
 
-		if pd.Required != nil && !*pd.Required {
+		if !pd.Required.Value() {
 			param.Constraints.Optional = true
 		}
 
@@ -1399,7 +1406,6 @@ func NewDefinitionFromTask_0_3(ctx context.Context, client api.IAPIClient, t api
 		Description:     t.Description,
 		RequireRequests: t.ExecuteRules.RequireRequests,
 		Runtime:         t.Runtime,
-		Timeout:         t.Timeout,
 	}
 
 	if err := d.convertParametersFromTask(ctx, client, &t); err != nil {
@@ -1417,10 +1423,8 @@ func NewDefinitionFromTask_0_3(ctx context.Context, client api.IAPIClient, t api
 		}
 	}
 
-	if t.ExecuteRules.DisallowSelfApprove {
-		v := false
-		d.AllowSelfApprovals = &v
-	}
+	d.AllowSelfApprovals.value = pointers.Bool(!t.ExecuteRules.DisallowSelfApprove)
+	d.Timeout.value = t.Timeout
 
 	schedules := make(map[string]ScheduleDefinition_0_3)
 	for _, trigger := range t.Triggers {
@@ -1501,10 +1505,7 @@ func (d *Definition_0_3) convertParametersFromTask(ctx context.Context, client a
 			}
 		}
 
-		if param.Constraints.Optional {
-			v := false
-			p.Required = &v
-		}
+		p.Required.value = pointers.Bool(!param.Constraints.Optional)
 
 		p.Regex = param.Constraints.Regex
 

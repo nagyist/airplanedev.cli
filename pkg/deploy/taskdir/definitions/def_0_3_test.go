@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Contains explicit defaults.
 var fullYAML = []byte(
 	`name: Hello World
 slug: hello_world
@@ -26,7 +27,6 @@ parameters:
 python:
   entrypoint: hello_world.py
 timeout: 3600
-runtime: durable
 schedules:
   every_midnight:
     name: Every Midnight
@@ -38,6 +38,7 @@ schedules:
       param_two: memes
 `)
 
+// Contains explicit defaults.
 var fullJSON = []byte(
 	`{
 	"name": "Hello World",
@@ -57,7 +58,6 @@ var fullJSON = []byte(
 		"entrypoint": "hello_world.py"
 	},
 	"timeout": 3600,
-	"runtime": "durable",
 	"schedules": {
 		"every_midnight": {
 			"name": "Every Midnight",
@@ -73,6 +73,7 @@ var fullJSON = []byte(
 	}
 }`)
 
+// Contains no explicit defaults.
 var yamlWithDefault = []byte(
 	`name: Hello World
 slug: hello_world
@@ -85,9 +86,18 @@ parameters:
   default: World
 python:
   entrypoint: hello_world.py
-timeout: 3600
+schedules:
+  every_midnight:
+    name: Every Midnight
+    cron: 0 0 * * *
+  no_name_params:
+    cron: 0 0 * * *
+    paramValues:
+      param_one: 5.5
+      param_two: memes
 `)
 
+// Contains no explicit defaults.
 var jsonWithDefault = []byte(
 	`{
 	"name": "Hello World",
@@ -105,9 +115,23 @@ var jsonWithDefault = []byte(
 	"python": {
 		"entrypoint": "hello_world.py"
 	},
-	"timeout": 3600
-}`)
+	"schedules": {
+		"every_midnight": {
+			"name": "Every Midnight",
+			"cron": "0 0 * * *"
+		},
+		"no_name_params": {
+			"cron": "0 0 * * *",
+			"paramValues": {
+				"param_one": 5.5,
+				"param_two": "memes"
+			}
+		}
+	}
+}
+`)
 
+// Contains explicit defaults.
 var fullDef = Definition_0_3{
 	Name:        "Hello World",
 	Slug:        "hello_world",
@@ -119,14 +143,13 @@ var fullDef = Definition_0_3{
 			Type:        "shorttext",
 			Description: "Someone's name.",
 			Default:     "World",
-			Required:    pointers.Bool(true),
+			Required:    DefaultTrueDefinition{pointers.Bool(true)},
 		},
 	},
 	Python: &PythonDefinition_0_3{
 		Entrypoint: "hello_world.py",
 	},
-	Runtime: "durable",
-	Timeout: 3600,
+	Timeout: DefaultTimeoutDefinition{3600},
 	Schedules: map[string]ScheduleDefinition_0_3{
 		"every_midnight": {
 			Name:     "Every Midnight",
@@ -142,6 +165,7 @@ var fullDef = Definition_0_3{
 	},
 }
 
+// Contains no explicit defaults.
 var defWithDefault = Definition_0_3{
 	Name:        "Hello World",
 	Slug:        "hello_world",
@@ -158,7 +182,19 @@ var defWithDefault = Definition_0_3{
 	Python: &PythonDefinition_0_3{
 		Entrypoint: "hello_world.py",
 	},
-	Timeout: 3600,
+	Schedules: map[string]ScheduleDefinition_0_3{
+		"every_midnight": {
+			Name:     "Every Midnight",
+			CronExpr: "0 0 * * *",
+		},
+		"no_name_params": {
+			CronExpr: "0 0 * * *",
+			ParamValues: map[string]interface{}{
+				"param_one": 5.5,
+				"param_two": "memes",
+			},
+		},
+	},
 }
 
 func TestDefinitionMarshal_0_3(t *testing.T) {
@@ -173,13 +209,13 @@ func TestDefinitionMarshal_0_3(t *testing.T) {
 			name:     "marshal yaml",
 			format:   DefFormatYAML,
 			def:      fullDef,
-			expected: fullYAML,
+			expected: yamlWithDefault,
 		},
 		{
 			name:     "marshal json",
 			format:   DefFormatJSON,
 			def:      fullDef,
-			expected: fullJSON,
+			expected: jsonWithDefault,
 		},
 		{
 			name:   "marshal yaml with multiline",
@@ -194,7 +230,7 @@ func TestDefinitionMarshal_0_3(t *testing.T) {
 					BodyType: "json",
 					Body:     "{\n  \"name\": \"foo\",\n  \"number\": 30\n}\n",
 				},
-				Timeout: 300,
+				Timeout: DefaultTimeoutDefinition{300},
 			},
 			expected: []byte(
 				`name: REST task
@@ -225,7 +261,7 @@ timeout: 300
 					BodyType: "json",
 					Body:     "{\n  \"name\": \"foo\",\n  \"number\": 30\n}\n",
 				},
-				Timeout: 300,
+				Timeout: DefaultTimeoutDefinition{300},
 			},
 			expected: []byte(
 				`{
@@ -239,7 +275,8 @@ timeout: 300
 		"body": "{\n  \"name\": \"foo\",\n  \"number\": 30\n}\n"
 	},
 	"timeout": 300
-}`),
+}
+`),
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -344,6 +381,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 						},
 					},
 				},
+				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 			},
 		},
 		{
@@ -381,6 +419,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 						},
 					},
 				},
+				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 			},
 		},
 		{
@@ -416,6 +455,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 						},
 					},
 				},
+				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 			},
 		},
 		{
@@ -453,6 +493,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 						},
 					},
 				},
+				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 			},
 		},
 		{
@@ -503,6 +544,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					FormData: map[string]interface{}{},
 					Configs:  []string{},
 				},
+				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 			},
 		},
 		{
@@ -610,23 +652,26 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 						Slug:        "required_boolean",
 						Type:        "boolean",
 						Description: "A required boolean.",
+						Required:    DefaultTrueDefinition{pointers.Bool(true)},
 					},
 					{
-						Name:    "Short text",
-						Slug:    "short_text",
-						Type:    "shorttext",
-						Default: "foobar",
+						Name:     "Short text",
+						Slug:     "short_text",
+						Type:     "shorttext",
+						Default:  "foobar",
+						Required: DefaultTrueDefinition{pointers.Bool(true)},
 					},
 					{
-						Name: "SQL",
-						Slug: "sql",
-						Type: "sql",
+						Name:     "SQL",
+						Slug:     "sql",
+						Type:     "sql",
+						Required: DefaultTrueDefinition{pointers.Bool(true)},
 					},
 					{
 						Name:     "Optional long text",
 						Slug:     "optional_long_text",
 						Type:     "longtext",
-						Required: pointers.Bool(false),
+						Required: DefaultTrueDefinition{pointers.Bool(false)},
 					},
 					{
 						Name: "Options",
@@ -646,12 +691,14 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 								Value: 3,
 							},
 						},
+						Required: DefaultTrueDefinition{pointers.Bool(true)},
 					},
 					{
-						Name:  "Regex",
-						Slug:  "regex",
-						Type:  "shorttext",
-						Regex: "foo.*",
+						Name:     "Regex",
+						Slug:     "regex",
+						Type:     "shorttext",
+						Regex:    "foo.*",
+						Required: DefaultTrueDefinition{pointers.Bool(true)},
 					},
 					{
 						Name:    "Config var",
@@ -668,11 +715,13 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 								Value: "OTHER_API_KEY",
 							},
 						},
+						Required: DefaultTrueDefinition{pointers.Bool(true)},
 					},
 				},
 				Python: &PythonDefinition_0_3{
 					Entrypoint: "main.py",
 				},
+				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 			},
 		},
 		{
@@ -697,7 +746,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					Entrypoint: "main.py",
 				},
 				RequireRequests:    true,
-				AllowSelfApprovals: pointers.Bool(false),
+				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(false)},
 			},
 		},
 		{
@@ -722,7 +771,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					Entrypoint: "main.py",
 				},
 				RequireRequests:    false,
-				AllowSelfApprovals: nil,
+				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 			},
 		},
 		{
@@ -781,6 +830,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					FormData: map[string]interface{}{},
 					Configs:  []string{"CONFIG_NAME_1", "CONFIG_NAME_2"},
 				},
+				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 			},
 		},
 		{
@@ -886,6 +936,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 						},
 					},
 				},
+				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 			},
 		},
 	} {
@@ -933,6 +984,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
+				Timeout: 3600,
 			},
 		},
 		{
@@ -959,6 +1011,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
+				Timeout: 3600,
 			},
 		},
 		{
@@ -983,6 +1036,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
+				Timeout: 3600,
 			},
 		},
 		{
@@ -1009,6 +1063,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
+				Timeout: 3600,
 			},
 		},
 		{
@@ -1046,6 +1101,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
+				Timeout: 3600,
 			},
 			resources: []api.Resource{
 				{
@@ -1064,7 +1120,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					Entrypoint: "main.py",
 				},
 				RequireRequests:    true,
-				AllowSelfApprovals: pointers.Bool(false),
+				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(false)},
 			},
 			request: api.UpdateTaskRequest{
 				Name:        "Test Task",
@@ -1080,6 +1136,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(true),
 					RequireRequests:     pointers.Bool(true),
 				},
+				Timeout: 3600,
 			},
 		},
 		{
@@ -1092,7 +1149,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					Entrypoint: "main.py",
 				},
 				RequireRequests:    false,
-				AllowSelfApprovals: nil,
+				AllowSelfApprovals: DefaultTrueDefinition{nil},
 			},
 			request: api.UpdateTaskRequest{
 				Name:        "Test Task",
@@ -1108,6 +1165,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
+				Timeout: 3600,
 			},
 		},
 		{
@@ -1137,7 +1195,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 						Name:     "Optional long text",
 						Slug:     "optional_long_text",
 						Type:     "longtext",
-						Required: pointers.Bool(false),
+						Required: DefaultTrueDefinition{pointers.Bool(false)},
 					},
 					{
 						Name: "Options",
@@ -1339,6 +1397,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
+				Timeout: 3600,
 			},
 		},
 		{
@@ -1384,6 +1443,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
+				Timeout: 3600,
 			},
 			resources: []api.Resource{
 				{
