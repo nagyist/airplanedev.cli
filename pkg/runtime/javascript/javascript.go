@@ -140,10 +140,6 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 	if err != nil {
 		return nil, nil, err
 	}
-	workdir, err := r.Workdir(opts.Path)
-	if err != nil {
-		return nil, nil, err
-	}
 
 	tmpdir := filepath.Join(root, ".airplane")
 	if err := os.Mkdir(tmpdir, os.ModeDir|0777); err != nil && !os.IsExist(err) {
@@ -174,8 +170,8 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 	}
 
 	// Install the dependencies we need for our shim file:
-	pathPackageJSON := filepath.Join(root, "package.json")
-	pjson, err := build.GenShimPackageJSON(pathPackageJSON, false)
+	rootPackageJSON := filepath.Join(root, "package.json")
+	pjson, err := build.GenShimPackageJSON(rootPackageJSON, false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -195,19 +191,13 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		return nil, nil, errors.Wrap(err, "cleaning dist folder")
 	}
 
-	// Confirm we have a `package.json`, otherwise we might install shim dependencies
-	// in the wrong folder.
-	pathPkgJSON := filepath.Join(workdir, "package.json")
-	hasPkgJSON := fsx.AssertExistsAll(pathPkgJSON) == nil
-	if !hasPkgJSON {
-		return nil, nil, errors.New("a package.json is missing")
-	}
 	// Workaround to get esbuild to not bundle dependencies.
 	// See build.ExternalPackages for details.
-	externalDeps, err := build.ExternalPackages(pathPkgJSON)
+	externalDeps, err := build.ExternalPackages(rootPackageJSON)
 	if err != nil {
 		return nil, nil, err
 	}
+	logger.Debug("Discovered external dependencies: %v", externalDeps)
 
 	start := time.Now()
 	res := esbuild.Build(esbuild.BuildOptions{

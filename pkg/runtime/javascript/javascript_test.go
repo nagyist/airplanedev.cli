@@ -2,6 +2,7 @@ package javascript
 
 import (
 	"context"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -37,6 +38,10 @@ func TestDev(tt *testing.T) {
 			Kind: build.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{Path: "javascript/customroot/main.js"},
 		},
+		{
+			Kind: build.TaskKindNode,
+			Opts: runtime.PrepareRunOptions{Path: "typescript/yarnworkspaces/pkg2/src/index.ts"},
+		},
 	}
 
 	// For the dev workflow, we expect users to run `npm install` themselves before
@@ -47,16 +52,19 @@ func TestDev(tt *testing.T) {
 		// Check if this example uses npm or yarn:
 		r, err := runtime.Lookup(p, test.Kind)
 		require.NoError(tt, err)
-		workdir, err := r.Workdir(p)
+		root, err := r.Root(p)
 		require.NoError(tt, err)
 		var cmd *exec.Cmd
-		if fsx.Exists(filepath.Join(workdir, "yarn.lock")) {
-			cmd = exec.CommandContext(ctx, "yarn", "install", "--frozen-lockfile")
+		if fsx.Exists(filepath.Join(root, "yarn.lock")) {
+			os.Remove(filepath.Join(root, "yarn.lock"))
+			cmd = exec.CommandContext(ctx, "yarn")
 		} else {
 			cmd = exec.CommandContext(ctx, "npm", "install", "--no-save")
 		}
 
 		// Install dependencies:
+		workdir, err := r.Workdir(p)
+		require.NoError(tt, err)
 		cmd.Dir = workdir
 		out, err := cmd.CombinedOutput()
 		require.NoError(tt, err, "Failed to run %q for %q:\n%s", cmd.String(), test.Opts.Path, string(out))

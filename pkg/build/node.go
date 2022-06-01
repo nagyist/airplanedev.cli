@@ -53,8 +53,8 @@ func node(root string, options KindOptions, buildArgs []string) (string, error) 
 	}
 
 	workdir, _ := options["workdir"].(string)
-	pathPackageJSON := filepath.Join(root, "package.json")
-	hasPackageJSON := fsx.AssertExistsAll(pathPackageJSON) == nil
+	rootPackageJSON := filepath.Join(root, "package.json")
+	hasPackageJSON := fsx.AssertExistsAll(rootPackageJSON) == nil
 	pathYarnLock := filepath.Join(root, "yarn.lock")
 	pathPackageLock := filepath.Join(root, "package-lock.json")
 	hasPackageLock := fsx.AssertExistsAll(pathPackageLock) == nil
@@ -81,13 +81,13 @@ func node(root string, options KindOptions, buildArgs []string) (string, error) 
 		// If the package.json has a "workspaces" key, it uses workspaces!
 		// We want to know this because if we are in a workspace, our install
 		// has to honor all of the package.json in the workspace.
-		buf, err := os.ReadFile(pathPackageJSON)
+		buf, err := os.ReadFile(rootPackageJSON)
 		if err != nil {
-			return "", errors.Wrapf(err, "node: reading %s", pathPackageJSON)
+			return "", errors.Wrapf(err, "node: reading %s", rootPackageJSON)
 		}
 
 		if err := json.Unmarshal(buf, &pkg); err != nil {
-			return "", fmt.Errorf("node: parsing %s - %w", pathPackageJSON, err)
+			return "", fmt.Errorf("node: parsing %s - %w", rootPackageJSON, err)
 		}
 	}
 
@@ -108,10 +108,10 @@ func node(root string, options KindOptions, buildArgs []string) (string, error) 
 		IsDurable:          isDurable,
 	}
 
-	// Workaround to get esbuild to not bundle dependencies.
-	// See build.ExternalPackages for details.
 	if cfg.HasPackageJSON {
-		deps, err := ExternalPackages(pathPackageJSON)
+		// Workaround to get esbuild to not bundle dependencies.
+		// See build.ExternalPackages for details.
+		deps, err := ExternalPackages(rootPackageJSON)
 		if err != nil {
 			return "", err
 		}
@@ -138,7 +138,7 @@ func node(root string, options KindOptions, buildArgs []string) (string, error) 
 		return "", err
 	}
 
-	pjson, err := GenShimPackageJSON(pathPackageJSON, isDurable)
+	pjson, err := GenShimPackageJSON(rootPackageJSON, isDurable)
 	if err != nil {
 		return "", err
 	}
