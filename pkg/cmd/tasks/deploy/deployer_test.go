@@ -108,20 +108,20 @@ func TestDeploy(t *testing.T) {
 			},
 		},
 		{
-			desc: "deploys a durable task",
+			desc: "deploys a workflow task",
 			taskConfigs: []discover.TaskConfig{
 				{
 					TaskID:   "tsk123",
 					TaskRoot: fixturesPath,
 					Def: &definitions.Definition_0_3{
 						Name:    "My Task",
-						Slug:    "my_durable_task",
+						Slug:    "my_workflow_task",
 						Node:    &definitions.NodeDefinition_0_3{},
-						Runtime: libBuild.TaskRuntimeDurable,
+						Runtime: libBuild.TaskRuntimeWorkflow,
 					},
 				},
 			},
-			existingTasks: map[string]libapi.Task{"my_durable_task": {ID: "tsk123", Slug: "my_durable_task", Name: "My Task", InterpolationMode: "jst"}},
+			existingTasks: map[string]libapi.Task{"my_workflow_task": {ID: "tsk123", Slug: "my_workflow_task", Name: "My Task", InterpolationMode: "jst"}},
 			deploys: []api.CreateDeploymentRequest{
 				{
 					Tasks: []api.DeployTask{
@@ -131,12 +131,12 @@ func TestDeploy(t *testing.T) {
 							BuildConfig: libBuild.BuildConfig{
 								"entrypoint":  "",
 								"nodeVersion": "",
-								"runtime":     libBuild.TaskRuntimeDurable,
+								"runtime":     libBuild.TaskRuntimeWorkflow,
 								"shim":        "true",
 							},
 							UploadID: "uploadID",
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
-								Slug:       "my_durable_task",
+								Slug:       "my_workflow_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
 								Configs:    &[]libapi.ConfigAttachment{},
@@ -145,7 +145,7 @@ func TestDeploy(t *testing.T) {
 									"entrypoint":  "",
 									"nodeVersion": "",
 								},
-								Runtime: libBuild.TaskRuntimeDurable,
+								Runtime: libBuild.TaskRuntimeWorkflow,
 								ExecuteRules: libapi.UpdateExecuteRulesRequest{
 									DisallowSelfApprove: pointers.Bool(false),
 									RequireRequests:     pointers.Bool(false),
