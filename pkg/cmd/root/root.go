@@ -20,6 +20,7 @@ import (
 	"github.com/airplanedev/cli/pkg/cmd/tasks/execute"
 	"github.com/airplanedev/cli/pkg/cmd/tasks/initcmd"
 	"github.com/airplanedev/cli/pkg/cmd/version"
+	"github.com/airplanedev/cli/pkg/cmd/views"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
@@ -100,6 +101,10 @@ func New() *cobra.Command {
 	}
 	cmd.PersistentFlags().StringVarP(&output, "output", "o", defaultFormat, "The format to use for output (json|yaml|table).")
 	cmd.PersistentFlags().BoolVar(&cfg.DebugMode, "debug", false, "Whether to produce debugging output.")
+	cmd.PersistentFlags().BoolVar(&cfg.Dev, "dev", false, "Dev mode: warning, not guaranteed to work and subject to change.")
+	if err := cmd.PersistentFlags().MarkHidden("dev"); err != nil {
+		logger.Debug("error: %s", err)
+	}
 	cmd.PersistentFlags().BoolVar(&cfg.WithTelemetry, "with-telemetry", false, "Whether to send debug telemetry to Airplane.")
 	cmd.PersistentFlags().BoolVarP(&cfg.Version, "version", "v", false, "Print the CLI version.")
 	// Aliases for popular namespaced commands:
@@ -115,6 +120,7 @@ func New() *cobra.Command {
 	cmd.AddCommand(auth.New(cfg))
 	cmd.AddCommand(configs.New(cfg))
 	cmd.AddCommand(tasks.New(cfg))
+	cmd.AddCommand(views.New(cfg))
 	cmd.AddCommand(runs.New(cfg))
 	cmd.AddCommand(version.New(cfg))
 

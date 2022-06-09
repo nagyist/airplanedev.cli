@@ -36,8 +36,6 @@ type config struct {
 	assumeNo  bool
 
 	envSlug string
-
-	dev bool
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -87,12 +85,6 @@ func New(c *cli.Config) *cobra.Command {
 
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
 
-	// Unhide this flag once we release tasks-as-code.
-	cmd.Flags().BoolVar(&cfg.dev, "dev", false, "Dev mode: warning, not guaranteed to work and subject to change.")
-	if err := cmd.Flags().MarkHidden("dev"); err != nil {
-		logger.Debug("error: %s", err)
-	}
-
 	return cmd
 }
 
@@ -134,7 +126,7 @@ func run(ctx context.Context, cfg config) error {
 		Logger:  l,
 		EnvSlug: cfg.envSlug,
 	})
-	if cfg.dev {
+	if cfg.root.Dev {
 		d.AppDiscoverers = append(d.AppDiscoverers, &discover.AppDefnDiscoverer{Client: cfg.client, Logger: l})
 	}
 

@@ -20,7 +20,7 @@ type taskInfo struct {
 }
 
 func getTaskInfo(ctx context.Context, cfg config) (taskInfo, error) {
-	switch definitions.GetTaskDefFormat(cfg.file) {
+	switch definitions.GetTaskDefFormat(cfg.fileOrDir) {
 	case definitions.DefFormatYAML, definitions.DefFormatJSON:
 		return getTaskInfoFromDefn(ctx, cfg)
 	default:
@@ -29,7 +29,7 @@ func getTaskInfo(ctx context.Context, cfg config) (taskInfo, error) {
 }
 
 func getTaskInfoFromDefn(ctx context.Context, cfg config) (taskInfo, error) {
-	dir, err := taskdir.Open(cfg.file)
+	dir, err := taskdir.Open(cfg.fileOrDir)
 	if err != nil {
 		return taskInfo{}, err
 	}
@@ -55,7 +55,7 @@ func getTaskInfoFromDefn(ctx context.Context, cfg config) (taskInfo, error) {
 }
 
 func getTaskInfoFromScript(ctx context.Context, cfg config) (taskInfo, error) {
-	slug, err := utils.SlugFrom(cfg.file)
+	slug, err := utils.SlugFrom(cfg.fileOrDir)
 	if err != nil {
 		return taskInfo{}, err
 	}

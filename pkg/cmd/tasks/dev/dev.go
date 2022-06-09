@@ -16,6 +16,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/cmd/auth/login"
+	viewsdev "github.com/airplanedev/cli/pkg/cmd/views/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/params"
 	"github.com/airplanedev/cli/pkg/print"
@@ -34,10 +35,10 @@ import (
 )
 
 type config struct {
-	root    *cli.Config
-	file    string
-	args    []string
-	envSlug string
+	root      *cli.Config
+	fileOrDir string
+	args      []string
+	envSlug   string
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -56,25 +57,50 @@ func New(c *cli.Config) *cobra.Command {
 			return login.EnsureLoggedIn(cmd.Root().Context(), c)
 		}),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return errors.New(`expected a file: airplane dev ./path/to/file`)
+			if len(args) == 0 || strings.HasPrefix(args[0], "-") {
+				wd, err := os.Getwd()
+				if err != nil {
+					return errors.Wrap(err, "error determining current working directory")
+
+				}
+				cfg.fileOrDir = wd
+				cfg.args = args
+			} else {
+				cfg.fileOrDir = args[0]
+				cfg.args = args[1:]
 			}
-			cfg.file = args[0]
-			cfg.args = args[1:]
 
 			return run(cmd.Root().Context(), cfg)
 		},
 	}
 
-	// Unhide this flag once we release environments.
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
 
 	return cmd
 }
 
 func run(ctx context.Context, cfg config) error {
-	if !fsx.Exists(cfg.file) {
-		return errors.Errorf("Unable to open file: %s", cfg.file)
+	if !fsx.Exists(cfg.fileOrDir) {
+		return errors.Errorf("Unable to open: %s", cfg.fileOrDir)
+	}
+
+	fileInfo, err := os.Stat(cfg.fileOrDir)
+	if err != nil {
+		return errors.Wrapf(err, "describing %s", cfg.fileOrDir)
+	}
+
+	if cfg.root.Dev && fileInfo.IsDir() && viewsdev.IsView(cfg.fileOrDir) == nil {
+		// Switch to devving a view.
+		return viewsdev.Run(ctx, viewsdev.Config{
+			Root:    cfg.root,
+			Dir:     cfg.fileOrDir,
+			Args:    cfg.args,
+			EnvSlug: cfg.envSlug,
+		})
+	}
+
+	if fileInfo.IsDir() {
+		return errors.Errorf("%s is a directory", cfg.fileOrDir)
 	}
 
 	taskInfo, err := getTaskInfo(ctx, cfg)
@@ -82,7 +108,7 @@ func run(ctx context.Context, cfg config) error {
 		return errors.Wrap(err, "getting task info")
 	}
 
-	entrypoint, err := entrypointFrom(cfg.file)
+	entrypoint, err := entrypointFrom(cfg.fileOrDir)
 	if err == definitions.ErrNoEntrypoint {
 		logger.Warning("Local execution is not supported for this task (kind=%s)", taskInfo.kind)
 		return nil

@@ -27,6 +27,9 @@ type Config struct {
 
 	// Version indicates if the CLI version should be printed.
 	Version bool
+
+	// Dev indicates that we are in dev mode.
+	Dev bool
 }
 
 // ParseTokenForAnalytics parses UNVERIFIED JWT information - this information can be spoofed.
