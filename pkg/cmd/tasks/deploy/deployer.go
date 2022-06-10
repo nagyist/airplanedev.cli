@@ -70,22 +70,22 @@ func NewDeployer(cfg config, l logger.LoggerWithLoader, opts DeployerOpts) *depl
 }
 
 // Deploy deploys all configs.
-func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig, appConfigs []discover.AppConfig, createdTasks map[string]bool) error {
+func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig, viewConfigs []discover.ViewConfig, createdTasks map[string]bool) error {
 	var err error
 	if len(d.cfg.changedFiles) > 0 {
 		taskConfigs, err = d.filterTaskConfigsByChangedFiles(ctx, taskConfigs)
 		if err != nil {
 			return err
 		}
-		// TODO implement for apps
+		// TODO implement for views
 	}
 
-	if len(taskConfigs) == 0 && len(appConfigs) == 0 {
+	if len(taskConfigs) == 0 && len(viewConfigs) == 0 {
 		d.logger.Log("Nothing to deploy")
 		return nil
 	}
 
-	if err := d.printPreDeploySummary(ctx, taskConfigs, appConfigs, createdTasks); err != nil {
+	if err := d.printPreDeploySummary(ctx, taskConfigs, viewConfigs, createdTasks); err != nil {
 		if err == skippedDeployErr {
 			return nil
 		}
@@ -94,7 +94,7 @@ func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig
 
 	var uploadIDs map[string]string
 	if !d.cfg.local {
-		uploadIDs, err = d.tarAndUploadBatch(ctx, taskConfigs, appConfigs)
+		uploadIDs, err = d.tarAndUploadBatch(ctx, taskConfigs, viewConfigs)
 		if err != nil {
 			return err
 		}
@@ -125,7 +125,7 @@ func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig
 		gitRoots[gitRoot] = true
 	}
 	var appsToDeploy []api.DeployApp
-	for _, ac := range appConfigs {
+	for _, ac := range viewConfigs {
 		repo, err = d.repoGetter.GetGitRepo(ac.Root)
 		if err != nil {
 			d.logger.Debug("failed to get git repo for %s: %v", ac.Root, err)
@@ -357,7 +357,7 @@ More information: https://apn.sh/jst-upgrade`)
 }
 
 // tarAndUploadBatch concurrently tars and uploads configs that need building.
-func (d *deployer) tarAndUploadBatch(ctx context.Context, taskConfigs []discover.TaskConfig, appConfigs []discover.AppConfig) (map[string]string, error) {
+func (d *deployer) tarAndUploadBatch(ctx context.Context, taskConfigs []discover.TaskConfig, viewConfigs []discover.ViewConfig) (map[string]string, error) {
 	uploadIDs := make(map[string]string)
 	var mu = sync.Mutex{}
 	g, ctx := errgroup.WithContext(ctx)
@@ -387,10 +387,10 @@ func (d *deployer) tarAndUploadBatch(ctx context.Context, taskConfigs []discover
 		})
 	}
 
-	for _, ac := range appConfigs {
+	for _, ac := range viewConfigs {
 		ac := ac
 		g.Go(func() error {
-			uploadID, err := d.tarAndUpload(ctx, ac.Slug, ac.Root)
+			uploadID, err := d.tarAndUpload(ctx, ac.Def.Slug, ac.Root)
 			if err != nil {
 				return err
 			}
@@ -460,7 +460,7 @@ func (d *deployer) filterTaskConfigsByChangedFiles(ctx context.Context, taskConf
 
 var skippedDeployErr = errors.New("Skipped deploy")
 
-func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []discover.TaskConfig, appConfigs []discover.AppConfig, createdTasks map[string]bool) error {
+func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []discover.TaskConfig, viewConfigs []discover.ViewConfig, createdTasks map[string]bool) error {
 	noun := "task"
 	if len(taskConfigs) > 1 {
 		noun = fmt.Sprintf("%ss", noun)
@@ -516,16 +516,16 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []disc
 		d.logger.Log("")
 	}
 
-	noun = "app"
-	if len(appConfigs) > 1 {
+	noun = "view"
+	if len(viewConfigs) > 1 {
 		noun = fmt.Sprintf("%ss", noun)
 	}
-	if len(appConfigs) > 0 {
-		d.logger.Log("Deploying %v %v:\n", len(appConfigs), noun)
+	if len(viewConfigs) > 0 {
+		d.logger.Log("Deploying %v %v:\n", len(viewConfigs), noun)
 	}
-	// TODO diff app configs and update hasDiff if any apps have changed.
-	for _, ac := range appConfigs {
-		d.logger.Log(logger.Bold(ac.Slug))
+	// TODO diff view configs and update hasDiff if any views have changed.
+	for _, ac := range viewConfigs {
+		d.logger.Log(logger.Bold(ac.Def.Slug))
 		d.logger.Log("Root directory: %s", relpath(ac.Root))
 		d.logger.Log("")
 	}

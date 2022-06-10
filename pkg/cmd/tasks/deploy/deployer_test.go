@@ -40,10 +40,10 @@ func TestDeploy(t *testing.T) {
 	testCases := []struct {
 		desc                  string
 		taskConfigs           []discover.TaskConfig
-		appConfigs            []discover.AppConfig
+		viewConfigs           []discover.ViewConfig
 		absoluteEntrypoints   []string
 		existingTasks         map[string]libapi.Task
-		existingApps          map[string]libapi.App
+		existingViews         map[string]libapi.App
 		changedFiles          []string
 		envVars               map[string]string
 		local                 bool
@@ -688,15 +688,15 @@ func TestDeploy(t *testing.T) {
 			},
 		},
 		{
-			desc: "deploys an app",
-			appConfigs: []discover.AppConfig{
-				{Slug: "my_app", Root: fixturesPath, Source: discover.ConfigSourceDefn, ID: "app123"},
+			desc: "deploys a view",
+			viewConfigs: []discover.ViewConfig{
+				{Root: fixturesPath, Source: discover.ConfigSourceDefn, ID: "view123", Def: definitions.ViewDefinition{Slug: "my_view"}},
 			},
 			deploys: []api.CreateDeploymentRequest{
 				{
 					Apps: []api.DeployApp{
 						{
-							ID:       "app123",
+							ID:       "view123",
 							UploadID: "uploadID",
 						},
 					},
@@ -710,7 +710,7 @@ func TestDeploy(t *testing.T) {
 			assert := assert.New(t)
 			client := &api.MockClient{
 				Tasks:                 tC.existingTasks,
-				Apps:                  tC.existingApps,
+				Apps:                  tC.existingViews,
 				GetDeploymentResponse: tC.getDeploymentResponse,
 				Resources:             tC.resources,
 				Configs: []api.Config{
@@ -737,7 +737,7 @@ func TestDeploy(t *testing.T) {
 				err := tC.taskConfigs[i].Def.SetAbsoluteEntrypoint(absEntrypoint)
 				require.NoError(err)
 			}
-			err := d.Deploy(context.Background(), tC.taskConfigs, tC.appConfigs, map[string]bool{})
+			err := d.Deploy(context.Background(), tC.taskConfigs, tC.viewConfigs, map[string]bool{})
 			if tC.expectedError != nil {
 				assert.Error(err)
 				return

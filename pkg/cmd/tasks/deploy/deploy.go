@@ -127,7 +127,7 @@ func run(ctx context.Context, cfg config) error {
 		EnvSlug: cfg.envSlug,
 	})
 	if cfg.root.Dev {
-		d.AppDiscoverers = append(d.AppDiscoverers, &discover.AppDefnDiscoverer{Client: cfg.client, Logger: l})
+		d.ViewDiscoverers = append(d.ViewDiscoverers, &discover.ViewDefnDiscoverer{Client: cfg.client, Logger: l})
 	}
 
 	// If you're trying to deploy a .sql file, try to find a defn file instead.
@@ -141,7 +141,7 @@ func run(ctx context.Context, cfg config) error {
 		}
 	}
 
-	taskConfigs, appConfigs, err := d.Discover(ctx, cfg.paths...)
+	taskConfigs, viewConfigs, err := d.Discover(ctx, cfg.paths...)
 	if err != nil {
 		return err
 	}
@@ -156,7 +156,7 @@ func run(ctx context.Context, cfg config) error {
 		}
 	}
 
-	return NewDeployer(cfg, l, DeployerOpts{}).Deploy(ctx, taskConfigs, appConfigs, createdTasks)
+	return NewDeployer(cfg, l, DeployerOpts{}).Deploy(ctx, taskConfigs, viewConfigs, createdTasks)
 }
 
 func HandleMissingTask(cfg config, l logger.LoggerWithLoader, createdTasks *map[string]bool) func(ctx context.Context, def definitions.DefinitionInterface) (*libapi.TaskMetadata, error) {
