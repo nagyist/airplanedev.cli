@@ -690,14 +690,26 @@ func TestDeploy(t *testing.T) {
 		{
 			desc: "deploys a view",
 			viewConfigs: []discover.ViewConfig{
-				{Root: fixturesPath, Source: discover.ConfigSourceDefn, ID: "view123", Def: definitions.ViewDefinition{Slug: "my_view"}},
+				{
+					Root: fixturesPath, Source: discover.ConfigSourceDefn, ID: "view123", Def: definitions.ViewDefinition{
+						Slug:        "my_view",
+						Name:        "my view",
+						Entrypoint:  "/mypath",
+						Description: "My view's description",
+					},
+				},
 			},
 			deploys: []api.CreateDeploymentRequest{
 				{
-					Apps: []api.DeployApp{
+					Views: []api.DeployView{
 						{
 							ID:       "view123",
 							UploadID: "uploadID",
+							UpdateViewRequest: libapi.UpdateViewRequest{
+								Slug:        "my_view",
+								Name:        "my view",
+								Description: "My view's description",
+							},
 						},
 					},
 				},

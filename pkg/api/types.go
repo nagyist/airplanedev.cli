@@ -280,18 +280,18 @@ type DeployTask struct {
 	Schedules         map[string]libapi.Schedule `json:"schedules"`
 }
 
-type DeployApp struct {
-	ID       string `json:"id"`
-	UploadID string `json:"uploadID"`
+type DeployView struct {
+	ID                string                   `json:"id"`
+	UploadID          string                   `json:"uploadID"`
+	UpdateViewRequest libapi.UpdateViewRequest `json:"updateViewRequest"`
 	// Path from the git root to the entrypoint of the app if the app was deployed
 	// from a git repository.
 	GitFilePath string `json:"gitFilePath"`
-	// TODO: add UpdateAppRequest
 }
 
 type CreateDeploymentRequest struct {
 	Tasks       []DeployTask `json:"tasks"`
-	Apps        []DeployApp  `json:"apps"`
+	Views       []DeployView `json:"views"`
 	GitMetadata GitMetadata  `json:"gitMetadata"`
 	EnvSlug     string       `json:"envSlug"`
 }

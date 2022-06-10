@@ -124,28 +124,34 @@ func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig
 		}
 		gitRoots[gitRoot] = true
 	}
-	var appsToDeploy []api.DeployApp
-	for _, ac := range viewConfigs {
-		repo, err = d.repoGetter.GetGitRepo(ac.Root)
+	var viewsToDeploy []api.DeployView
+	for _, vc := range viewConfigs {
+		repo, err = d.repoGetter.GetGitRepo(vc.Root)
 		if err != nil {
-			d.logger.Debug("failed to get git repo for %s: %v", ac.Root, err)
+			d.logger.Debug("failed to get git repo for %s: %v", vc.Root, err)
 		}
 
 		var filePath string
 		if repo != nil {
-			filePath, err = GetEntrypointRelativeToGitRoot(repo, ac.Root)
+			filePath, err = GetEntrypointRelativeToGitRoot(repo, vc.Root)
 			if err != nil {
-				d.logger.Debug("failed to get entrypoint relative to git root %s: %v", ac.Root, err)
+				d.logger.Debug("failed to get entrypoint relative to git root %s: %v", vc.Root, err)
 			}
 		}
 
-		appToDeploy := api.DeployApp{
-			ID:          ac.ID,
-			UploadID:    uploadIDs[ac.ID],
+		viewToDeploy := api.DeployView{
+			ID:          vc.ID,
+			UploadID:    uploadIDs[vc.ID],
 			GitFilePath: filePath,
+			UpdateViewRequest: libapi.UpdateViewRequest{
+				Slug:        vc.Def.Slug,
+				Name:        vc.Def.Name,
+				Description: vc.Def.Description,
+				EnvVars:     vc.Def.EnvVars,
+			},
 		}
 
-		appsToDeploy = append(appsToDeploy, appToDeploy)
+		viewsToDeploy = append(viewsToDeploy, viewToDeploy)
 
 		// Get the root directory of the git repo with which the task is associated.
 		var gitRoot string
@@ -184,7 +190,7 @@ func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig
 
 	resp, err := d.cfg.client.CreateDeployment(ctx, api.CreateDeploymentRequest{
 		Tasks:       tasksToDeploy,
-		Apps:        appsToDeploy,
+		Views:       viewsToDeploy,
 		GitMetadata: gitMeta,
 		EnvSlug:     d.cfg.envSlug,
 	})
