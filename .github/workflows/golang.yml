@@ -28,7 +28,7 @@ jobs:
           args: --timeout=5m
 
       # https://github.com/pre-commit/action
-      - uses: pre-commit/action@v2.0.3
+      - uses: pre-commit/action@v3.0.0
 
       - run: scripts/check_gotidy.sh
   test:
