@@ -88,6 +88,7 @@ func TestDeploy(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Resources:  map[string]string{},
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
@@ -139,6 +140,7 @@ func TestDeploy(t *testing.T) {
 								Slug:       "my_workflow_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Resources:  map[string]string{},
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
@@ -190,6 +192,7 @@ func TestDeploy(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Resources:  map[string]string{},
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
@@ -240,6 +243,7 @@ func TestDeploy(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Resources:  map[string]string{},
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
@@ -290,6 +294,7 @@ func TestDeploy(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Resources:  map[string]string{},
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
@@ -337,6 +342,7 @@ func TestDeploy(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Resources:  map[string]string{},
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "image",
 								Runtime:    "",
@@ -386,6 +392,7 @@ func TestDeploy(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Resources:  map[string]string{},
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
@@ -453,6 +460,7 @@ func TestDeploy(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Resources:  map[string]string{},
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
@@ -517,6 +525,7 @@ func TestDeploy(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Resources:  map[string]string{},
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
@@ -658,6 +667,7 @@ func TestDeploy(t *testing.T) {
 								Slug:       "my_task",
 								Name:       "My Task",
 								Parameters: libapi.Parameters{},
+								Resources:  map[string]string{},
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
