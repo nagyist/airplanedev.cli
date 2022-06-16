@@ -92,7 +92,7 @@ func IsView(dir string) error {
 	}
 
 	for _, content := range contents {
-		if definitions.IsAppDef(content.Name()) {
+		if definitions.IsViewDef(content.Name()) {
 			return nil
 		}
 	}

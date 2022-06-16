@@ -6,6 +6,7 @@ import (
 	"github.com/airplanedev/cli/pkg/cmd/auth/login"
 	"github.com/airplanedev/cli/pkg/cmd/tasks/deploy"
 	"github.com/airplanedev/cli/pkg/cmd/views/dev"
+	"github.com/airplanedev/cli/pkg/cmd/views/initcmd"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/spf13/cobra"
 )
@@ -18,6 +19,7 @@ func New(c *cli.Config) *cobra.Command {
 		Long:    "Manage views",
 		Aliases: []string{"view"},
 		Example: heredoc.Doc(`
+			airplane views init
 			airplane views dev
 			airplane views deploy
 		`),
@@ -29,6 +31,7 @@ func New(c *cli.Config) *cobra.Command {
 
 	cmd.AddCommand(deploy.New(c))
 	cmd.AddCommand(dev.New(c))
+	cmd.AddCommand(initcmd.New(c))
 
 	return cmd
 }
