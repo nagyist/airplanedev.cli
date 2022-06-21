@@ -12,11 +12,11 @@ import (
 	"sync"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/airplanedev/cli/cmd/airplane/auth/login"
+	viewsdev "github.com/airplanedev/cli/cmd/airplane/views/dev"
 	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/cmd/auth/login"
-	viewsdev "github.com/airplanedev/cli/pkg/cmd/views/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/params"
 	"github.com/airplanedev/cli/pkg/print"

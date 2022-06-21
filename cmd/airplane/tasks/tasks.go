@@ -2,15 +2,15 @@ package tasks
 
 import (
 	"github.com/MakeNowJust/heredoc"
+	"github.com/airplanedev/cli/cmd/airplane/auth/login"
+	"github.com/airplanedev/cli/cmd/airplane/tasks/deploy"
+	"github.com/airplanedev/cli/cmd/airplane/tasks/dev"
+	"github.com/airplanedev/cli/cmd/airplane/tasks/execute"
+	"github.com/airplanedev/cli/cmd/airplane/tasks/get"
+	"github.com/airplanedev/cli/cmd/airplane/tasks/initcmd"
+	"github.com/airplanedev/cli/cmd/airplane/tasks/list"
+	"github.com/airplanedev/cli/cmd/airplane/tasks/open"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/cmd/auth/login"
-	"github.com/airplanedev/cli/pkg/cmd/tasks/deploy"
-	"github.com/airplanedev/cli/pkg/cmd/tasks/dev"
-	"github.com/airplanedev/cli/pkg/cmd/tasks/execute"
-	"github.com/airplanedev/cli/pkg/cmd/tasks/get"
-	"github.com/airplanedev/cli/pkg/cmd/tasks/initcmd"
-	"github.com/airplanedev/cli/pkg/cmd/tasks/list"
-	"github.com/airplanedev/cli/pkg/cmd/tasks/open"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/spf13/cobra"
 )

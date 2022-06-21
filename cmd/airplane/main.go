@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/airplanedev/cli/cmd/airplane/root"
 	"github.com/airplanedev/cli/pkg/analytics"
-	"github.com/airplanedev/cli/pkg/cmd/root"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/trap"
