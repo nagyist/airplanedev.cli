@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	libapi "github.com/airplanedev/lib/pkg/api"
@@ -40,7 +41,16 @@ func (mc *MockClient) GetTaskMetadata(ctx context.Context, slug string) (res lib
 }
 
 func (mc *MockClient) ListTasks(ctx context.Context, envSlug string) (res ListTasksResponse, err error) {
-	panic("not implemented") // TODO: Implement
+	var tasks []libapi.Task
+	for _, t := range mc.Tasks {
+		tasks = append(tasks, t)
+	}
+	sort.Slice(tasks, func(i, j int) bool {
+		return tasks[i].Slug < tasks[j].Slug
+	})
+	return ListTasksResponse{
+		Tasks: tasks,
+	}, nil
 }
 
 func (mc *MockClient) ListResources(ctx context.Context) (res libapi.ListResourcesResponse, err error) {

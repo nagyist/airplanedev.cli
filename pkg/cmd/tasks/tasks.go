@@ -7,6 +7,7 @@ import (
 	"github.com/airplanedev/cli/pkg/cmd/tasks/deploy"
 	"github.com/airplanedev/cli/pkg/cmd/tasks/dev"
 	"github.com/airplanedev/cli/pkg/cmd/tasks/execute"
+	"github.com/airplanedev/cli/pkg/cmd/tasks/gentypes"
 	"github.com/airplanedev/cli/pkg/cmd/tasks/get"
 	"github.com/airplanedev/cli/pkg/cmd/tasks/initcmd"
 	"github.com/airplanedev/cli/pkg/cmd/tasks/list"
@@ -40,6 +41,7 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.AddCommand(get.New(c))
 	cmd.AddCommand(initcmd.New(c))
 	cmd.AddCommand(open.New(c))
+	cmd.AddCommand(gentypes.New(c))
 
 	return cmd
 }
