@@ -10,7 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/DataDog/temporalite"
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	viewsdev "github.com/airplanedev/cli/cmd/airplane/views/dev"
@@ -28,10 +30,19 @@ import (
 	"github.com/airplanedev/lib/pkg/utils/bufiox"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/ojson"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"go.temporal.io/api/enums/v1"
+	"go.temporal.io/api/workflowservice/v1"
+	"go.temporal.io/sdk/client"
+	"go.temporal.io/server/common/log"
 	"golang.org/x/sync/errgroup"
+
+	uiserver "github.com/temporalio/ui-server/server"
+	uiconfig "github.com/temporalio/ui-server/server/config"
+	uiserveroptions "github.com/temporalio/ui-server/server/server_options"
 )
 
 type config struct {
@@ -82,6 +93,121 @@ func New(c *cli.Config) *cobra.Command {
 func run(ctx context.Context, cfg config) error {
 	if !fsx.Exists(cfg.fileOrDir) {
 		return errors.Errorf("Unable to open: %s", cfg.fileOrDir)
+	}
+
+	isWorkflow := true
+	namespace := "airplane_dev"
+	taskQueue := "taskRevisionDev"
+
+	if isWorkflow {
+		temporalLogger := log.NewZapLogger(log.BuildZapLogger(log.Config{
+			Stdout:     true,
+			Level:      "fatal",
+			OutputFile: "",
+		}))
+
+		server, err := temporalite.NewServer(
+			temporalite.WithFrontendPort(7333),
+			temporalite.WithPersistenceDisabled(),
+			temporalite.WithLogger(temporalLogger),
+			temporalite.WithUI(uiserver.NewServer(uiserveroptions.WithConfigProvider(&uiconfig.Config{
+				TemporalGRPCAddress: ":7333",
+				Host:                "localhost",
+				Port:                8333,
+				EnableUI:            true,
+			}))),
+		)
+		if err != nil {
+			return err
+		}
+
+		//defer server.Stop()
+
+		if err := server.Start(); err != nil {
+			return err
+		}
+
+		fmt.Println("server started")
+
+		temporalClient, err := client.Dial(client.Options{
+			HostPort: "localhost:7333",
+		})
+
+		retentionPeriod := time.Hour
+		_, err = temporalClient.WorkflowService().RegisterNamespace(
+			ctx,
+			&workflowservice.RegisterNamespaceRequest{
+				Namespace:                        namespace,
+				Description:                      "namespace for airplane dev",
+				WorkflowExecutionRetentionPeriod: &retentionPeriod,
+			},
+		)
+		if err != nil {
+			return errors.Wrap(err, "creating namespace")
+		}
+
+		b := &backoff.ExponentialBackOff{
+			InitialInterval:     backoff.DefaultInitialInterval,
+			RandomizationFactor: backoff.DefaultRandomizationFactor,
+			Multiplier:          backoff.DefaultMultiplier,
+			MaxInterval:         5 * time.Second,
+			MaxElapsedTime:      30 * time.Second,
+			Stop:                backoff.Stop,
+			Clock:               backoff.SystemClock,
+		}
+		b.Reset()
+
+		// Wait until the namespace is available; this can take a little while, so wrapping in a backoff
+		if err := backoff.Retry(
+			func() error {
+				_, err := temporalClient.WorkflowService().DescribeNamespace(
+					ctx,
+					&workflowservice.DescribeNamespaceRequest{
+						Namespace: namespace,
+					},
+				)
+				return err
+			},
+			b,
+		); err != nil {
+			return err
+		}
+
+		type AirplaneArgs struct {
+			// TODO: Don't pass JWT in args
+			TaskRevisionEnvVarNames []string
+			RuntimeEnv              map[string]string
+		}
+
+		namespaceClient, err := client.Dial(client.Options{
+			HostPort:  "localhost:7333",
+			Namespace: namespace,
+		})
+		if err != nil {
+			return err
+		}
+		_, err = namespaceClient.ExecuteWorkflow(
+			ctx,
+			// We map:
+			// (1) airplane run id -> temporal workflow id
+			// (2) airplane task revision id -> temporal queue
+			//
+			// Thus, all runs for a given revision will share the same queue.
+			client.StartWorkflowOptions{
+				ID:                    "someID",
+				TaskQueue:             taskQueue,
+				WorkflowIDReusePolicy: enums.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE,
+			},
+			// This must match the name of the wrapper function in the SDK shim
+			"__airplaneEntrypoint",
+			[]string{"{}"},
+			AirplaneArgs{
+				TaskRevisionEnvVarNames: []string{},
+				RuntimeEnv: map[string]string{
+					"AIRPLANE_RUNTIME": "workflow",
+				},
+			},
+		)
 	}
 
 	fileInfo, err := os.Stat(cfg.fileOrDir)
@@ -170,6 +296,10 @@ func run(ctx context.Context, cfg config) error {
 	for k, v := range env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
+
+	cmd.Env = append(cmd.Env, "AP_TEMPORAL_HOST=localhost:7333")
+	cmd.Env = append(cmd.Env, fmt.Sprintf("AP_TASK_QUEUE=%s", taskQueue))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("AP_NAMESPACE=%s", namespace))
 
 	if err := cmd.Start(); err != nil {
 		return errors.Wrap(err, "starting")
