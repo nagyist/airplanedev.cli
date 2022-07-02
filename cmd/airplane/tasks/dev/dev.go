@@ -20,7 +20,9 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/params"
 	"github.com/airplanedev/cli/pkg/print"
+	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/utils"
+	libBuild "github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/outputs"
@@ -39,6 +41,8 @@ type config struct {
 	fileOrDir string
 	args      []string
 	envSlug   string
+	// TODO: Include this in dev config file
+	port int
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -75,6 +79,7 @@ func New(c *cli.Config) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
+	cmd.Flags().IntVar(&cfg.port, "port", server.DefaultPort, "The port to start the local airplane api server on - defaults to 7190.")
 
 	return cmd
 }
@@ -106,6 +111,19 @@ func run(ctx context.Context, cfg config) error {
 	taskInfo, err := getTaskInfo(ctx, cfg)
 	if err != nil {
 		return errors.Wrap(err, "getting task info")
+	}
+
+	// Start local api server for workflow tasks only
+	if taskInfo.runtime == libBuild.TaskRuntimeWorkflow {
+		if err := server.Start(cfg.port); err != nil {
+			return errors.Wrap(err, "starting local dev api server")
+		}
+
+		defer func() {
+			if err := server.Stop(cfg.port); err != nil {
+				logger.Error("failed to stop local api server: %+v", err)
+			}
+		}()
 	}
 
 	entrypoint, err := entrypointFrom(cfg.fileOrDir)
