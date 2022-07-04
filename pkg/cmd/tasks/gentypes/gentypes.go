@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"sort"
 	"strings"
 	"text/template"
@@ -21,6 +22,7 @@ import (
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
+	"github.com/airplanedev/lib/pkg/runtime/typescript"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -185,63 +187,22 @@ func genTypeScriptTypes(ctx context.Context, apiClient api.APIClient, envSlug st
 		if task.Kind != build.TaskKindNode {
 			continue
 		}
-		paramTypes := make(map[string]string)
+		paramTypes := make(map[string]libapi.Type)
 		for _, param := range task.Parameters {
-			t, err := toTypeScriptType(param.Type)
-			if err != nil {
-				return err
-			}
-			paramTypes[param.Slug] = t
+			// t, err := toTypeScriptType(param.Type)
+			// if err != nil {
+			// 	return err
+			// }
+			paramTypes[param.Slug] = param.Type
 		}
-
-		var params []string
-		for slug, paramType := range paramTypes {
-			if strings.Contains(slug, "-") {
-				slug = fmt.Sprintf("\"%s\"", slug)
-			}
-			params = append(params, fmt.Sprintf("%s: %s;", slug, paramType))
-		}
-		sort.Strings(params)
-
-		tc := templateConfig{
-			TaskName:   strings.Title(strings.ReplaceAll(task.Name, " ", "")),
-			TaskParams: strings.Join(params, "\n  "),
-		}
-
-		t := paramTypesTemplate
-		if len(params) == 0 {
-			t = paramTypesTemplateNoParams
-		}
-		tmpl, err := template.New("paramTypes").Parse(t)
+		typescriptType, err := typescript.CreateParamsType(paramTypes, task.Name)
 		if err != nil {
 			return err
 		}
-		err = tmpl.Execute(&buff, tc)
-		if err != nil {
-			return err
-		}
+		fmt.Fprint(&buff, typescriptType)
 	}
 
-	if 
 	_, err := opts.wr.Write(buff.Bytes())
 
 	return err
-}
-
-func toTypeScriptType(t libapi.Type) (string, error) {
-	switch t {
-	case libapi.TypeBoolean:
-		return "boolean", nil
-	case libapi.TypeString:
-		return "string", nil
-	case libapi.TypeInteger, libapi.TypeFloat:
-		return "number", nil
-	case libapi.TypeDate, libapi.TypeDatetime:
-		return "string", nil
-	case libapi.TypeUpload:
-		return fileType, nil
-	case libapi.TypeConfigVar:
-		return configType, nil
-	}
-	return "", errors.Errorf("unknown type %s", t)
 }
