@@ -124,9 +124,11 @@ func run(ctx context.Context, cfg config) error {
 func initWithTaskDef(ctx context.Context, cfg config) error {
 	client := cfg.client
 
+	var existingTask libapi.Task
+	var err error
 	var def definitions.Definition_0_3
 	if cfg.from != "" {
-		task, err := client.GetTask(ctx, libapi.GetTaskRequest{
+		existingTask, err = client.GetTask(ctx, libapi.GetTaskRequest{
 			Slug:    cfg.from,
 			EnvSlug: cfg.envSlug,
 		})
@@ -134,7 +136,7 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 			return err
 		}
 
-		def, err = definitions.NewDefinitionFromTask_0_3(ctx, cfg.client, task)
+		def, err = definitions.NewDefinitionFromTask_0_3(ctx, cfg.client, existingTask)
 		if err != nil {
 			return err
 		}
@@ -201,7 +203,7 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 			query, err := def.SQL.GetQuery()
 			if err != nil {
 				// Create a generic entrypoint.
-				if err := createEntrypoint(r, entrypoint, nil); err != nil {
+				if err := createEntrypoint(r, entrypoint, &existingTask, false); err != nil {
 					return errors.Wrapf(err, "unable to create entrypoint")
 				}
 			} else {
@@ -214,7 +216,7 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		} else {
 			// Create entrypoint, without comment link, if it doesn't exist.
 			if !fsx.Exists(entrypoint) {
-				if err := createEntrypoint(r, entrypoint, nil); err != nil {
+				if err := createEntrypoint(r, entrypoint, &existingTask, false); err != nil {
 					return errors.Wrapf(err, "unable to create entrypoint")
 				}
 				logger.Step("Created %s", entrypoint)
@@ -353,7 +355,7 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 		return nil
 	}
 
-	if err := createEntrypoint(r, cfg.file, &task); err != nil {
+	if err := createEntrypoint(r, cfg.file, &task, true); err != nil {
 		return err
 	}
 	logger.Step("Created %s", cfg.file)
@@ -645,8 +647,8 @@ func cwdIsHome() (bool, error) {
 	return cwd == home, nil
 }
 
-func createEntrypoint(r runtime.Interface, entrypoint string, task *libapi.Task) error {
-	code, fileMode, err := r.Generate(apiTaskToRuntimeTask(task))
+func createEntrypoint(r runtime.Interface, entrypoint string, task *libapi.Task, withComment bool) error {
+	code, fileMode, err := r.Generate(apiTaskToRuntimeTask(task), runtime.GenerateOpts{Comment: withComment})
 	if err != nil {
 		return err
 	}
