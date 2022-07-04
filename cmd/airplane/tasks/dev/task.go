@@ -17,6 +17,7 @@ type taskInfo struct {
 	kind        build.TaskKind
 	kindOptions build.KindOptions
 	parameters  libapi.Parameters
+	runtime     build.TaskRuntime
 }
 
 func getTaskInfo(ctx context.Context, cfg config) (taskInfo, error) {
@@ -51,6 +52,7 @@ func getTaskInfoFromDefn(ctx context.Context, cfg config) (taskInfo, error) {
 		kind:        utr.Kind,
 		kindOptions: utr.KindOptions,
 		parameters:  utr.Parameters,
+		runtime:     utr.Runtime,
 	}, nil
 }
 
@@ -74,5 +76,6 @@ func getTaskInfoFromScript(ctx context.Context, cfg config) (taskInfo, error) {
 		kind:        task.Kind,
 		kindOptions: task.KindOptions,
 		parameters:  task.Parameters,
+		runtime:     task.Runtime,
 	}, nil
 }

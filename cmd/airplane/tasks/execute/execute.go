@@ -8,10 +8,10 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/cmd/auth/login"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/params"
 	"github.com/airplanedev/cli/pkg/print"

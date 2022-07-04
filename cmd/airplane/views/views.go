@@ -2,11 +2,11 @@ package views
 
 import (
 	"github.com/MakeNowJust/heredoc"
+	"github.com/airplanedev/cli/cmd/airplane/auth/login"
+	"github.com/airplanedev/cli/cmd/airplane/tasks/deploy"
+	"github.com/airplanedev/cli/cmd/airplane/views/dev"
+	"github.com/airplanedev/cli/cmd/airplane/views/initcmd"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/cmd/auth/login"
-	"github.com/airplanedev/cli/pkg/cmd/tasks/deploy"
-	"github.com/airplanedev/cli/pkg/cmd/views/dev"
-	"github.com/airplanedev/cli/pkg/cmd/views/initcmd"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/spf13/cobra"
 )

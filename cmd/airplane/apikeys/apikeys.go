@@ -2,11 +2,11 @@ package apikeys
 
 import (
 	"github.com/MakeNowJust/heredoc"
+	"github.com/airplanedev/cli/cmd/airplane/apikeys/create"
+	"github.com/airplanedev/cli/cmd/airplane/apikeys/delete"
+	"github.com/airplanedev/cli/cmd/airplane/apikeys/list"
+	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/cmd/apikeys/create"
-	"github.com/airplanedev/cli/pkg/cmd/apikeys/delete"
-	"github.com/airplanedev/cli/pkg/cmd/apikeys/list"
-	"github.com/airplanedev/cli/pkg/cmd/auth/login"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/spf13/cobra"
 )
