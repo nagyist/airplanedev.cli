@@ -5,23 +5,17 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
-	"runtime"
-	"sort"
 	"strings"
-	"text/template"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/cmd/auth/login"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
-	"github.com/airplanedev/lib/pkg/deploy/taskdir"
-	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime/typescript"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
@@ -31,7 +25,6 @@ import (
 type config struct {
 	root     *cli.Config
 	taskSlug string
-	taskDef  string
 	envSlug  string
 	fileName string
 }
@@ -44,12 +37,10 @@ func New(c *cli.Config) *cobra.Command {
 		Short: "Generates types for Node.js task parameters",
 		Long: `Generates TypeScript types for Node.js task parameters.
 		If no task is provided, a file with types for all Node.js tasks is produced.
-		If a task is provided, a file with types for that task is produced.
-		If a task definition file (*.task.yaml) is provided, a type will be generated at the top of the task script.`,
+		If a task is provided, a file with types for that task is produced.`,
 		Example: heredoc.Doc(`
 			airplane gentypes
 			airplane gentypes my_task
-			airplane gentypes 
 		`),
 		PersistentPreRunE: utils.WithParentPersistentPreRunE(func(cmd *cobra.Command, args []string) error {
 			return login.EnsureLoggedIn(cmd.Root().Context(), c)
@@ -57,11 +48,7 @@ func New(c *cli.Config) *cobra.Command {
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
-				if definitions.IsTaskDef(args[0]) {
-					cfg.taskDef = args[0]
-				} else {
-					cfg.taskSlug = args[0]
-				}
+				cfg.taskSlug = args[0]
 			}
 			return run(cmd.Root().Context(), cfg)
 		},
@@ -74,38 +61,24 @@ func New(c *cli.Config) *cobra.Command {
 }
 
 func run(ctx context.Context, cfg config) error {
-	var wr io.Writer
-	var err error
-	var fileName string
-	if cfg.taskDef != "" {
-		if !fsx.Exists(cfg.taskDef) {
-			return errors.Errorf("%s does not exist", cfg.taskDef)
-		}
-		wr, err = os.Create(cfg.taskDef)
-		if err != nil {
+	fileName := cfg.fileName
+	if !strings.HasSuffix(fileName, ".ts") {
+		fileName = fmt.Sprintf("%s.ts", fileName)
+	}
+	if fsx.Exists(fileName) {
+		if ok, err := utils.Confirm(fmt.Sprintf("Would you like to overwrite %s?", fileName)); err != nil {
 			return err
+		} else if !ok {
+			return nil
 		}
-	} else {
-		fileName = cfg.fileName
-		if !strings.HasSuffix(fileName, ".ts") {
-			fileName = fmt.Sprintf("%s.ts", fileName)
-		}
-		if fsx.Exists(fileName) {
-			if ok, err := utils.Confirm(fmt.Sprintf("Would you like to overwrite %s?", fileName)); err != nil {
-				return err
-			} else if !ok {
-				return nil
-			}
-		}
-		wr, err = os.Create(fileName)
-		if err != nil {
-			errors.Wrapf(err, "creating file %s", fileName)
-		}
+	}
+	wr, err := os.Create(fileName)
+	if err != nil {
+		errors.Wrapf(err, "creating file %s", fileName)
 	}
 
 	if err := genTypeScriptTypes(ctx, cfg.root.Client, cfg.envSlug, genTypeScriptTypesOpts{
 		taskSlug: cfg.taskSlug,
-		taskDef:  cfg.taskDef,
 		wr:       wr,
 	}); err != nil {
 		return err
@@ -121,13 +94,11 @@ func run(ctx context.Context, cfg config) error {
 
 type genTypeScriptTypesOpts struct {
 	taskSlug string
-	taskDef  string
 	wr       io.Writer
 }
 
 func genTypeScriptTypes(ctx context.Context, apiClient api.APIClient, envSlug string, opts genTypeScriptTypesOpts) error {
 	var tasks []libapi.Task
-	var contentToOverwrite string
 	if opts.taskSlug != "" {
 		task, err := apiClient.GetTask(ctx, libapi.GetTaskRequest{
 			Slug:    opts.taskSlug,
@@ -138,39 +109,6 @@ func genTypeScriptTypes(ctx context.Context, apiClient api.APIClient, envSlug st
 			return err
 		}
 		tasks = append(tasks, task)
-	} else if opts.taskDef != "" {
-		dir, err := taskdir.Open(opts.taskDef)
-		if err != nil {
-			return err
-		}
-		defer dir.Close()
-
-		def, err := dir.ReadDefinition()
-		if err != nil {
-			return err
-		}
-		entrypoint, err := def.Entrypoint()
-		if err != nil {
-			return err
-		}
-		entrypointContent, err := ioutil.ReadFile(entrypoint)
-		if err != nil {
-			return err
-		}
-		contentToOverwrite = string(entrypointContent)
-
-		utr, err := def.GetUpdateTaskRequest(ctx, apiClient)
-		if err != nil {
-			return err
-		}
-
-		tasks = []libapi.Task{
-			{
-				Slug:       def.GetSlug(),
-				Kind:       utr.Kind,
-				Parameters: utr.Parameters,
-			},
-		}
 	} else {
 		tasksResp, err := apiClient.ListTasks(ctx, envSlug)
 		if err != nil {
@@ -180,19 +118,13 @@ func genTypeScriptTypes(ctx context.Context, apiClient api.APIClient, envSlug st
 	}
 
 	var buff bytes.Buffer
-	if contentToOverwrite == "" {
-		fmt.Fprint(&buff, "// Code generated by airplane tasks gentypes. DO NOT EDIT.\n\n")
-	}
+	fmt.Fprint(&buff, "// Code generated by airplane tasks gentypes. DO NOT EDIT.\n\n")
 	for _, task := range tasks {
 		if task.Kind != build.TaskKindNode {
 			continue
 		}
 		paramTypes := make(map[string]libapi.Type)
 		for _, param := range task.Parameters {
-			// t, err := toTypeScriptType(param.Type)
-			// if err != nil {
-			// 	return err
-			// }
 			paramTypes[param.Slug] = param.Type
 		}
 		typescriptType, err := typescript.CreateParamsType(paramTypes, task.Name)
