@@ -6,12 +6,12 @@ import (
 	"github.com/airplanedev/cli/cmd/airplane/tasks/deploy"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/execute"
-	"github.com/airplanedev/cli/cmd/airplane/tasks/gentypes"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/get"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/initcmd"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/list"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/open"
 	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/cmd/tasks/gentypes"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/spf13/cobra"
 )

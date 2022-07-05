@@ -648,7 +648,7 @@ func cwdIsHome() (bool, error) {
 }
 
 func createEntrypoint(r runtime.Interface, entrypoint string, task *libapi.Task, withComment bool) error {
-	code, fileMode, err := r.Generate(apiTaskToRuntimeTask(task), runtime.GenerateOpts{Comment: withComment})
+	code, fileMode, err := r.Generate(apiTaskToRuntimeTask(task), runtime.GenerateOpts{GenerateComment: withComment})
 	if err != nil {
 		return err
 	}
@@ -679,7 +679,7 @@ func apiTaskToRuntimeTask(task *libapi.Task) *runtime.Task {
 		t.Parameters = append(t.Parameters, runtime.Parameter{
 			Name: p.Name,
 			Slug: p.Slug,
-			Type: runtime.Type(p.Type),
+			Type: p.Type,
 		})
 	}
 	return t
