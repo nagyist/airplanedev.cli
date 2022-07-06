@@ -103,7 +103,8 @@ type APIClient interface {
 	CancelDeployment(ctx context.Context, req CancelDeploymentRequest) error
 	DeploymentURL(deploymentID string, envSlug string) string
 
-	GetApp(ctx context.Context, req libapi.GetAppRequest) (libapi.App, error)
+	GetView(ctx context.Context, req libapi.GetViewRequest) (libapi.View, error)
+	CreateView(ctx context.Context, req libapi.CreateViewRequest) (libapi.View, error)
 }
 
 var _ APIClient = Client{}
@@ -350,9 +351,9 @@ func (c Client) GetTaskMetadata(ctx context.Context, slug string) (res libapi.Ta
 	return
 }
 
-// GetApp fetches an app. If the app does not exist, a *AppMissingError is returned.
-func (c Client) GetApp(ctx context.Context, req libapi.GetAppRequest) (res libapi.App, err error) {
-	err = c.do(ctx, "GET", encodeQueryString("/apps/get", url.Values{
+// GetView fetches a view. If the view does not exist, a *AppMissingError is returned.
+func (c Client) GetView(ctx context.Context, req libapi.GetViewRequest) (res libapi.View, err error) {
+	err = c.do(ctx, "GET", encodeQueryString("/views/get", url.Values{
 		"slug": []string{req.Slug},
 		"id":   []string{req.ID},
 	}), nil, &res)
@@ -364,6 +365,11 @@ func (c Client) GetApp(ctx context.Context, req libapi.GetAppRequest) (res libap
 		}
 	}
 
+	return
+}
+
+func (c Client) CreateView(ctx context.Context, req libapi.CreateViewRequest) (res libapi.View, err error) {
+	err = c.do(ctx, "POST", "/views/create", req, &res)
 	return
 }
 

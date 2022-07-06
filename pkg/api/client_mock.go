@@ -11,7 +11,7 @@ import (
 
 type MockClient struct {
 	Tasks                 map[string]libapi.Task
-	Apps                  map[string]libapi.App
+	Views                 map[string]libapi.View
 	Deploys               []CreateDeploymentRequest
 	GetDeploymentResponse *Deployment
 	Resources             []libapi.Resource
@@ -153,10 +153,14 @@ func (mc *MockClient) DeploymentURL(deploymentID string, envSlug string) string 
 	return fmt.Sprintf("https://airplane.dev/%s", deploymentID)
 }
 
-func (mc *MockClient) GetApp(ctx context.Context, req libapi.GetAppRequest) (res libapi.App, err error) {
-	a, ok := mc.Apps[req.Slug]
+func (mc *MockClient) GetView(ctx context.Context, req libapi.GetViewRequest) (res libapi.View, err error) {
+	a, ok := mc.Views[req.Slug]
 	if !ok {
-		return libapi.App{}, &libapi.AppMissingError{AppURL: "api/", Slug: req.Slug}
+		return libapi.View{}, &libapi.AppMissingError{AppURL: "api/", Slug: req.Slug}
 	}
 	return a, nil
+}
+
+func (mc *MockClient) CreateView(ctx context.Context, req libapi.CreateViewRequest) (res libapi.View, err error) {
+	panic("not implemented") // TODO: Implement
 }

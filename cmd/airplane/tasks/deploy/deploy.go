@@ -127,7 +127,8 @@ func run(ctx context.Context, cfg config) error {
 		EnvSlug: cfg.envSlug,
 	})
 	if cfg.root.Dev {
-		d.ViewDiscoverers = append(d.ViewDiscoverers, &discover.ViewDefnDiscoverer{Client: cfg.client, Logger: l})
+		createdViews := map[string]bool{}
+		d.ViewDiscoverers = append(d.ViewDiscoverers, &discover.ViewDefnDiscoverer{Client: cfg.client, Logger: l, MissingViewHandler: HandleMissingView(cfg, l, &createdViews)})
 	}
 
 	// If you're trying to deploy a .sql file, try to find a defn file instead.
@@ -220,6 +221,45 @@ func HandleMissingTask(cfg config, l logger.LoggerWithLoader, createdTasks *map[
 			ID:   resp.TaskID,
 			Slug: resp.Slug,
 		}, nil
+	}
+}
+
+func HandleMissingView(cfg config, l logger.LoggerWithLoader, createdViews *map[string]bool) func(ctx context.Context, def definitions.ViewDefinition) (*libapi.View, error) {
+	return func(ctx context.Context, def definitions.ViewDefinition) (*libapi.View, error) {
+		if utils.CanPrompt() {
+			wasActive := l.StopLoader()
+			question := fmt.Sprintf("A view with slug %s does not exist. Would you like to create one?", def.Slug)
+			ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo)
+			if wasActive {
+				l.StartLoader()
+			}
+
+			if err != nil {
+				return nil, err
+			} else if !ok {
+				// User answered "no", so bail here.
+				return nil, nil
+			}
+		} else if !cfg.assumeYes {
+			return nil, nil
+		}
+
+		l.Log("Creating view...")
+		cvr := libapi.CreateViewRequest{
+			Slug:        def.Slug,
+			Name:        def.Name,
+			Description: def.Description,
+			EnvVars:     def.EnvVars,
+		}
+
+		resp, err := cfg.client.CreateView(ctx, cvr)
+		if err != nil {
+			return nil, errors.Wrapf(err, "creating view %s", def.Slug)
+		}
+		if createdViews != nil {
+			(*createdViews)[resp.ID] = true
+		}
+		return &resp, nil
 	}
 }
 

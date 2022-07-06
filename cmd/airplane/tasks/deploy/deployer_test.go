@@ -43,7 +43,7 @@ func TestDeploy(t *testing.T) {
 		viewConfigs           []discover.ViewConfig
 		absoluteEntrypoints   []string
 		existingTasks         map[string]libapi.Task
-		existingViews         map[string]libapi.App
+		existingViews         map[string]libapi.View
 		changedFiles          []string
 		envVars               map[string]string
 		local                 bool
@@ -732,7 +732,7 @@ func TestDeploy(t *testing.T) {
 			assert := assert.New(t)
 			client := &api.MockClient{
 				Tasks:                 tC.existingTasks,
-				Apps:                  tC.existingViews,
+				Views:                 tC.existingViews,
 				GetDeploymentResponse: tC.getDeploymentResponse,
 				Resources:             tC.resources,
 				Configs: []api.Config{
