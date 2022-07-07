@@ -2,7 +2,7 @@ package initcmd
 
 import (
 	"context"
-	"errors"
+	_ "embed"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -16,6 +16,7 @@ import (
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -94,7 +95,19 @@ func createViewScaffolding(cfg *config) error {
 	if err := createViewDefinition(*cfg); err != nil {
 		return err
 	}
+	if err := createEntrypoint(*cfg); err != nil {
+		return err
+	}
 	return nil
+}
+
+func generateEntrypointPath(cfg config, inViewDir bool) string {
+	slug := utils.MakeSlug(cfg.name)
+	if inViewDir {
+		return fmt.Sprintf("%s.view.tsx", slug)
+	} else {
+		return fmt.Sprintf("%s/%s.view.tsx", cfg.viewDir, slug)
+	}
 }
 
 func createViewDefinition(cfg config) error {
@@ -105,7 +118,7 @@ func createViewDefinition(cfg config) error {
 	def := definitions.ViewDefinition{
 		Name:       cfg.name,
 		Slug:       utils.MakeSlug(cfg.name),
-		Entrypoint: ".",
+		Entrypoint: generateEntrypointPath(cfg, true),
 	}
 
 	defnFilename := fmt.Sprintf("%s/%s.view.yaml", cfg.viewDir, def.Slug)
@@ -119,5 +132,18 @@ func createViewDefinition(cfg config) error {
 		return err
 	}
 	logger.Step("Created view definition at %s", defnFilename)
+	return nil
+}
+
+//go:embed scaffolding/default.view.tsx
+var defaultEntrypoint []byte
+
+func createEntrypoint(cfg config) error {
+	entrypointPath := generateEntrypointPath(cfg, false)
+
+	if err := ioutil.WriteFile(entrypointPath, defaultEntrypoint, 0644); err != nil {
+		return errors.Wrap(err, "creating view entrypoint")
+	}
+	logger.Step("Created view entrypoint at %s", entrypointPath)
 	return nil
 }
