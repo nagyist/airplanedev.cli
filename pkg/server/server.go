@@ -5,11 +5,20 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/gorilla/mux"
 )
 
 const DefaultPort = 7190
+
+type Server struct {
+	srv   *http.Server
+	state *State
+}
 
 // address returns the TCP address that the api server listens on
 func address(port int) string {
@@ -17,39 +26,65 @@ func address(port int) string {
 }
 
 // newRouter returns a new router for the local api server
-func newRouter() *mux.Router {
+func newRouter(ctx context.Context, state *State) *mux.Router {
 	r := mux.NewRouter()
-	AttachAPIRoutes(r.NewRoute().Subrouter())
+	AttachAPIRoutes(r.NewRoute().Subrouter(), ctx, state)
 	return r
 }
 
-// newServer returns a new HTTP server with API routes
-func newServer(router *mux.Router, port int) *http.Server {
-	s := &http.Server{
-		Addr:    address(port),
-		Handler: router,
-	}
-	router.Handle("/shutdown", ShutdownHandler(s))
-	return s
+type Options struct {
+	CLI      *cli.Config
+	EnvSlug  string
+	Port     int
+	Executor dev.Executor
 }
 
-// Start starts a new instance of the Airplane API server for local dev.
-func Start(port int) error {
-	r := newRouter()
-	s := newServer(r, port)
+// newServer returns a new HTTP server with API routes
+func newServer(router *mux.Router, state *State) *Server {
+	srv := &http.Server{
+		Addr:    address(state.port),
+		Handler: router,
+	}
+	router.Handle("/shutdown", ShutdownHandler(srv))
+	return &Server{
+		srv:   srv,
+		state: state,
+	}
+}
+
+// Start starts and returns new instance of the Airplane API server for local dev.
+func Start(opts Options) (*Server, error) {
+	state := &State{
+		cli:      opts.CLI,
+		envSlug:  opts.EnvSlug,
+		executor: opts.Executor,
+		port:     opts.Port,
+		runs:     map[string]api.RunStatus{},
+	}
+
+	r := newRouter(context.Background(), state)
+	s := newServer(r, state)
 
 	go func() {
-		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("failed to start api server")
 		}
 	}()
 
-	return nil
+	return s, nil
+}
+
+// RegisterTasks generates a mapping of local task slug to task config and stores the mapping in the server state.
+func (s *Server) RegisterTasks(taskConfigs []discover.TaskConfig) {
+	s.state.taskConfigs = map[string]discover.TaskConfig{}
+	for _, cfg := range taskConfigs {
+		s.state.taskConfigs[cfg.Def.GetSlug()] = cfg
+	}
 }
 
 // Stop terminates the local dev API server.
-func Stop(port int) error {
-	if _, err := http.Get(fmt.Sprintf("http://%s/shutdown", address(port))); err != nil {
+func (s *Server) Stop() error {
+	if _, err := http.Get(fmt.Sprintf("http://%s/shutdown", address(s.state.port))); err != nil {
 		return err
 	}
 

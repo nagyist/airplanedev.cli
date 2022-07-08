@@ -7,6 +7,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/discover"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/ojson"
 	"github.com/gavv/httpexpect/v2"
 	"github.com/gorilla/mux"
@@ -29,16 +34,69 @@ func getHttpExpect(ctx context.Context, t *testing.T, router *mux.Router) *httpe
 
 func TestExecute(t *testing.T) {
 	require := require.New(t)
+	mockExecutor := new(dev.MockExecutor)
+	slug := "my_task"
+
+	taskDefinition := &definitions.Definition_0_3{
+		Name: "My Task",
+		Slug: slug,
+		Node: &definitions.NodeDefinition_0_3{
+			Entrypoint:  "my_task.ts",
+			NodeVersion: "18",
+		},
+	}
+	taskDefinition.SetDefnFilePath("my_task.task.yaml")
+
+	ctx := context.Background()
 	h := getHttpExpect(
 		context.Background(),
 		t,
-		newRouter(),
+		newRouter(ctx, &State{
+			envSlug:  "stage",
+			executor: mockExecutor,
+			port:     1234,
+			runs:     map[string]api.RunStatus{},
+			taskConfigs: map[string]discover.TaskConfig{
+				slug: {
+					TaskID:         "tsk123",
+					TaskRoot:       ".",
+					TaskEntrypoint: "my_task.ts",
+					Def:            taskDefinition,
+					Source:         discover.ConfigSourceDefn,
+				},
+			},
+		}),
 	)
 
+	paramValues := api.Values{
+		"param1": "a",
+		"param2": "b",
+	}
+
+	runConfig := dev.LocalRunConfig{
+		Name: "My Task",
+		Kind: build.TaskKindNode,
+		KindOptions: build.KindOptions{
+			"entrypoint":  "my_task.ts",
+			"nodeVersion": "18",
+		},
+		ParamValues: paramValues,
+		Port:        1234,
+		File:        "my_task.task.yaml",
+		Slug:        slug,
+		EnvSlug:     "stage",
+	}
+	mockExecutor.On("Execute", ctx, runConfig).Return(nil)
+
 	body := h.POST("/v0/tasks/execute").
-		WithJSON(map[string]interface{}{}).
+		WithJSON(ExecuteTaskRequest{
+			Slug:        slug,
+			ParamValues: paramValues,
+		}).
 		Expect().
 		Status(http.StatusOK).Body()
+
+	mockExecutor.AssertCalled(t, "Execute", ctx, runConfig)
 
 	var resp ExecuteTaskResponse
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
@@ -48,13 +106,19 @@ func TestExecute(t *testing.T) {
 
 func TestGetRun(t *testing.T) {
 	require := require.New(t)
+
+	runID := "run1234"
 	h := getHttpExpect(
 		context.Background(),
 		t,
-		newRouter(),
+		newRouter(context.Background(), &State{
+			runs: map[string]api.RunStatus{
+				runID: api.RunSucceeded,
+			},
+			taskConfigs: map[string]discover.TaskConfig{},
+		}),
 	)
 
-	runID := "run1234"
 	body := h.GET("/v0/runs/get").
 		WithQuery("id", runID).
 		Expect().
@@ -64,6 +128,7 @@ func TestGetRun(t *testing.T) {
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
 	require.Equal(runID, resp.ID)
+	require.Equal(api.RunSucceeded, resp.Status)
 }
 
 func TestGetOutput(t *testing.T) {
@@ -71,7 +136,10 @@ func TestGetOutput(t *testing.T) {
 	h := getHttpExpect(
 		context.Background(),
 		t,
-		newRouter(),
+		newRouter(context.Background(), &State{
+			runs:        map[string]api.RunStatus{},
+			taskConfigs: map[string]discover.TaskConfig{},
+		}),
 	)
 
 	body := h.GET("/v0/runs/getOutputs").

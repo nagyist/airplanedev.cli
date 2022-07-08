@@ -115,7 +115,7 @@ func (c Client) appURL() *url.URL {
 	apphost := c.host()
 	apphost = strings.ReplaceAll(apphost, "api.airstage.app", "web.airstage.app")
 	apphost = strings.ReplaceAll(apphost, "api", "app")
-	u, _ := url.Parse("https://" + apphost)
+	u, _ := url.Parse(c.scheme() + apphost)
 	return u
 }
 
@@ -452,7 +452,7 @@ func (c Client) ListResources(ctx context.Context) (res libapi.ListResourcesResp
 
 // Do sends a request with `method`, `path`, `payload` and `reply`.
 func (c Client) do(ctx context.Context, method, path string, payload, reply interface{}) error {
-	var url = "https://" + c.host() + "/v0" + path
+	var url = c.scheme() + c.host() + "/v0" + path
 	var body io.Reader
 
 	if payload != nil {
@@ -529,6 +529,13 @@ func (c Client) host() string {
 		return c.Host
 	}
 	return Host
+}
+
+func (c Client) scheme() string {
+	if strings.HasPrefix(c.Host, "localhost") || strings.HasPrefix(c.Host, "127.0.0.1") {
+		return "http://"
+	}
+	return "https://"
 }
 
 // encodeURL is a helper for encoding a set of query parameters onto a URL.
