@@ -30,7 +30,7 @@ import (
 
 // Executor is an interface that contains methods for executing task code.
 type Executor interface {
-	Execute(ctx context.Context, config LocalRunConfig) error
+	Execute(ctx context.Context, config LocalRunConfig) (api.Outputs, error)
 }
 
 // LocalExecutor is an implementation of Executor that runs task code locally.
@@ -49,26 +49,26 @@ type LocalRunConfig struct {
 	EnvSlug     string
 }
 
-func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) error {
+func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api.Outputs, error) {
 	entrypoint, err := entrypointFrom(config.File)
 	if err == definitions.ErrNoEntrypoint {
 		logger.Warning("Local execution is not supported for this task (kind=%s)", config.Kind)
-		return nil
+		return api.Outputs{}, nil
 	} else if err != nil {
-		return err
+		return api.Outputs{}, err
 	}
 
 	r, err := runtime.Lookup(entrypoint, config.Kind)
 	if err != nil {
-		return errors.Wrapf(err, "unsupported file type: %s", filepath.Base(entrypoint))
+		return api.Outputs{}, errors.Wrapf(err, "unsupported file type: %s", filepath.Base(entrypoint))
 	}
 
 	if !r.SupportsLocalExecution() {
 		logger.Warning("Local execution is not supported for this task (kind=%s)", config.Kind)
-		return nil
+		return api.Outputs{}, nil
 	}
 
-	logger.Log("Locally running %s task %s", logger.Bold(config.Name), logger.Gray("("+config.Root.Client.TaskURL(config.Slug, config.EnvSlug)+")"))
+	print.BoxPrint(fmt.Sprintf("Locally running task [%s] %s", config.Name, config.Root.Client.TaskURL(config.Slug, config.EnvSlug)))
 	logger.Log("")
 
 	cmds, closer, err := r.PrepareRun(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), runtime.PrepareRunOptions{
@@ -77,7 +77,7 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) erro
 		KindOptions: config.KindOptions,
 	})
 	if err != nil {
-		return err
+		return api.Outputs{}, err
 	}
 	if closer != nil {
 		defer closer.Close()
@@ -87,17 +87,17 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) erro
 	logger.Debug("Running %s", logger.Bold(strings.Join(cmd.Args, " ")))
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return errors.Wrap(err, "stdout")
+		return api.Outputs{}, errors.Wrap(err, "stdout")
 	}
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		return errors.Wrap(err, "stderr")
+		return api.Outputs{}, errors.Wrap(err, "stderr")
 	}
 
 	// Load environment variables from .env files:
 	env, err := getDevEnv(r, entrypoint)
 	if err != nil {
-		return err
+		return api.Outputs{}, err
 	}
 	// cmd.Env defaults to os.Environ _only if empty_. Since we add
 	// to it, we need to also set it to os.Environ.
@@ -110,7 +110,7 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) erro
 	cmd.Env = append(cmd.Env, "AIRPLANE_RUNTIME=dev")
 
 	if err := cmd.Start(); err != nil {
-		return errors.Wrap(err, "starting")
+		return api.Outputs{}, errors.Wrap(err, "starting")
 	}
 
 	// mu guards o and chunks
@@ -142,7 +142,7 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) erro
 				mu.Unlock()
 			}
 
-			logger.Log("[%s] %s", logger.Gray("log"), line)
+			logger.Log("[%s %s] %s", logger.Gray(config.Name), logger.Gray("log"), line)
 		}
 		return errors.Wrap(scanner.Err(), "scanning logs")
 	}
@@ -154,15 +154,23 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) erro
 	eg.Go(func() error {
 		return logParser(stderr)
 	})
+
 	if err := eg.Wait(); err != nil {
-		return err
+		return api.Outputs{}, err
 	}
 
 	if err := cmd.Wait(); err != nil {
-		return err
+		return api.Outputs{}, err
 	}
 
-	print.Outputs(api.Outputs(o))
+	outputs := api.Outputs(o)
+	logger.Log("")
+	logger.Log("%s for task %s:", logger.Gray("Output"), logger.Gray(config.Slug))
+	print.Outputs(outputs)
+
+	logger.Log("")
+	print.BoxPrint(fmt.Sprintf("Finished running task [%s]", config.Name))
+	logger.Log("")
 
 	analytics.Track(config.Root, "Run Executed Locally", map[string]interface{}{
 		"kind":         config.Kind,
@@ -175,7 +183,7 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) erro
 		SkipSlack: true,
 	})
 
-	return nil
+	return outputs, nil
 }
 
 // getDevEnv will return a map of env vars, loading from .env and airplane.env

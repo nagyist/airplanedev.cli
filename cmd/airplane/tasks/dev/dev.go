@@ -153,7 +153,7 @@ func run(ctx context.Context, cfg config) error {
 		return err
 	}
 
-	if err := localExecutor.Execute(ctx, dev.LocalRunConfig{
+	if _, err := localExecutor.Execute(ctx, dev.LocalRunConfig{
 		Name:        taskInfo.name,
 		Kind:        taskInfo.kind,
 		KindOptions: taskInfo.kindOptions,

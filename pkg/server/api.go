@@ -12,16 +12,20 @@ import (
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
-	"github.com/airplanedev/ojson"
 	"github.com/gorilla/mux"
 )
+
+type LocalRun struct {
+	status  api.RunStatus
+	outputs api.Outputs
+}
 
 type State struct {
 	cli         *cli.Config
 	envSlug     string
 	executor    dev.Executor
 	port        int
-	runs        map[string]api.RunStatus
+	runs        map[string]LocalRun
 	taskConfigs map[string]discover.TaskConfig
 }
 
@@ -57,6 +61,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State) http.HandlerFunc {
 
 		runID := "run" + utils.RandomString(10, utils.CharsetLowercaseNumeric)
 		runStatus := api.RunFailed
+		outputs := api.Outputs{}
 		if config, ok := state.taskConfigs[req.Slug]; ok {
 			kind, kindOptions, err := config.Def.GetKindAndOptions()
 			if err != nil {
@@ -64,7 +69,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State) http.HandlerFunc {
 				return
 			}
 
-			if err := state.executor.Execute(ctx, dev.LocalRunConfig{
+			outputs, err = state.executor.Execute(ctx, dev.LocalRunConfig{
 				Name:        config.Def.GetName(),
 				Kind:        kind,
 				KindOptions: kindOptions,
@@ -74,7 +79,8 @@ func ExecuteTaskHandler(ctx context.Context, state *State) http.HandlerFunc {
 				File:        config.Def.GetDefnFilePath(),
 				Slug:        req.Slug,
 				EnvSlug:     state.envSlug,
-			}); err != nil {
+			})
+			if err != nil {
 				logger.Error("failed to run task locally")
 				return
 			}
@@ -84,7 +90,10 @@ func ExecuteTaskHandler(ctx context.Context, state *State) http.HandlerFunc {
 			logger.Error("task with slug %s is not registered locally", req.Slug)
 		}
 
-		state.runs[runID] = runStatus
+		state.runs[runID] = LocalRun{
+			status:  runStatus,
+			outputs: outputs,
+		}
 
 		if err := json.NewEncoder(w).Encode(ExecuteTaskResponse{
 			RunID: runID,
@@ -118,15 +127,15 @@ func GetRunHandler(ctx context.Context, state *State) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		runID := r.URL.Query().Get("id")
 
-		status, ok := state.runs[runID]
+		run, ok := state.runs[runID]
 		if !ok {
-			logger.Error("status for run id %s not found", runID)
+			logger.Error("run with id %s not found", runID)
 			return
 		}
 
 		if err := json.NewEncoder(w).Encode(GetRunResponse{
 			ID:     runID,
-			Status: status,
+			Status: run.status,
 		}); err != nil {
 			logger.Error("failed to encode response for /v0/runs/get")
 		}
@@ -135,16 +144,21 @@ func GetRunHandler(ctx context.Context, state *State) http.HandlerFunc {
 
 type GetOutputsResponse struct {
 	// Outputs from this run.
-	Output ojson.Value `json:"output"`
+	Output api.Outputs `json:"output"`
 }
 
 // GetOutputsHandler handles requests to the /v0/runs/getOutputs endpoint
 func GetOutputsHandler(ctx context.Context, state *State) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		runID := r.URL.Query().Get("id")
+		run, ok := state.runs[runID]
+		if !ok {
+			logger.Error("run with id %s not found", runID)
+			return
+		}
+
 		if err := json.NewEncoder(w).Encode(GetOutputsResponse{
-			Output: ojson.Value{
-				V: nil,
-			},
+			Output: run.outputs,
 		}); err != nil {
 			logger.Error("failed to encode response for /v0/runs/getOutputs")
 		}

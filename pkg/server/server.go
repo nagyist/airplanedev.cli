@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -59,7 +58,7 @@ func Start(opts Options) (*Server, error) {
 		envSlug:  opts.EnvSlug,
 		executor: opts.Executor,
 		port:     opts.Port,
-		runs:     map[string]api.RunStatus{},
+		runs:     map[string]LocalRun{},
 	}
 
 	r := newRouter(context.Background(), state)

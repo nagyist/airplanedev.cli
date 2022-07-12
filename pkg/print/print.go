@@ -1,6 +1,8 @@
 package print //nolint: predeclared
 
 import (
+	"strings"
+
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/logger"
 	libapi "github.com/airplanedev/lib/pkg/api"
@@ -72,6 +74,19 @@ func Print(obj interface{}, defaultPrintFunc func()) {
 	default:
 		defaultPrintFunc()
 	}
+}
+
+// BoxPrint pretty prints a box around the given string - for example, BoxPrint("hello") would output
+// +-------+
+// | hello |
+// +-------+
+func BoxPrint(s string) {
+	Print(s, func() {
+		sLen := len(s)
+		logger.Log("+" + strings.Repeat("-", sLen+2) + "+")
+		logger.Log("| " + s + " |")
+		logger.Log("+" + strings.Repeat("-", sLen+2) + "+")
+	})
 }
 
 func handleErr(err error) {

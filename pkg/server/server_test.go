@@ -12,7 +12,6 @@ import (
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
-	"github.com/airplanedev/ojson"
 	"github.com/gavv/httpexpect/v2"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/require"
@@ -55,7 +54,7 @@ func TestExecute(t *testing.T) {
 			envSlug:  "stage",
 			executor: mockExecutor,
 			port:     1234,
-			runs:     map[string]api.RunStatus{},
+			runs:     map[string]LocalRun{},
 			taskConfigs: map[string]discover.TaskConfig{
 				slug: {
 					TaskID:         "tsk123",
@@ -112,8 +111,10 @@ func TestGetRun(t *testing.T) {
 		context.Background(),
 		t,
 		newRouter(context.Background(), &State{
-			runs: map[string]api.RunStatus{
-				runID: api.RunSucceeded,
+			runs: map[string]LocalRun{
+				runID: {
+					status: api.RunSucceeded,
+				},
 			},
 			taskConfigs: map[string]discover.TaskConfig{},
 		}),
@@ -133,23 +134,29 @@ func TestGetRun(t *testing.T) {
 
 func TestGetOutput(t *testing.T) {
 	require := require.New(t)
+	runID := "run1234"
 	h := getHttpExpect(
 		context.Background(),
 		t,
 		newRouter(context.Background(), &State{
-			runs:        map[string]api.RunStatus{},
+			runs: map[string]LocalRun{
+				runID: {
+					outputs: api.Outputs{V: "hello"},
+				},
+			},
 			taskConfigs: map[string]discover.TaskConfig{},
 		}),
 	)
 
 	body := h.GET("/v0/runs/getOutputs").
+		WithQuery("id", runID).
 		Expect().
 		Status(http.StatusOK).Body()
 
 	var resp GetOutputsResponse
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
-	require.Equal(ojson.Value{
-		V: nil,
+	require.Equal(api.Outputs{
+		V: "hello",
 	}, resp.Output)
 }
