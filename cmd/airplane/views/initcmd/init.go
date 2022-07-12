@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/MakeNowJust/heredoc"
@@ -98,6 +99,9 @@ func createViewScaffolding(cfg *config) error {
 	if err := createEntrypoint(*cfg); err != nil {
 		return err
 	}
+	if err := createPackageJSON(*cfg); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -145,5 +149,56 @@ func createEntrypoint(cfg config) error {
 		return errors.Wrap(err, "creating view entrypoint")
 	}
 	logger.Step("Created view entrypoint at %s", entrypointPath)
+	return nil
+}
+
+// createPackageJSON ensures there is a package.json in the cwd or a parent directory with the views dependencies installed.
+// If package.json exists in cwd, use it.
+// If package.json exists in parent directory, ask user if they want to use that or create a new one.
+// If package.json doesn't exist, create a new one.
+// TODO: support entrypoint override
+func createPackageJSON(cfg config) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	absEntrypointPath, err := filepath.Abs(filepath.Join(cwd, generateEntrypointPath(cfg, false)))
+	if err != nil {
+		return err
+	}
+	// Check if there's a package.json in the current or parent directory of entrypoint
+	packageJSONPath, ok := fsx.Find(absEntrypointPath, "package.json")
+
+	if ok {
+		if packageJSONPath == cwd {
+			return nil
+		}
+		opts := []string{
+			"Yes",
+			"No, create package.json in my working directory",
+		}
+		useExisting := opts[0]
+		var surveyResp string
+		if err := survey.AskOne(
+			&survey.Select{
+				Message: fmt.Sprintf("Found existing package.json in %s. Use this to manage dependencies for your view?", packageJSONPath),
+				Options: opts,
+				Default: useExisting,
+			},
+			&surveyResp,
+		); err != nil {
+			return err
+		}
+		if surveyResp == useExisting {
+			// TODO: install airplane views lib
+			return nil
+		}
+	}
+	// Create package.json in cwd
+	// TODO: install airplane views lib
+	if err := ioutil.WriteFile("package.json", []byte(heredoc.Doc(`{}`)), 0644); err != nil {
+		return errors.Wrap(err, "creating view entrypoint")
+	}
+	logger.Step("Created package.json")
 	return nil
 }
