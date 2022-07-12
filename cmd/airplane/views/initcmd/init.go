@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -167,11 +168,12 @@ func createPackageJSON(cfg config) error {
 		return err
 	}
 	// Check if there's a package.json in the current or parent directory of entrypoint
-	packageJSONPath, ok := fsx.Find(absEntrypointPath, "package.json")
+	packageJSONDirPath, ok := fsx.Find(absEntrypointPath, "package.json")
 
 	if ok {
-		if packageJSONPath == cwd {
-			return nil
+		if packageJSONDirPath == cwd {
+			// TODO: check if @airplane/views already is installed and if so, don't install again
+			return yarnAddViewsPackage(packageJSONDirPath)
 		}
 		opts := []string{
 			"Yes",
@@ -181,7 +183,7 @@ func createPackageJSON(cfg config) error {
 		var surveyResp string
 		if err := survey.AskOne(
 			&survey.Select{
-				Message: fmt.Sprintf("Found existing package.json in %s. Use this to manage dependencies for your view?", packageJSONPath),
+				Message: fmt.Sprintf("Found existing package.json in %s. Use this to manage dependencies for your view?", packageJSONDirPath),
 				Options: opts,
 				Default: useExisting,
 			},
@@ -190,15 +192,37 @@ func createPackageJSON(cfg config) error {
 			return err
 		}
 		if surveyResp == useExisting {
-			// TODO: install airplane views lib
-			return nil
+			return yarnAddViewsPackage(packageJSONDirPath)
 		}
 	}
-	// Create package.json in cwd
-	// TODO: install airplane views lib
-	if err := ioutil.WriteFile("package.json", []byte(heredoc.Doc(`{}`)), 0644); err != nil {
-		return errors.Wrap(err, "creating view entrypoint")
+	// Create package.json in cwd and install
+	cmd := exec.Command("yarn", "init", "-y")
+	cmd.Dir = cwd
+	if err := cmd.Start(); err != nil {
+
+		return errors.Wrap(err, "yarn init")
+	}
+	if err := cmd.Wait(); err != nil {
+		return errors.Wrap(err, "yarn init wait")
 	}
 	logger.Step("Created package.json")
+
+	return yarnAddViewsPackage(cwd)
+}
+
+func yarnAddViewsPackage(packageJSONDirPath string) error {
+	logger.Step("Installing @airplane/views...")
+
+	cmd := exec.Command("yarn", "add", "@airplane/views")
+	cmd.Dir = packageJSONDirPath
+	out, err := cmd.CombinedOutput()
+
+	logger.Log(string(out))
+
+	if err != nil {
+		logger.Log("Failed to install @airplane/views")
+		return err
+	}
+	logger.Step("Installed @airplane/views")
 	return nil
 }
