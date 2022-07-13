@@ -1,4 +1,4 @@
-import { Table, Column, Title, Text } from "@airplane/views";
+import { Column, Stack, Table, Text, Title } from "@airplane/views";
 
 // Example data
 type Row = {
@@ -33,11 +33,11 @@ const columns: Column[] = [
 // Views documentation: https://docs.airplane.dev/
 const ExampleView = () => {
   return (
-    <>
+    <Stack direction="column">
       <Title>Elements</Title>
       <Text>An example view that showcases elements and their weights.</Text>
       <Table columns={columns} data={data} />
-    </>
+    </Stack>
   );
 };
 
