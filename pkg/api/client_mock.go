@@ -156,7 +156,7 @@ func (mc *MockClient) DeploymentURL(deploymentID string, envSlug string) string 
 func (mc *MockClient) GetView(ctx context.Context, req libapi.GetViewRequest) (res libapi.View, err error) {
 	a, ok := mc.Views[req.Slug]
 	if !ok {
-		return libapi.View{}, &libapi.AppMissingError{AppURL: "api/", Slug: req.Slug}
+		return libapi.View{}, &libapi.ViewMissingError{AppURL: "api/", Slug: req.Slug}
 	}
 	return a, nil
 }

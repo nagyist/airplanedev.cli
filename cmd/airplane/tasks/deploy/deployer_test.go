@@ -704,7 +704,7 @@ func TestDeploy(t *testing.T) {
 					Root: fixturesPath, Source: discover.ConfigSourceDefn, ID: "view123", Def: definitions.ViewDefinition{
 						Slug:        "my_view",
 						Name:        "my view",
-						Entrypoint:  "/mypath",
+						Entrypoint:  filepath.Join(fixturesPath, "my_view.tsx"),
 						Description: "My view's description",
 					},
 				},
@@ -719,6 +719,10 @@ func TestDeploy(t *testing.T) {
 								Slug:        "my_view",
 								Name:        "my view",
 								Description: "My view's description",
+							},
+							BuildConfig: libBuild.BuildConfig{
+								"apiHost":    api.Host,
+								"entrypoint": "my_view.tsx",
 							},
 						},
 					},

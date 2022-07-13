@@ -284,6 +284,7 @@ type DeployView struct {
 	ID                string                   `json:"id"`
 	UploadID          string                   `json:"uploadID"`
 	UpdateViewRequest libapi.UpdateViewRequest `json:"updateViewRequest"`
+	BuildConfig       build.BuildConfig        `json:"buildConfig"`
 	// Path from the git root to the entrypoint of the app if the app was deployed
 	// from a git repository.
 	GitFilePath string `json:"gitFilePath"`

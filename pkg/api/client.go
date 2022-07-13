@@ -351,7 +351,7 @@ func (c Client) GetTaskMetadata(ctx context.Context, slug string) (res libapi.Ta
 	return
 }
 
-// GetView fetches a view. If the view does not exist, a *AppMissingError is returned.
+// GetView fetches a view. If the view does not exist, a *ViewMissingError is returned.
 func (c Client) GetView(ctx context.Context, req libapi.GetViewRequest) (res libapi.View, err error) {
 	err = c.do(ctx, "GET", encodeQueryString("/views/get", url.Values{
 		"slug": []string{req.Slug},
@@ -359,7 +359,7 @@ func (c Client) GetView(ctx context.Context, req libapi.GetViewRequest) (res lib
 	}), nil, &res)
 
 	if err, ok := err.(Error); ok && err.Code == 404 {
-		return res, &libapi.AppMissingError{
+		return res, &libapi.ViewMissingError{
 			AppURL: c.appURL().String(),
 			Slug:   req.Slug,
 		}

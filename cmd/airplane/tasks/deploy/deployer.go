@@ -139,6 +139,18 @@ func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig
 			}
 		}
 
+		relEntrypoint, err := filepath.Rel(vc.Root, vc.Def.Entrypoint)
+		if err != nil {
+			return errors.Wrap(err, "relativizing entrypoint")
+		}
+
+		// We set a default API host here so that the unit test doesn't crash, but
+		// we try to override it if possible
+		apiHost := api.Host
+		if d.cfg.root != nil && d.cfg.root.Client != nil {
+			apiHost = d.cfg.root.Client.Host
+		}
+
 		viewToDeploy := api.DeployView{
 			ID:          vc.ID,
 			UploadID:    uploadIDs[vc.ID],
@@ -148,6 +160,10 @@ func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig
 				Name:        vc.Def.Name,
 				Description: vc.Def.Description,
 				EnvVars:     vc.Def.EnvVars,
+			},
+			BuildConfig: map[string]interface{}{
+				"entrypoint": relEntrypoint,
+				"apiHost":    apiHost,
 			},
 		}
 
@@ -530,9 +546,9 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []disc
 		d.logger.Log("Deploying %v %v:\n", len(viewConfigs), noun)
 	}
 	// TODO diff view configs and update hasDiff if any views have changed.
-	for _, ac := range viewConfigs {
-		d.logger.Log(logger.Bold(ac.Def.Slug))
-		d.logger.Log("Root directory: %s", relpath(ac.Root))
+	for _, vc := range viewConfigs {
+		d.logger.Log(logger.Bold(vc.Def.Slug))
+		d.logger.Log("Root directory: %s", relpath(vc.Root))
 		d.logger.Log("")
 	}
 
