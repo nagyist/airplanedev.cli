@@ -3,6 +3,7 @@ package dev
 import (
 	"bufio"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"text/template"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
@@ -25,10 +27,10 @@ import (
 )
 
 type Config struct {
-	Root    *cli.Config
-	Dir     string
-	Args    []string
-	EnvSlug string
+	Root      *cli.Config
+	FileOrDir string
+	Args      []string
+	EnvSlug   string
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -53,9 +55,9 @@ func New(c *cli.Config) *cobra.Command {
 					return errors.Wrap(err, "error determining current working directory")
 
 				}
-				cfg.Dir = wd
+				cfg.FileOrDir = wd
 			} else {
-				cfg.Dir = args[0]
+				cfg.FileOrDir = args[0]
 			}
 
 			return Run(cmd.Root().Context(), cfg)
@@ -69,25 +71,40 @@ func New(c *cli.Config) *cobra.Command {
 }
 
 func Run(ctx context.Context, cfg Config) error {
-	if !fsx.Exists(cfg.Dir) {
-		return errors.Errorf("Unable to open: %s", cfg.Dir)
+	if !fsx.Exists(cfg.FileOrDir) {
+		return errors.Errorf("Unable to open: %s", cfg.FileOrDir)
 	}
 
-	fileInfo, err := os.Stat(cfg.Dir)
-	if err != nil {
-		return errors.Wrapf(err, "describing %s", cfg.Dir)
-	}
-	if !fileInfo.IsDir() {
-		return errors.Errorf("%s is not a directory", cfg.Dir)
-	}
-
-	if err = IsView(cfg.Dir); err != nil {
-		return err
-	}
 	return StartView(cfg)
 }
 
-// IsView returns whether the directory is the root directory of an Airplane View.
+const (
+	hostEnvKey    = "AIRPLANE_API_HOST"
+	tokenEnvKey   = "AIRPLANE_TOKEN"
+	apiKeyEnvKey  = "AIRPLANE_API_KEY"
+	envSlugEnvKey = "AIRPLANE_ENV_SLUG"
+)
+
+func findRoot(fileOrDir string) (string, error) {
+	var err error
+	fileOrDir, err = filepath.Abs(fileOrDir)
+	if err != nil {
+		return "", errors.Wrap(err, "getting absolute path")
+	}
+	fileInfo, err := os.Stat(fileOrDir)
+	if err != nil {
+		return "", errors.Wrapf(err, "describing %s", fileOrDir)
+	}
+	if !fileInfo.IsDir() {
+		fileOrDir = filepath.Dir(fileOrDir)
+	}
+
+	if p, ok := fsx.Find(fileOrDir, "package.json"); ok {
+		return p, nil
+	}
+	return filepath.Dir(fileOrDir), nil
+}
+
 func IsView(dir string) error {
 	// TODO check if we are nested inside of a View directory.
 	contents, err := os.ReadDir(dir)
@@ -103,17 +120,19 @@ func IsView(dir string) error {
 	return errors.Errorf("%s is not an Airplane view. It is missing a view definition file", dir)
 }
 
-const (
-	hostEnvKey    = "AIRPLANE_API_HOST"
-	tokenEnvKey   = "AIRPLANE_TOKEN"
-	apiKeyEnvKey  = "AIRPLANE_API_KEY"
-	envSlugEnvKey = "AIRPLANE_ENV_SLUG"
-)
-
 // StartView starts a view development server.
 func StartView(cfg Config) (rerr error) {
-	v := viewdir.NewViewDirectory(cfg.Dir)
+	ctx := context.Background()
+	rootDir, err := findRoot(cfg.FileOrDir)
+	if err != nil {
+		return err
+	}
+	v, err := viewdir.NewViewDirectory(ctx, cfg.Root, rootDir, cfg.FileOrDir, cfg.EnvSlug)
+	if err != nil {
+		return err
+	}
 	root := v.Root()
+	logger.Log("Using %s as root directory and %s as entrypoint", v.Root(), v.EntrypointPath())
 	tmpdir := v.CacheDir()
 	if _, err := os.Stat(tmpdir); os.IsNotExist(err) {
 		if err := os.Mkdir(tmpdir, 0755); err != nil {
@@ -124,7 +143,11 @@ func StartView(cfg Config) (rerr error) {
 		logger.Log("temporary dir %s exists", tmpdir)
 	}
 
-	if err := createWrapperTemplates(tmpdir); err != nil {
+	entrypointFile, err := filepath.Rel(v.Root(), v.EntrypointPath())
+	if err != nil {
+		return errors.Wrap(err, "figuring out entrypoint")
+	}
+	if err := createWrapperTemplates(tmpdir, entrypointFile); err != nil {
 		return err
 	}
 
@@ -199,76 +222,50 @@ func StartView(cfg Config) (rerr error) {
 	return nil
 }
 
-func createWrapperTemplates(tmpdir string) error {
+//go:embed templates/index.html
+var indexHtmlTemplateStr string
+
+//go:embed templates/main.tsx
+var mainTsxTemplateStr string
+
+func createWrapperTemplates(tmpdir string, entrypointFile string) error {
+	if !strings.HasSuffix(entrypointFile, ".tsx") {
+		return errors.New("expected entrypoint file to end in .tsx")
+	}
+	entrypointModule := entrypointFile[:len(entrypointFile)-4]
+
 	indexHtmlPath := filepath.Join(tmpdir, "index.html")
-	// TODO(zhan): extract these into embeds.
 	// TODO(zhan): put the view slug instead of Airplane as the title.
-	if err := os.WriteFile(indexHtmlPath, []byte(heredoc.Doc(`
-	<!DOCTYPE html>
-	<html lang="en">
-		<head>
-			<meta charset="UTF-8" />
-			<link rel="icon" type="image/svg+xml" href="/src/favicon.svg" />
-			<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-			<title>Airplane</title>
-		</head>
-		<body>
-			<div id="root"></div>
-			<script type="module" src="/main.tsx"></script>
-		</body>
-	</html>
-	`)), 0644); err != nil {
+	if err := os.WriteFile(indexHtmlPath, []byte(indexHtmlTemplateStr), 0644); err != nil {
 		return errors.Wrap(err, "writing index.html")
 	}
-	mainTsxPath := filepath.Join(tmpdir, "main.tsx")
-	// TODO(zhan): change App here to whatever the entrypoint is.
-	if err := os.WriteFile(mainTsxPath, []byte(heredoc.Doc(`
-	import { Container, Stack, ThemeProvider, ViewProvider, setEnvVars } from "@airplane/views";
-	import React from "react";
-	import ReactDOM from "react-dom/client";
-	import App from "./src/App";
 
-	setEnvVars(
-	  import.meta.env.AIRPLANE_API_HOST || "https://api.airplane.dev",
-		import.meta.env.AIRPLANE_TOKEN,
-		import.meta.env.AIRPLANE_API_KEY,
-		import.meta.env.AIRPLANE_ENV_SLUG,
-	);
-	ReactDOM.createRoot(document.getElementById("root")!).render(
-		<React.StrictMode>
-			<ThemeProvider>
-				<ViewProvider>
-					<Container size="xl" py={96}>
-						<App />
-					</Container>
-				</ViewProvider>
-			</ThemeProvider>
-		</React.StrictMode>
-	);
-	`)), 0644); err != nil {
+	mainTsxPath := filepath.Join(tmpdir, "main.tsx")
+	mainTsxTemplate, err := template.New("mainTsx").Parse(mainTsxTemplateStr)
+	if err != nil {
+		return errors.Wrap(err, "parsing main.tsx template")
+	}
+	mainTsxFile, err := os.OpenFile(mainTsxPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return errors.Wrap(err, "opening main.tsx file")
+	}
+	defer mainTsxFile.Close()
+	if err := mainTsxTemplate.Execute(mainTsxFile, struct {
+		Entrypoint string
+	}{
+		Entrypoint: entrypointModule,
+	}); err != nil {
 		return errors.Wrap(err, "writing main.tsx")
 	}
 	return nil
 }
 
+//go:embed templates/vite.config.ts
+var viteConfigTemplateStr string
+
 func createViteConfig(tmpdir string) error {
 	viteConfigPath := filepath.Join(tmpdir, "vite.config.ts")
-	if err := os.WriteFile(viteConfigPath, []byte(heredoc.Doc(`
-		import react from "@vitejs/plugin-react";
-		import { defineConfig } from "vite";
-
-		export default defineConfig({
-			plugins: [react()],
-			envPrefix: "AIRPLANE_",
-			resolve: {
-				preserveSymlinks: true,
-			},
-			base: "",
-			build: {
-				assetsDir: "",
-			},
-		});
-	`)), 0644); err != nil {
+	if err := os.WriteFile(viteConfigPath, []byte(viteConfigTemplateStr), 0644); err != nil {
 		return errors.Wrap(err, "writing vite.config.ts")
 	}
 	return nil

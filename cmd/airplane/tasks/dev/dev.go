@@ -88,10 +88,10 @@ func run(ctx context.Context, cfg config) error {
 	if cfg.root.Dev && fileInfo.IsDir() && viewsdev.IsView(cfg.fileOrDir) == nil {
 		// Switch to devving a view.
 		return viewsdev.Run(ctx, viewsdev.Config{
-			Root:    cfg.root,
-			Dir:     cfg.fileOrDir,
-			Args:    cfg.args,
-			EnvSlug: cfg.envSlug,
+			Root:      cfg.root,
+			FileOrDir: cfg.fileOrDir,
+			Args:      cfg.args,
+			EnvSlug:   cfg.envSlug,
 		})
 	}
 
