@@ -1180,12 +1180,20 @@ func (d *Definition_0_3) GetConfigAttachments() ([]api.ConfigAttachment, error) 
 	return taskKind.getConfigAttachments(), nil
 }
 
+func (d *Definition_0_3) GetResourceAttachments() map[string]string {
+	return d.Resources
+}
+
 func (d *Definition_0_3) GetSlug() string {
 	return d.Slug
 }
 
 func (d *Definition_0_3) GetName() string {
 	return d.Name
+}
+
+func (d *Definition_0_3) GetRuntime() build.TaskRuntime {
+	return d.Runtime
 }
 
 func (d *Definition_0_3) SetEntrypoint(entrypoint string) error {
