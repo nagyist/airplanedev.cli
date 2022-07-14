@@ -133,11 +133,7 @@ func run(ctx context.Context, cfg config) error {
 			EnvSlug: cfg.envSlug,
 			Client:  cfg.root.Client,
 		}
-		wd, err := os.Getwd()
-		if err != nil {
-			return errors.Wrap(err, "error getting current working directory")
-		}
-		taskConfigs, _, err := d.Discover(ctx, filepath.Dir(filepath.Join(wd, cfg.fileOrDir)))
+		taskConfigs, _, err := d.Discover(ctx, filepath.Dir(cfg.fileOrDir))
 		if err != nil {
 			return errors.Wrap(err, "discovering task configs")
 		}
