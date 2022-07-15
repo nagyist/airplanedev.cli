@@ -8,7 +8,10 @@ import (
 	"testing"
 
 	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/resource"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
@@ -84,6 +87,7 @@ func TestExecute(t *testing.T) {
 		File:        "my_task.task.yaml",
 		Slug:        slug,
 		EnvSlug:     "stage",
+		Resources:   map[string]resource.Resource{},
 	}
 	mockExecutor.On("Execute", ctx, runConfig).Return(nil)
 
@@ -159,4 +163,40 @@ func TestGetOutput(t *testing.T) {
 	require.Equal(api.Outputs{
 		V: "hello",
 	}, resp.Output)
+}
+
+func TestListResources(t *testing.T) {
+	require := require.New(t)
+	h := getHttpExpect(
+		context.Background(),
+		t,
+		newRouter(context.Background(), &State{
+			devConfig: conf.DevConfig{
+				Resources: map[string]map[string]interface{}{
+					"db": {
+						"slug": "db",
+					},
+					"slack": {
+						"slug": "slack",
+					},
+				},
+			},
+		}),
+	)
+
+	body := h.GET("/v0/resources/list").
+		Expect().
+		Status(http.StatusOK).Body()
+
+	var resp libapi.ListResourcesResponse
+	err := json.Unmarshal([]byte(body.Raw()), &resp)
+	require.NoError(err)
+	require.Equal([]libapi.Resource{
+		{
+			Slug: "db",
+		},
+		{
+			Slug: "slack",
+		},
+	}, resp.Resources)
 }

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
@@ -32,10 +33,11 @@ func newRouter(ctx context.Context, state *State) *mux.Router {
 }
 
 type Options struct {
-	CLI      *cli.Config
-	EnvSlug  string
-	Port     int
-	Executor dev.Executor
+	CLI       *cli.Config
+	EnvSlug   string
+	Port      int
+	Executor  dev.Executor
+	DevConfig conf.DevConfig
 }
 
 // newServer returns a new HTTP server with API routes
@@ -54,11 +56,12 @@ func newServer(router *mux.Router, state *State) *Server {
 // Start starts and returns new instance of the Airplane API server for local dev.
 func Start(opts Options) (*Server, error) {
 	state := &State{
-		cli:      opts.CLI,
-		envSlug:  opts.EnvSlug,
-		executor: opts.Executor,
-		port:     opts.Port,
-		runs:     map[string]LocalRun{},
+		cli:       opts.CLI,
+		envSlug:   opts.EnvSlug,
+		executor:  opts.Executor,
+		port:      opts.Port,
+		runs:      map[string]LocalRun{},
+		devConfig: opts.DevConfig,
 	}
 
 	r := newRouter(context.Background(), state)

@@ -22,7 +22,7 @@ func New(c *cli.Config) *cobra.Command {
 }
 
 func run(ctx context.Context, c *cli.Config) error {
-	cfg, err := conf.ReadDefault()
+	cfg, err := conf.ReadDefaultUserConfig()
 	if !errors.Is(err, conf.ErrMissing) {
 		if err != nil {
 			return err
@@ -30,7 +30,7 @@ func run(ctx context.Context, c *cli.Config) error {
 
 		delete(cfg.Tokens, c.Client.Host)
 
-		if err := conf.WriteDefault(cfg); err != nil {
+		if err := conf.WriteDefaultUserConfig(cfg); err != nil {
 			return err
 		}
 	}

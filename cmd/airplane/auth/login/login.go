@@ -98,7 +98,7 @@ func EnsureLoggedIn(ctx context.Context, c *cli.Config) error {
 func login(ctx context.Context, c *cli.Config) error {
 	writeToken := func(token string) error {
 		c.Client.Token = token
-		cfg, err := conf.ReadDefault()
+		cfg, err := conf.ReadDefaultUserConfig()
 		if err != nil && !errors.Is(err, conf.ErrMissing) {
 			return err
 		}
@@ -106,7 +106,7 @@ func login(ctx context.Context, c *cli.Config) error {
 			cfg.Tokens = map[string]string{}
 		}
 		cfg.Tokens[c.Client.Host] = token
-		if err := conf.WriteDefault(cfg); err != nil {
+		if err := conf.WriteDefaultUserConfig(cfg); err != nil {
 			return err
 		}
 		return nil

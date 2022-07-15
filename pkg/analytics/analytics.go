@@ -22,7 +22,7 @@ var (
 )
 
 func Init(cfg *cli.Config) error {
-	c, err := conf.ReadDefault()
+	c, err := conf.ReadDefaultUserConfig()
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func Init(cfg *cli.Config) error {
 	return nil
 }
 
-func telemetryOptIn(c conf.Config) error {
+func telemetryOptIn(c conf.UserConfig) error {
 	var allow bool
 	logger.Log("Is it OK for Airplane to collect usage analytics and error reports? This data will solely be used to improve the service.")
 	logger.Log("")
@@ -75,7 +75,7 @@ func telemetryOptIn(c conf.Config) error {
 		return err
 	}
 	c.EnableTelemetry = &allow
-	if err := conf.WriteDefault(c); err != nil {
+	if err := conf.WriteDefaultUserConfig(c); err != nil {
 		return err
 	}
 	return nil

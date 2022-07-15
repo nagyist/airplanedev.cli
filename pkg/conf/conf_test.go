@@ -6,65 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/airplanedev/cli/pkg/resource"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
-
-func TestConfig(t *testing.T) {
-	t.Run("read missing", func(t *testing.T) {
-		var assert = require.New(t)
-		var homedir = tempdir(t)
-		var path = filepath.Join(homedir, ".airplane", "config")
-
-		_, err := Read(path)
-
-		assert.Error(err)
-		assert.True(errors.Is(err, ErrMissing))
-	})
-
-	t.Run("write missing dir", func(t *testing.T) {
-		var assert = require.New(t)
-		var homedir = tempdir(t)
-		var path = filepath.Join(homedir, ".airplane", "config")
-
-		err := Write(path, Config{
-			Tokens: map[string]string{"airplane.dev": "foo"},
-		})
-		assert.NoError(err)
-
-		cfg, err := Read(path)
-		assert.NoError(err)
-		assert.Equal("foo", cfg.Tokens["airplane.dev"])
-	})
-
-	t.Run("overwrite", func(t *testing.T) {
-		var assert = require.New(t)
-		var homedir = tempdir(t)
-		var path = filepath.Join(homedir, ".airplane", "config")
-
-		{
-			err := Write(path, Config{
-				Tokens: map[string]string{"airplane.dev": "foo"},
-			})
-			assert.NoError(err)
-
-			cfg, err := Read(path)
-			assert.NoError(err)
-			assert.Equal("foo", cfg.Tokens["airplane.dev"])
-		}
-
-		{
-			err := Write(path, Config{
-				Tokens: map[string]string{"airplane.dev": "baz"},
-			})
-			assert.NoError(err)
-
-			cfg, err := Read(path)
-			assert.NoError(err)
-			assert.Equal("baz", cfg.Tokens["airplane.dev"])
-		}
-	})
-}
 
 func tempdir(t testing.TB) string {
 	t.Helper()
@@ -79,4 +24,111 @@ func tempdir(t testing.TB) string {
 	})
 
 	return name
+}
+
+func TestUserConfig(t *testing.T) {
+	t.Run("read missing", func(t *testing.T) {
+		var assert = require.New(t)
+		var homedir = tempdir(t)
+		var path = filepath.Join(homedir, ".airplane", "config")
+
+		_, err := ReadUserConfig(path)
+
+		assert.Error(err)
+		assert.True(errors.Is(err, ErrMissing))
+	})
+
+	t.Run("write missing dir", func(t *testing.T) {
+		var assert = require.New(t)
+		var homedir = tempdir(t)
+		var path = filepath.Join(homedir, ".airplane", "config")
+
+		err := WriteUserConfig(path, UserConfig{
+			Tokens: map[string]string{"airplane.dev": "foo"},
+		})
+		assert.NoError(err)
+
+		cfg, err := ReadUserConfig(path)
+		assert.NoError(err)
+		assert.Equal("foo", cfg.Tokens["airplane.dev"])
+	})
+
+	t.Run("overwrite", func(t *testing.T) {
+		var assert = require.New(t)
+		var homedir = tempdir(t)
+		var path = filepath.Join(homedir, ".airplane", "config")
+
+		{
+			err := WriteUserConfig(path, UserConfig{
+				Tokens: map[string]string{"airplane.dev": "foo"},
+			})
+			assert.NoError(err)
+
+			cfg, err := ReadUserConfig(path)
+			assert.NoError(err)
+			assert.Equal("foo", cfg.Tokens["airplane.dev"])
+		}
+
+		{
+			err := WriteUserConfig(path, UserConfig{
+				Tokens: map[string]string{"airplane.dev": "baz"},
+			})
+			assert.NoError(err)
+
+			cfg, err := ReadUserConfig(path)
+			assert.NoError(err)
+			assert.Equal("baz", cfg.Tokens["airplane.dev"])
+		}
+	})
+}
+
+func TestDevConfig(t *testing.T) {
+	t.Run("read missing", func(t *testing.T) {
+		var assert = require.New(t)
+		var dir = tempdir(t)
+		var path = filepath.Join(dir, "dev.yaml")
+
+		_, err := ReadDevConfig(path)
+
+		assert.Error(err)
+		assert.True(errors.Is(err, ErrMissing))
+	})
+
+	t.Run("write and read", func(t *testing.T) {
+		var assert = require.New(t)
+		var dir = tempdir(t)
+		var path = filepath.Join(dir, "dev.yaml")
+
+		env := map[string]string{
+			"ENV_VAR": "value",
+		}
+		resources := map[string]map[string]interface{}{
+			"db": {
+				"kind":     "postgres",
+				"slug":     "db",
+				"username": "postgres",
+				"password": "password",
+			},
+		}
+		err := WriteDevConfig(path, DevConfig{
+			Env:       env,
+			Resources: resources,
+		})
+		assert.NoError(err)
+
+		cfg, err := ReadDevConfig(path)
+		assert.NoError(err)
+		assert.Equal(env, cfg.Env)
+		assert.Equal(resources, cfg.Resources)
+		assert.Equal(map[string]resource.Resource{
+			"db": resource.PostgresResource{
+				BaseResource: resource.BaseResource{
+					Kind: resource.ResourceKindPostgres,
+					Slug: "db",
+				},
+				Username: "postgres",
+				Password: "password",
+			},
+		}, cfg.DecodedResources)
+	})
 }

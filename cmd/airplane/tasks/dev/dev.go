@@ -12,9 +12,11 @@ import (
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	viewsdev "github.com/airplanedev/cli/cmd/airplane/views/dev"
 	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/params"
+	"github.com/airplanedev/cli/pkg/resource"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/utils"
 	libBuild "github.com/airplanedev/lib/pkg/build"
@@ -25,12 +27,12 @@ import (
 )
 
 type config struct {
-	root      *cli.Config
-	fileOrDir string
-	args      []string
-	envSlug   string
-	// TODO: Include this in dev config file
-	port int
+	root          *cli.Config
+	fileOrDir     string
+	args          []string
+	envSlug       string
+	port          int
+	devConfigPath string
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -68,14 +70,11 @@ func New(c *cli.Config) *cobra.Command {
 
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
 	cmd.Flags().IntVar(&cfg.port, "port", server.DefaultPort, "The port to start the local airplane api server on - defaults to 7190.")
+	cmd.Flags().StringVar(&cfg.devConfigPath, "config-path", "", "The path to the dev config file to load into the local dev server.")
 	return cmd
 }
 
 func run(ctx context.Context, cfg config) error {
-	// The API client is set in the root command, and defaults to api.airplane.dev as the host for deploys, etc. For
-	// local dev, we send requests to a locally running api server, and so we override the host here.
-	cfg.root.Client.Host = fmt.Sprintf("127.0.0.1:%d", cfg.port)
-
 	if !fsx.Exists(cfg.fileOrDir) {
 		return errors.Errorf("Unable to open: %s", cfg.fileOrDir)
 	}
@@ -99,19 +98,31 @@ func run(ctx context.Context, cfg config) error {
 		return errors.Errorf("%s is a directory", cfg.fileOrDir)
 	}
 
-	taskInfo, err := getTaskInfo(ctx, cfg)
-	if err != nil {
-		return errors.Wrap(err, "getting task info")
-	}
-
 	// Start local api server for workflow tasks only
 	localExecutor := &dev.LocalExecutor{}
-	if taskInfo.runtime == libBuild.TaskRuntimeWorkflow {
+	var devConfig conf.DevConfig
+	runtime, err := getRuntime(cfg)
+	if err != nil {
+		return errors.Wrap(err, "getting runtime")
+	}
+	if runtime == libBuild.TaskRuntimeWorkflow {
+		// The API client is set in the root command, and defaults to api.airplane.dev as the host for deploys, etc. For
+		// local dev, we send requests to a locally running api server, and so we override the host here.
+		cfg.root.Client.Host = fmt.Sprintf("127.0.0.1:%d", cfg.port)
+
+		if cfg.devConfigPath != "" {
+			devConfig, err = conf.ReadDevConfig(cfg.devConfigPath)
+			if err != nil {
+				return errors.Wrap(err, "loading in dev config file")
+			}
+		}
+
 		apiServer, err := server.Start(server.Options{
-			CLI:      cfg.root,
-			EnvSlug:  cfg.envSlug,
-			Executor: localExecutor,
-			Port:     cfg.port,
+			CLI:       cfg.root,
+			EnvSlug:   cfg.envSlug,
+			Executor:  localExecutor,
+			Port:      cfg.port,
+			DevConfig: devConfig,
 		})
 		if err != nil {
 			return errors.Wrap(err, "starting local dev api server")
@@ -142,11 +153,21 @@ func run(ctx context.Context, cfg config) error {
 		apiServer.RegisterTasks(taskConfigs)
 	}
 
+	taskInfo, err := getTaskInfo(ctx, cfg)
+	if err != nil {
+		return errors.Wrap(err, "getting task info")
+	}
+
 	paramValues, err := params.CLI(cfg.args, taskInfo.name, taskInfo.parameters)
 	if errors.Is(err, flag.ErrHelp) {
 		return nil
 	} else if err != nil {
 		return err
+	}
+
+	resources, err := resource.GenerateAliasToResourceMap(taskInfo.resourceAttachments, devConfig.DecodedResources)
+	if err != nil {
+		return errors.Wrap(err, "generating alias to resource map")
 	}
 
 	if _, err := localExecutor.Execute(ctx, dev.LocalRunConfig{
@@ -159,6 +180,8 @@ func run(ctx context.Context, cfg config) error {
 		File:        cfg.fileOrDir,
 		Slug:        taskInfo.slug,
 		EnvSlug:     cfg.envSlug,
+		Env:         devConfig.Env,
+		Resources:   resources,
 	}); err != nil {
 		return errors.Wrap(err, "executing task")
 	}

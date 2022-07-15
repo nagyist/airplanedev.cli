@@ -46,7 +46,7 @@ func New() *cobra.Command {
 			airplane deploy ./path/to/script
 		`),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if c, err := conf.ReadDefault(); err == nil {
+			if c, err := conf.ReadDefaultUserConfig(); err == nil {
 				cfg.Client.Token = c.Tokens[cfg.Client.Host]
 			}
 			cfg.Client.APIKey = conf.GetAPIKey()

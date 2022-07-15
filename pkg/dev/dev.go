@@ -2,6 +2,7 @@ package dev
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
+	"github.com/airplanedev/cli/pkg/resource"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
@@ -47,6 +49,9 @@ type LocalRunConfig struct {
 	File        string
 	Slug        string
 	EnvSlug     string
+	Env         map[string]string
+	// Mapping from alias to resource
+	Resources map[string]resource.Resource
 }
 
 func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api.Outputs, error) {
@@ -99,15 +104,21 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	if err != nil {
 		return api.Outputs{}, err
 	}
+
+	// If environment variables are specified in the dev config file, use those instead
+	if len(config.Env) > 0 {
+		env = config.Env
+	}
+
 	// cmd.Env defaults to os.Environ _only if empty_. Since we add
 	// to it, we need to also set it to os.Environ.
 	cmd.Env = os.Environ()
 	for k, v := range env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
-
-	cmd.Env = append(cmd.Env, fmt.Sprintf("AIRPLANE_API_HOST=http://127.0.0.1:%d", config.Port))
-	cmd.Env = append(cmd.Env, "AIRPLANE_RUNTIME=dev")
+	if cmd.Env, err = appendAirplaneEnvVars(cmd.Env, config); err != nil {
+		return api.Outputs{}, errors.Wrap(err, "appending airplane-specific env vars")
+	}
 
 	if err := cmd.Start(); err != nil {
 		return api.Outputs{}, errors.Wrap(err, "starting")
@@ -257,4 +268,17 @@ func entrypointFromDefn(file string) (string, error) {
 	}
 
 	return def.GetAbsoluteEntrypoint()
+}
+
+func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error) {
+	env = append(env, fmt.Sprintf("AIRPLANE_API_HOST=http://127.0.0.1:%d", config.Port))
+	env = append(env, "AIRPLANE_RUNTIME=dev")
+
+	serialized, err := json.Marshal(config.Resources)
+	if err != nil {
+		return nil, errors.Wrap(err, "marshaling resources")
+	}
+
+	env = append(env, fmt.Sprintf("AIRPLANE_RESOURCES=%s", string(serialized)))
+	return env, nil
 }

@@ -7,8 +7,10 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/resource"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
@@ -27,6 +29,7 @@ type State struct {
 	port        int
 	runs        map[string]LocalRun
 	taskConfigs map[string]discover.TaskConfig
+	devConfig   conf.DevConfig
 }
 
 // AttachAPIRoutes attaches the endpoints necessary to locally develop a task. It is a minimal subset of the actual
@@ -39,6 +42,7 @@ func AttachAPIRoutes(r *mux.Router, ctx context.Context, state *State) {
 	r.Handle("/tasks/getMetadata", GetTaskMetadataHandler(ctx, state)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/getOutputs", GetOutputsHandler(ctx, state)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/get", GetRunHandler(ctx, state)).Methods("GET", "OPTIONS")
+	r.Handle("/resources/list", ListResourcesHandler(ctx, state)).Methods("GET", "OPTIONS")
 }
 
 type ExecuteTaskRequest struct {
@@ -69,6 +73,15 @@ func ExecuteTaskHandler(ctx context.Context, state *State) http.HandlerFunc {
 				return
 			}
 
+			resources, err := resource.GenerateAliasToResourceMap(
+				config.Def.GetResourceAttachments(),
+				state.devConfig.DecodedResources,
+			)
+			if err != nil {
+				logger.Error("generating alias to resource map")
+				return
+			}
+
 			outputs, err = state.executor.Execute(ctx, dev.LocalRunConfig{
 				Name:        config.Def.GetName(),
 				Kind:        kind,
@@ -79,6 +92,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State) http.HandlerFunc {
 				File:        config.Def.GetDefnFilePath(),
 				Slug:        req.Slug,
 				EnvSlug:     state.envSlug,
+				Resources:   resources,
 			})
 			if err != nil {
 				logger.Error("failed to run task locally")
@@ -161,6 +175,27 @@ func GetOutputsHandler(ctx context.Context, state *State) http.HandlerFunc {
 			Output: run.outputs,
 		}); err != nil {
 			logger.Error("failed to encode response for /v0/runs/getOutputs")
+		}
+	}
+}
+
+// ListResourcesHandler handles requests to the /v0/resources/list endpoint
+func ListResourcesHandler(ctx context.Context, state *State) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		resources := make([]libapi.Resource, 0, len(state.devConfig.Resources))
+		for slug := range state.devConfig.Resources {
+			// It doesn't matter what we include in the resource struct, as long as we include the slug - this handler
+			// is only used so that requests to the local dev api server for this endpoint don't error, in particular:
+			// https://github.com/airplanedev/lib/blob/d4c8ed7d1b30095c5cacac2b5c4da8f3ada6378f/pkg/deploy/taskdir/definitions/def_0_3.go#L1081-L1087
+			resources = append(resources, libapi.Resource{
+				Slug: slug,
+			})
+		}
+
+		if err := json.NewEncoder(w).Encode(libapi.ListResourcesResponse{
+			Resources: resources,
+		}); err != nil {
+			logger.Error("failed to encode response for /v0/resources/list")
 		}
 	}
 }
