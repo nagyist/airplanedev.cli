@@ -1,13 +1,16 @@
 package initcmd
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/MakeNowJust/heredoc"
@@ -153,6 +156,25 @@ func createEntrypoint(cfg config) error {
 	return nil
 }
 
+func shouldUseYarn(packageJSONDirPath string) bool {
+	// If the closest directory with a package.json has a lockfile, we will use that to
+	// determine whether to use yarn or npm even if we eventually create a new package.json for the view.
+	yarnlock := filepath.Join(packageJSONDirPath, "yarn.lock")
+	pkglock := filepath.Join(packageJSONDirPath, "package-lock.json")
+
+	if err := fsx.AssertExistsAll(yarnlock); err == nil {
+		return true
+	} else if err := fsx.AssertExistsAll(pkglock); err == nil {
+		return false
+	}
+
+	// No lockfiles, so check if yarn is installed by getting yarn version
+	cmd := exec.Command("yarn", "-v")
+	cmd.Dir = filepath.Dir(packageJSONDirPath)
+	err := cmd.Start()
+	return err == nil
+}
+
 // createPackageJSON ensures there is a package.json in the cwd or a parent directory with the views dependencies installed.
 // If package.json exists in cwd, use it.
 // If package.json exists in parent directory, ask user if they want to use that or create a new one.
@@ -169,11 +191,12 @@ func createPackageJSON(cfg config) error {
 	}
 	// Check if there's a package.json in the current or parent directory of entrypoint
 	packageJSONDirPath, ok := fsx.Find(absEntrypointPath, "package.json")
+	useYarn := shouldUseYarn(packageJSONDirPath)
 
 	if ok {
 		if packageJSONDirPath == cwd {
 			// TODO: check if @airplane/views already is installed and if so, don't install again
-			return yarnAddViewsPackage(packageJSONDirPath)
+			return addViewsPackage(packageJSONDirPath, useYarn)
 		}
 		opts := []string{
 			"Yes",
@@ -192,37 +215,55 @@ func createPackageJSON(cfg config) error {
 			return err
 		}
 		if surveyResp == useExisting {
-			return yarnAddViewsPackage(packageJSONDirPath)
+			return addViewsPackage(packageJSONDirPath, useYarn)
 		}
 	}
-	// Create package.json in cwd and install
-	cmd := exec.Command("yarn", "init", "-y")
-	cmd.Dir = cwd
-	if err := cmd.Start(); err != nil {
 
-		return errors.Wrap(err, "yarn init")
+	if err := createPackageJSONFile(cwd); err != nil {
+		return err
 	}
-	if err := cmd.Wait(); err != nil {
-		return errors.Wrap(err, "yarn init wait")
-	}
-	logger.Step("Created package.json")
-
-	return yarnAddViewsPackage(cwd)
+	return addViewsPackage(cwd, useYarn)
 }
 
-func yarnAddViewsPackage(packageJSONDirPath string) error {
+func addViewsPackage(packageJSONDirPath string, useYarn bool) error {
 	logger.Step("Installing @airplane/views...")
 
-	cmd := exec.Command("yarn", "add", "@airplane/views")
+	var cmd *exec.Cmd
+	if useYarn {
+		cmd = exec.Command("yarn", "add", "@airplane/views")
+	} else {
+		cmd = exec.Command("npm", "add", "@airplane/views")
+	}
+
 	cmd.Dir = packageJSONDirPath
-	out, err := cmd.CombinedOutput()
-
-	logger.Log(string(out))
-
+	err := cmd.Run()
 	if err != nil {
 		logger.Log("Failed to install @airplane/views")
 		return err
 	}
 	logger.Step("Installed @airplane/views")
+	return nil
+}
+
+//go:embed scaffolding/package.json
+var packageJsonTemplateStr string
+
+func createPackageJSONFile(cwd string) error {
+	tmpl, err := template.New("packageJson").Parse(packageJsonTemplateStr)
+	if err != nil {
+		return errors.Wrap(err, "parsing package.json template")
+	}
+	normalizedCwd := strings.ReplaceAll(strings.ToLower(filepath.Base(cwd)), " ", "-")
+	buf := new(bytes.Buffer)
+	if err := tmpl.Execute(buf, map[string]interface{}{
+		"name": normalizedCwd,
+	}); err != nil {
+		return errors.Wrap(err, "executing package.json template")
+	}
+
+	if err := ioutil.WriteFile("package.json", buf.Bytes(), 0644); err != nil {
+		return errors.Wrap(err, "writing package.json")
+	}
+	logger.Step("Created package.json")
 	return nil
 }
