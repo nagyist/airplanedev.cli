@@ -390,14 +390,24 @@
           }
         },
         "resources": {
-          "description": "[Experimental] A map of resources that can be accessed from your task. Keys determine how you refer to the resource; values are existing resource slugs in your Airplane team.",
-          "type": "object",
-          "patternProperties": {
-            "^[a-z0-9_]{1,50}$": {
-              "type": "string",
-              "pattern": "^[a-z0-9_]{1,50}$"
+          "description": "A list of resources to make available to your task. Resources are identified by slug, but can be mapped to an alias to configure how the task references the resource. If using aliases, resources are expressed as a map of alias to slug.",
+          "oneOf": [
+            {
+              "type": "object",
+              "patternProperties": {
+                "^[a-z0-9_]{1,50}$": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_]{1,50}$"
+                }
+              }
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string", "pattern": "^[a-z0-9_]{1,50}$"
+              }
             }
-          }
+          ]
         },
         "constraints": {
           "description": "Set label constraints to restrict this task to run only on agents with matching labels.",
