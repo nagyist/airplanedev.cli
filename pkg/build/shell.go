@@ -38,7 +38,7 @@ func shell(root string, options KindOptions) (string, error) {
 		workDir = "."
 	} else {
 		dockerfileTemplate = heredoc.Doc(`
-			FROM ubuntu:21.04
+			FROM ubuntu:22.04
 			# Install some common libraries
 			RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 				&& apt-get -y install --no-install-recommends \
