@@ -11,6 +11,7 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/gorilla/mux"
+	"github.com/r3labs/sse/v2"
 )
 
 const DefaultPort = 7190
@@ -26,10 +27,16 @@ func address(port int) string {
 }
 
 // newRouter returns a new router for the local api server
-func newRouter(ctx context.Context, state *State) *mux.Router {
+func newRouter(ctx context.Context, state *State) (*mux.Router, *sse.Server) {
+	sseServer := sse.New()
+
+	state.sseServer = sseServer
+
 	r := mux.NewRouter()
 	AttachAPIRoutes(r.NewRoute().Subrouter(), ctx, state)
-	return r
+	r.Handle("/events", sseServer)
+
+	return r, sseServer
 }
 
 type Options struct {
@@ -41,7 +48,7 @@ type Options struct {
 }
 
 // newServer returns a new HTTP server with API routes
-func newServer(router *mux.Router, state *State) *Server {
+func newServer(router *mux.Router, state *State, sseServer *sse.Server) *Server {
 	srv := &http.Server{
 		Addr:    address(state.port),
 		Handler: router,
@@ -64,8 +71,8 @@ func Start(opts Options) (*Server, error) {
 		devConfig: opts.DevConfig,
 	}
 
-	r := newRouter(context.Background(), state)
-	s := newServer(r, state)
+	r, sseServer := newRouter(context.Background(), state)
+	s := newServer(r, state, sseServer)
 
 	go func() {
 		if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {

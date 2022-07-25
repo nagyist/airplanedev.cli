@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/airplanedev/cli/pkg/api"
@@ -15,6 +16,8 @@ import (
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
+	"github.com/r3labs/sse/v2"
 )
 
 type LocalRun struct {
@@ -30,7 +33,10 @@ type State struct {
 	runs        map[string]LocalRun
 	taskConfigs map[string]discover.TaskConfig
 	devConfig   conf.DevConfig
+	sseServer   *sse.Server
 }
+
+var upgrader = websocket.Upgrader{}
 
 // AttachAPIRoutes attaches the endpoints necessary to locally develop a task. It is a minimal subset of the actual
 // Airplane API.
@@ -141,6 +147,12 @@ func GetRunHandler(ctx context.Context, state *State) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		runID := r.URL.Query().Get("id")
 
+		state.sseServer.CreateStream("messages")
+
+		state.sseServer.Publish("messages", &sse.Event{
+			Data: []byte("ping"),
+		})
+
 		run, ok := state.runs[runID]
 		if !ok {
 			logger.Error("run with id %s not found", runID)
@@ -164,6 +176,27 @@ type GetOutputsResponse struct {
 // GetOutputsHandler handles requests to the /v0/runs/getOutputs endpoint
 func GetOutputsHandler(ctx context.Context, state *State) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		c, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Print("upgrade:", err)
+			return
+		}
+		defer c.Close()
+		for {
+			mt, message, err := c.ReadMessage()
+			if err != nil {
+				log.Println("read:", err)
+				break
+			}
+			log.Printf("recv: %s", message)
+			err = c.WriteMessage(mt, message)
+			if err != nil {
+				log.Println("write:", err)
+				break
+			}
+		}
+
 		runID := r.URL.Query().Get("id")
 		run, ok := state.runs[runID]
 		if !ok {

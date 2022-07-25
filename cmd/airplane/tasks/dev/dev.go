@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
@@ -133,6 +134,8 @@ func run(ctx context.Context, cfg config) error {
 				logger.Error("failed to stop local api server: %+v", err)
 			}
 		}()
+
+		time.Sleep(time.Hour)
 
 		// Discover local tasks in the directory of the file.
 		d := &discover.Discoverer{
