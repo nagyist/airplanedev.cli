@@ -103,6 +103,9 @@ func createViewScaffolding(cfg *config) error {
 	if err := createEntrypoint(*cfg); err != nil {
 		return err
 	}
+	if err := createTSConfigFile(); err != nil {
+		return err
+	}
 	if err := createPackageJSON(*cfg); err != nil {
 		return err
 	}
@@ -265,5 +268,18 @@ func createPackageJSONFile(cwd string) error {
 		return errors.Wrap(err, "writing package.json")
 	}
 	logger.Step("Created package.json")
+	return nil
+}
+
+//go:embed scaffolding/tsconfig.json
+var defaultTSConfig []byte
+
+func createTSConfigFile() error {
+	if !fsx.Exists("tsconfig.json") {
+		if err := ioutil.WriteFile("tsconfig.json", defaultTSConfig, 0644); err != nil {
+			return errors.Wrap(err, "creating tsconfig.json")
+		}
+		logger.Step("Created tsconfig.json")
+	}
 	return nil
 }
