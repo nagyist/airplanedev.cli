@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"text/template"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
@@ -20,6 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
+	libbuild "github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
@@ -222,12 +222,6 @@ func StartView(cfg Config) (rerr error) {
 	return nil
 }
 
-//go:embed templates/index.html
-var indexHtmlTemplateStr string
-
-//go:embed templates/main.tsx
-var mainTsxTemplateStr string
-
 func createWrapperTemplates(tmpdir string, entrypointFile string) error {
 	if !strings.HasSuffix(entrypointFile, ".tsx") {
 		return errors.New("expected entrypoint file to end in .tsx")
@@ -236,36 +230,32 @@ func createWrapperTemplates(tmpdir string, entrypointFile string) error {
 
 	indexHtmlPath := filepath.Join(tmpdir, "index.html")
 	// TODO(zhan): put the view slug instead of Airplane as the title.
-	if err := os.WriteFile(indexHtmlPath, []byte(indexHtmlTemplateStr), 0644); err != nil {
+	indexHtmlStr, err := libbuild.IndexHtmlString()
+	if err != nil {
+		return errors.Wrap(err, "loading index.html value")
+	}
+	if err := os.WriteFile(indexHtmlPath, []byte(indexHtmlStr), 0644); err != nil {
 		return errors.Wrap(err, "writing index.html")
 	}
 
+	mainTsxStr, err := libbuild.MainTsxString(entrypointModule)
+	if err != nil {
+		return errors.Wrap(err, "loading main.tsx value")
+	}
 	mainTsxPath := filepath.Join(tmpdir, "main.tsx")
-	mainTsxTemplate, err := template.New("mainTsx").Parse(mainTsxTemplateStr)
-	if err != nil {
-		return errors.Wrap(err, "parsing main.tsx template")
-	}
-	mainTsxFile, err := os.OpenFile(mainTsxPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return errors.Wrap(err, "opening main.tsx file")
-	}
-	defer mainTsxFile.Close()
-	if err := mainTsxTemplate.Execute(mainTsxFile, struct {
-		Entrypoint string
-	}{
-		Entrypoint: entrypointModule,
-	}); err != nil {
+	if err := os.WriteFile(mainTsxPath, []byte(mainTsxStr), 0644); err != nil {
 		return errors.Wrap(err, "writing main.tsx")
 	}
 	return nil
 }
 
-//go:embed templates/vite.config.ts
-var viteConfigTemplateStr string
-
 func createViteConfig(tmpdir string) error {
+	viteConfigStr, err := libbuild.ViteConfigString()
+	if err != nil {
+		return errors.Wrap(err, "loading vite.config.ts value")
+	}
 	viteConfigPath := filepath.Join(tmpdir, "vite.config.ts")
-	if err := os.WriteFile(viteConfigPath, []byte(viteConfigTemplateStr), 0644); err != nil {
+	if err := os.WriteFile(viteConfigPath, []byte(viteConfigStr), 0644); err != nil {
 		return errors.Wrap(err, "writing vite.config.ts")
 	}
 	return nil
