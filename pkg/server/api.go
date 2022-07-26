@@ -6,14 +6,11 @@ import (
 	"net/http"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/resource"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/gorilla/mux"
 )
 
@@ -22,18 +19,9 @@ type LocalRun struct {
 	outputs api.Outputs
 }
 
-type State struct {
-	cli         *cli.Config
-	envSlug     string
-	executor    dev.Executor
-	port        int
-	runs        map[string]LocalRun
-	taskConfigs map[string]discover.TaskConfig
-	devConfig   conf.DevConfig
-}
-
-// AttachAPIRoutes attaches the endpoints necessary to locally develop a task. It is a minimal subset of the actual
-// Airplane API.
+// AttachAPIRoutes attaches a minimal subset of the actual Airplane API endpoints that are necessary to locally develop
+// a task. For example, a workflow task might call airplane.execute, which would normally make a request to the
+// /v0/tasks/execute endpoint in production, but instead we have our own implementation below.
 func AttachAPIRoutes(r *mux.Router, ctx context.Context, state *State) {
 	const basePath = "/v0/"
 	r = r.NewRoute().PathPrefix(basePath).Subrouter()

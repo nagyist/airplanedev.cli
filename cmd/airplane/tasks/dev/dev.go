@@ -55,7 +55,6 @@ func New(c *cli.Config) *cobra.Command {
 				wd, err := os.Getwd()
 				if err != nil {
 					return errors.Wrap(err, "error determining current working directory")
-
 				}
 				cfg.fileOrDir = wd
 				cfg.args = args
@@ -129,7 +128,7 @@ func run(ctx context.Context, cfg config) error {
 		}
 
 		defer func() {
-			if err := apiServer.Stop(); err != nil {
+			if err := apiServer.Stop(context.Background()); err != nil {
 				logger.Error("failed to stop local api server: %+v", err)
 			}
 		}()

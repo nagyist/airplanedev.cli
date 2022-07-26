@@ -4,16 +4,28 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
 const DefaultPort = 7190
+
+type State struct {
+	cli         *cli.Config
+	envSlug     string
+	executor    dev.Executor
+	port        int
+	runs        map[string]LocalRun
+	taskConfigs map[string]discover.TaskConfig
+	devConfig   conf.DevConfig
+}
 
 type Server struct {
 	srv   *http.Server
@@ -25,10 +37,30 @@ func address(port int) string {
 	return fmt.Sprintf("127.0.0.1:%d", port)
 }
 
+var corsOrigins = []string{
+	`\.airplane\.so:5000$`,
+	`\.airstage\.app$`,
+	`\.airplane\.dev$`,
+	`^http://localhost:`,
+}
+
 // newRouter returns a new router for the local api server
 func newRouter(ctx context.Context, state *State) *mux.Router {
 	r := mux.NewRouter()
+	r.Use(handlers.CORS(
+		handlers.AllowedOriginValidator(func(origin string) bool {
+			for _, o := range corsOrigins {
+				r := regexp.MustCompile(o)
+				if r.MatchString(origin) {
+					return true
+				}
+			}
+			return false
+		}),
+	))
+
 	AttachAPIRoutes(r.NewRoute().Subrouter(), ctx, state)
+	AttachDevRoutes(r.NewRoute().Subrouter(), ctx, state)
 	return r
 }
 
@@ -53,7 +85,7 @@ func newServer(router *mux.Router, state *State) *Server {
 	}
 }
 
-// Start starts and returns new instance of the Airplane API server for local dev.
+// Start starts and returns a new instance of the Airplane API server.
 func Start(opts Options) (*Server, error) {
 	state := &State{
 		cli:       opts.CLI,
@@ -76,7 +108,9 @@ func Start(opts Options) (*Server, error) {
 	return s, nil
 }
 
-// RegisterTasks generates a mapping of local task slug to task config and stores the mapping in the server state.
+// RegisterTasks generates a mapping of local task slug to task config and stores the mapping in the server state. Task
+// registration must occur after the local dev server has started because the task discoverer hits the
+// /v0/tasks/getMetadata endpoint.
 func (s *Server) RegisterTasks(taskConfigs []discover.TaskConfig) {
 	s.state.taskConfigs = map[string]discover.TaskConfig{}
 	for _, cfg := range taskConfigs {
@@ -85,17 +119,15 @@ func (s *Server) RegisterTasks(taskConfigs []discover.TaskConfig) {
 }
 
 // Stop terminates the local dev API server.
-func (s *Server) Stop() error {
-	if _, err := http.Get(fmt.Sprintf("http://%s/shutdown", address(s.state.port))); err != nil {
+func (s *Server) Stop(ctx context.Context) error {
+	if err := s.srv.Shutdown(ctx); err != nil {
 		return err
 	}
-
 	return nil
 }
 
 // ShutdownHandler manages shutdown requests. Shutdowns currently happen whenever the airplane dev logic has finished
 // running, but in the future will be called when the user explicitly shuts down a long-running local dev api server.
-// As such, we shutdown through a network request instead of
 func ShutdownHandler(s *http.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if _, err := w.Write([]byte("OK")); err != nil {

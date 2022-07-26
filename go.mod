@@ -17,6 +17,7 @@ require (
 	github.com/go-git/go-git-fixtures/v4 v4.3.1
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/golang-jwt/jwt/v4 v4.4.2
+	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/gosimple/slug v1.12.0
 	github.com/hashicorp/go-retryablehttp v0.7.1
@@ -62,6 +63,7 @@ require (
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/evanw/esbuild v0.14.49 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
+	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/goccy/go-yaml v1.9.5 // indirect
