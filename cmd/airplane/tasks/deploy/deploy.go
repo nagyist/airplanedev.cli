@@ -126,6 +126,11 @@ func run(ctx context.Context, cfg config) error {
 		Logger:  l,
 		EnvSlug: cfg.envSlug,
 	})
+	d.TaskDiscoverers = append(d.TaskDiscoverers, &discover.CodeTaskDiscoverer{
+		Client:             cfg.client,
+		Logger:             l,
+		MissingTaskHandler: HandleMissingTask(cfg, l, &createdTasks),
+	})
 	if cfg.root.Dev {
 		createdViews := map[string]bool{}
 		d.ViewDiscoverers = append(d.ViewDiscoverers, &discover.ViewDefnDiscoverer{Client: cfg.client, Logger: l, MissingViewHandler: HandleMissingView(cfg, l, &createdViews)})
@@ -294,12 +299,12 @@ func findDefinitionForScript(ctx context.Context, cfg config, l logger.LoggerWit
 			path := filepath.Join(dir, fileInfo.Name())
 
 			// Attempt to read a definition task config from this file.
-			slug, err := defnDiscoverer.IsAirplaneTask(ctx, path)
+			slugs, err := defnDiscoverer.GetAirplaneTasks(ctx, path)
 			if err != nil {
 				// Drop these errors silently--malformed definition files shouldn't stop this
 				// operation.
 				continue
-			} else if slug != taskConfig.Def.GetSlug() {
+			} else if slugs[0] != taskConfig.Def.GetSlug() {
 				// This is either not a task definition or it is a task definition for a different task.
 				continue
 			}
@@ -317,7 +322,14 @@ func findDefinitionForScript(ctx context.Context, cfg config, l logger.LoggerWit
 				return nil, nil
 			}
 
-			return defnDiscoverer.GetTaskConfig(ctx, path)
+			taskConfigs, err := defnDiscoverer.GetTaskConfigs(ctx, path)
+			if err != nil {
+				return nil, err
+			}
+			if len(taskConfigs) == 0 {
+				return nil, nil
+			}
+			return &taskConfigs[0], nil
 		}
 	}
 
@@ -363,19 +375,19 @@ func findDefinitionFileForSQL(ctx context.Context, cfg config, l logger.LoggerWi
 				continue
 			}
 
-			slug, err := defnDiscoverer.IsAirplaneTask(ctx, p)
+			slugs, err := defnDiscoverer.GetAirplaneTasks(ctx, p)
 			if err != nil {
 				// Drop these errors silently--malformed definition files shouldn't stop this
 				// operation.
 				continue
 			}
-			if slug == "" {
+			if len(slugs) == 0 {
 				continue
 			}
 
 			// Skip it if the task doesn't exist.
 			if _, err := cfg.client.GetTask(ctx, libapi.GetTaskRequest{
-				Slug:    slug,
+				Slug:    slugs[0],
 				EnvSlug: cfg.envSlug,
 			}); err != nil {
 				switch errors.Cause(err).(type) {
@@ -390,7 +402,7 @@ func findDefinitionFileForSQL(ctx context.Context, cfg config, l logger.LoggerWi
 			if wasActive {
 				defer l.StartLoader()
 			}
-			question := fmt.Sprintf("File %s is not linked to a task.\nFound definition file %s linked to task %s instead.\nWould you like to use it?", path, p, slug)
+			question := fmt.Sprintf("File %s is not linked to a task.\nFound definition file %s linked to task %s instead.\nWould you like to use it?", path, p, slugs[0])
 			ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo)
 			if err != nil {
 				return "", err
