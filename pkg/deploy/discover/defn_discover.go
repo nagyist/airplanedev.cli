@@ -8,7 +8,6 @@ import (
 	"github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
-	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/pkg/errors"
@@ -27,33 +26,33 @@ type DefnDiscoverer struct {
 
 var _ TaskDiscoverer = &DefnDiscoverer{}
 
-func (dd *DefnDiscoverer) IsAirplaneTask(ctx context.Context, file string) (string, error) {
+func (dd *DefnDiscoverer) GetAirplaneTasks(ctx context.Context, file string) ([]string, error) {
 	if !definitions.IsTaskDef(file) {
-		return "", nil
+		return nil, nil
 	}
 
 	dir, err := taskdir.Open(file)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer dir.Close()
 
 	def, err := dir.ReadDefinition()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return def.GetSlug(), nil
+	return []string{def.GetSlug()}, nil
 }
 
-func (dd *DefnDiscoverer) GetTaskConfig(ctx context.Context, file string) (*TaskConfig, error) {
+func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]TaskConfig, error) {
 	if !definitions.IsTaskDef(file) {
 		// Check if there is a file in the same directory with the same name that is a task defn.
 		fileWithoutExtension := strings.TrimSuffix(file, filepath.Ext(file))
 		for _, tde := range definitions.TaskDefExtensions {
 			fileWithTaskDefExtension := fileWithoutExtension + tde
 			if fsx.Exists(fileWithTaskDefExtension) {
-				return dd.GetTaskConfig(ctx, fileWithTaskDefExtension)
+				return dd.GetTaskConfigs(ctx, fileWithTaskDefExtension)
 			}
 		}
 		return nil, nil
@@ -105,7 +104,7 @@ func (dd *DefnDiscoverer) GetTaskConfig(ctx context.Context, file string) (*Task
 
 	entrypoint, err := def.GetAbsoluteEntrypoint()
 	if err == definitions.ErrNoEntrypoint {
-		return &tc, nil
+		return []TaskConfig{tc}, nil
 	} else if err != nil {
 		return nil, err
 	} else if err = fsx.AssertExistsAll(entrypoint); err != nil {
@@ -118,29 +117,19 @@ func (dd *DefnDiscoverer) GetTaskConfig(ctx context.Context, file string) (*Task
 			return nil, err
 		}
 
-		r, err := runtime.Lookup(entrypoint, kind)
+		taskPathMetadata, err := taskPathMetadata(entrypoint, kind)
 		if err != nil {
 			return nil, err
 		}
-
-		taskroot, err := r.Root(entrypoint)
-		if err != nil {
-			return nil, err
-		}
-		tc.TaskRoot = taskroot
-
-		wd, err := r.Workdir(entrypoint)
-		if err != nil {
-			return nil, err
-		}
-		if err := def.SetWorkdir(taskroot, wd); err != nil {
+		tc.TaskRoot = taskPathMetadata.RootDir
+		if err := def.SetWorkdir(taskPathMetadata.RootDir, taskPathMetadata.WorkDir); err != nil {
 			return nil, err
 		}
 
 		// Entrypoint for builder needs to be relative to taskroot, not definition directory.
 		defnDir := filepath.Dir(dir.DefinitionPath())
-		if defnDir != taskroot {
-			ep, err := filepath.Rel(taskroot, entrypoint)
+		if defnDir != taskPathMetadata.RootDir {
+			ep, err := filepath.Rel(taskPathMetadata.RootDir, entrypoint)
 			if err != nil {
 				return nil, err
 			}
@@ -148,7 +137,7 @@ func (dd *DefnDiscoverer) GetTaskConfig(ctx context.Context, file string) (*Task
 		}
 	}
 
-	return &tc, nil
+	return []TaskConfig{tc}, nil
 }
 
 func (dd *DefnDiscoverer) ConfigSource() ConfigSource {
