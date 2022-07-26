@@ -2,6 +2,8 @@ package build
 
 import (
 	_ "embed"
+	"encoding/json"
+	"io/ioutil"
 	"path/filepath"
 	"strings"
 
@@ -49,32 +51,88 @@ func view(root string, options KindOptions) (string, error) {
 		return "", err
 	}
 
-	cfg := struct {
-		Base             string
-		InstallCommand   string
-		OutDir           string
-		InlineMainTsx    string
-		InlineIndexHtml  string
-		InlineViteConfig string
-		APIHost          string
-	}{
-		Base:             base,
-		InstallCommand:   "yarn install --non-interactive --frozen-lockfile",
-		OutDir:           "dist",
-		InlineMainTsx:    inlineString(mainTsxStr),
-		InlineIndexHtml:  inlineString(indexHtmlStr),
-		InlineViteConfig: inlineString(viteConfigStr),
-		APIHost:          apiHost,
+	packageJSONPath := filepath.Join(root, "package.json")
+	var packageJSON interface{}
+	if fsx.Exists(packageJSONPath) {
+		packageJSONFile, err := ioutil.ReadFile(packageJSONPath)
+		if err != nil {
+			return "", errors.Wrap(err, "reading package JSON")
+		}
+		if err := json.Unmarshal([]byte(packageJSONFile), &packageJSON); err != nil {
+			return "", errors.Wrap(err, "parsing package JSON")
+		}
+	}
+	packageJSONMap, ok := packageJSON.(map[string]interface{})
+	if !ok {
+		packageJSON = map[string]interface{}{}
+		packageJSONMap = packageJSON.(map[string]interface{})
 	}
 
-	// TODO: patch package.json correctly.
+	packagesToCheck := []string{"vite", "@vitejs/plugin-react", "react", "react-dom", "@airplane/views"}
+	packagesToAdd := []string{}
+	deps, depsOk := packageJSONMap["dependencies"].(map[string]interface{})
+	devDeps, devDepsOk := packageJSONMap["devDependencies"].(map[string]interface{})
+	for _, pkg := range packagesToCheck {
+		hasPackage := false
+		if depsOk {
+			if _, ok := deps[pkg]; ok {
+				hasPackage = true
+			}
+		}
+		if devDepsOk {
+			if _, ok := devDeps[pkg]; ok {
+				hasPackage = true
+			}
+		}
+		if !hasPackage {
+			packagesToAdd = append(packagesToAdd, pkg)
+		}
+	}
+	if len(packagesToAdd) > 0 {
+		if !depsOk {
+			packageJSONMap["dependencies"] = map[string]interface{}{}
+			deps = packageJSONMap["dependencies"].(map[string]interface{})
+		}
+		for _, pkg := range packagesToAdd {
+			deps[pkg] = "*"
+		}
+	}
+
+	packageJSONByte, err := json.Marshal(packageJSON)
+	if err != nil {
+		return "", errors.Wrap(err, "encoding new package.json")
+	}
+
+	cfg := struct {
+		Base              string
+		InstallCommand    string
+		OutDir            string
+		InlineMainTsx     string
+		InlineIndexHtml   string
+		InlineViteConfig  string
+		APIHost           string
+		InlinePackageJSON string
+	}{
+		Base: base,
+		// Because the install command is running in the context of a docker build, the yarn cache
+		// isn't used after the packages are installed, so we clean the cache to keep the image
+		// lean. This doesn't apply to Yarn v2 (specifically Plug'n'Play), which uses the cache
+		// directory for storing packages.
+		InstallCommand:    "yarn install --non-interactive && yarn cache clean",
+		OutDir:            "dist",
+		InlineMainTsx:     inlineString(mainTsxStr),
+		InlineIndexHtml:   inlineString(indexHtmlStr),
+		InlineViteConfig:  inlineString(viteConfigStr),
+		APIHost:           apiHost,
+		InlinePackageJSON: inlineString(string(packageJSONByte)),
+	}
+
 	return applyTemplate(heredoc.Doc(`
 		FROM {{.Base}} as builder
 		WORKDIR /airplane
 
 		COPY package*.json yarn.* /airplane/
-		RUN [ -f package.json ] || { echo "{}" > package.json; }
-		RUN yarn add vite @vitejs/plugin-react react react-dom @airplane/views
+		RUN {{.InlinePackageJSON}} > /airplane/package.json
 		RUN {{.InstallCommand}}
 
 		RUN mkdir /airplane/src/
