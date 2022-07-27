@@ -1,4 +1,4 @@
-import { Container, ThemeProvider, ViewProvider, setEnvVars } from "@airplane/views";
+import { Container, ViewProvider, setEnvVars } from "@airplane/views";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./src/{{.Entrypoint}}";
@@ -11,12 +11,10 @@ setEnvVars(
 );
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ThemeProvider>
-      <ViewProvider>
-        <Container size="xl" py={96}>
-          <App />
-        </Container>
-      </ViewProvider>
-    </ThemeProvider>
+    <ViewProvider>
+      <Container size="xl" py={96}>
+        <App />
+      </Container>
+    </ViewProvider>
   </React.StrictMode>
 );
