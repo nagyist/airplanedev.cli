@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.5
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/airplanedev/lib v0.5.33
+	github.com/airplanedev/lib v0.5.29
 	github.com/airplanedev/ojson v0.1.0
 	github.com/airplanedev/trap v0.1.0
 	github.com/briandowns/spinner v1.18.1
@@ -60,7 +60,7 @@ require (
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dsnet/compress v0.0.2-0.20210315054119-f66993602bf5 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
-	github.com/evanw/esbuild v0.14.50 // indirect
+	github.com/evanw/esbuild v0.14.49 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
@@ -116,7 +116,7 @@ require (
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
-	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
+	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
