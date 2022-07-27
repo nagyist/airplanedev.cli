@@ -51,6 +51,10 @@ var _ yaml.IsZeroer = &DefaultTimeoutDefinition{}
 var _ json.Unmarshaler = &DefaultTimeoutDefinition{}
 var _ json.Marshaler = &DefaultTimeoutDefinition{}
 
+func NewDefaultTimeoutDefinition(value int) DefaultTimeoutDefinition {
+	return DefaultTimeoutDefinition{value}
+}
+
 func (d DefaultTimeoutDefinition) Value() int {
 	if d.value == 0 {
 		return 3600
