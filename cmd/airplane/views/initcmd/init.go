@@ -19,6 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
@@ -198,8 +199,7 @@ func createPackageJSON(cfg config) error {
 
 	if ok {
 		if packageJSONDirPath == cwd {
-			// TODO: check if @airplane/views already is installed and if so, don't install again
-			return addViewsPackage(packageJSONDirPath, useYarn)
+			return addAllPackages(packageJSONDirPath, useYarn)
 		}
 		opts := []string{
 			"Yes",
@@ -218,33 +218,95 @@ func createPackageJSON(cfg config) error {
 			return err
 		}
 		if surveyResp == useExisting {
-			return addViewsPackage(packageJSONDirPath, useYarn)
+			return addAllPackages(packageJSONDirPath, useYarn)
 		}
 	}
 
 	if err := createPackageJSONFile(cwd); err != nil {
 		return err
 	}
-	return addViewsPackage(cwd, useYarn)
+	return addAllPackages(cwd, useYarn)
 }
 
-func addViewsPackage(packageJSONDirPath string, useYarn bool) error {
-	logger.Step("Installing @airplane/views...")
+func addAllPackages(packageJSONDirPath string, useYarn bool) error {
+	packageJSONPath := filepath.Join(packageJSONDirPath, "package.json")
+	existingDeps, err := build.ListDependencies(packageJSONPath)
+	if err != nil {
+		return err
+	}
+	// TODO: Select versions to install instead of installing latest.
+	// Put these in lib and use same ones for airplane views dev.
+	packagesToCheck := []string{"@airplane/views", "react", "react-dom"}
+	packagesToAdd := getPackagesToAdd(packagesToCheck, existingDeps)
 
+	devPackagesToCheck := []string{"@types/react", "@types/react-dom", "typescript"}
+	devPackagesToAdd := getPackagesToAdd(devPackagesToCheck, existingDeps)
+
+	if len(packagesToAdd) > 0 || len(devPackagesToAdd) > 0 {
+		logger.Step("Installing dependencies...")
+	}
+
+	if len(packagesToAdd) > 0 {
+		if err := addPackages(packageJSONDirPath, packagesToAdd, false, useYarn); err != nil {
+			return errors.Wrap(err, "installing dependencies")
+		}
+	}
+
+	if len(devPackagesToAdd) > 0 {
+		if err := addPackages(packageJSONDirPath, devPackagesToAdd, true, useYarn); err != nil {
+			return errors.Wrap(err, "installing dev dependencies")
+		}
+	}
+	return nil
+}
+
+func getPackagesToAdd(packagesToCheck, existingDeps []string) []string {
+	packagesToAdd := []string{}
+	for _, pkg := range packagesToCheck {
+		hasPackage := false
+		for _, d := range existingDeps {
+			if d == pkg {
+				hasPackage = true
+				break
+			}
+		}
+		if !hasPackage {
+			packagesToAdd = append(packagesToAdd, pkg)
+		}
+	}
+	return packagesToAdd
+}
+
+func addPackages(packageJSONDirPath string, packageNames []string, dev, useYarn bool) error {
+	installArgs := []string{"add"}
+	if dev {
+		if useYarn {
+			installArgs = append(installArgs, "--dev")
+		} else {
+			installArgs = append(installArgs, "--save-dev")
+		}
+	}
+	installArgs = append(installArgs, packageNames...)
 	var cmd *exec.Cmd
 	if useYarn {
-		cmd = exec.Command("yarn", "add", "@airplane/views")
+		cmd = exec.Command("yarn", installArgs...)
 	} else {
-		cmd = exec.Command("npm", "add", "@airplane/views")
+		cmd = exec.Command("npm", installArgs...)
 	}
 
 	cmd.Dir = packageJSONDirPath
 	err := cmd.Run()
 	if err != nil {
-		logger.Log("Failed to install @airplane/views")
+		if dev {
+			logger.Log("Failed to install devDependencies")
+		} else {
+			logger.Log("Failed to install dependencies")
+		}
 		return err
 	}
-	logger.Step("Installed @airplane/views")
+	for _, pkg := range packageNames {
+		logger.Step(fmt.Sprintf("Installed %s", pkg))
+	}
 	return nil
 }
 
