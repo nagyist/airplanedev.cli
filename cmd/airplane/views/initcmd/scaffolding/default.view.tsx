@@ -19,24 +19,23 @@ const data: Row[] = [
 
 const columns: Column[] = [
   {
-    Header: "Element",
+    label: "Element",
     accessor: "element",
   },
   {
-    Header: "Weight",
+    label: "Weight",
     accessor: "weight",
   },
 ];
 
 // Put the main logic of the view here.
-// TODO: update documentation link
-// Views documentation: https://docs.airplane.dev/
+// Views documentation: https://docs.airplane.dev/views/getting-started
 const ExampleView = () => {
   return (
-    <Stack direction="column">
+    <Stack>
       <Title>Elements</Title>
       <Text>An example view that showcases elements and their weights.</Text>
-      <Table columns={columns} data={data} />
+      <Table title="Elements Table" columns={columns} data={data} />
     </Stack>
   );
 };
