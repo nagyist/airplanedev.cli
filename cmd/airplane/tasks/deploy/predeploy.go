@@ -62,8 +62,9 @@ func ensureConfigVarExists(ctx context.Context, client api.APIClient, l logger.L
 		return err
 	}
 	_, err = client.GetConfig(ctx, api.GetConfigRequest{
-		Name: cn.Name,
-		Tag:  cn.Tag,
+		Name:    cn.Name,
+		Tag:     cn.Tag,
+		EnvSlug: params.EnvSlug,
 	})
 	if err == nil {
 		return nil
