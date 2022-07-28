@@ -143,13 +143,13 @@ func run(ctx context.Context, cfg config) error {
 			EnvSlug: cfg.envSlug,
 			Client:  cfg.root.Client,
 		}
-		taskConfigs, _, err := d.Discover(ctx, filepath.Dir(cfg.fileOrDir))
+		taskConfigs, viewConfigs, err := d.Discover(ctx, filepath.Dir(cfg.fileOrDir))
 		if err != nil {
 			return errors.Wrap(err, "discovering task configs")
 		}
 
 		// TODO: Allow users to re-register tasks once we move to a long-running local api server
-		apiServer.RegisterTasks(taskConfigs)
+		apiServer.RegisterTasksAndViews(taskConfigs, viewConfigs)
 	}
 
 	taskInfo, err := getTaskInfo(ctx, cfg)

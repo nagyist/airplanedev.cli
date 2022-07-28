@@ -12,6 +12,7 @@ import (
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 type LocalRun struct {
@@ -22,15 +23,15 @@ type LocalRun struct {
 // AttachAPIRoutes attaches a minimal subset of the actual Airplane API endpoints that are necessary to locally develop
 // a task. For example, a workflow task might call airplane.execute, which would normally make a request to the
 // /v0/tasks/execute endpoint in production, but instead we have our own implementation below.
-func AttachAPIRoutes(r *mux.Router, ctx context.Context, state *State) {
+func AttachAPIRoutes(r *mux.Router, state *State) {
 	const basePath = "/v0/"
 	r = r.NewRoute().PathPrefix(basePath).Subrouter()
 
-	r.Handle("/tasks/execute", ExecuteTaskHandler(ctx, state)).Methods("POST", "OPTIONS")
-	r.Handle("/tasks/getMetadata", GetTaskMetadataHandler(ctx, state)).Methods("GET", "OPTIONS")
-	r.Handle("/runs/getOutputs", GetOutputsHandler(ctx, state)).Methods("GET", "OPTIONS")
-	r.Handle("/runs/get", GetRunHandler(ctx, state)).Methods("GET", "OPTIONS")
-	r.Handle("/resources/list", ListResourcesHandler(ctx, state)).Methods("GET", "OPTIONS")
+	r.Handle("/tasks/execute", ExecuteTaskHandler(state)).Methods("POST", "OPTIONS")
+	r.Handle("/tasks/getMetadata", GetTaskMetadataHandler(state)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/getOutputs", GetOutputsHandler(state)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/get", GetRunHandler(state)).Methods("GET", "OPTIONS")
+	r.Handle("/resources/list", ListResourcesHandler(state)).Methods("GET", "OPTIONS")
 }
 
 type ExecuteTaskRequest struct {
@@ -44,8 +45,8 @@ type ExecuteTaskResponse struct {
 }
 
 // ExecuteTaskHandler handles requests to the /v0/tasks/execute endpoint
-func ExecuteTaskHandler(ctx context.Context, state *State) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func ExecuteTaskHandler(state *State) http.HandlerFunc {
+	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 		var req ExecuteTaskRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			logger.Error("failed to decode request body %+v", r.Body)
@@ -57,8 +58,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State) http.HandlerFunc {
 		if config, ok := state.taskConfigs[req.Slug]; ok {
 			kind, kindOptions, err := config.Def.GetKindAndOptions()
 			if err != nil {
-				logger.Error("failed to get kind and options from task config")
-				return
+				return errors.Wrap(err, "failed to get kind and options from task config")
 			}
 
 			resources, err := resource.GenerateAliasToResourceMap(
@@ -66,8 +66,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State) http.HandlerFunc {
 				state.devConfig.DecodedResources,
 			)
 			if err != nil {
-				logger.Error("generating alias to resource map")
-				return
+				return errors.Wrap(err, "generating alias to resource map")
 			}
 
 			outputs, err = state.executor.Execute(ctx, dev.LocalRunConfig{
@@ -83,8 +82,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State) http.HandlerFunc {
 				Resources:   resources,
 			})
 			if err != nil {
-				logger.Error("failed to run task locally")
-				return
+				return errors.Wrap(err, "failed to run task locally")
 			}
 
 			runStatus = api.RunSucceeded
@@ -97,26 +95,22 @@ func ExecuteTaskHandler(ctx context.Context, state *State) http.HandlerFunc {
 			outputs: outputs,
 		}
 
-		if err := json.NewEncoder(w).Encode(ExecuteTaskResponse{
+		return json.NewEncoder(w).Encode(ExecuteTaskResponse{
 			RunID: runID,
-		}); err != nil {
-			logger.Error("failed to encode response for /v0/tasks/execute")
-		}
-	}
+		})
+	})
 }
 
 // GetTaskMetadataHandler handles requests to the /v0/tasks/metadata endpoint. It generates a random task ID for each
 // task found locally, and its primary purpose is to ensure that the task discoverer does not error.
-func GetTaskMetadataHandler(ctx context.Context, state *State) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func GetTaskMetadataHandler(state *State) http.HandlerFunc {
+	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 		slug := r.URL.Query().Get("slug")
-		if err := json.NewEncoder(w).Encode(libapi.TaskMetadata{
+		return json.NewEncoder(w).Encode(libapi.TaskMetadata{
 			ID:   "tsk" + utils.RandomString(10, utils.CharsetLowercaseNumeric),
 			Slug: slug,
-		}); err != nil {
-			logger.Error("failed to encode response for /v0/tasks/getMetadata")
-		}
-	}
+		})
+	})
 }
 
 type GetRunResponse struct {
@@ -125,23 +119,20 @@ type GetRunResponse struct {
 }
 
 // GetRunHandler handles requests to the /v0/runs/get endpoint
-func GetRunHandler(ctx context.Context, state *State) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func GetRunHandler(state *State) http.HandlerFunc {
+	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 		runID := r.URL.Query().Get("id")
 
 		run, ok := state.runs[runID]
 		if !ok {
-			logger.Error("run with id %s not found", runID)
-			return
+			return errors.Errorf("run with id %s not found", runID)
 		}
 
-		if err := json.NewEncoder(w).Encode(GetRunResponse{
+		return json.NewEncoder(w).Encode(GetRunResponse{
 			ID:     runID,
 			Status: run.status,
-		}); err != nil {
-			logger.Error("failed to encode response for /v0/runs/get")
-		}
-	}
+		})
+	})
 }
 
 type GetOutputsResponse struct {
@@ -150,26 +141,23 @@ type GetOutputsResponse struct {
 }
 
 // GetOutputsHandler handles requests to the /v0/runs/getOutputs endpoint
-func GetOutputsHandler(ctx context.Context, state *State) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func GetOutputsHandler(state *State) http.HandlerFunc {
+	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 		runID := r.URL.Query().Get("id")
 		run, ok := state.runs[runID]
 		if !ok {
-			logger.Error("run with id %s not found", runID)
-			return
+			return errors.Errorf("run with id %s not found", runID)
 		}
 
-		if err := json.NewEncoder(w).Encode(GetOutputsResponse{
+		return json.NewEncoder(w).Encode(GetOutputsResponse{
 			Output: run.outputs,
-		}); err != nil {
-			logger.Error("failed to encode response for /v0/runs/getOutputs")
-		}
-	}
+		})
+	})
 }
 
 // ListResourcesHandler handles requests to the /v0/resources/list endpoint
-func ListResourcesHandler(ctx context.Context, state *State) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func ListResourcesHandler(state *State) http.HandlerFunc {
+	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 		resources := make([]libapi.Resource, 0, len(state.devConfig.Resources))
 		for slug := range state.devConfig.Resources {
 			// It doesn't matter what we include in the resource struct, as long as we include the slug - this handler
@@ -180,10 +168,8 @@ func ListResourcesHandler(ctx context.Context, state *State) http.HandlerFunc {
 			})
 		}
 
-		if err := json.NewEncoder(w).Encode(libapi.ListResourcesResponse{
+		return json.NewEncoder(w).Encode(libapi.ListResourcesResponse{
 			Resources: resources,
-		}); err != nil {
-			logger.Error("failed to encode response for /v0/resources/list")
-		}
-	}
+		})
+	})
 }

@@ -18,12 +18,15 @@ import (
 const DefaultPort = 7190
 
 type State struct {
-	cli         *cli.Config
-	envSlug     string
-	executor    dev.Executor
-	port        int
-	runs        map[string]LocalRun
+	cli      *cli.Config
+	envSlug  string
+	executor dev.Executor
+	port     int
+	runs     map[string]LocalRun
+	// Mapping from task slug to task config
 	taskConfigs map[string]discover.TaskConfig
+	// Mapping from view slug to view config
+	viewConfigs map[string]discover.ViewConfig
 	devConfig   conf.DevConfig
 }
 
@@ -45,7 +48,7 @@ var corsOrigins = []string{
 }
 
 // newRouter returns a new router for the local api server
-func newRouter(ctx context.Context, state *State) *mux.Router {
+func newRouter(state *State) *mux.Router {
 	r := mux.NewRouter()
 	r.Use(handlers.CORS(
 		handlers.AllowedOriginValidator(func(origin string) bool {
@@ -59,8 +62,8 @@ func newRouter(ctx context.Context, state *State) *mux.Router {
 		}),
 	))
 
-	AttachAPIRoutes(r.NewRoute().Subrouter(), ctx, state)
-	AttachDevRoutes(r.NewRoute().Subrouter(), ctx, state)
+	AttachAPIRoutes(r.NewRoute().Subrouter(), state)
+	AttachDevRoutes(r.NewRoute().Subrouter(), state)
 	return r
 }
 
@@ -96,7 +99,7 @@ func Start(opts Options) (*Server, error) {
 		devConfig: opts.DevConfig,
 	}
 
-	r := newRouter(context.Background(), state)
+	r := newRouter(state)
 	s := newServer(r, state)
 
 	go func() {
@@ -108,13 +111,18 @@ func Start(opts Options) (*Server, error) {
 	return s, nil
 }
 
-// RegisterTasks generates a mapping of local task slug to task config and stores the mapping in the server state. Task
-// registration must occur after the local dev server has started because the task discoverer hits the
+// RegisterTasksAndViews generates a mapping of slug to task and view configs and stores the mappings in the server
+// state. Task registration must occur after the local dev server has started because the task discoverer hits the
 // /v0/tasks/getMetadata endpoint.
-func (s *Server) RegisterTasks(taskConfigs []discover.TaskConfig) {
+func (s *Server) RegisterTasksAndViews(taskConfigs []discover.TaskConfig, viewConfigs []discover.ViewConfig) {
 	s.state.taskConfigs = map[string]discover.TaskConfig{}
 	for _, cfg := range taskConfigs {
 		s.state.taskConfigs[cfg.Def.GetSlug()] = cfg
+	}
+
+	s.state.viewConfigs = map[string]discover.ViewConfig{}
+	for _, cfg := range viewConfigs {
+		s.state.viewConfigs[cfg.Def.Slug] = cfg
 	}
 }
 

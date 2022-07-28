@@ -15,24 +15,9 @@ import (
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
-	"github.com/gavv/httpexpect/v2"
-	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
-
-func getHttpExpect(ctx context.Context, t *testing.T, router *mux.Router) *httpexpect.Expect {
-	return httpexpect.WithConfig(httpexpect.Config{
-		Reporter: httpexpect.NewAssertReporter(t),
-		Client: &http.Client{
-			Transport: httpexpect.NewBinder(router),
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				return http.ErrUseLastResponse
-			},
-			Jar: httpexpect.NewJar(),
-		},
-		Context: ctx,
-	})
-}
 
 func TestExecute(t *testing.T) {
 	require := require.New(t)
@@ -49,11 +34,10 @@ func TestExecute(t *testing.T) {
 	}
 	taskDefinition.SetDefnFilePath("my_task.task.yaml")
 
-	ctx := context.Background()
 	h := getHttpExpect(
 		context.Background(),
 		t,
-		newRouter(ctx, &State{
+		newRouter(&State{
 			envSlug:  "stage",
 			executor: mockExecutor,
 			port:     1234,
@@ -89,7 +73,7 @@ func TestExecute(t *testing.T) {
 		EnvSlug:     "stage",
 		Resources:   map[string]resource.Resource{},
 	}
-	mockExecutor.On("Execute", ctx, runConfig).Return(nil)
+	mockExecutor.On("Execute", mock.Anything, runConfig).Return(nil)
 
 	body := h.POST("/v0/tasks/execute").
 		WithJSON(ExecuteTaskRequest{
@@ -99,7 +83,7 @@ func TestExecute(t *testing.T) {
 		Expect().
 		Status(http.StatusOK).Body()
 
-	mockExecutor.AssertCalled(t, "Execute", ctx, runConfig)
+	mockExecutor.AssertCalled(t, "Execute", mock.Anything, runConfig)
 
 	var resp ExecuteTaskResponse
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
@@ -114,7 +98,7 @@ func TestGetRun(t *testing.T) {
 	h := getHttpExpect(
 		context.Background(),
 		t,
-		newRouter(context.Background(), &State{
+		newRouter(&State{
 			runs: map[string]LocalRun{
 				runID: {
 					status: api.RunSucceeded,
@@ -142,7 +126,7 @@ func TestGetOutput(t *testing.T) {
 	h := getHttpExpect(
 		context.Background(),
 		t,
-		newRouter(context.Background(), &State{
+		newRouter(&State{
 			runs: map[string]LocalRun{
 				runID: {
 					outputs: api.Outputs{V: "hello"},
@@ -170,7 +154,7 @@ func TestListResources(t *testing.T) {
 	h := getHttpExpect(
 		context.Background(),
 		t,
-		newRouter(context.Background(), &State{
+		newRouter(&State{
 			devConfig: conf.DevConfig{
 				Resources: map[string]map[string]interface{}{
 					"db": {
@@ -191,7 +175,7 @@ func TestListResources(t *testing.T) {
 	var resp libapi.ListResourcesResponse
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
-	require.Equal([]libapi.Resource{
+	require.ElementsMatch([]libapi.Resource{
 		{
 			Slug: "db",
 		},

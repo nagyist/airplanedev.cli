@@ -123,7 +123,11 @@ func run(ctx context.Context, cfg config) error {
 	}
 
 	// Register discovered tasks with local dev server
-	apiServer.RegisterTasks(taskConfigs)
+	apiServer.RegisterTasksAndViews(taskConfigs, viewConfigs)
+
+	logger.Log("")
+	logger.Log("Visit https://app.airplane.dev/editor?host=http://localhost:%d for a development UI.", cfg.port)
+	logger.Log("[Ctrl+C] to shutdown the local dev server.")
 
 	// Wait for termination signal (e.g. Ctrl+C)
 	<-stop
