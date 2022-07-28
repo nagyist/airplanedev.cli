@@ -1523,9 +1523,35 @@ func (r *ResourceDefinition_0_3) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func (r ResourceDefinition_0_3) MarshalJSON() ([]byte, error) {
+	// Return a list if we can.
+	var slugs []string
+	for alias, slug := range r.Attachments {
+		// If we have a single case of alias != slug, just return the map.
+		if alias != slug {
+			return json.Marshal(r.Attachments)
+		}
+		slugs = append(slugs, slug)
+	}
+	return json.Marshal(slugs)
+}
+
+// MarshalYAML adds custom logic for marshaling a resource definition into YAML. There seems to be a bug with the
+// go-yaml package and marshaling maps using MarshalJSON, which is why we need to include MarshalYAML as well
+// (even though we useJSONMarshaler above). If we rely solely on MarshalJSON, it will marshal the resource attachments
+// at the top level, e.g.
+//
+// resources:
+// demo: db
+//
+// as opposed to the correct YAML:
+//
+// resources:
+//   demo: db
+//
 func (r ResourceDefinition_0_3) MarshalYAML() (interface{}, error) {
 	// Return a list if we can.
-	slugs := []string{}
+	var slugs []string
 	for alias, slug := range r.Attachments {
 		// If we have a single case of alias != slug, just return the map.
 		if alias != slug {

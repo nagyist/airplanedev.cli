@@ -24,6 +24,8 @@ parameters:
   description: Someone's name.
   default: World
   required: true
+resources:
+  db: demo_db
 python:
   entrypoint: hello_world.py
 timeout: 3600
@@ -54,6 +56,9 @@ var fullJSON = []byte(
 			"required": true
 		}
 	],
+	"resources": {
+		"db": "demo_db"
+	},
 	"python": {
 		"entrypoint": "hello_world.py"
 	},
@@ -84,6 +89,8 @@ parameters:
   type: shorttext
   description: Someone's name.
   default: World
+resources:
+  db: demo_db
 python:
   entrypoint: hello_world.py
 schedules:
@@ -112,6 +119,9 @@ var jsonWithDefault = []byte(
 			"default": "World"
 		}
 	],
+	"resources": {
+		"db": "demo_db"
+	},
 	"python": {
 		"entrypoint": "hello_world.py"
 	},
@@ -146,6 +156,7 @@ var fullDef = Definition_0_3{
 			Required:    DefaultTrueDefinition{pointers.Bool(true)},
 		},
 	},
+	Resources: ResourceDefinition_0_3{Attachments: map[string]string{"db": "demo_db"}},
 	Python: &PythonDefinition_0_3{
 		Entrypoint: "hello_world.py",
 	},
@@ -182,6 +193,7 @@ var defWithDefault = Definition_0_3{
 	Python: &PythonDefinition_0_3{
 		Entrypoint: "hello_world.py",
 	},
+	Resources: ResourceDefinition_0_3{Attachments: map[string]string{"db": "demo_db"}},
 	Schedules: map[string]ScheduleDefinition_0_3{
 		"every_midnight": {
 			Name:     "Every Midnight",
