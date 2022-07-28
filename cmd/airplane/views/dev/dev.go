@@ -62,7 +62,6 @@ func New(c *cli.Config) *cobra.Command {
 
 			return Run(cmd.Root().Context(), cfg)
 		},
-		Hidden: true,
 	}
 
 	cmd.Flags().StringVar(&cfg.EnvSlug, "env", "", "The slug of the environment to run the view against. Defaults to your team's default environment.")

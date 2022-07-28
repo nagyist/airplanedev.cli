@@ -31,6 +31,7 @@ type config struct {
 	envSlug string
 	name    string
 	viewDir string
+	slug    string
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -80,8 +81,11 @@ func promptForNewView(config *config) error {
 }
 
 func createViewScaffolding(cfg *config) error {
+	slug := utils.MakeSlug(cfg.name)
+	cfg.slug = slug
+
 	// Default to creating folder with the slug
-	directory := utils.MakeSlug(cfg.name)
+	directory := slug
 	if fsx.Exists(directory) {
 		question := fmt.Sprintf("Directory %s already exists. Do you want to remove its existing files and continue creating view?", directory)
 
@@ -110,16 +114,20 @@ func createViewScaffolding(cfg *config) error {
 	if err := createPackageJSON(*cfg); err != nil {
 		return err
 	}
+	suggestNextSteps(*cfg)
 	return nil
 }
 
 func generateEntrypointPath(cfg config, inViewDir bool) string {
-	slug := utils.MakeSlug(cfg.name)
 	if inViewDir {
-		return fmt.Sprintf("%s.view.tsx", slug)
+		return fmt.Sprintf("%s.view.tsx", cfg.slug)
 	} else {
-		return fmt.Sprintf("%s/%s.view.tsx", cfg.viewDir, slug)
+		return fmt.Sprintf("%s/%s.view.tsx", cfg.viewDir, cfg.slug)
 	}
+}
+
+func generateDefinitionFilePath(cfg config) string {
+	return fmt.Sprintf("%s/%s.view.yaml", cfg.viewDir, cfg.slug)
 }
 
 func createViewDefinition(cfg config) error {
@@ -129,11 +137,11 @@ func createViewDefinition(cfg config) error {
 
 	def := definitions.ViewDefinition{
 		Name:       cfg.name,
-		Slug:       utils.MakeSlug(cfg.name),
+		Slug:       cfg.slug,
 		Entrypoint: generateEntrypointPath(cfg, true),
 	}
 
-	defnFilename := fmt.Sprintf("%s/%s.view.yaml", cfg.viewDir, def.Slug)
+	defnFilename := generateDefinitionFilePath(cfg)
 
 	buf, err := def.GenerateCommentedFile()
 	if err != nil {
@@ -344,4 +352,19 @@ func createTSConfigFile() error {
 		logger.Step("Created tsconfig.json")
 	}
 	return nil
+}
+
+func suggestNextSteps(cfg config) {
+	logger.Suggest("✅ To complete your view:", fmt.Sprintf("Write your view logic in %s", generateEntrypointPath(cfg, false)))
+
+	logger.Suggest(
+		"⚡ To run the view locally:",
+		"airplane views dev %s",
+		cfg.slug,
+	)
+	logger.Suggest(
+		"🛫 To deploy your view to Airplane:",
+		"airplane deploy %s",
+		cfg.slug,
+	)
 }
