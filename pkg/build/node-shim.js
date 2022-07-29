@@ -8,13 +8,7 @@ import task from "{{.Entrypoint}}";
 
 async function main() {
   if (process.argv.length !== 3) {
-    console.log(
-      "airplane_output_append:error " +
-        JSON.stringify({
-          "error":
-            `Expected to receive a single argument (via {{ "{{JSON}}" }}). Task CLI arguments may be misconfigured.`,
-        }),
-    );
+    console.log(`airplane_output_set:error ${JSON.stringify(`Expected to receive a single argument (via {{ "{{JSON}}" }}). Task CLI arguments may be misconfigured.`)}`);
     process.exit(1);
   }
 
@@ -30,9 +24,7 @@ async function main() {
     }
   } catch (err) {
     console.error(err);
-    console.log(
-      "airplane_output_append:error " + JSON.stringify({ "error": String(err) }),
-    );
+    console.log(`airplane_output_set:error ${JSON.stringify(String(err))}`);
     process.exit(1);
   }
 }

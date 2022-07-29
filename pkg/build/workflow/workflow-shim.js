@@ -25,10 +25,10 @@ export async function __airplaneEntrypoint(params, workflowArgs) {
   } catch (err) {
     logger.info(err);
     if (err instanceof CancelledFailure) {
-      logger.info('airplane_output_append:error ' + JSON.stringify({ error: "Workflow cancelled" }));
+      logger.info(`airplane_output_set:error ${JSON.stringify("Workflow cancelled")}`);
       logger.info('airplane_status:cancelled');
     } else {
-      logger.info('airplane_output_append:error ' + JSON.stringify({ error: String(err) }));
+      logger.info(`airplane_output_set:error ${JSON.stringify(String(err))}`);
       logger.info('airplane_status:failed');
     }
   }
