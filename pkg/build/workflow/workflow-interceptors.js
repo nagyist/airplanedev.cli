@@ -16,11 +16,11 @@ class WorkflowLogOutboundInterceptor {
       const result = await next(input);
       workflowLog(
         this.info,
-        `Scheduling activity ${activityType} result: ${JSON.stringify(result)}`
+        `Activity ${activityType} result: ${JSON.stringify(result)}`
       );
       return result;
     } catch (error) {
-      workflowLog(this.info, `Error scheduling activity ${activityType}: ${error}`);
+      workflowLog(this.info, `Activity ${activityType} errored: ${error}`);
       throw error;
     }
   }
@@ -29,10 +29,10 @@ class WorkflowLogOutboundInterceptor {
     workflowLog(this.info, `Scheduling local activity: ${JSON.stringify(input)}`);
     try {
       const result = await next(input);
-      workflowLog(this.info, `Scheduling local activity result: ${JSON.stringify(result)}`);
+      workflowLog(this.info, `Local activity result: ${JSON.stringify(result)}`);
       return result;
     } catch (error) {
-      workflowLog(this.info, `Error scheduling local activity: ${error}`);
+      workflowLog(this.info, `Local activity errored: ${error}`);
       throw error;
     }
   }
@@ -44,7 +44,7 @@ class WorkflowLogOutboundInterceptor {
       workflowLog(this.info, `Starting timer result: ${JSON.stringify(result)}`);
       return result;
     } catch (error) {
-      workflowLog(this.info, `Error starting timer: ${error}`);
+      workflowLog(this.info, `Timer errored: ${error}`);
       throw error;
     }
   }
@@ -68,7 +68,7 @@ class WorkflowLogInboundInterceptor {
       );
       return result;
     } catch (error) {
-      workflowLog(this.info, `Error in workflow execution: ${error}`);
+      workflowLog(this.info, `Workflow execuion errored: ${error}`);
       throw error;
     }
   }
@@ -77,7 +77,7 @@ class WorkflowLogInboundInterceptor {
     workflowLog(this.info, `Handling signal: ${JSON.stringify(input)}`);
     try {
       const result = await next(input);
-      workflowLog(this.info, `Handling signal result: ${JSON.stringify(result)}`);
+      workflowLog(this.info, `Signal result: ${JSON.stringify(result)}`);
       return result;
     } catch (error) {
       workflowLog(this.info, `Error handling signal: ${error}`);

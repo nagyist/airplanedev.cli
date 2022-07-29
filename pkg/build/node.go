@@ -147,7 +147,7 @@ func node(root string, options KindOptions, buildArgs []string) (string, error) 
 	cfg.InlineShimPackageJSON = inlineString(string(pjson))
 
 	if isWorkflow {
-		cfg.InlineShim = inlineString(workerAndActivityShim)
+		cfg.InlineShim = inlineString(workerShim)
 		cfg.InlineWorkflowBundlerScript = inlineString(workflowBundlerScript)
 		cfg.InlineWorkflowInterceptorsScript = inlineString(workflowInterceptorsScript)
 
@@ -283,7 +283,7 @@ func GenShimPackageJSON(pathPackageJSON string, isWorkflow bool) ([]byte, error)
 
 	if isWorkflow {
 		// airplane>=0.2.0-6 already includes Temporal as a dependency, and so we don't include it here.
-		pjson.Dependencies["airplane"] = "0.2.0-19"
+		pjson.Dependencies["airplane"] = "0.2.0-21"
 	}
 
 	// Allow users to override any shim dependencies. Given shim code is bundled
@@ -313,8 +313,8 @@ func GetNodeVersion(opts KindOptions) string {
 //go:embed node-shim.js
 var nodeShim string
 
-//go:embed workflow/worker-and-activity-shim.js
-var workerAndActivityShim string
+//go:embed workflow/worker-shim.js
+var workerShim string
 
 //go:embed workflow/workflow-bundler.js
 var workflowBundlerScript string

@@ -17,16 +17,14 @@ export async function __airplaneEntrypoint(params, workflowArgs) {
     }
 
     var result = await task(JSON.parse(params[0]));
+    if (result !== undefined) {
+      airplane.setOutput(result);
+    }
+
+    logger.info('airplane_status:succeeded');
   } catch (err) {
     logger.info(err);
     logger.info('airplane_output_append:error ' + JSON.stringify({ error: String(err) }));
     logger.info('airplane_output_append:error {"error":"Error executing workflow"}')
-    return
   }
-
-  if (result !== undefined) {
-    airplane.setOutput(result);
-  }
-  logger.info('airplane_status:succeeded');
-  return result;
 }

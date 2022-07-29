@@ -7,7 +7,6 @@ import { createActivities } from "airplane/internal/runtime/workflow"
 // and workflows for a single task queue (equivalent to airplane task revision).
 async function runWorker(params) {
   // Get temporal host, queue, and namespace from the environment.
-  // TODO: Also get auth token.
   const temporalHost = process.env.AP_TEMPORAL_HOST;
   if (temporalHost === undefined) {
     throw 'AP_TEMPORAL_HOST is not set in environment';
@@ -93,13 +92,13 @@ export class ActivityLogInboundInterceptor {
   }
 
   async execute(input, next) {
-    activityLog(this.info, `Starting activity with input: ${JSON.stringify(input)}`);
+    activityLog(this.info, `Activity execution starting: ${JSON.stringify(input)}`);
     try {
       const result = await next(input);
-      activityLog(this.info, `Result from activity run: ${JSON.stringify(input)}`);
+      activityLog(this.info, `Activity execution result: ${JSON.stringify(result)}`);
       return result;
     } catch (error) {
-      activityLog(this.info, `Caught error, retrying: ${error}`);
+      activityLog(this.info, `Activity execution errored: ${error}`);
       throw error;
     }
   }
@@ -113,26 +112,17 @@ function activityLog(info, message) {
   );
 }
 
-// Code from regular node-shim.
+// This function is the worker's entrypoint.
 async function main() {
   if (process.argv.length !== 3) {
-    console.log(
-      'airplane_output_append:error ' +
-        JSON.stringify({
-          error: `Expected to receive a single argument (via {{ "{{JSON}}" }}). Task CLI arguments may be misconfigured.`,
-        })
-    );
+    console.error(`Expected to receive a single argument (via {{ "{{JSON}}" }}). Task CLI arguments may be misconfigured.`);
     process.exit(1);
   }
 
   try {
-    let ret = await runWorker(JSON.parse(process.argv[2]));
-    if (ret !== undefined) {
-      airplane.setOutput(ret);
-    }
+    await runWorker(JSON.parse(process.argv[2]));
   } catch (err) {
-    console.error(err);
-    console.log('airplane_output_append:error ' + JSON.stringify({ error: String(err) }));
+    console.error(`Worker errored: ${err}`);
     process.exit(1);
   }
 }
