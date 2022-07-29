@@ -1,5 +1,5 @@
 import airplane from 'airplane';
-import { proxySinks } from '@temporalio/workflow';
+import { proxySinks, CancelledFailure } from '@temporalio/workflow';
 import task from '{{.Entrypoint}}';
 
 const { logger } = proxySinks();
@@ -9,7 +9,7 @@ const { logger } = proxySinks();
 // This name must match the name we use when executing the workflow in
 // the Airplane API.
 export async function __airplaneEntrypoint(params, workflowArgs) {
-  logger.info('airplane_status:started');
+  logger.info('airplane_status:active');
   try {
     // Monkey patch process.env
     global.process = {
@@ -24,7 +24,12 @@ export async function __airplaneEntrypoint(params, workflowArgs) {
     logger.info('airplane_status:succeeded');
   } catch (err) {
     logger.info(err);
-    logger.info('airplane_output_append:error ' + JSON.stringify({ error: String(err) }));
-    logger.info('airplane_output_append:error {"error":"Error executing workflow"}')
+    if (err instanceof CancelledFailure) {
+      logger.info('airplane_output_append:error ' + JSON.stringify({ error: "Workflow cancelled" }));
+      logger.info('airplane_status:cancelled');
+    } else {
+      logger.info('airplane_output_append:error ' + JSON.stringify({ error: String(err) }));
+      logger.info('airplane_status:failed');
+    }
   }
 }
