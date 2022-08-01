@@ -20,6 +20,8 @@ type Def = {
     allowSelfApprovals?: boolean
     timeout?: number
     constraints?: Record<string, string>
+    resources: Record<string, string>
+    schedules: Record<string, any>
     runtime?: "" | "workflow"
 }
 
@@ -73,6 +75,8 @@ const extractTaskConfigs = (files: string[]): DefWithBuildArgs[] => {
                     timeout: config.timeout,
                     constraints: config.constraints,
                     runtime: config.runtime === "workflow" ? "workflow": "",
+                    resources: config.resources,
+                    schedules: config.schedules,
                     parameters: params,
                     entrypointFunc: exportName,
                 });
