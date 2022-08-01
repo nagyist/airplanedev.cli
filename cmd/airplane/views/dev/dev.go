@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -131,17 +132,18 @@ func StartView(cfg Config) (rerr error) {
 		return err
 	}
 	root := v.Root()
-	logger.Log("Using %s as root directory and %s as entrypoint", v.Root(), v.EntrypointPath())
+	logger.Debug("Root directory: %s", v.Root())
+	logger.Debug("Entrypoint: %s", v.EntrypointPath())
 	tmpdir := v.CacheDir()
 	if _, err := os.Stat(tmpdir); os.IsNotExist(err) {
 		if err := os.Mkdir(tmpdir, 0755); err != nil {
 			return errors.Wrap(err, "creating temporary dir")
 		}
-		logger.Log("created temporary dir %s", tmpdir)
-	} else {
-		logger.Log("temporary dir %s exists", tmpdir)
-	}
+		logger.Debug("created temporary dir %s", tmpdir)
 
+	} else {
+		logger.Debug("temporary dir %s exists", tmpdir)
+	}
 	entrypointFile, err := filepath.Rel(v.Root(), v.EntrypointPath())
 	if err != nil {
 		return errors.Wrap(err, "figuring out entrypoint")
@@ -313,7 +315,7 @@ func runNPMInstall(tmpdir string) error {
 		defer wg.Done()
 		for scanner.Scan() {
 			m := scanner.Text()
-			logger.Log(m)
+			logger.Debug(m)
 		}
 	}()
 	if err = cmd.Start(); err != nil {
@@ -346,9 +348,21 @@ func runVite(cfg Config, tmpdir string) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		viteServerRegex := regexp.MustCompile("> Local: (http.+)")
+		var viteServer string
 		for scanner.Scan() {
 			m := scanner.Text()
-			logger.Log(m)
+			logger.Debug(m)
+			if submatch := viteServerRegex.FindStringSubmatch(m); submatch != nil {
+				viteServer = submatch[1]
+				logger.Log("Started development server at %s (^C to quit)", logger.Blue("%s", viteServer))
+				logger.Log("Press ENTER to preview your view in the browser")
+
+				fmt.Scanln()
+				if ok := utils.Open(viteServer); !ok {
+					logger.Log("Something went wrong. Try running the command with the --debug flag for more details.")
+				}
+			}
 		}
 	}()
 	if err = cmd.Start(); err != nil {
