@@ -276,8 +276,8 @@ func patchPackageJSON(packageJSON *map[string]interface{}, cfg Config) error {
 		"@airplane/views": "*",
 	}
 	defaultDevDeps := map[string]string{
-		"@vitejs/plugin-react": "^1.3.0",
-		"vite":                 "^2.9.9",
+		"@vitejs/plugin-react": "^2.0.0",
+		"vite":                 "^3.0.0",
 	}
 
 	deps, ok := (*packageJSON)["dependencies"].(map[string]interface{})
