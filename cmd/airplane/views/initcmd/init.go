@@ -37,16 +37,18 @@ type config struct {
 	gettingStarted bool
 }
 
+const gettingStartedExample = "github.com/airplanedev/examples/views/getting_started"
+
 func New(c *cli.Config) *cobra.Command {
 	var cfg = config{client: c.Client}
 
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize a view definition",
-		Example: heredoc.Doc(`
+		Example: heredoc.Doc(fmt.Sprintf(`
 			$ airplane views init
-			$ airplane views init --from github.com/airplanedev/examples/views/getting_started
-		`),
+			$ airplane views init --from %s
+		`, gettingStartedExample)),
 		// TODO: support passing in where to create the directory either as arg or flag
 		Args: cobra.MaximumNArgs(0),
 		PersistentPreRunE: utils.WithParentPersistentPreRunE(func(cmd *cobra.Command, args []string) error {
@@ -64,7 +66,15 @@ func New(c *cli.Config) *cobra.Command {
 }
 
 func run(ctx context.Context, cfg config) error {
-	if cfg.from != "" {
+	if cfg.gettingStarted {
+		_, err := createDemoDB(ctx, cfg)
+		if err != nil {
+			return err
+		}
+		if err := initWithExample(&cfg, gettingStartedExample); err != nil {
+			return err
+		}
+	} else if cfg.from != "" {
 		if err := initWithExample(&cfg, cfg.from); err != nil {
 			return err
 		}
@@ -100,13 +110,6 @@ func createViewScaffolding(ctx context.Context, cfg *config) error {
 	directory := slug
 	if err := createViewDir(cfg, directory); err != nil {
 		return err
-	}
-
-	if cfg.gettingStarted {
-		_, err := createDemoDB(ctx, *cfg)
-		if err != nil {
-			return err
-		}
 	}
 
 	// TODO: Add the views scaffolding files to directory
@@ -372,7 +375,7 @@ func suggestNextSteps(cfg config) {
 	}
 
 	logger.Suggest(
-		"⚡ To develop the view locally:",
+		"⚡ To develop your view locally:",
 		"airplane views dev %s",
 		cfg.viewDir,
 	)
@@ -393,7 +396,7 @@ func suggestNextSteps(cfg config) {
 // initWithExample tries to copy a directory or file into the current working directory.
 // TODO: figure out smarter way to merge package.json or conditionally copy/create package.json
 func initWithExample(cfg *config, gitPath string) error {
-	if !(strings.HasPrefix(cfg.from, "github.com/") || strings.HasPrefix(cfg.from, "https://github.com/")) {
+	if !(strings.HasPrefix(gitPath, "github.com/") || strings.HasPrefix(gitPath, "https://github.com/")) {
 		return errors.New("expected --from to be in the format github.com/ORG/REPO/PATH/TO/FOLDER[@REF]")
 	}
 	// TODO: Refactor lib so opening from a github path is not specific to tasks and task definitions
