@@ -83,17 +83,15 @@ func run(ctx context.Context, cfg config) error {
 		return errors.Wrapf(err, "describing %s", cfg.fileOrDir)
 	}
 
-	if cfg.root.Dev && fileInfo.IsDir() && viewsdev.IsView(cfg.fileOrDir) == nil {
-		// Switch to devving a view.
-		return viewsdev.Run(ctx, viewsdev.Config{
-			Root:      cfg.root,
-			FileOrDir: cfg.fileOrDir,
-			Args:      cfg.args,
-			EnvSlug:   cfg.envSlug,
-		})
-	}
-
 	if fileInfo.IsDir() {
+		if viewsdev.IsView(cfg.fileOrDir) == nil {
+			return viewsdev.Run(ctx, viewsdev.Config{
+				Root:      cfg.root,
+				FileOrDir: cfg.fileOrDir,
+				Args:      cfg.args,
+				EnvSlug:   cfg.envSlug,
+			})
+		}
 		return errors.Errorf("%s is a directory", cfg.fileOrDir)
 	}
 

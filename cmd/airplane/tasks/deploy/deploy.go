@@ -131,10 +131,8 @@ func run(ctx context.Context, cfg config) error {
 		Logger:             l,
 		MissingTaskHandler: HandleMissingTask(cfg, l, &createdTasks),
 	})
-	if cfg.root.Dev {
-		createdViews := map[string]bool{}
-		d.ViewDiscoverers = append(d.ViewDiscoverers, &discover.ViewDefnDiscoverer{Client: cfg.client, Logger: l, MissingViewHandler: HandleMissingView(cfg, l, &createdViews)})
-	}
+	createdViews := map[string]bool{}
+	d.ViewDiscoverers = append(d.ViewDiscoverers, &discover.ViewDefnDiscoverer{Client: cfg.client, Logger: l, MissingViewHandler: HandleMissingView(cfg, l, &createdViews)})
 
 	// If you're trying to deploy a .sql file, try to find a defn file instead.
 	for i, path := range cfg.paths {
