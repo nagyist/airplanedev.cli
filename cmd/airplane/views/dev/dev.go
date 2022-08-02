@@ -209,10 +209,10 @@ func StartView(cfg Config) (rerr error) {
 		return errors.Wrap(err, "creating symlink")
 	}
 
-	// TODO(zhan): try yarn first instead of npm.
-	// Run npm install.
-	if err := runNPMInstall(tmpdir); err != nil {
-		return errors.Wrap(err, "running npm install")
+	// Run npm/yarn install.
+	useYarn := utils.ShouldUseYarn(tmpdir)
+	if err := utils.InstallDependencies(tmpdir, useYarn); err != nil {
+		return errors.Wrap(err, "running npm/yarn install")
 	}
 
 	// Run vite.
@@ -297,32 +297,6 @@ func patchPackageJSON(packageJSON *map[string]interface{}, cfg Config) error {
 	addMissingDeps(defaultDevDeps, &devDeps)
 
 	return nil
-}
-
-func runNPMInstall(tmpdir string) error {
-	cmd := exec.Command("npm", "install")
-	cmd.Dir = tmpdir
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	cmd.Stderr = cmd.Stdout
-	scanner := bufio.NewScanner(stdout)
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for scanner.Scan() {
-			m := scanner.Text()
-			logger.Debug(m)
-		}
-	}()
-	if err = cmd.Start(); err != nil {
-		return err
-	}
-
-	return cmd.Wait()
 }
 
 func runVite(cfg Config, tmpdir string) error {

@@ -65,7 +65,9 @@ func New(c *cli.Config) *cobra.Command {
 
 func run(ctx context.Context, cfg config) error {
 	if cfg.from != "" {
-		return initWithExample(&cfg, cfg.from)
+		if err := initWithExample(&cfg, cfg.from); err != nil {
+			return err
+		}
 	} else {
 		if err := promptForNewView(&cfg); err != nil {
 			return err
@@ -74,6 +76,7 @@ func run(ctx context.Context, cfg config) error {
 			return err
 		}
 	}
+	suggestNextSteps(cfg)
 	return nil
 }
 
@@ -119,7 +122,6 @@ func createViewScaffolding(ctx context.Context, cfg *config) error {
 	if err := createPackageJSON(*cfg); err != nil {
 		return err
 	}
-	suggestNextSteps(*cfg)
 	return nil
 }
 
@@ -197,25 +199,6 @@ func createEntrypoint(cfg config) error {
 	return nil
 }
 
-func shouldUseYarn(packageJSONDirPath string) bool {
-	// If the closest directory with a package.json has a lockfile, we will use that to
-	// determine whether to use yarn or npm even if we eventually create a new package.json for the view.
-	yarnlock := filepath.Join(packageJSONDirPath, "yarn.lock")
-	pkglock := filepath.Join(packageJSONDirPath, "package-lock.json")
-
-	if err := fsx.AssertExistsAll(yarnlock); err == nil {
-		return true
-	} else if err := fsx.AssertExistsAll(pkglock); err == nil {
-		return false
-	}
-
-	// No lockfiles, so check if yarn is installed by getting yarn version
-	cmd := exec.Command("yarn", "-v")
-	cmd.Dir = filepath.Dir(packageJSONDirPath)
-	err := cmd.Start()
-	return err == nil
-}
-
 // createPackageJSON ensures there is a package.json in the cwd or a parent directory with the views dependencies installed.
 // If package.json exists in cwd, use it.
 // If package.json exists in parent directory, ask user if they want to use that or create a new one.
@@ -232,7 +215,7 @@ func createPackageJSON(cfg config) error {
 	}
 	// Check if there's a package.json in the current or parent directory of entrypoint
 	packageJSONDirPath, ok := fsx.Find(absEntrypointPath, "package.json")
-	useYarn := shouldUseYarn(packageJSONDirPath)
+	useYarn := utils.ShouldUseYarn(packageJSONDirPath)
 
 	if ok {
 		if packageJSONDirPath == cwd {
@@ -384,17 +367,26 @@ func createTSConfigFile() error {
 }
 
 func suggestNextSteps(cfg config) {
-	logger.Suggest("✅ To complete your view:", fmt.Sprintf("Write your view logic in %s", generateEntrypointPath(cfg, false)))
+	if cfg.viewDir != "" && cfg.slug != "" {
+		logger.Suggest("✅ To complete your view:", fmt.Sprintf("Write your view logic in %s", generateEntrypointPath(cfg, false)))
+	}
 
 	logger.Suggest(
-		"⚡ To run the view locally:",
+		"⚡ To develop the view locally:",
 		"airplane views dev %s",
-		cfg.slug,
+		cfg.viewDir,
 	)
+
+	var deployDir string
+	if cfg.viewDir != "" {
+		deployDir = cfg.viewDir
+	} else {
+		deployDir = "."
+	}
 	logger.Suggest(
 		"🛫 To deploy your view to Airplane:",
 		"airplane deploy %s",
-		cfg.slug,
+		deployDir,
 	)
 }
 
@@ -423,9 +415,18 @@ func initWithExample(cfg *config, gitPath string) error {
 		if err := createViewDir(cfg, viewDirectory); err != nil {
 			return err
 		}
-
 		if err := utils.CopyDirectoryContents(path, cfg.viewDir); err != nil {
 			return err
+		}
+
+		if fsx.Exists(filepath.Join(viewDirectory, "package.json")) {
+			useYarn := utils.ShouldUseYarn(viewDirectory)
+			logger.Step("Installing dependencies...")
+			if err = utils.InstallDependencies(viewDirectory, useYarn); err != nil {
+				return err
+			}
+			logger.Step("Finished installing dependencies")
+			return nil
 		}
 	} else {
 		cwd, err := os.Getwd()
