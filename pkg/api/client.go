@@ -105,6 +105,7 @@ type APIClient interface {
 
 	GetView(ctx context.Context, req libapi.GetViewRequest) (libapi.View, error)
 	CreateView(ctx context.Context, req libapi.CreateViewRequest) (libapi.View, error)
+	CreateDemoDB(ctx context.Context, name string) (string, error)
 }
 
 var _ APIClient = Client{}
@@ -371,6 +372,19 @@ func (c Client) GetView(ctx context.Context, req libapi.GetViewRequest) (res lib
 func (c Client) CreateView(ctx context.Context, req libapi.CreateViewRequest) (res libapi.View, err error) {
 	err = c.do(ctx, "POST", "/views/create", req, &res)
 	return
+}
+
+func (c Client) CreateDemoDB(ctx context.Context, name string) (string, error) {
+	reply := struct {
+		ResourceID string `json:"resourceID"`
+	}{}
+	err := c.do(ctx, "POST", "/resources/createDemoDB", CreateDemoDBRequest{
+		Name: name,
+	}, &reply)
+	if err != nil {
+		return "", err
+	}
+	return reply.ResourceID, nil
 }
 
 // GetConfig returns a config by name and tag.

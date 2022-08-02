@@ -164,3 +164,7 @@ func (mc *MockClient) GetView(ctx context.Context, req libapi.GetViewRequest) (r
 func (mc *MockClient) CreateView(ctx context.Context, req libapi.CreateViewRequest) (res libapi.View, err error) {
 	panic("not implemented") // TODO: Implement
 }
+
+func (mc *MockClient) CreateDemoDB(ctx context.Context, name string) (string, error) {
+	panic("not implemented")
+}

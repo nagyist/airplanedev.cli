@@ -346,3 +346,7 @@ type App struct {
 	CreatedBy   string     `json:"createdBy"`
 	CreatedAt   time.Time  `json:"createdAt"`
 }
+
+type CreateDemoDBRequest struct {
+	Name string `json:"name"`
+}

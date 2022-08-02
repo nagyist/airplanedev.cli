@@ -27,11 +27,12 @@ import (
 )
 
 type config struct {
-	client  *api.Client
-	envSlug string
-	name    string
-	viewDir string
-	slug    string
+	client         *api.Client
+	envSlug        string
+	name           string
+	viewDir        string
+	slug           string
+	gettingStarted bool
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -53,6 +54,7 @@ func New(c *cli.Config) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
+	cmd.Flags().BoolVar(&cfg.gettingStarted, "getting-started", false, "True to generate starter tasks and views")
 
 	return cmd
 }
@@ -62,7 +64,7 @@ func run(ctx context.Context, cfg config) error {
 		return err
 	}
 
-	if err := createViewScaffolding(&cfg); err != nil {
+	if err := createViewScaffolding(ctx, &cfg); err != nil {
 		return err
 	}
 	return nil
@@ -80,7 +82,7 @@ func promptForNewView(config *config) error {
 	return nil
 }
 
-func createViewScaffolding(cfg *config) error {
+func createViewScaffolding(ctx context.Context, cfg *config) error {
 	slug := utils.MakeSlug(cfg.name)
 	cfg.slug = slug
 
@@ -101,6 +103,14 @@ func createViewScaffolding(cfg *config) error {
 		return err
 	}
 	cfg.viewDir = directory
+
+	if cfg.gettingStarted {
+		_, err := createDemoDB(ctx, *cfg)
+		if err != nil {
+			return err
+		}
+	}
+
 	// TODO: Add the views scaffolding files to directory
 	if err := createViewDefinition(*cfg); err != nil {
 		return err
@@ -128,6 +138,11 @@ func generateEntrypointPath(cfg config, inViewDir bool) string {
 
 func generateDefinitionFilePath(cfg config) string {
 	return fmt.Sprintf("%s/%s.view.yaml", cfg.viewDir, cfg.slug)
+}
+
+func createDemoDB(ctx context.Context, cfg config) (string, error) {
+	demoDBName := "[Demo DB]"
+	return cfg.client.CreateDemoDB(ctx, demoDBName)
 }
 
 func createViewDefinition(cfg config) error {
