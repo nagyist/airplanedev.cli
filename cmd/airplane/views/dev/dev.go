@@ -348,7 +348,8 @@ func runVite(cfg Config, tmpdir string) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		viteServerRegex := regexp.MustCompile("> Local: (http.+)")
+		// TODO: write integration test to make sure this doesn't break
+		viteServerRegex := regexp.MustCompile(`[>|➜]\s+Local:\s+(http.+)`)
 		var viteServer string
 		for scanner.Scan() {
 			m := scanner.Text()
