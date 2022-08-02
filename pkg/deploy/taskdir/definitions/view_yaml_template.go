@@ -1,8 +1,6 @@
 package definitions
 
-const viewDefinitionTemplate = `# Full reference: <TODO: LINK TO VIEWS DOCS>
-
-# Used by Airplane to identify your view. Do not change.
+const viewDefinitionTemplate = `# Used by Airplane to identify your view. Do not change.
 slug: {{.slug}}
 
 # A human-readable name for your view.
