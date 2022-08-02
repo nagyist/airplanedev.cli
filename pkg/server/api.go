@@ -11,6 +11,7 @@ import (
 	"github.com/airplanedev/cli/pkg/resource"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
+	"github.com/airplanedev/lib/pkg/builtins"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -49,38 +50,51 @@ func ExecuteTaskHandler(state *State) http.HandlerFunc {
 	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 		var req ExecuteTaskRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			logger.Error("failed to decode request body %+v", r.Body)
+			return errors.Wrap(err, "failed to decode request body")
 		}
 
 		runID := "run" + utils.RandomString(10, utils.CharsetLowercaseNumeric)
 		runStatus := api.RunFailed
 		outputs := api.Outputs{}
-		if config, ok := state.taskConfigs[req.Slug]; ok {
-			kind, kindOptions, err := config.Def.GetKindAndOptions()
-			if err != nil {
-				return errors.Wrap(err, "failed to get kind and options from task config")
+		localTaskConfig, ok := state.taskConfigs[req.Slug]
+		isBuiltin := builtins.IsBuiltinTaskSlug(req.Slug)
+		if isBuiltin || ok {
+			runConfig := dev.LocalRunConfig{
+				ParamValues: req.ParamValues,
+				Port:        state.port,
+				Root:        state.cli,
+				Slug:        req.Slug,
+				EnvSlug:     state.envSlug,
+				IsBuiltin:   isBuiltin,
 			}
+			resourceAttachments := map[string]string{}
+			if isBuiltin {
+				// builtins have access to all resources the parent task has
+				for slug := range state.devConfig.DecodedResources {
+					resourceAttachments[slug] = slug
+				}
+			} else if localTaskConfig.Def != nil {
+				kind, kindOptions, err := localTaskConfig.Def.GetKindAndOptions()
+				if err != nil {
+					return errors.Wrap(err, "failed to get kind and options from task config")
+				}
+				runConfig.Kind = kind
+				runConfig.KindOptions = kindOptions
+				runConfig.Name = localTaskConfig.Def.GetName()
+				runConfig.File = localTaskConfig.Def.GetDefnFilePath()
+				resourceAttachments = localTaskConfig.Def.GetResourceAttachments()
 
+			}
 			resources, err := resource.GenerateAliasToResourceMap(
-				config.Def.GetResourceAttachments(),
+				resourceAttachments,
 				state.devConfig.DecodedResources,
 			)
 			if err != nil {
 				return errors.Wrap(err, "generating alias to resource map")
 			}
+			runConfig.Resources = resources
 
-			outputs, err = state.executor.Execute(ctx, dev.LocalRunConfig{
-				Name:        config.Def.GetName(),
-				Kind:        kind,
-				KindOptions: kindOptions,
-				ParamValues: req.ParamValues,
-				Port:        state.port,
-				Root:        state.cli,
-				File:        config.Def.GetDefnFilePath(),
-				Slug:        req.Slug,
-				EnvSlug:     state.envSlug,
-				Resources:   resources,
-			})
+			outputs, err = state.executor.Execute(ctx, runConfig)
 			if err != nil {
 				return errors.Wrap(err, "failed to run task locally")
 			}

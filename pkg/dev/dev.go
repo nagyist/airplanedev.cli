@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"sync"
 
@@ -52,29 +53,50 @@ type LocalRunConfig struct {
 	Env         map[string]string
 	// Mapping from alias to resource
 	Resources map[string]resource.Resource
+	IsBuiltin bool
 }
 
-func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api.Outputs, error) {
+type CmdConfig struct {
+	cmd        *exec.Cmd
+	closer     io.Closer
+	entrypoint string
+	runtime    runtime.Interface
+}
+
+// Returns the command needed to execute the task locally
+func (l *LocalExecutor) Cmd(ctx context.Context, config LocalRunConfig) (CmdConfig, error) {
+	if config.IsBuiltin {
+		builtinClient, err := NewBuiltinClient(goruntime.GOOS, goruntime.GOARCH)
+		if err != nil {
+			return CmdConfig{}, err
+		}
+		req, err := marshalBuiltinRequest(ctx, config.Slug, config.ParamValues)
+		if err != nil {
+			return CmdConfig{}, errors.New("invalid builtin request")
+		}
+		cmd, err := builtinClient.Cmd(ctx, req)
+		if err != nil {
+			return CmdConfig{}, err
+		}
+		return CmdConfig{cmd: cmd}, nil
+	}
 	entrypoint, err := entrypointFrom(config.File)
 	if err == definitions.ErrNoEntrypoint {
 		logger.Warning("Local execution is not supported for this task (kind=%s)", config.Kind)
-		return api.Outputs{}, nil
+		return CmdConfig{}, nil
 	} else if err != nil {
-		return api.Outputs{}, err
+		return CmdConfig{}, err
 	}
 
 	r, err := runtime.Lookup(entrypoint, config.Kind)
 	if err != nil {
-		return api.Outputs{}, errors.Wrapf(err, "unsupported file type: %s", filepath.Base(entrypoint))
+		return CmdConfig{}, errors.Wrapf(err, "unsupported file type: %s", filepath.Base(entrypoint))
 	}
 
 	if !r.SupportsLocalExecution() {
 		logger.Warning("Local execution is not supported for this task (kind=%s)", config.Kind)
-		return api.Outputs{}, nil
+		return CmdConfig{}, nil
 	}
-
-	print.BoxPrint(fmt.Sprintf("Locally running task [%s] %s", config.Name, config.Root.Client.TaskURL(config.Slug, config.EnvSlug)))
-	logger.Log("")
 
 	cmds, closer, err := r.PrepareRun(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), runtime.PrepareRunOptions{
 		Path:        entrypoint,
@@ -82,13 +104,33 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 		KindOptions: config.KindOptions,
 	})
 	if err != nil {
-		return api.Outputs{}, err
-	}
-	if closer != nil {
-		defer closer.Close()
+		return CmdConfig{}, err
 	}
 
 	cmd := exec.CommandContext(ctx, cmds[0], cmds[1:]...)
+	return CmdConfig{
+		cmd:        cmd,
+		closer:     closer,
+		entrypoint: entrypoint,
+		runtime:    r,
+	}, nil
+}
+
+func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api.Outputs, error) {
+	cmdConfig, err := l.Cmd(ctx, config)
+	if cmdConfig.closer != nil {
+		defer cmdConfig.closer.Close()
+	}
+	if err != nil {
+		return api.Outputs{}, err
+	}
+	cmd := cmdConfig.cmd
+	r := cmdConfig.runtime
+	entrypoint := cmdConfig.entrypoint
+	print.BoxPrint(fmt.Sprintf("Locally running task [%s] %s", config.Slug,
+		config.Root.Client.TaskURL(config.Slug, config.EnvSlug)))
+	logger.Log("")
+
 	logger.Debug("Running %s", logger.Bold(strings.Join(cmd.Args, " ")))
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -99,27 +141,28 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 		return api.Outputs{}, errors.Wrap(err, "stderr")
 	}
 
-	// Load environment variables from .env files:
-	env, err := getDevEnv(r, entrypoint)
-	if err != nil {
-		return api.Outputs{}, err
-	}
-
-	// If environment variables are specified in the dev config file, use those instead
-	if len(config.Env) > 0 {
-		env = config.Env
-	}
-
 	// cmd.Env defaults to os.Environ _only if empty_. Since we add
 	// to it, we need to also set it to os.Environ.
 	cmd.Env = os.Environ()
-	for k, v := range env {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	// only non builtins have a runtime
+	if r != nil {
+		// Load environment variables from .env files:
+		env, err := getDevEnv(r, entrypoint)
+		if err != nil {
+			return api.Outputs{}, err
+		}
+		// If environment variables are specified in the dev config file, use those instead
+		if len(config.Env) > 0 {
+			env = config.Env
+		}
+		for k, v := range env {
+			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+		}
 	}
+
 	if cmd.Env, err = appendAirplaneEnvVars(cmd.Env, config); err != nil {
 		return api.Outputs{}, errors.Wrap(err, "appending airplane-specific env vars")
 	}
-
 	if err := cmd.Start(); err != nil {
 		return api.Outputs{}, errors.Wrap(err, "starting")
 	}
@@ -180,7 +223,7 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	print.Outputs(outputs)
 
 	logger.Log("")
-	print.BoxPrint(fmt.Sprintf("Finished running task [%s]", config.Name))
+	print.BoxPrint(fmt.Sprintf("Finished running task [%s]", config.Slug))
 	logger.Log("")
 
 	analytics.Track(config.Root, "Run Executed Locally", map[string]interface{}{
@@ -273,6 +316,7 @@ func entrypointFromDefn(file string) (string, error) {
 func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error) {
 	env = append(env, fmt.Sprintf("AIRPLANE_API_HOST=http://127.0.0.1:%d", config.Port))
 	env = append(env, "AIRPLANE_RUNTIME=dev")
+	env = append(env, "AIRPLANE_RESOURCES_VERSION=2")
 
 	serialized, err := json.Marshal(config.Resources)
 	if err != nil {
