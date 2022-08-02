@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -85,7 +84,7 @@ func initWithExample(ctx context.Context, cfg config) error {
 			logger.Step("Created folder %s", dstDirectory)
 		}
 
-		if err := copyFile(defPath, dstDirectory); err != nil {
+		if err := utils.CopyFile(defPath, dstDirectory); err != nil {
 			return err
 		}
 	} else if err != nil {
@@ -124,7 +123,7 @@ func initWithExample(ctx context.Context, cfg config) error {
 			logger.Step("Created folder %s", dstDirectory)
 		}
 
-		if err := copyDirectoryContents(taskroot, dstDirectory); err != nil {
+		if err := utils.CopyDirectoryContents(taskroot, dstDirectory); err != nil {
 			return err
 		}
 
@@ -142,42 +141,6 @@ func initWithExample(ctx context.Context, cfg config) error {
 		kind:               kind,
 	})
 	return nil
-}
-
-func copyFile(srcPath string, dstDirectory string) error {
-	src, err := ioutil.ReadFile(srcPath)
-	if err != nil {
-		return errors.Wrapf(err, "reading src file %s", srcPath)
-	}
-
-	dstPath := filepath.Join(dstDirectory, filepath.Base(srcPath))
-	if err := ioutil.WriteFile(dstPath, src, 0644); err != nil {
-		return errors.Wrapf(err, "writing dst file %s", dstPath)
-	}
-	logger.Step("Copied %s", dstPath)
-	return nil
-}
-
-func copyDirectoryContents(srcDirectory string, dstDirectory string) error {
-	return filepath.WalkDir(srcDirectory, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if path == srcDirectory {
-			return nil
-		}
-
-		rel, err := filepath.Rel(srcDirectory, path)
-		if err != nil {
-			return err
-		}
-
-		if d.IsDir() {
-			return os.MkdirAll(filepath.Join(dstDirectory, rel), 0755)
-		}
-		return copyFile(path, filepath.Join(dstDirectory, filepath.Dir(rel)))
-	})
 }
 
 var ErrFileCollisionsExist = errors.New("File collisions exist")

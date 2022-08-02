@@ -20,6 +20,7 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
@@ -32,6 +33,7 @@ type config struct {
 	name           string
 	viewDir        string
 	slug           string
+	from           string
 	gettingStarted bool
 }
 
@@ -43,6 +45,7 @@ func New(c *cli.Config) *cobra.Command {
 		Short: "Initialize a view definition",
 		Example: heredoc.Doc(`
 			$ airplane views init
+			$ airplane views init --from github.com/airplanedev/examples/views/getting_started
 		`),
 		// TODO: support passing in where to create the directory either as arg or flag
 		Args: cobra.MaximumNArgs(0),
@@ -54,18 +57,22 @@ func New(c *cli.Config) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
-	cmd.Flags().BoolVar(&cfg.gettingStarted, "getting-started", false, "True to generate starter tasks and views")
+	cmd.Flags().StringVar(&cfg.from, "from", "", "Path to an existing github folder to initialize.")
+	cmd.Flags().BoolVar(&cfg.gettingStarted, "getting-started", false, "True to generate starter tasks and views.")
 
 	return cmd
 }
 
 func run(ctx context.Context, cfg config) error {
-	if err := promptForNewView(&cfg); err != nil {
-		return err
-	}
-
-	if err := createViewScaffolding(ctx, &cfg); err != nil {
-		return err
+	if cfg.from != "" {
+		return initWithExample(&cfg, cfg.from)
+	} else {
+		if err := promptForNewView(&cfg); err != nil {
+			return err
+		}
+		if err := createViewScaffolding(ctx, &cfg); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -88,21 +95,9 @@ func createViewScaffolding(ctx context.Context, cfg *config) error {
 
 	// Default to creating folder with the slug
 	directory := slug
-	if fsx.Exists(directory) {
-		question := fmt.Sprintf("Directory %s already exists. Do you want to remove its existing files and continue creating view?", directory)
-
-		if ok, err := utils.Confirm(question); err != nil {
-			return err
-		} else if !ok {
-			logger.Log("❌ airplane views init canceled")
-			return nil
-		}
-		os.RemoveAll(directory)
-	}
-	if err := os.MkdirAll(directory, 0755); err != nil {
+	if err := createViewDir(cfg, directory); err != nil {
 		return err
 	}
-	cfg.viewDir = directory
 
 	if cfg.gettingStarted {
 		_, err := createDemoDB(ctx, *cfg)
@@ -125,6 +120,25 @@ func createViewScaffolding(ctx context.Context, cfg *config) error {
 		return err
 	}
 	suggestNextSteps(*cfg)
+	return nil
+}
+
+func createViewDir(cfg *config, directoryName string) error {
+	if fsx.Exists(directoryName) {
+		question := fmt.Sprintf("Directory %s already exists. Do you want to remove its existing files and continue creating view?", directoryName)
+
+		if ok, err := utils.Confirm(question); err != nil {
+			return err
+		} else if !ok {
+			return errors.New("canceled airplane views init")
+		}
+		os.RemoveAll(directoryName)
+	}
+	if err := os.MkdirAll(directoryName, 0755); err != nil {
+		return err
+	}
+	cfg.viewDir = directoryName
+	logger.Step("Created folder %s", directoryName)
 	return nil
 }
 
@@ -382,4 +396,56 @@ func suggestNextSteps(cfg config) {
 		"airplane deploy %s",
 		cfg.slug,
 	)
+}
+
+// initWithExample tries to copy a directory or file into the current working directory.
+// TODO: figure out smarter way to merge package.json or conditionally copy/create package.json
+func initWithExample(cfg *config, gitPath string) error {
+	if !(strings.HasPrefix(cfg.from, "github.com/") || strings.HasPrefix(cfg.from, "https://github.com/")) {
+		return errors.New("expected --from to be in the format github.com/ORG/REPO/PATH/TO/FOLDER[@REF]")
+	}
+	// TODO: Refactor lib so opening from a github path is not specific to tasks and task definitions
+	d, err := taskdir.Open(gitPath)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+
+	path := d.DefinitionPath()
+
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+
+	if fileInfo.IsDir() {
+		viewDirectory := filepath.Base(path)
+		if err := createViewDir(cfg, viewDirectory); err != nil {
+			return err
+		}
+
+		if err := utils.CopyDirectoryContents(path, cfg.viewDir); err != nil {
+			return err
+		}
+	} else {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		fileName := filepath.Base(path)
+
+		if fsx.Exists(fileName) {
+			question := fmt.Sprintf("File %s already exists. Do you want to overwrite it and continue creating view?", fileName)
+
+			if ok, err := utils.Confirm(question); err != nil {
+				return err
+			} else if !ok {
+				return errors.New("canceled airplane views init")
+			}
+		}
+		if err := utils.CopyFile(path, cwd); err != nil {
+			return err
+		}
+	}
+	return nil
 }
