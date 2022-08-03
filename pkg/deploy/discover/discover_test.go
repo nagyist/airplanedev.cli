@@ -379,6 +379,44 @@ func TestDiscover(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:  "python code definition",
+			paths: []string{"./fixtures/code_only_aptask.py"},
+			existingTasks: map[string]api.Task{
+				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+			},
+			expectedTaskConfigs: []TaskConfig{
+				{
+					TaskID:         "tsk123",
+					TaskRoot:       fixturesPath,
+					TaskEntrypoint: fixturesPath + "/code_only_aptask.py",
+					Def: &definitions.Definition_0_3{
+						Name: "Collatz Conjecture Step",
+						Slug: "collatz",
+						Parameters: []definitions.ParameterDefinition_0_3{
+							{
+								Name: "Num",
+								Slug: "num",
+								Type: "integer",
+							},
+						},
+						Python: &definitions.PythonDefinition_0_3{
+							Entrypoint: "code_only_aptask.py",
+						},
+					},
+					Source: ConfigSourceCode,
+				},
+			},
+			buildConfigs: []build.BuildConfig{
+				{
+					"entrypoint":     "code_only_aptask.py",
+					"entrypointFunc": "collatz",
+				},
+			},
+			absEntrypoints: []string{
+				fixturesPath + "/code_only_aptask.py",
+			},
+		},
 	}
 	for _, tC := range tests {
 		t.Run(tC.name, func(t *testing.T) {
@@ -395,12 +433,16 @@ func TestDiscover(t *testing.T) {
 				Client: apiClient,
 				Logger: &logger.MockLogger{},
 			}
+			codeDiscoverer := &CodeTaskDiscoverer{
+				Client: apiClient,
+				Logger: &logger.MockLogger{},
+			}
 			viewDefnDiscoverer := &ViewDefnDiscoverer{
 				Client: apiClient,
 				Logger: &logger.MockLogger{},
 			}
 			d := &Discoverer{
-				TaskDiscoverers: []TaskDiscoverer{defnDiscoverer, scriptDiscoverer},
+				TaskDiscoverers: []TaskDiscoverer{defnDiscoverer, scriptDiscoverer, codeDiscoverer},
 				ViewDiscoverers: []ViewDiscoverer{viewDefnDiscoverer},
 				Client:          apiClient,
 				Logger:          &logger.MockLogger{},

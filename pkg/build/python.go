@@ -29,7 +29,12 @@ func python(root string, opts KindOptions, buildArgs []string) (string, error) {
 		return "", err
 	}
 
-	shim, err := PythonShim("/airplane", entrypoint)
+	entrypointFunc, _ := opts["entrypointFunc"].(string)
+	shim, err := PythonShim(PythonShimParams{
+		TaskRoot:       "/airplane",
+		Entrypoint:     entrypoint,
+		EntrypointFunc: entrypointFunc,
+	})
 	if err != nil {
 		return "", err
 	}
@@ -90,14 +95,22 @@ func python(root string, opts KindOptions, buildArgs []string) (string, error) {
 //go:embed python-shim.py
 var pythonShim string
 
+type PythonShimParams struct {
+	TaskRoot       string
+	Entrypoint     string
+	EntrypointFunc string
+}
+
 // PythonShim generates a shim file for running Python tasks.
-func PythonShim(taskRoot, entrypoint string) (string, error) {
+func PythonShim(params PythonShimParams) (string, error) {
 	shim, err := applyTemplate(pythonShim, struct {
-		TaskRoot   string
-		Entrypoint string
+		TaskRoot       string
+		Entrypoint     string
+		EntrypointFunc string
 	}{
-		TaskRoot:   backslashEscape(taskRoot, `"`),
-		Entrypoint: backslashEscape(entrypoint, `"`),
+		TaskRoot:       backslashEscape(params.TaskRoot, `"`),
+		Entrypoint:     backslashEscape(params.Entrypoint, `"`),
+		EntrypointFunc: backslashEscape(params.EntrypointFunc, `"`),
 	})
 	if err != nil {
 		return "", errors.Wrapf(err, "rendering shim")

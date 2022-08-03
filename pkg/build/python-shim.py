@@ -16,12 +16,22 @@ def run(args):
         raise Exception("usage: python ./shim.py <args>")
 
     os.chdir("{{.TaskRoot}}")
-    spec = util.spec_from_file_location("mod.main", "{{ .Entrypoint }}")
+
+    {{if .EntrypointFunc}}
+    module_name = "mod.{{.EntrypointFunc}}"
+    {{else}}
+    module_name = "mod.main"
+    {{end}}
+    spec = util.spec_from_file_location(module_name, "{{.Entrypoint}}")
     mod = util.module_from_spec(spec)
     spec.loader.exec_module(mod)
 
     try:
+        {{if .EntrypointFunc}}
+        ret = mod.{{.EntrypointFunc}}.base_func(json.loads(args[1]))
+        {{else}}
         ret = mod.main(json.loads(args[1]))
+        {{end}}
         if ret is not None:
             try:
                 airplane.set_output(ret)

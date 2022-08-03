@@ -82,7 +82,10 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "entrypoint is not within the task root")
 	}
-	shim, err := build.PythonShim(root, entrypoint)
+	shim, err := build.PythonShim(build.PythonShimParams{
+		TaskRoot:   root,
+		Entrypoint: entrypoint,
+	})
 	if err != nil {
 		return nil, nil, err
 	}
