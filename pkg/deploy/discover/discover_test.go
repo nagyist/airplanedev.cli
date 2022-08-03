@@ -417,6 +417,46 @@ func TestDiscover(t *testing.T) {
 				fixturesPath + "/code_only_aptask.py",
 			},
 		},
+		{
+			name:  "node code definition",
+			paths: []string{"./fixtures/code_only.aptask.ts"},
+			existingTasks: map[string]api.Task{
+				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+			},
+			expectedTaskConfigs: []TaskConfig{
+				{
+					TaskID:         "tsk123",
+					TaskRoot:       fixturesPath,
+					TaskEntrypoint: fixturesPath + "/code_only.aptask.ts",
+					Def: &definitions.Definition_0_3{
+						Name: "Collatz Conjecture Step",
+						Slug: "collatz",
+						Parameters: []definitions.ParameterDefinition_0_3{
+							{
+								Name: "Num",
+								Slug: "num",
+								Type: "integer",
+							},
+						},
+						Node: &definitions.NodeDefinition_0_3{
+							Entrypoint:  "code_only.aptask.ts",
+							NodeVersion: "18",
+						},
+					},
+					Source: ConfigSourceCode,
+				},
+			},
+			buildConfigs: []build.BuildConfig{
+				{
+					"entrypoint":     "code_only.aptask.ts",
+					"entrypointFunc": "collatz",
+					"workdir":        "",
+				},
+			},
+			absEntrypoints: []string{
+				fixturesPath + "/code_only.aptask.ts",
+			},
+		},
 	}
 	for _, tC := range tests {
 		t.Run(tC.name, func(t *testing.T) {
