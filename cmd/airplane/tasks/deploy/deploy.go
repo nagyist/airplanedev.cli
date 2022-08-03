@@ -302,7 +302,7 @@ func findDefinitionForScript(ctx context.Context, cfg config, l logger.LoggerWit
 				// Drop these errors silently--malformed definition files shouldn't stop this
 				// operation.
 				continue
-			} else if slugs[0] != taskConfig.Def.GetSlug() {
+			} else if len(slugs) == 0 || slugs[0] != taskConfig.Def.GetSlug() {
 				// This is either not a task definition or it is a task definition for a different task.
 				continue
 			}
