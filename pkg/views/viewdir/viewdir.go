@@ -11,6 +11,7 @@ import (
 	"github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
+	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/mitchellh/hashstructure/v2"
 	"github.com/pkg/errors"
 )
@@ -49,6 +50,26 @@ func missingViewHandler(ctx context.Context, defn definitions.ViewDefinition) (*
 		ID:   "temp",
 		Slug: defn.Slug,
 	}, nil
+}
+
+func FindRoot(fileOrDir string) (string, error) {
+	var err error
+	fileOrDir, err = filepath.Abs(fileOrDir)
+	if err != nil {
+		return "", errors.Wrap(err, "getting absolute path")
+	}
+	fileInfo, err := os.Stat(fileOrDir)
+	if err != nil {
+		return "", errors.Wrapf(err, "describing %s", fileOrDir)
+	}
+	if !fileInfo.IsDir() {
+		fileOrDir = filepath.Dir(fileOrDir)
+	}
+
+	if p, ok := fsx.Find(fileOrDir, "package.json"); ok {
+		return p, nil
+	}
+	return filepath.Dir(fileOrDir), nil
 }
 
 func NewViewDirectory(ctx context.Context, cfg *cli.Config, root string, searchPath string, envSlug string) (ViewDirectory, error) {

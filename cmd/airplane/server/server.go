@@ -49,13 +49,14 @@ func New(c *cli.Config) *cobra.Command {
 		Args: cobra.MaximumNArgs(1),
 	}
 
-	cmd.Flags().IntVar(&cfg.port, "port", server.DefaultPort, "The port to start the local airplane api server on - defaults to 7190.")
+	cmd.Flags().IntVar(&cfg.port, "port", server.DefaultPort, "The port to start the local airplane api server on - defaults to 4000.")
 	cmd.Flags().StringVar(&cfg.devConfigPath, "config-path", "", "The path to the dev config file to load into the local dev server.")
 
 	return cmd
 }
 
 func run(ctx context.Context, cfg config) error {
+	appUrl := cfg.root.Client.AppURL()
 	// The API client is set in the root command, and defaults to api.airplane.dev as the host for deploys, etc. For
 	// local dev, we send requests to a locally running api server, and so we override the host here.
 	cfg.root.Client.Host = fmt.Sprintf("127.0.0.1:%d", cfg.port)
@@ -97,6 +98,7 @@ func run(ctx context.Context, cfg config) error {
 		EnvSlug: cfg.envSlug,
 		Client:  cfg.root.Client,
 	}
+	d.ViewDiscoverers = append(d.ViewDiscoverers, &discover.ViewDefnDiscoverer{Client: cfg.root.Client})
 
 	taskConfigs, viewConfigs, err := d.Discover(ctx, cfg.dir)
 	if err != nil {
@@ -108,16 +110,18 @@ func run(ctx context.Context, cfg config) error {
 	if len(taskConfigs) == 1 {
 		taskNoun = "task"
 	}
-	viewNoun := "views"
-	if len(viewConfigs) == 1 {
-		viewNoun = "view"
-	}
-
-	logger.Log("Found %d %s and %d %s:", len(taskConfigs), taskNoun, len(viewConfigs), viewNoun)
+	logger.Log("Found %d %s:", len(taskConfigs), taskNoun)
 	for _, task := range taskConfigs {
 		logger.Log("- %s", task.Def.GetName())
 	}
 
+	logger.Log("")
+
+	viewNoun := "views"
+	if len(viewConfigs) == 1 {
+		viewNoun = "view"
+	}
+	logger.Log("Found %d %s:", len(viewConfigs), viewNoun)
 	for _, view := range viewConfigs {
 		logger.Log("- %s", view.Def.Name)
 	}
@@ -126,7 +130,7 @@ func run(ctx context.Context, cfg config) error {
 	apiServer.RegisterTasksAndViews(taskConfigs, viewConfigs)
 
 	logger.Log("")
-	logger.Log("Visit https://app.airplane.dev/editor?host=http://localhost:%d for a development UI.", cfg.port)
+	logger.Log("Visit https://%s/editor?host=http://localhost:%d for a development UI.", appUrl.Host, cfg.port)
 	logger.Log("[Ctrl+C] to shutdown the local dev server.")
 
 	// Wait for termination signal (e.g. Ctrl+C)

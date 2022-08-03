@@ -112,7 +112,7 @@ var _ APIClient = Client{}
 var _ libapi.IAPIClient = Client{}
 
 // AppURL returns the app URL.
-func (c Client) appURL() *url.URL {
+func (c Client) AppURL() *url.URL {
 	apphost := c.host()
 	apphost = strings.ReplaceAll(apphost, "api.airstage.app", "web.airstage.app")
 	apphost = strings.ReplaceAll(apphost, "api", "app")
@@ -121,14 +121,14 @@ func (c Client) appURL() *url.URL {
 }
 
 func (c Client) TokenURL() string {
-	u := c.appURL()
+	u := c.AppURL()
 	u.Path = "/cli/login"
 	u.RawQuery = url.Values{"showToken": []string{"1"}}.Encode()
 	return u.String()
 }
 
 func (c Client) LoginURL(uri string) string {
-	u := c.appURL()
+	u := c.AppURL()
 	u.Path = "/cli/login"
 	u.RawQuery = url.Values{"redirect": []string{uri}}.Encode()
 	return u.String()
@@ -136,14 +136,14 @@ func (c Client) LoginURL(uri string) string {
 
 // LoginSuccessURL returns a URL showing a message that logging in was successful.
 func (c Client) LoginSuccessURL() string {
-	u := c.appURL()
+	u := c.AppURL()
 	u.Path = "/cli/success"
 	return u.String()
 }
 
 // DeploymentURL returns a URL for a deployment.
 func (c Client) DeploymentURL(deploymentID string, envSlug string) string {
-	u := c.appURL()
+	u := c.AppURL()
 	u.Path = fmt.Sprintf("/deployments/%s", deploymentID)
 	if envSlug != "" {
 		u.RawQuery = url.Values{"__env": []string{envSlug}}.Encode()
@@ -153,7 +153,7 @@ func (c Client) DeploymentURL(deploymentID string, envSlug string) string {
 
 // RunURL returns a run URL for a run ID.
 func (c Client) RunURL(id string, envSlug string) string {
-	u := c.appURL()
+	u := c.AppURL()
 	u.Path = "/runs/" + id
 	if envSlug != "" {
 		u.RawQuery = url.Values{"__env": []string{envSlug}}.Encode()
@@ -163,7 +163,7 @@ func (c Client) RunURL(id string, envSlug string) string {
 
 // TaskURL returns a task URL for a task slug.
 func (c Client) TaskURL(slug string, envSlug string) string {
-	u := c.appURL()
+	u := c.AppURL()
 	u.Path = "/t/" + slug
 	if envSlug != "" {
 		u.RawQuery = url.Values{"__env": []string{envSlug}}.Encode()
@@ -324,7 +324,7 @@ func (c Client) GetTask(ctx context.Context, req libapi.GetTaskRequest) (res lib
 
 	if err, ok := err.(Error); ok && err.Code == 404 {
 		return res, &libapi.TaskMissingError{
-			AppURL: c.appURL().String(),
+			AppURL: c.AppURL().String(),
 			Slug:   req.Slug,
 		}
 	}
@@ -344,7 +344,7 @@ func (c Client) GetTaskMetadata(ctx context.Context, slug string) (res libapi.Ta
 
 	if err, ok := err.(Error); ok && err.Code == 404 {
 		return res, &libapi.TaskMissingError{
-			AppURL: c.appURL().String(),
+			AppURL: c.AppURL().String(),
 			Slug:   slug,
 		}
 	}
@@ -361,7 +361,7 @@ func (c Client) GetView(ctx context.Context, req libapi.GetViewRequest) (res lib
 
 	if err, ok := err.(Error); ok && err.Code == 404 {
 		return res, &libapi.ViewMissingError{
-			AppURL: c.appURL().String(),
+			AppURL: c.AppURL().String(),
 			Slug:   req.Slug,
 		}
 	}

@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/airplanedev/cli/pkg/api"
@@ -33,6 +34,7 @@ func AttachAPIRoutes(r *mux.Router, state *State) {
 	r.Handle("/runs/getOutputs", GetOutputsHandler(state)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/get", GetRunHandler(state)).Methods("GET", "OPTIONS")
 	r.Handle("/resources/list", ListResourcesHandler(state)).Methods("GET", "OPTIONS")
+	r.Handle("/views/get", GetViewHandler(state)).Methods("GET", "OPTIONS")
 }
 
 type ExecuteTaskRequest struct {
@@ -62,7 +64,7 @@ func ExecuteTaskHandler(state *State) http.HandlerFunc {
 			runConfig := dev.LocalRunConfig{
 				ParamValues: req.ParamValues,
 				Port:        state.port,
-				Root:        state.cli,
+				Root:        state.cliConfig,
 				Slug:        req.Slug,
 				EnvSlug:     state.envSlug,
 				IsBuiltin:   isBuiltin,
@@ -115,14 +117,30 @@ func ExecuteTaskHandler(state *State) http.HandlerFunc {
 	})
 }
 
-// GetTaskMetadataHandler handles requests to the /v0/tasks/metadata endpoint. It generates a random task ID for each
-// task found locally, and its primary purpose is to ensure that the task discoverer does not error.
+// GetTaskMetadataHandler handles requests to the /v0/tasks/metadata endpoint. It generates a deterministic task ID for
+// each task found locally, and its primary purpose is to ensure that the task discoverer does not error.
 func GetTaskMetadataHandler(state *State) http.HandlerFunc {
 	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 		slug := r.URL.Query().Get("slug")
 		return json.NewEncoder(w).Encode(libapi.TaskMetadata{
-			ID:   "tsk" + utils.RandomString(10, utils.CharsetLowercaseNumeric),
+			ID:   fmt.Sprintf("tsk-%s", slug),
 			Slug: slug,
+		})
+	})
+}
+
+// GetViewHandler handles requests to the /v0/views/get endpoint. It generates a deterministic view ID for each view
+// found locally, and its primary purpose is to ensure that the view discoverer does not error.
+func GetViewHandler(state *State) http.HandlerFunc {
+	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		slug := r.URL.Query().Get("slug")
+		if slug == "" {
+			return errors.New("slug cannot be empty")
+		}
+
+		return json.NewEncoder(w).Encode(libapi.View{
+			ID:   fmt.Sprintf("vew-%s", slug),
+			Slug: r.URL.Query().Get("slug"),
 		})
 	})
 }

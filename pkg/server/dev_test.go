@@ -73,19 +73,21 @@ func TestListDevMetadata(t *testing.T) {
 		Expect().
 		Status(http.StatusOK).Body()
 
-	var resp ListDevMetadataHandlerResponse
+	var resp ListAppMetadataHandlerResponse
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
-	require.Equal([]DevMetadata{
+	require.Equal([]AppMetadata{
 		{
 			Name: "My task",
 			Slug: "my_task",
+			Kind: AppKindTask,
 		},
 	}, resp.Tasks)
-	require.Equal([]DevMetadata{
+	require.Equal([]AppMetadata{
 		{
 			Name: "My view",
 			Slug: "my_view",
+			Kind: AppKindView,
 		},
 	}, resp.Views)
 }
