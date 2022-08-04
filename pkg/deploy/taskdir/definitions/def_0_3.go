@@ -1145,6 +1145,25 @@ func (d Definition_0_3) GetDefnFilePath() string {
 	return d.defnFilePath
 }
 
+func (d Definition_0_3) GetDescription() string {
+	return d.Description
+}
+
+func (d Definition_0_3) GetParameters() api.Parameters {
+	parameters := make([]api.Parameter, len(d.Parameters))
+	for i, param := range d.Parameters {
+		parameters[i] = api.Parameter{
+			Name:    param.Name,
+			Slug:    param.Slug,
+			Type:    api.Type(param.Type),
+			Desc:    param.Description,
+			Default: param.Default,
+		}
+	}
+
+	return parameters
+}
+
 func (d *Definition_0_3) SetDefnFilePath(filePath string) {
 	d.defnFilePath = filePath
 }
