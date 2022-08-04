@@ -24,7 +24,7 @@ type State struct {
 	envSlug   string
 	executor  dev.Executor
 	port      int
-	runs      map[string]LocalRun
+	runs      map[string]*dev.LocalRun
 	// Mapping from task slug to task config
 	taskConfigs map[string]discover.TaskConfig
 	// Mapping from view slug to view config
@@ -55,6 +55,7 @@ var corsOrigins = []string{
 func newRouter(state *State) *mux.Router {
 	r := mux.NewRouter()
 	r.Use(handlers.CORS(
+		handlers.AllowCredentials(),
 		handlers.AllowedOriginValidator(func(origin string) bool {
 			for _, o := range corsOrigins {
 				r := regexp.MustCompile(o)
@@ -63,6 +64,10 @@ func newRouter(state *State) *mux.Router {
 				}
 			}
 			return false
+		}),
+		handlers.AllowedHeaders([]string{
+			"content-type",
+			"accept",
 		}),
 	))
 
@@ -99,7 +104,7 @@ func Start(opts Options) (*Server, error) {
 		envSlug:   opts.EnvSlug,
 		executor:  opts.Executor,
 		port:      opts.Port,
-		runs:      map[string]LocalRun{},
+		runs:      map[string]*dev.LocalRun{},
 		devConfig: opts.DevConfig,
 	}
 

@@ -12,7 +12,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -54,6 +53,12 @@ type LocalRunConfig struct {
 	// Mapping from alias to resource
 	Resources map[string]resource.Resource
 	IsBuiltin bool
+	LogConfig LogConfig
+}
+
+type LogConfig struct {
+	Channel chan string
+	Logs    []string
 }
 
 type CmdConfig struct {
@@ -175,28 +180,15 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	logParser := func(r io.Reader) error {
 		scanner := bufiox.NewScanner(r)
 		for scanner.Scan() {
-			// TODO: Extract this logic into separate function so we can do defer mu.Unlock()
 			line := scanner.Text()
-			scanForErrors(config.Root, line)
-			mu.Lock()
-			parsed, err := outputs.Parse(chunks, line, outputs.ParseOptions{})
-			if err != nil {
-				mu.Unlock()
-				logger.Error("[%s] %+v", logger.Gray("outputs"), err)
-				continue
+			// If there is a receiver on the other end of the log channel, send the log line to the channel, or else
+			// just append it to the run's logs.
+			select {
+			case config.LogConfig.Channel <- line:
+			default:
+				config.LogConfig.Logs = append(config.LogConfig.Logs, line)
 			}
-			if parsed != nil {
-				err := outputs.ApplyOutputCommand(parsed, &o)
-				mu.Unlock()
-				if err != nil {
-					logger.Error("[%s] %+v", logger.Gray("outputs"), err)
-					continue
-				}
-			} else {
-				mu.Unlock()
-			}
-
-			logger.Log("[%s %s] %s", logger.Gray(config.Name), logger.Gray("log"), line)
+			scanLogLine(config, line, &mu, o, chunks)
 		}
 		return errors.Wrap(scanner.Err(), "scanning logs")
 	}
@@ -208,12 +200,11 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	eg.Go(func() error {
 		return logParser(stderr)
 	})
+	eg.Go(func() error {
+		return cmd.Wait()
+	})
 
 	if err := eg.Wait(); err != nil {
-		return api.Outputs{}, err
-	}
-
-	if err := cmd.Wait(); err != nil {
 		return api.Outputs{}, err
 	}
 
@@ -225,19 +216,27 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	logger.Log("")
 	print.BoxPrint(fmt.Sprintf("Finished running task [%s]", config.Slug))
 	logger.Log("")
-
-	analytics.Track(config.Root, "Run Executed Locally", map[string]interface{}{
-		"kind":         config.Kind,
-		"task_slug":    config.Slug,
-		"task_name":    config.Name,
-		"env_slug":     config.EnvSlug,
-		"num_params":   len(config.ParamValues),
-		"num_env_vars": len(cmd.Env),
-	}, analytics.TrackOpts{
-		SkipSlack: true,
-	})
-
 	return outputs, nil
+}
+
+func scanLogLine(config LocalRunConfig, line string, mu *sync.Mutex, o ojson.Value, chunks map[string]*strings.Builder) {
+	scanForErrors(config.Root, line)
+	mu.Lock()
+	defer mu.Unlock()
+	parsed, err := outputs.Parse(chunks, line, outputs.ParseOptions{})
+	if err != nil {
+		logger.Error("[%s] %+v", logger.Gray("outputs"), err)
+		return
+	}
+	if parsed != nil {
+		err := outputs.ApplyOutputCommand(parsed, &o)
+		if err != nil {
+			logger.Error("[%s] %+v", logger.Gray("outputs"), err)
+			return
+		}
+	}
+
+	logger.Log("[%s %s] %s", logger.Gray(config.Name), logger.Gray("log"), line)
 }
 
 // getDevEnv will return a map of env vars, loading from .env and airplane.env

@@ -34,6 +34,11 @@ func TestExecute(t *testing.T) {
 	}
 	taskDefinition.SetDefnFilePath("my_task.task.yaml")
 
+	runID := "run1234"
+	logConfig := dev.LogConfig{
+		Channel: make(chan string),
+		Logs:    make([]string, 0),
+	}
 	h := getHttpExpect(
 		context.Background(),
 		t,
@@ -41,7 +46,11 @@ func TestExecute(t *testing.T) {
 			envSlug:  "stage",
 			executor: mockExecutor,
 			port:     1234,
-			runs:     map[string]LocalRun{},
+			runs: map[string]*dev.LocalRun{
+				runID: {
+					LogConfig: logConfig,
+				},
+			},
 			taskConfigs: map[string]discover.TaskConfig{
 				slug: {
 					TaskID:         "tsk123",
@@ -72,6 +81,7 @@ func TestExecute(t *testing.T) {
 		Slug:        slug,
 		EnvSlug:     "stage",
 		Resources:   map[string]resource.Resource{},
+		LogConfig:   logConfig,
 	}
 	mockExecutor.On("Execute", mock.Anything, runConfig).Return(nil)
 
@@ -79,6 +89,7 @@ func TestExecute(t *testing.T) {
 		WithJSON(ExecuteTaskRequest{
 			Slug:        slug,
 			ParamValues: paramValues,
+			RunID:       "run1234",
 		}).
 		Expect().
 		Status(http.StatusOK).Body()
@@ -99,9 +110,9 @@ func TestGetRun(t *testing.T) {
 		context.Background(),
 		t,
 		newRouter(&State{
-			runs: map[string]LocalRun{
+			runs: map[string]*dev.LocalRun{
 				runID: {
-					status: api.RunSucceeded,
+					Status: api.RunSucceeded,
 				},
 			},
 			taskConfigs: map[string]discover.TaskConfig{},
@@ -127,9 +138,9 @@ func TestGetOutput(t *testing.T) {
 		context.Background(),
 		t,
 		newRouter(&State{
-			runs: map[string]LocalRun{
+			runs: map[string]*dev.LocalRun{
 				runID: {
-					outputs: api.Outputs{V: "hello"},
+					Outputs: api.Outputs{V: "hello"},
 				},
 			},
 			taskConfigs: map[string]discover.TaskConfig{},

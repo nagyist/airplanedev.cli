@@ -17,11 +17,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-type LocalRun struct {
-	status  api.RunStatus
-	outputs api.Outputs
-}
-
 // AttachAPIRoutes attaches a minimal subset of the actual Airplane API endpoints that are necessary to locally develop
 // a task. For example, a workflow task might call airplane.execute, which would normally make a request to the
 // /v0/tasks/execute endpoint in production, but instead we have our own implementation below.
@@ -38,6 +33,7 @@ func AttachAPIRoutes(r *mux.Router, state *State) {
 }
 
 type ExecuteTaskRequest struct {
+	RunID       string            `json:"runID"`
 	Slug        string            `json:"slug"`
 	ParamValues api.Values        `json:"paramValues"`
 	Resources   map[string]string `json:"resources"`
@@ -55,11 +51,21 @@ func ExecuteTaskHandler(state *State) http.HandlerFunc {
 			return errors.Wrap(err, "failed to decode request body")
 		}
 
-		runID := "run" + utils.RandomString(10, utils.CharsetLowercaseNumeric)
-		runStatus := api.RunFailed
-		outputs := api.Outputs{}
+		// Allow run IDs to be generated beforehand; this is needed so that the /dev/logs endpoint can start waiting
+		// for logs for a given run before that run's execution has started.
+		runID := req.RunID
+		var run *dev.LocalRun
+		if runID != "" {
+			run = state.runs[runID]
+		} else {
+			runID = "run" + utils.RandomString(10, utils.CharsetLowercaseNumeric)
+			run = dev.NewLocalRun()
+			state.runs[runID] = run
+		}
+
 		localTaskConfig, ok := state.taskConfigs[req.Slug]
 		isBuiltin := builtins.IsBuiltinTaskSlug(req.Slug)
+
 		if isBuiltin || ok {
 			runConfig := dev.LocalRunConfig{
 				ParamValues: req.ParamValues,
@@ -68,6 +74,7 @@ func ExecuteTaskHandler(state *State) http.HandlerFunc {
 				Slug:        req.Slug,
 				EnvSlug:     state.envSlug,
 				IsBuiltin:   isBuiltin,
+				LogConfig:   run.LogConfig,
 			}
 			resourceAttachments := map[string]string{}
 			if isBuiltin {
@@ -96,19 +103,15 @@ func ExecuteTaskHandler(state *State) http.HandlerFunc {
 			}
 			runConfig.Resources = resources
 
-			outputs, err = state.executor.Execute(ctx, runConfig)
+			outputs, err := state.executor.Execute(ctx, runConfig)
 			if err != nil {
 				return errors.Wrap(err, "failed to run task locally")
 			}
 
-			runStatus = api.RunSucceeded
+			run.Status = api.RunActive
+			run.Outputs = outputs
 		} else {
 			logger.Error("task with slug %s is not registered locally", req.Slug)
-		}
-
-		state.runs[runID] = LocalRun{
-			status:  runStatus,
-			outputs: outputs,
 		}
 
 		return json.NewEncoder(w).Encode(ExecuteTaskResponse{
@@ -162,7 +165,7 @@ func GetRunHandler(state *State) http.HandlerFunc {
 
 		return json.NewEncoder(w).Encode(GetRunResponse{
 			ID:     runID,
-			Status: run.status,
+			Status: run.Status,
 		})
 	})
 }
@@ -182,7 +185,7 @@ func GetOutputsHandler(state *State) http.HandlerFunc {
 		}
 
 		return json.NewEncoder(w).Encode(GetOutputsResponse{
-			Output: run.outputs,
+			Output: run.Outputs,
 		})
 	})
 }

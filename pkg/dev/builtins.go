@@ -148,7 +148,7 @@ func (b *BuiltinClient) isLatestVersion() bool {
 		logger.Log("error reading checksum file: %v", err)
 		return false
 	}
-	return bytes.Compare(checksum, attrs.MD5) == 0
+	return bytes.Equal(checksum, attrs.MD5)
 }
 
 // Downloads the builtin binary from GCS

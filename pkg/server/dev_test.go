@@ -130,6 +130,5 @@ func TestGetTask(t *testing.T) {
 	var resp definitions.Definition_0_3
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
-	// TODO: Fix test after JSON Marshal logic for resource attachments is fixed
-	//require.Equal(*taskDefinition, resp)
+	require.Equal(*taskDefinition, resp)
 }

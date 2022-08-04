@@ -11,6 +11,7 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	viewsdev "github.com/airplanedev/cli/cmd/airplane/views/dev"
+	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
@@ -167,7 +168,7 @@ func run(ctx context.Context, cfg config) error {
 		return errors.Wrap(err, "generating alias to resource map")
 	}
 
-	if _, err := localExecutor.Execute(ctx, dev.LocalRunConfig{
+	localRunConfig := dev.LocalRunConfig{
 		Name:        taskInfo.name,
 		Kind:        taskInfo.kind,
 		KindOptions: taskInfo.kindOptions,
@@ -179,9 +180,26 @@ func run(ctx context.Context, cfg config) error {
 		EnvSlug:     cfg.envSlug,
 		Env:         devConfig.Env,
 		Resources:   resources,
-	}); err != nil {
+		LogConfig: dev.LogConfig{
+			Channel: make(chan string),
+			Logs:    make([]string, 0),
+		},
+	}
+	_, err = localExecutor.Execute(ctx, localRunConfig)
+	if err != nil {
 		return errors.Wrap(err, "executing task")
 	}
+
+	analytics.Track(cfg.root, "Run Executed Locally", map[string]interface{}{
+		"kind":         taskInfo.kind,
+		"task_slug":    taskInfo.slug,
+		"task_name":    taskInfo.name,
+		"env_slug":     cfg.envSlug,
+		"num_params":   len(paramValues),
+		"num_env_vars": len(devConfig.Env),
+	}, analytics.TrackOpts{
+		SkipSlack: true,
+	})
 
 	return nil
 }

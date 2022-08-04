@@ -9,6 +9,9 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/views"
 	"github.com/airplanedev/cli/pkg/views/viewdir"
 	"github.com/gorilla/mux"
@@ -24,6 +27,8 @@ func AttachDevRoutes(r *mux.Router, state *State) {
 	r.Handle("/list", ListAppMetadataHandler(state)).Methods("GET", "OPTIONS")
 	r.Handle("/tasks/{task_slug}", GetTaskHandler(state)).Methods("GET", "OPTIONS")
 	r.Handle("/startView/{view_slug}", StartViewHandler(state)).Methods("POST", "OPTIONS")
+	r.Handle("/logs/{run_id}", LogsHandler(state)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/create", CreateRunHandler(state)).Methods("POST", "OPTIONS")
 }
 
 // PingHandler handles request to the /dev/ping endpoint.
@@ -78,6 +83,14 @@ func ListAppMetadataHandler(state *State) http.HandlerFunc {
 			Tasks: tasks,
 			Views: views,
 		})
+	})
+}
+
+func CreateRunHandler(state *State) http.HandlerFunc {
+	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		runID := "run" + utils.RandomString(10, utils.CharsetLowercaseNumeric)
+		state.runs[runID] = dev.NewLocalRun()
+		return json.NewEncoder(w).Encode(runID)
 	})
 }
 
@@ -163,5 +176,38 @@ func StartViewHandler(state *State) http.HandlerFunc {
 		}
 
 		return json.NewEncoder(w).Encode(StartViewResponse{ViteServer: viteServer})
+	})
+}
+
+func LogsHandler(state *State) http.HandlerFunc {
+	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+
+		vars := mux.Vars(r)
+		runID, ok := vars["run_id"]
+		if !ok {
+			return errors.Errorf("Run id was not supplied, request path must be of the form /dev/logs/<run_id>")
+		}
+
+		run, ok := state.runs[runID]
+		if !ok {
+			return errors.Errorf("Run with id %s not found", runID)
+		}
+
+		for {
+			select {
+			case log := <-run.LogConfig.Channel:
+				fmt.Fprintf(w, "data: %s\n\n", log)
+				if f, ok := w.(http.Flusher); ok {
+					f.Flush()
+				}
+				run.LogConfig.Logs = append(run.LogConfig.Logs, log)
+			case <-r.Context().Done():
+				logger.Debug("Event stream closed")
+				return nil
+			}
+		}
 	})
 }
