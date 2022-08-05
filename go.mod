@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/storage v1.24.0
 	github.com/AlecAivazis/survey/v2 v2.3.5
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/airplanedev/lib v0.5.35
+	github.com/airplanedev/lib v0.5.36
 	github.com/airplanedev/ojson v0.1.0
 	github.com/airplanedev/trap v0.1.0
 	github.com/briandowns/spinner v1.18.1
