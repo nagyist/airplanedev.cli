@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev"
@@ -17,6 +18,30 @@ import (
 	"github.com/pkg/errors"
 )
 
+type LocalRun struct {
+	RunID       string                 `json:"runID"`
+	Status      api.RunStatus          `json:"status"`
+	Outputs     api.Outputs            `json:"outputs"`
+	CreatedAt   time.Time              `json:"createdAt"`
+	CreatorID   string                 `json:"creatorId"`
+	SucceededAt *time.Time             `json:"succeededAt"`
+	FailedAt    *time.Time             `json:"failedAt"`
+	ParamValues map[string]interface{} `json:"paramValues"`
+	Parameters  *libapi.Parameters     `json:"parameters"`
+	LogConfig   dev.LogConfig          `json:"-"`
+}
+
+// NewLocalRun initializes a run for local dev.
+func NewLocalRun() *LocalRun {
+	return &LocalRun{
+		Status: api.RunQueued,
+		LogConfig: dev.LogConfig{
+			Channel: make(chan string),
+			Logs:    make([]string, 0),
+		},
+	}
+}
+
 // AttachAPIRoutes attaches a minimal subset of the actual Airplane API endpoints that are necessary to locally develop
 // a task. For example, a workflow task might call airplane.execute, which would normally make a request to the
 // /v0/tasks/execute endpoint in production, but instead we have our own implementation below.
@@ -26,9 +51,13 @@ func AttachAPIRoutes(r *mux.Router, state *State) {
 
 	r.Handle("/tasks/execute", ExecuteTaskHandler(state)).Methods("POST", "OPTIONS")
 	r.Handle("/tasks/getMetadata", GetTaskMetadataHandler(state)).Methods("GET", "OPTIONS")
+	r.Handle("/tasks/get", GetTaskInfoHandler(state)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/getOutputs", GetOutputsHandler(state)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/get", GetRunHandler(state)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/list", ListRunsHandler(state)).Methods("GET", "OPTIONS")
+
 	r.Handle("/resources/list", ListResourcesHandler(state)).Methods("GET", "OPTIONS")
+
 	r.Handle("/views/get", GetViewHandler(state)).Methods("GET", "OPTIONS")
 }
 
@@ -37,10 +66,6 @@ type ExecuteTaskRequest struct {
 	Slug        string            `json:"slug"`
 	ParamValues api.Values        `json:"paramValues"`
 	Resources   map[string]string `json:"resources"`
-}
-
-type ExecuteTaskResponse struct {
-	RunID string `json:"runID"`
 }
 
 // ExecuteTaskHandler handles requests to the /v0/tasks/execute endpoint
@@ -54,18 +79,18 @@ func ExecuteTaskHandler(state *State) http.HandlerFunc {
 		// Allow run IDs to be generated beforehand; this is needed so that the /dev/logs endpoint can start waiting
 		// for logs for a given run before that run's execution has started.
 		runID := req.RunID
-		var run *dev.LocalRun
+		var run LocalRun
 		if runID != "" {
-			run = state.runs[runID]
+			run, _ = state.runs.get(runID)
 		} else {
 			runID = "run" + utils.RandomString(10, utils.CharsetLowercaseNumeric)
-			run = dev.NewLocalRun()
-			state.runs[runID] = run
+			run = *NewLocalRun()
 		}
 
 		localTaskConfig, ok := state.taskConfigs[req.Slug]
 		isBuiltin := builtins.IsBuiltinTaskSlug(req.Slug)
-
+		var parameters libapi.Parameters
+		start := time.Now()
 		if isBuiltin || ok {
 			runConfig := dev.LocalRunConfig{
 				ParamValues: req.ParamValues,
@@ -92,6 +117,7 @@ func ExecuteTaskHandler(state *State) http.HandlerFunc {
 				runConfig.Name = localTaskConfig.Def.GetName()
 				runConfig.File = localTaskConfig.Def.GetDefnFilePath()
 				resourceAttachments = localTaskConfig.Def.GetResourceAttachments()
+				parameters = localTaskConfig.Def.GetParameters()
 
 			}
 			resources, err := resource.GenerateAliasToResourceMap(
@@ -105,17 +131,38 @@ func ExecuteTaskHandler(state *State) http.HandlerFunc {
 
 			outputs, err := state.executor.Execute(ctx, runConfig)
 			if err != nil {
-				return errors.Wrap(err, "failed to run task locally")
+				// TODO: need to return the output that has an error in it, not fail here
+			} else if err == nil {
+				run.Status = api.RunSucceeded
 			}
-
-			run.Status = api.RunActive
 			run.Outputs = outputs
 		} else {
 			logger.Error("task with slug %s is not registered locally", req.Slug)
 		}
 
-		return json.NewEncoder(w).Encode(ExecuteTaskResponse{
-			RunID: runID,
+		run.RunID = runID
+		run.CreatedAt = start
+		run.ParamValues = req.ParamValues
+		run.Parameters = &parameters
+		now := time.Now()
+		if run.Status == api.RunSucceeded {
+			run.SucceededAt = &now
+		} else {
+			run.FailedAt = &now
+		}
+
+		state.runs.add(req.Slug, runID, run)
+
+		return json.NewEncoder(w).Encode(LocalRun{
+			RunID:       runID,
+			Outputs:     run.Outputs,
+			Status:      run.Status,
+			CreatedAt:   run.CreatedAt,
+			CreatorID:   run.CreatorID,
+			SucceededAt: run.SucceededAt,
+			FailedAt:    run.FailedAt,
+			ParamValues: run.ParamValues,
+			Parameters:  run.Parameters,
 		})
 	})
 }
@@ -148,24 +195,28 @@ func GetViewHandler(state *State) http.HandlerFunc {
 	})
 }
 
-type GetRunResponse struct {
-	ID     string        `json:"id"`
-	Status api.RunStatus `json:"status"`
-}
-
 // GetRunHandler handles requests to the /v0/runs/get endpoint
 func GetRunHandler(state *State) http.HandlerFunc {
 	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 		runID := r.URL.Query().Get("id")
-
-		run, ok := state.runs[runID]
+		run, ok := state.runs.get(runID)
 		if !ok {
 			return errors.Errorf("run with id %s not found", runID)
 		}
+		return json.NewEncoder(w).Encode(run)
+	})
+}
 
-		return json.NewEncoder(w).Encode(GetRunResponse{
-			ID:     runID,
-			Status: run.Status,
+type ListRunsResponse struct {
+	Runs []LocalRun `json:"runs"`
+}
+
+func ListRunsHandler(state *State) http.HandlerFunc {
+	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		taskSlug := r.URL.Query().Get("taskSlug")
+		runs := state.runs.getRunHistory(taskSlug)
+		return json.NewEncoder(w).Encode(ListRunsResponse{
+			Runs: runs,
 		})
 	})
 }
@@ -179,7 +230,7 @@ type GetOutputsResponse struct {
 func GetOutputsHandler(state *State) http.HandlerFunc {
 	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 		runID := r.URL.Query().Get("id")
-		run, ok := state.runs[runID]
+		run, ok := state.runs.get(runID)
 		if !ok {
 			return errors.Errorf("run with id %s not found", runID)
 		}

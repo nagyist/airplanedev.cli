@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -39,6 +40,13 @@ func TestExecute(t *testing.T) {
 		Channel: make(chan string),
 		Logs:    make([]string, 0),
 	}
+	store := NewRunStore()
+	store.add(slug, runID, LocalRun{
+		RunID:     runID,
+		LogConfig: logConfig,
+	},
+	)
+
 	h := getHttpExpect(
 		context.Background(),
 		t,
@@ -46,11 +54,7 @@ func TestExecute(t *testing.T) {
 			envSlug:  "stage",
 			executor: mockExecutor,
 			port:     1234,
-			runs: map[string]*dev.LocalRun{
-				runID: {
-					LogConfig: logConfig,
-				},
-			},
+			runs:     store,
 			taskConfigs: map[string]discover.TaskConfig{
 				slug: {
 					TaskID:         "tsk123",
@@ -96,7 +100,7 @@ func TestExecute(t *testing.T) {
 
 	mockExecutor.AssertCalled(t, "Execute", mock.Anything, runConfig)
 
-	var resp ExecuteTaskResponse
+	var resp LocalRun
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
 	require.True(strings.HasPrefix(resp.RunID, "run"))
@@ -106,43 +110,40 @@ func TestGetRun(t *testing.T) {
 	require := require.New(t)
 
 	runID := "run1234"
+	runstore := NewRunStore()
+	runstore.add("task1", runID, LocalRun{Status: api.RunSucceeded, RunID: runID})
 	h := getHttpExpect(
 		context.Background(),
 		t,
 		newRouter(&State{
-			runs: map[string]*dev.LocalRun{
-				runID: {
-					Status: api.RunSucceeded,
-				},
-			},
+			runs:        runstore,
 			taskConfigs: map[string]discover.TaskConfig{},
 		}),
 	)
-
 	body := h.GET("/v0/runs/get").
 		WithQuery("id", runID).
 		Expect().
 		Status(http.StatusOK).Body()
 
-	var resp GetRunResponse
+	var resp LocalRun
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
-	require.Equal(runID, resp.ID)
+
+	require.Equal(runID, resp.RunID)
 	require.Equal(api.RunSucceeded, resp.Status)
 }
 
 func TestGetOutput(t *testing.T) {
 	require := require.New(t)
 	runID := "run1234"
+
+	runstore := NewRunStore()
+	runstore.add("task1", runID, LocalRun{Outputs: api.Outputs{V: "hello"}})
 	h := getHttpExpect(
 		context.Background(),
 		t,
 		newRouter(&State{
-			runs: map[string]*dev.LocalRun{
-				runID: {
-					Outputs: api.Outputs{V: "hello"},
-				},
-			},
+			runs:        runstore,
 			taskConfigs: map[string]discover.TaskConfig{},
 		}),
 	)
@@ -158,6 +159,42 @@ func TestGetOutput(t *testing.T) {
 	require.Equal(api.Outputs{
 		V: "hello",
 	}, resp.Output)
+}
+
+func TestListRuns(t *testing.T) {
+	require := require.New(t)
+	taskSlug := "task1"
+
+	runstore := NewRunStore()
+	testRuns := []LocalRun{
+		{Outputs: api.Outputs{V: "run0"}},
+		{Outputs: api.Outputs{V: "run1"}, CreatorID: "user1"},
+		{Outputs: api.Outputs{V: "run2"}},
+	}
+	for i, run := range testRuns {
+		runstore.add(taskSlug, fmt.Sprintf("run_%v", i), run)
+
+	}
+	h := getHttpExpect(
+		context.Background(),
+		t,
+		newRouter(&State{
+			runs:        runstore,
+			taskConfigs: map[string]discover.TaskConfig{},
+		}),
+	)
+	var resp ListRunsResponse
+	body := h.GET("/v0/runs/list").
+		WithQuery("taskSlug", taskSlug).
+		Expect().
+		Status(http.StatusOK).Body()
+	err := json.Unmarshal([]byte(body.Raw()), &resp)
+	require.NoError(err)
+
+	for i := range resp.Runs {
+		// runHistory is ordered by most recent
+		require.EqualValues(resp.Runs[i], testRuns[len(testRuns)-i-1])
+	}
 }
 
 func TestListResources(t *testing.T) {

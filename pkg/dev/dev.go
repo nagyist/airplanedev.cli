@@ -188,7 +188,7 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 			default:
 				config.LogConfig.Logs = append(config.LogConfig.Logs, line)
 			}
-			scanLogLine(config, line, &mu, o, chunks)
+			scanLogLine(config, line, &mu, &o, chunks)
 		}
 		return errors.Wrap(scanner.Err(), "scanning logs")
 	}
@@ -219,7 +219,7 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	return outputs, nil
 }
 
-func scanLogLine(config LocalRunConfig, line string, mu *sync.Mutex, o ojson.Value, chunks map[string]*strings.Builder) {
+func scanLogLine(config LocalRunConfig, line string, mu *sync.Mutex, o *ojson.Value, chunks map[string]*strings.Builder) {
 	scanForErrors(config.Root, line)
 	mu.Lock()
 	defer mu.Unlock()
@@ -229,7 +229,7 @@ func scanLogLine(config LocalRunConfig, line string, mu *sync.Mutex, o ojson.Val
 		return
 	}
 	if parsed != nil {
-		err := outputs.ApplyOutputCommand(parsed, &o)
+		err := outputs.ApplyOutputCommand(parsed, o)
 		if err != nil {
 			logger.Error("[%s] %+v", logger.Gray("outputs"), err)
 			return

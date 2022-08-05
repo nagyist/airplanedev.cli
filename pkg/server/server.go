@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"regexp"
-	"sync"
 
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
@@ -18,21 +16,6 @@ import (
 )
 
 const DefaultPort = 4000
-
-type State struct {
-	cliConfig *cli.Config
-	envSlug   string
-	executor  dev.Executor
-	port      int
-	runs      map[string]*dev.LocalRun
-	// Mapping from task slug to task config
-	taskConfigs map[string]discover.TaskConfig
-	// Mapping from view slug to view config
-	viewConfigs map[string]discover.ViewConfig
-	devConfig   conf.DevConfig
-	viteProcess *os.Process
-	viteMutex   sync.Mutex
-}
 
 type Server struct {
 	srv   *http.Server
@@ -104,7 +87,7 @@ func Start(opts Options) (*Server, error) {
 		envSlug:   opts.EnvSlug,
 		executor:  opts.Executor,
 		port:      opts.Port,
-		runs:      map[string]*dev.LocalRun{},
+		runs:      NewRunStore(),
 		devConfig: opts.DevConfig,
 	}
 

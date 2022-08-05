@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/views"
@@ -89,7 +88,7 @@ func ListAppMetadataHandler(state *State) http.HandlerFunc {
 func CreateRunHandler(state *State) http.HandlerFunc {
 	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 		runID := "run" + utils.RandomString(10, utils.CharsetLowercaseNumeric)
-		state.runs[runID] = dev.NewLocalRun()
+		state.runs.add("task", runID, *NewLocalRun())
 		return json.NewEncoder(w).Encode(runID)
 	})
 }
@@ -109,6 +108,25 @@ func GetTaskHandler(state *State) http.HandlerFunc {
 		}
 
 		return json.NewEncoder(w).Encode(taskConfig.Def)
+	})
+}
+
+// GetTaskHandler handles requests to the /v0/tasks?slug=<task_slug> endpoint.
+func GetTaskInfoHandler(state *State) http.HandlerFunc {
+	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		taskSlug := r.URL.Query().Get("slug")
+		if taskSlug == "" {
+			return errors.New("Task slug was not supplied, request path must be of the form /v0/tasks?slug=<task_slug>")
+		}
+		taskConfig, ok := state.taskConfigs[taskSlug]
+		if !ok {
+			return errors.Errorf("Task with slug %s not found", taskSlug)
+		}
+		req, err := taskConfig.Def.GetUpdateTaskRequest(ctx, state.cliConfig.Client)
+		if err != nil {
+			return errors.Errorf("error getting task %s", taskSlug)
+		}
+		return json.NewEncoder(w).Encode(req)
 	})
 }
 
@@ -191,7 +209,7 @@ func LogsHandler(state *State) http.HandlerFunc {
 			return errors.Errorf("Run id was not supplied, request path must be of the form /dev/logs/<run_id>")
 		}
 
-		run, ok := state.runs[runID]
+		run, ok := state.runs.get(runID)
 		if !ok {
 			return errors.Errorf("Run with id %s not found", runID)
 		}
