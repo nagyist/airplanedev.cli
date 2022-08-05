@@ -313,8 +313,10 @@ func addPackages(packageJSONDirPath string, packageNames []string, dev, useYarn 
 	var cmd *exec.Cmd
 	if useYarn {
 		cmd = exec.Command("yarn", installArgs...)
+		logger.Debug("Adding packages using yarn")
 	} else {
 		cmd = exec.Command("npm", installArgs...)
+		logger.Debug("Adding packages using npm")
 	}
 
 	cmd.Dir = packageJSONDirPath
@@ -426,6 +428,10 @@ func initWithExample(cfg *config, gitPath string) error {
 			useYarn := utils.ShouldUseYarn(viewDirectory)
 			logger.Step("Installing dependencies...")
 			if err = utils.InstallDependencies(viewDirectory, useYarn); err != nil {
+				logger.Debug(err.Error())
+				if useYarn {
+					return errors.New("error installing dependencies using yarn. Try installing yarn.")
+				}
 				return err
 			}
 			logger.Step("Finished installing dependencies")

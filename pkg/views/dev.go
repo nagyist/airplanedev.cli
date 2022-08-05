@@ -109,6 +109,10 @@ func Dev(v viewdir.ViewDirectory, viteOpts ViteOpts) (*exec.Cmd, string, error) 
 	// Run npm/yarn install.
 	useYarn := utils.ShouldUseYarn(tmpdir)
 	if err := utils.InstallDependencies(tmpdir, useYarn); err != nil {
+		logger.Debug(err.Error())
+		if useYarn {
+			return nil, "", errors.New("error installing dependencies using yarn. Try installing yarn.")
+		}
 		return nil, "", errors.Wrap(err, "running npm/yarn install")
 	}
 

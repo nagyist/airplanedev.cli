@@ -14,8 +14,10 @@ func InstallDependencies(dir string, useYarn bool) error {
 	var cmd *exec.Cmd
 	if useYarn {
 		cmd = exec.Command("yarn")
+		logger.Debug("Installing dependencies with yarn")
 	} else {
 		cmd = exec.Command("npm", "install")
+		logger.Debug("Installing dependencies with npm")
 	}
 	cmd.Dir = dir
 
@@ -48,14 +50,16 @@ func ShouldUseYarn(packageJSONDirPath string) bool {
 	pkglock := filepath.Join(packageJSONDirPath, "package-lock.json")
 
 	if fsx.Exists(yarnlock) {
+		logger.Debug("Using yarn to manage dependencies because of yarn.lock in parent directory")
 		return true
 	} else if fsx.Exists(pkglock) {
+		logger.Debug("Using npm to manage dependencies because of package-lock.json in parent directory")
 		return false
 	}
 
 	// No lockfiles, so check if yarn is installed by getting yarn version
 	cmd := exec.Command("yarn", "-v")
 	cmd.Dir = filepath.Dir(packageJSONDirPath)
-	err := cmd.Start()
+	err := cmd.Run()
 	return err == nil
 }
