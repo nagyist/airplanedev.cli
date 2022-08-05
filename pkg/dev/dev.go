@@ -73,6 +73,7 @@ func (l *LocalExecutor) Cmd(ctx context.Context, config LocalRunConfig) (CmdConf
 	if config.IsBuiltin {
 		builtinClient, err := NewBuiltinClient(goruntime.GOOS, goruntime.GOARCH)
 		if err != nil {
+			logger.Error(err.Error())
 			return CmdConfig{}, err
 		}
 		req, err := marshalBuiltinRequest(ctx, config.Slug, config.ParamValues)

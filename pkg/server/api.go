@@ -131,7 +131,7 @@ func ExecuteTaskHandler(state *State) http.HandlerFunc {
 
 			outputs, err := state.executor.Execute(ctx, runConfig)
 			if err != nil {
-				// TODO: need to return the output that has an error in it, not fail here
+				run.Status = api.RunFailed
 			} else if err == nil {
 				run.Status = api.RunSucceeded
 			}
