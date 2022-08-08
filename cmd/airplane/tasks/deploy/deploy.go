@@ -56,12 +56,12 @@ func New(c *cli.Config) *cobra.Command {
 			airplane tasks deploy my-directory
 			airplane tasks deploy ./my_task1.task.yml ./my_task2.task.json my-directory
 		`),
-		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				cfg.paths = args
 			} else {
-				return errors.New("expected 1 argument: airplane deploy ./path/to/file")
+				// Default to current directory.
+				cfg.paths = []string{"."}
 			}
 			return run(cmd.Root().Context(), cfg)
 		},
