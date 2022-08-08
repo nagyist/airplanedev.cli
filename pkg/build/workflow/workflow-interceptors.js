@@ -68,7 +68,7 @@ class WorkflowLogInboundInterceptor {
       );
       return result;
     } catch (error) {
-      workflowLog(this.info, `Workflow execuion errored: ${error}`);
+      workflowLog(this.info, `Workflow execution errored: ${error}`);
       throw error;
     }
   }

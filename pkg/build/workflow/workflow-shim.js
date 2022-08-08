@@ -9,7 +9,7 @@ const { logger } = proxySinks();
 // This name must match the name we use when executing the workflow in
 // the Airplane API.
 export async function __airplaneEntrypoint(params, workflowArgs) {
-  logger.info('airplane_status:active');
+  logger.internal('airplane_status:active');
   try {
     // Monkey patch process.env
     global.process = {
@@ -21,15 +21,15 @@ export async function __airplaneEntrypoint(params, workflowArgs) {
       airplane.setOutput(result);
     }
 
-    logger.info('airplane_status:succeeded');
+    logger.internal('airplane_status:succeeded');
   } catch (err) {
-    logger.info(err);
+    logger.internal(err);
     if (err instanceof CancelledFailure) {
-      logger.info(`airplane_output_set:error ${JSON.stringify("Workflow cancelled")}`);
-      logger.info('airplane_status:cancelled');
+      logger.internal(`airplane_output_set:error ${JSON.stringify("Workflow cancelled")}`);
+      logger.internal('airplane_status:cancelled');
     } else {
-      logger.info(`airplane_output_set:error ${JSON.stringify(String(err))}`);
-      logger.info('airplane_status:failed');
+      logger.internal(`airplane_output_set:error ${JSON.stringify(String(err))}`);
+      logger.internal('airplane_status:failed');
     }
   }
 }

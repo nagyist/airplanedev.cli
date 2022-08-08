@@ -56,8 +56,14 @@ async function runWorker(params) {
             `airplane_workflow_log:workflow//${workflowInfo.workflowId}/${workflowInfo.runId} ${message}`
           );
         },
-        callDuringReplay: false,
       },
+      internal: {
+        fn(workflowInfo, message) {
+          console.log(
+              `airplane_workflow_log:shim//${workflowInfo.workflowId}/${workflowInfo.runId} ${message}`
+          );
+        },
+      }
     },
   };
 
