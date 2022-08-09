@@ -182,7 +182,7 @@ func getWorkspacePackages(pathPackageJSON string) (map[string]bool, error) {
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			if len(out) > 0 {
-				return nil, errors.Wrap(err, string(out))
+				return nil, errors.Wrapf(err, "failed to inspect workspaces for directory %q: %s", cmd.Dir, string(out))
 			}
 			return nil, errors.Wrap(err, "reading yarn/npm workspaces: Do you have yarn installed?")
 		}
@@ -206,7 +206,7 @@ func getWorkspacePackages(pathPackageJSON string) (map[string]bool, error) {
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			if len(out) > 0 {
-				return nil, errors.Wrap(err, string(out))
+				return nil, errors.Wrapf(err, "failed to inspect workspaces for directory %q: %s", cmd.Dir, string(out))
 			}
 			return nil, errors.Wrap(err, "reading yarn/npm workspaces: Do you have yarn installed?")
 		}
