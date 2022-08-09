@@ -34,6 +34,11 @@ func TestExternalPackages(t *testing.T) {
 			externalPackages: []string{"react", "@types/react", "react-table"},
 		},
 		{
+			desc:             "marks external all packages in yarn workspace with a package.json not included in the workspace",
+			packageJSON:      fixtures.Path(t, "node_externals/yarnworkspacewithpackagenotinworkspace/package.json"),
+			externalPackages: []string{"react", "@types/react", "react-table"},
+		},
+		{
 			desc:             "does not mark local yarn workspace import as external",
 			packageJSON:      fixtures.Path(t, "node_externals/yarnworkspace_importlocal/package.json"),
 			externalPackages: []string{"react", "@types/react", "react-table"},

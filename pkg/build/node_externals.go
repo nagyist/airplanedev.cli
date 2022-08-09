@@ -3,7 +3,6 @@ package build
 import (
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -35,7 +34,7 @@ func ExternalPackages(rootPackageJSON string) ([]string, error) {
 	}
 	pathPackageJSONs := []string{rootPackageJSON}
 	if usesWorkspaces {
-		workspacePackageJSONs, err := findWorkspacePackageJSONs(filepath.Dir(rootPackageJSON))
+		workspacePackageJSONs, err := findWorkspacePackageJSONs(rootPackageJSON)
 		if err != nil {
 			return nil, err
 		}
@@ -52,7 +51,7 @@ func ExternalPackages(rootPackageJSON string) ([]string, error) {
 		if usesWorkspaces {
 			// If we are in a npm/yarn workspace, we want to bundle all packages in the same
 			// workspaces so they are run through esbuild.
-			yarnWorkspacePackages, err = getWorkspacePackages(pathPackageJSON)
+			yarnWorkspacePackages, err = getWorkspaceDependencyPackages(pathPackageJSON)
 			if err != nil {
 				return nil, err
 			}
@@ -116,17 +115,19 @@ func ListDependencies(pathPackageJSON string) ([]string, error) {
 // findWorkspacePackageJSONs finds all package.jsons in a workspace. We are assuming that all nested package.jsons are
 // part of the workspace. A better solution would involve looking at the workspace tree
 // and pulling workspaces from it - this is a shortcut.
-func findWorkspacePackageJSONs(dir string) ([]string, error) {
+func findWorkspacePackageJSONs(rootPackageJSON string) ([]string, error) {
 	var pathPackageJSONs []string
-	err := filepath.WalkDir(dir,
-		func(path string, di fs.DirEntry, err error) error {
-			if !strings.Contains(path, "node_modules") && !strings.Contains(path, ".airplane") &&
-				di.Name() == "package.json" {
-				pathPackageJSONs = append(pathPackageJSONs, path)
-			}
-			return nil
-		})
-	return pathPackageJSONs, err
+	workspaceInfo, err := getYarnWorkspaceInfo(rootPackageJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	packageJSONDir := filepath.Dir(rootPackageJSON)
+	for _, info := range workspaceInfo {
+		pathPackageJSONs = append(pathPackageJSONs, filepath.Join(packageJSONDir, info.Location, "package.json"))
+	}
+
+	return pathPackageJSONs, nil
 }
 
 func hasWorkspaces(pathPackageJSON string) (bool, error) {
@@ -143,10 +144,6 @@ func hasWorkspaces(pathPackageJSON string) (bool, error) {
 		return false, errors.Wrapf(err, "parsing %s", pathPackageJSON)
 	}
 	return len(pkg.Workspaces.workspaces) > 0, nil
-}
-
-type workspaceInfoEntry struct {
-	WorkspaceDependencies []string `json:"workspaceDependencies"`
 }
 
 func isYarnBerry(pathPackageJSON string) (bool, error) {
@@ -167,17 +164,21 @@ func isYarnBerry(pathPackageJSON string) (bool, error) {
 	return ver.GE(semver.Version{Major: 2}), nil
 }
 
-// getWorkspacePackages gets all local workspaces that are depended on by other workspaces.
-// It uses the yarn CLI which does the heavy lifting of building out the dependency tree for us.
-// There is no npm workspaces equivalent, but the yarn CLI works for both yarn and npm as long
-// as yarn is installed.
-func getWorkspacePackages(pathPackageJSON string) (map[string]bool, error) {
+type yarnWorkspaceInfo struct {
+	Name                  string   `json:"name"`
+	Location              string   `json:"location"`
+	WorkspaceDependencies []string `json:"workspaceDependencies"`
+}
+
+// getYarnWorkspaceInfo gets information about a yarn workspace using built in yarn commands.
+func getYarnWorkspaceInfo(pathPackageJSON string) ([]yarnWorkspaceInfo, error) {
 	yarnBerry, err := isYarnBerry(pathPackageJSON)
 	if err != nil {
 		return nil, err
 	}
+	var infos []yarnWorkspaceInfo
 	if yarnBerry {
-		cmd := exec.Command("yarn", "workspaces", "list", "--json")
+		cmd := exec.Command("yarn", "workspaces", "list", "--json", "-v")
 		cmd.Dir = filepath.Dir(pathPackageJSON)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
@@ -187,19 +188,21 @@ func getWorkspacePackages(pathPackageJSON string) (map[string]bool, error) {
 			return nil, errors.Wrap(err, "reading yarn/npm workspaces: Do you have yarn installed?")
 		}
 
-		packages := make(map[string]bool)
+		// out will be something like:
+		// {"location":".","name":"airplane","workspaceDependencies":[],"mismatchedWorkspaceDependencies":[]}
+		// {"location":"examples/1","name":"example1","workspaceDependencies":["lib"],"mismatchedWorkspaceDependencies":[]}
+		// {"location":"lib","name":"lib","workspaceDependencies":[],"mismatchedWorkspaceDependencies":[]}
+
 		entries := strings.Split(strings.TrimSpace(string(out)), "\n")
 		for _, entry := range entries {
-			var workspaceInfo struct {
-				Name string `json:"name"`
-			}
+			var workspaceInfo yarnWorkspaceInfo
 			err = json.Unmarshal([]byte(entry), &workspaceInfo)
 			if err != nil {
 				return nil, errors.Wrapf(err, "unmarshalling yarn workspace info %s", entry)
 			}
-			packages[workspaceInfo.Name] = true
+			infos = append(infos, workspaceInfo)
 		}
-		return packages, nil
+		return infos, nil
 	} else {
 		cmd := exec.Command("yarn", "workspaces", "info")
 		cmd.Dir = filepath.Dir(pathPackageJSON)
@@ -234,18 +237,33 @@ func getWorkspacePackages(pathPackageJSON string) (map[string]bool, error) {
 		if workspaceJSON == "" {
 			return nil, errors.New(fmt.Sprintf("empty yarn workspace info %s", string(out)))
 		}
-		var workspaceInfo map[string]workspaceInfoEntry
-		err = json.Unmarshal([]byte(workspaceJSON), &workspaceInfo)
+		var workspaceInfoMap map[string]yarnWorkspaceInfo
+		err = json.Unmarshal([]byte(workspaceJSON), &workspaceInfoMap)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unmarshalling yarn workspace info %s", workspaceJSON)
 		}
 
-		packages := make(map[string]bool)
-		for _, entries := range workspaceInfo {
-			for _, dep := range entries.WorkspaceDependencies {
-				packages[dep] = true
-			}
+		for name, workspaceInfo := range workspaceInfoMap {
+			workspaceInfo.Name = name
+			infos = append(infos, workspaceInfo)
 		}
-		return packages, nil
 	}
+	return infos, nil
+}
+
+// getWorkspaceDependencyPackages gets all local workspaces that are depended on by other workspaces.
+func getWorkspaceDependencyPackages(pathPackageJSON string) (map[string]bool, error) {
+	workspaceInfo, err := getYarnWorkspaceInfo(pathPackageJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	packages := make(map[string]bool)
+	for _, info := range workspaceInfo {
+		for _, dep := range info.WorkspaceDependencies {
+			packages[dep] = true
+		}
+	}
+
+	return packages, nil
 }
