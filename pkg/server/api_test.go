@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/resource"
@@ -46,15 +47,16 @@ func TestExecute(t *testing.T) {
 		LogConfig: logConfig,
 	},
 	)
-
+	cliConfig := &cli.Config{Client: &api.Client{}}
 	h := getHttpExpect(
 		context.Background(),
 		t,
 		newRouter(&State{
-			envSlug:  "stage",
-			executor: mockExecutor,
-			port:     1234,
-			runs:     store,
+			cliConfig: cliConfig,
+			envSlug:   "stage",
+			executor:  mockExecutor,
+			port:      1234,
+			runs:      store,
 			taskConfigs: map[string]discover.TaskConfig{
 				slug: {
 					TaskID:         "tsk123",
@@ -74,6 +76,7 @@ func TestExecute(t *testing.T) {
 
 	runConfig := dev.LocalRunConfig{
 		Name: "My Task",
+		Root: cliConfig,
 		Kind: build.TaskKindNode,
 		KindOptions: build.KindOptions{
 			"entrypoint":  "my_task.ts",

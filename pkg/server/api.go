@@ -23,12 +23,14 @@ type LocalRun struct {
 	Status      api.RunStatus          `json:"status"`
 	Outputs     api.Outputs            `json:"outputs"`
 	CreatedAt   time.Time              `json:"createdAt"`
-	CreatorID   string                 `json:"creatorId"`
+	CreatorID   string                 `json:"creatorID"`
 	SucceededAt *time.Time             `json:"succeededAt"`
 	FailedAt    *time.Time             `json:"failedAt"`
 	ParamValues map[string]interface{} `json:"paramValues"`
 	Parameters  *libapi.Parameters     `json:"parameters"`
-	LogConfig   dev.LogConfig          `json:"-"`
+	TaskName    string                 `json:"taskName"`
+
+	LogConfig dev.LogConfig `json:"-"`
 }
 
 // NewLocalRun initializes a run for local dev.
@@ -144,6 +146,9 @@ func ExecuteTaskHandler(state *State) http.HandlerFunc {
 		run.CreatedAt = start
 		run.ParamValues = req.ParamValues
 		run.Parameters = &parameters
+		run.TaskName = req.Slug
+		// if the user is authenticated in CLI, use their ID
+		run.CreatorID = state.cliConfig.ParseTokenForAnalytics().UserID
 		now := time.Now()
 		if run.Status == api.RunSucceeded {
 			run.SucceededAt = &now
@@ -153,17 +158,7 @@ func ExecuteTaskHandler(state *State) http.HandlerFunc {
 
 		state.runs.add(req.Slug, runID, run)
 
-		return json.NewEncoder(w).Encode(LocalRun{
-			RunID:       runID,
-			Outputs:     run.Outputs,
-			Status:      run.Status,
-			CreatedAt:   run.CreatedAt,
-			CreatorID:   run.CreatorID,
-			SucceededAt: run.SucceededAt,
-			FailedAt:    run.FailedAt,
-			ParamValues: run.ParamValues,
-			Parameters:  run.Parameters,
-		})
+		return json.NewEncoder(w).Encode(run)
 	})
 }
 
