@@ -3,6 +3,10 @@ import { NativeConnection, Worker } from '@temporalio/worker';
 // Activity code runs in the same node process as the worker, so we import it here directly.
 import { createActivities } from "airplane/internal/runtime/workflow"
 
+function formatWorkflowLog(source, workflowInfo, message) {
+  return `airplane_workflow_log:${source}//${workflowInfo.workflowId}/${workflowInfo.runId} ${message}`
+}
+
 // Main worker entrypoint; starts a worker that will process activities
 // and workflows for a single task queue (equivalent to airplane task revision).
 async function runWorker(params) {
@@ -46,24 +50,48 @@ async function runWorker(params) {
 
   // Sinks allow us to log from workflows.
   const sinks = {
+    // We prefix all logs with the Temporal workflow ID (equivalent to the Airplane run ID) and the Temporal run ID so
+    // we can link the logs back to specific Airplane and Temporal runs.
     logger: {
-      info: {
+      debug: {
         fn(workflowInfo, message) {
-          // Prefix all logs with the Temporal workflow ID (equivalent to the Airplane run ID)
-          // and the Temporal run ID so we can link the logs back to specific
-          // Airplane and Temporal runs.
-          console.log(
-            `airplane_workflow_log:workflow//${workflowInfo.workflowId}/${workflowInfo.runId} ${message}`
-          );
+          console.debug(formatWorkflowLog("workflow", workflowInfo, message));
         },
       },
+      info: {
+        fn(workflowInfo, message) {
+          console.info(formatWorkflowLog("workflow", workflowInfo, message));
+        },
+      },
+      log: {
+        fn(workflowInfo, message) {
+          console.log(formatWorkflowLog("workflow", workflowInfo, message));
+        },
+      },
+      warn: {
+        fn(workflowInfo, message) {
+          console.warn(formatWorkflowLog("workflow", workflowInfo, message));
+        },
+      },
+      error: {
+        fn(workflowInfo, message) {
+          console.error(formatWorkflowLog("workflow", workflowInfo, message));
+        },
+      },
+      // logger.internal is used only in workflow-shim.js to differentiate between logs from the user's code and from
+      // our own shim.
       internal: {
         fn(workflowInfo, message) {
-          console.log(
-              `airplane_workflow_log:shim//${workflowInfo.workflowId}/${workflowInfo.runId} ${message}`
-          );
+          console.log(formatWorkflowLog("shim", workflowInfo, message));
         },
-      }
+      },
+      // logger.raw does not automatically prefix the message with airplane_workflow_log, and is mainly used in
+      // contexts where console.log is overridden and we want to set a custom prefix.
+      raw: {
+        fn(workflowInfo, message) {
+          console.log(message);
+        },
+      },
     },
   };
 

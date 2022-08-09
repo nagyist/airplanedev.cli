@@ -1,4 +1,6 @@
 import { workflowInfo } from '@temporalio/workflow';
+import { proxySinks } from '@temporalio/workflow';
+const { logger } = proxySinks();
 
 // Interceptor that allows us to log outbound client calls made from workflow.
 // See https://docs.temporal.io/docs/typescript/interceptors for details.
@@ -94,7 +96,8 @@ export const interceptors = () => ({
 });
 
 function workflowLog(info, message) {
-  // Log out interceptor messages with specific prefix so that we can
-  // link them back to a specific task run.
-  console.log(`airplane_workflow_log:interceptor//${info.workflowId}/${info.runId} ${message}`);
+  // Log out interceptor messages with specific prefix so that we can link them back to a specific task run. Note that
+  // we cannot directly call console.log here because we override the console.log method in the workflow shim, which
+  // would cause the output to get unnecessarily prepended with airplane_workflow_log:workflow
+  logger.raw(`airplane_workflow_log:interceptor//${info.workflowId}/${info.runId} ${message}`);
 }

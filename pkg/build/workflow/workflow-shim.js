@@ -11,9 +11,16 @@ const { logger } = proxySinks();
 export async function __airplaneEntrypoint(params, workflowArgs) {
   logger.internal('airplane_status:active');
   try {
-    // Monkey patch process.env
+    // Monkey patch node globals
     global.process = {
       env: workflowArgs.EnvVars
+    }
+    global.console = {
+      debug: logger.debug,
+      info: logger.info,
+      log: logger.log,
+      warn: logger.warn,
+      error: logger.error
     }
 
     var result = await task(JSON.parse(params[0]));
