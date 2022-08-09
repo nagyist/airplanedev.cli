@@ -2,13 +2,13 @@
   "node": {
     "18": {
       "image": "registry.hub.docker.com/library/node",
-      "tag": "18.1.0-buster",
-      "digest": "sha256:3b88dc7e2379f5adb2e2893e0d4cf1774e260c176e51a6a8fc0cb358a2749a3f"
+      "tag": "18.7.0-bullseye",
+      "digest": "sha256:2eef0e2d04ac0aaa5d7cefbc24a137c42c925d9dffa5a2568cda7618a1378976"
     },
     "16": {
       "image": "registry.hub.docker.com/library/node",
-      "tag": "16.2.0-buster",
-      "digest": "sha256:c5957aca74faaef8cbb11a199ca409de6e1e3964ab8d665cceef8c69327e1b82"
+      "tag": "16.16.0-bullseye",
+      "digest": "sha256:e5cc51d25639e8ca6ee34ab8320680268a87103bafdcd48979adaa2e2815eae6"
     },
     "15": {
       "image": "registry.hub.docker.com/library/node",
@@ -17,20 +17,20 @@
     },
     "14": {
       "image": "registry.hub.docker.com/library/node",
-      "tag": "14.16.1-buster",
-      "digest": "sha256:3b325b40048d329876134243db80718413b1410d5371a94823b3e4e5b71721b2"
+      "tag": "14.20.0-bullseye",
+      "digest": "sha256:51c236107cb7066c57c598ba4bc2c87df5adde97f29436b194007a408b6dd37d"
     },
     "12": {
       "image": "registry.hub.docker.com/library/node",
-      "tag": "12.22.1-buster",
-      "digest": "sha256:1e4125d5067c069a665f87b26d36802b50b91eebb80cfae7c93c4e5fe5ce014d"
+      "tag": "12.22.12-bullseye",
+      "digest": "sha256:7eb755a9fa807e5f555e2ebc16b650bf3e2cb534d9cba39fa43cd072945d486e"
     }
   },
   "python": {
     "3": {
       "image": "registry.hub.docker.com/library/python",
-      "tag": "3.9.6-bullseye",
-      "digest": "sha256:736b76eb3f64778646ce0051fb5fed4dfbf67016e51563946230ca8bb40ac687"
+      "tag": "3.10.6-bullseye",
+      "digest": "sha256:bb8b128d4363c2c9a668faefb10894cab20b34e2f7613786f53b8631acd62266"
     }
   }
 }
