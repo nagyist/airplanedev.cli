@@ -90,10 +90,24 @@ type CreateRunResponse struct {
 	RunID string `json:"runID"`
 }
 
+type CreateRunRequest struct {
+	TaskSlug string `json:"taskSlug"`
+}
+
 func CreateRunHandler(state *State) http.HandlerFunc {
 	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		var req CreateRunRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			return errors.Wrap(err, "failed to decode request body")
+		}
+		if req.TaskSlug == "" {
+			return errors.New("Task slug is required")
+		}
+
 		runID := "run" + utils.RandomString(10, utils.CharsetLowercaseNumeric)
-		state.runs.add("task", runID, *NewLocalRun())
+		run := *NewLocalRun()
+		run.CreatorID = state.cliConfig.ParseTokenForAnalytics().UserID
+		state.runs.add(req.TaskSlug, runID, run)
 		return json.NewEncoder(w).Encode(CreateRunResponse{RunID: runID})
 	})
 }

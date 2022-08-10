@@ -30,6 +30,7 @@ type runsStore struct {
 	runs map[string]LocalRun
 	// A tasks's previous runs
 	runHistory map[string][]string
+	mu         sync.Mutex
 }
 
 func NewRunStore() *runsStore {
@@ -40,12 +41,27 @@ func NewRunStore() *runsStore {
 	return r
 }
 
+func contains(runID string, history []string) bool {
+	for _, id := range history {
+		if id == runID {
+			return true
+		}
+	}
+	return false
+}
+
 func (store *runsStore) add(taskID string, runID string, run LocalRun) {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	run.RunID = runID
+	run.TaskName = taskID
 	store.runs[runID] = run
 	if _, ok := store.runHistory[taskID]; !ok {
 		store.runHistory[taskID] = make([]string, 0)
 	}
-	store.runHistory[taskID] = append([]string{runID}, store.runHistory[taskID]...)
+	if !contains(runID, store.runHistory[taskID]) {
+		store.runHistory[taskID] = append([]string{runID}, store.runHistory[taskID]...)
+	}
 	return
 }
 

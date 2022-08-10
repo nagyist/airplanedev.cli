@@ -13,10 +13,10 @@ func TestStore(t *testing.T) {
 	s := NewRunStore()
 	task1 := "task1"
 	testRuns := []LocalRun{
-		{Status: api.RunFailed},
-		{Status: api.RunSucceeded},
-		{Status: api.RunFailed, CreatedAt: time.Now()},
-		{Status: api.RunNotStarted},
+		{RunID: "run_0", TaskName: task1, Status: api.RunFailed},
+		{RunID: "run_1", TaskName: task1, Status: api.RunSucceeded},
+		{RunID: "run_2", TaskName: task1, Status: api.RunFailed, CreatedAt: time.Now()},
+		{RunID: "run_3", TaskName: task1, Status: api.RunNotStarted},
 	}
 	for i, run := range testRuns {
 		s.add(task1, fmt.Sprintf("run_%v", i), run)
@@ -33,8 +33,8 @@ func TestStore(t *testing.T) {
 	}
 
 	task2 := "task2"
-	run2 := LocalRun{Status: api.RunSucceeded}
 	runID2 := "task2_run"
+	run2 := LocalRun{RunID: runID2, TaskName: task2, Status: api.RunSucceeded}
 	s.add(task2, "task2_run", run2)
 	result2, ok := s.get(runID2)
 	require.Equal(t, run2, result2)
@@ -53,5 +53,14 @@ func TestStoreGet(t *testing.T) {
 	runHistory := emptyStore.getRunHistory("taskID")
 	require.Empty(t, runHistory)
 	emptyStore.add("task", "run", LocalRun{})
+}
 
+func TestStoreDupes(t *testing.T) {
+	store := NewRunStore()
+	taskID := "task_1"
+	runID := "run_1"
+	store.add(taskID, runID, LocalRun{})
+	store.add(taskID, runID, LocalRun{})
+	runHistory := store.getRunHistory(taskID)
+	require.Len(t, runHistory, 1)
 }

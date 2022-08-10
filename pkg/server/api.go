@@ -35,7 +35,9 @@ type LocalRun struct {
 // NewLocalRun initializes a run for local dev.
 func NewLocalRun() *LocalRun {
 	return &LocalRun{
-		Status: api.RunQueued,
+		Status:      api.RunQueued,
+		ParamValues: map[string]interface{}{},
+		CreatedAt:   time.Now(),
 		LogStore: &dev.LogStore{
 			Channel:     make(chan dev.ResponseLog),
 			DoneChannel: make(chan bool, 1),

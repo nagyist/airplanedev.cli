@@ -170,9 +170,9 @@ func TestListRuns(t *testing.T) {
 
 	runstore := NewRunStore()
 	testRuns := []LocalRun{
-		{Outputs: api.Outputs{V: "run0"}},
-		{Outputs: api.Outputs{V: "run1"}, CreatorID: "user1"},
-		{Outputs: api.Outputs{V: "run2"}},
+		{RunID: "run_0", TaskName: taskSlug, Outputs: api.Outputs{V: "run0"}},
+		{RunID: "run_1", TaskName: taskSlug, Outputs: api.Outputs{V: "run1"}, CreatorID: "user1"},
+		{RunID: "run_2", TaskName: taskSlug, Outputs: api.Outputs{V: "run2"}},
 	}
 	for i, run := range testRuns {
 		runstore.add(taskSlug, fmt.Sprintf("run_%v", i), run)
