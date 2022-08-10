@@ -1,6 +1,7 @@
 import airplane from 'airplane';
 import { proxySinks, CancelledFailure } from '@temporalio/workflow';
 import task from '{{.Entrypoint}}';
+import { registerWorkflowRuntime } from "@airplane/workflow-runtime/internal";
 
 const { logger } = proxySinks();
 
@@ -9,6 +10,7 @@ const { logger } = proxySinks();
 // This name must match the name we use when executing the workflow in
 // the Airplane API.
 export async function __airplaneEntrypoint(params, workflowArgs) {
+  registerWorkflowRuntime();
   logger.internal('airplane_status:active');
   try {
     // Monkey patch node globals

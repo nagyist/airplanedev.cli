@@ -1,7 +1,7 @@
 import { NativeConnection, Worker } from '@temporalio/worker';
 
 // Activity code runs in the same node process as the worker, so we import it here directly.
-import { createActivities } from "airplane/internal/runtime/workflow"
+import { createActivities } from "@airplane/workflow-runtime/internal";
 
 function formatWorkflowLog(source, workflowInfo, message) {
   return `airplane_workflow_log:${source}//${workflowInfo.workflowId}/${workflowInfo.runId} ${message}`

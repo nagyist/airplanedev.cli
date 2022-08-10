@@ -221,10 +221,14 @@ func node(root string, options KindOptions, buildArgs []string) (string, error) 
 		# of always building for linux/amd64.
 		RUN npm install -g esbuild@0.12 --unsafe-perm
 		
+		# npm >= 7 will automatically install peer dependencies, even if they're satisfied by the root. This is
+		# problematic because we need the @airplane/workflow-runtime package to register the workflow runtime in the
+		# runtime map that is utilized by the user's code, and so we explicitly request legacy behavior in this
+		# instance, which does not install peer dependencies by default.
 		RUN mkdir -p /airplane/.airplane && \
 			cd /airplane/.airplane && \
 			{{.InlineShimPackageJSON}} > package.json && \
-			npm install
+			npm install --legacy-peer-deps
 
 		{{if .HasPackageJSON}}
 		COPY package*.json yarn.* /airplane/
@@ -282,8 +286,11 @@ func GenShimPackageJSON(pathPackageJSON string, isWorkflow bool) ([]byte, error)
 	}
 
 	if isWorkflow {
-		// airplane>=0.2.0-6 already includes Temporal as a dependency, and so we don't include it here.
-		pjson.Dependencies["airplane"] = "0.2.0-21"
+		// @airplane/workflow-runtime already includes the temporal dependencies, and so we don't need to include them
+		// here.
+		sdkVersion := "0.2.0-25"
+		pjson.Dependencies["airplane"] = sdkVersion
+		pjson.Dependencies["@airplane/workflow-runtime"] = sdkVersion
 	}
 
 	// Allow users to override any shim dependencies. Given shim code is bundled
