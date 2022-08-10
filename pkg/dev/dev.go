@@ -222,7 +222,9 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	print.BoxPrint(fmt.Sprintf("Finished running task [%s]", config.Slug))
 	logger.Log("")
 
-	config.LogStore.DoneChannel <- true
+	if config.LogStore.DoneChannel != nil {
+		config.LogStore.DoneChannel <- true
+	}
 
 	return outputs, nil
 }
