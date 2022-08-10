@@ -180,9 +180,9 @@ func run(ctx context.Context, cfg config) error {
 		EnvSlug:     cfg.envSlug,
 		Env:         devConfig.Env,
 		Resources:   resources,
-		LogConfig: dev.LogConfig{
-			Channel: make(chan string),
-			Logs:    make([]string, 0),
+		LogStore: &dev.LogStore{
+			Channel: make(chan dev.ResponseLog),
+			Logs:    make([]dev.ResponseLog, 0),
 		},
 	}
 	_, err = localExecutor.Execute(ctx, localRunConfig)

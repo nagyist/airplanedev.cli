@@ -28,18 +28,18 @@ type LocalRun struct {
 	FailedAt    *time.Time             `json:"failedAt"`
 	ParamValues map[string]interface{} `json:"paramValues"`
 	Parameters  *libapi.Parameters     `json:"parameters"`
+	LogStore    *dev.LogStore          `json:"-"`
 	TaskName    string                 `json:"taskName"`
-
-	LogConfig dev.LogConfig `json:"-"`
 }
 
 // NewLocalRun initializes a run for local dev.
 func NewLocalRun() *LocalRun {
 	return &LocalRun{
 		Status: api.RunQueued,
-		LogConfig: dev.LogConfig{
-			Channel: make(chan string),
-			Logs:    make([]string, 0),
+		LogStore: &dev.LogStore{
+			Channel:     make(chan dev.ResponseLog),
+			DoneChannel: make(chan bool, 1),
+			Logs:        make([]dev.ResponseLog, 0),
 		},
 	}
 }
@@ -101,7 +101,7 @@ func ExecuteTaskHandler(state *State) http.HandlerFunc {
 				Slug:        req.Slug,
 				EnvSlug:     state.envSlug,
 				IsBuiltin:   isBuiltin,
-				LogConfig:   run.LogConfig,
+				LogStore:    run.LogStore,
 			}
 			resourceAttachments := map[string]string{}
 			if isBuiltin {

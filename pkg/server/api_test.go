@@ -37,14 +37,14 @@ func TestExecute(t *testing.T) {
 	taskDefinition.SetDefnFilePath("my_task.task.yaml")
 
 	runID := "run1234"
-	logConfig := dev.LogConfig{
-		Channel: make(chan string),
-		Logs:    make([]string, 0),
+	logStore := &dev.LogStore{
+		Channel: make(chan dev.ResponseLog),
+		Logs:    make([]dev.ResponseLog, 0),
 	}
 	store := NewRunStore()
 	store.add(slug, runID, LocalRun{
-		RunID:     runID,
-		LogConfig: logConfig,
+		RunID:    runID,
+		LogStore: logStore,
 	},
 	)
 	cliConfig := &cli.Config{Client: &api.Client{}}
@@ -88,7 +88,7 @@ func TestExecute(t *testing.T) {
 		Slug:        slug,
 		EnvSlug:     "stage",
 		Resources:   map[string]resource.Resource{},
-		LogConfig:   logConfig,
+		LogStore:    logStore,
 	}
 	mockExecutor.On("Execute", mock.Anything, runConfig).Return(nil)
 

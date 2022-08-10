@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/views"
@@ -85,11 +86,15 @@ func ListAppMetadataHandler(state *State) http.HandlerFunc {
 	})
 }
 
+type CreateRunResponse struct {
+	RunID string `json:"runID"`
+}
+
 func CreateRunHandler(state *State) http.HandlerFunc {
 	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 		runID := "run" + utils.RandomString(10, utils.CharsetLowercaseNumeric)
 		state.runs.add("task", runID, *NewLocalRun())
-		return json.NewEncoder(w).Encode(runID)
+		return json.NewEncoder(w).Encode(CreateRunResponse{RunID: runID})
 	})
 }
 
@@ -214,16 +219,46 @@ func LogsHandler(state *State) http.HandlerFunc {
 			return errors.Errorf("Run with id %s not found", runID)
 		}
 
+		// Send logs that have already been persisted.
+		// TODO: Move this to a dedicated /getLogs endpoint
+		for _, log := range run.LogStore.Logs {
+			encodedLog, err := json.Marshal(log)
+			if err != nil {
+				return errors.Wrap(err, "marshaling log")
+			}
+			fmt.Fprintf(w, "data: %s\n\n", encodedLog)
+		}
+
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+
+		// If the run has finished, then we've already sent all the logs above.
+		if run.Status == api.RunSucceeded {
+			return nil
+		}
+
+		logger.Debug("Waiting for logs from command output")
 		for {
 			select {
-			case log := <-run.LogConfig.Channel:
-				fmt.Fprintf(w, "data: %s\n\n", log)
+			case log := <-run.LogStore.Channel:
+				logger.Debug("Sending log to event stream")
+				encodedLog, err := json.Marshal(log)
+				if err != nil {
+					return errors.Wrap(err, "marshaling log")
+				}
+				fmt.Fprintf(w, "data: %s\n\n", encodedLog)
 				if f, ok := w.(http.Flusher); ok {
 					f.Flush()
 				}
-				run.LogConfig.Logs = append(run.LogConfig.Logs, log)
+				run.LogStore.Logs = append(run.LogStore.Logs, log)
+			// If the client has closed their request, then we should stop the event stream.
 			case <-r.Context().Done():
 				logger.Debug("Event stream closed")
+				return nil
+			// If the command has finished running, we should close the event stream.
+			case <-run.LogStore.DoneChannel:
+				logger.Debug("Done executing")
 				return nil
 			}
 		}

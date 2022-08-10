@@ -11,6 +11,7 @@ import (
 	goruntime "runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
@@ -53,12 +54,20 @@ type LocalRunConfig struct {
 	// Mapping from alias to resource
 	Resources map[string]resource.Resource
 	IsBuiltin bool
-	LogConfig LogConfig
+	LogStore  *LogStore
 }
 
-type LogConfig struct {
-	Channel chan string
-	Logs    []string
+type ResponseLog struct {
+	Timestamp time.Time `json:"timestamp"`
+	InsertID  string    `json:"insertID"`
+	Text      string    `json:"text"`
+	Level     string    `json:"level"`
+}
+
+type LogStore struct {
+	DoneChannel chan bool
+	Channel     chan ResponseLog
+	Logs        []ResponseLog
 }
 
 type CmdConfig struct {
@@ -67,6 +76,8 @@ type CmdConfig struct {
 	entrypoint string
 	runtime    runtime.Interface
 }
+
+var LogIDGen IDGenerator
 
 // Returns the command needed to execute the task locally
 func (l *LocalExecutor) Cmd(ctx context.Context, config LocalRunConfig) (CmdConfig, error) {
@@ -182,13 +193,6 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 		scanner := bufiox.NewScanner(r)
 		for scanner.Scan() {
 			line := scanner.Text()
-			// If there is a receiver on the other end of the log channel, send the log line to the channel, or else
-			// just append it to the run's logs.
-			select {
-			case config.LogConfig.Channel <- line:
-			default:
-				config.LogConfig.Logs = append(config.LogConfig.Logs, line)
-			}
 			scanLogLine(config, line, &mu, &o, chunks)
 		}
 		return errors.Wrap(scanner.Err(), "scanning logs")
@@ -217,6 +221,9 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	logger.Log("")
 	print.BoxPrint(fmt.Sprintf("Finished running task [%s]", config.Slug))
 	logger.Log("")
+
+	config.LogStore.DoneChannel <- true
+
 	return outputs, nil
 }
 
@@ -235,6 +242,22 @@ func scanLogLine(config LocalRunConfig, line string, mu *sync.Mutex, o *ojson.Va
 			logger.Error("[%s] %+v", logger.Gray("outputs"), err)
 			return
 		}
+	}
+
+	log := ResponseLog{
+		Timestamp: time.Now(),
+		InsertID:  LogIDGen.Next(),
+		Text:      line,
+		Level:     "info",
+	}
+	// If there is a receiver on the other end of the log channel, send the log line to the channel, or else
+	// just append it to the run's logs.
+	select {
+	case config.LogStore.Channel <- log:
+		logger.Debug("sending log to receiver")
+	default:
+		logger.Debug("appending log to run's log store")
+		config.LogStore.Logs = append(config.LogStore.Logs, log)
 	}
 
 	logger.Log("[%s %s] %s", logger.Gray(config.Name), logger.Gray("log"), line)
