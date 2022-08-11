@@ -47,6 +47,10 @@ func (dd *ViewDefnDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 			return nil, errors.Wrap(err, "unmarshalling view definition")
 		}
 	}
+	d.DefnFilePath, err = filepath.Abs(file)
+	if err != nil {
+		return nil, errors.Wrap(err, "getting absolute path of view definition file")
+	}
 
 	root, err := filepath.Abs(filepath.Dir(file))
 	if err != nil {

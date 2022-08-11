@@ -369,10 +369,11 @@ func TestDiscover(t *testing.T) {
 				{
 					ID: "view123",
 					Def: definitions.ViewDefinition{
-						Name:        "My View",
-						Slug:        "my_view",
-						Description: "Test view yaml file",
-						Entrypoint:  fixturesPath + "/view/foo.js",
+						Name:         "My View",
+						Slug:         "my_view",
+						Description:  "Test view yaml file",
+						Entrypoint:   fixturesPath + "/view/foo.js",
+						DefnFilePath: fixturesPath + "/view/defn.view.yaml",
 					},
 					Root:   fixturesPath,
 					Source: ConfigSourceDefn,
