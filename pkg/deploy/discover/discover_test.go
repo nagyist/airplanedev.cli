@@ -420,7 +420,7 @@ func TestDiscover(t *testing.T) {
 		},
 		{
 			name:  "node code definition",
-			paths: []string{"./fixtures/code_only.aptask.ts"},
+			paths: []string{"./fixtures/codeOnly.aptask.ts"},
 			existingTasks: map[string]api.Task{
 				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindPython, InterpolationMode: "jst"},
 			},
@@ -428,7 +428,7 @@ func TestDiscover(t *testing.T) {
 				{
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
-					TaskEntrypoint: fixturesPath + "/code_only.aptask.ts",
+					TaskEntrypoint: fixturesPath + "/codeOnly.aptask.ts",
 					Def: &definitions.Definition_0_3{
 						Name: "Collatz Conjecture Step",
 						Slug: "collatz",
@@ -440,7 +440,7 @@ func TestDiscover(t *testing.T) {
 							},
 						},
 						Node: &definitions.NodeDefinition_0_3{
-							Entrypoint:  "code_only.aptask.ts",
+							Entrypoint:  "codeOnly.aptask.ts",
 							NodeVersion: "18",
 						},
 					},
@@ -449,13 +449,33 @@ func TestDiscover(t *testing.T) {
 			},
 			buildConfigs: []build.BuildConfig{
 				{
-					"entrypoint":     "code_only.aptask.ts",
+					"entrypoint":     "codeOnly.aptask.ts",
 					"entrypointFunc": "collatz",
 					"workdir":        "",
 				},
 			},
 			absEntrypoints: []string{
-				fixturesPath + "/code_only.aptask.ts",
+				fixturesPath + "/codeOnly.aptask.ts",
+			},
+		},
+		{
+			name:  "view code definition",
+			paths: []string{"./fixtures/view/codeOnly.view.tsx"},
+			existingViews: map[string]api.View{
+				"my_view": {ID: "view123", Slug: "my_view", Name: "My View"},
+			},
+			expectedViewConfigs: []ViewConfig{
+				{
+					ID: "view123",
+					Def: definitions.ViewDefinition{
+						Name:        "My View",
+						Slug:        "my_view",
+						Description: "Test view yaml file",
+						Entrypoint:  fixturesPath + "/view/codeOnly.view.tsx",
+					},
+					Root:   fixturesPath,
+					Source: ConfigSourceCode,
+				},
 			},
 		},
 	}
@@ -474,7 +494,7 @@ func TestDiscover(t *testing.T) {
 				Client: apiClient,
 				Logger: &logger.MockLogger{},
 			}
-			codeDiscoverer := &CodeTaskDiscoverer{
+			codeTaskDiscoverer := &CodeTaskDiscoverer{
 				Client: apiClient,
 				Logger: &logger.MockLogger{},
 			}
@@ -482,9 +502,13 @@ func TestDiscover(t *testing.T) {
 				Client: apiClient,
 				Logger: &logger.MockLogger{},
 			}
+			codeViewDiscoverer := &CodeViewDiscoverer{
+				Client: apiClient,
+				Logger: &logger.MockLogger{},
+			}
 			d := &Discoverer{
-				TaskDiscoverers: []TaskDiscoverer{defnDiscoverer, scriptDiscoverer, codeDiscoverer},
-				ViewDiscoverers: []ViewDiscoverer{viewDefnDiscoverer},
+				TaskDiscoverers: []TaskDiscoverer{defnDiscoverer, scriptDiscoverer, codeTaskDiscoverer},
+				ViewDiscoverers: []ViewDiscoverer{viewDefnDiscoverer, codeViewDiscoverer},
 				Client:          apiClient,
 				Logger:          &logger.MockLogger{},
 			}

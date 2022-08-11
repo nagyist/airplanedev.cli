@@ -13,6 +13,7 @@ import (
 // Init register the runtime.
 func init() {
 	runtime.Register(".ts", Runtime{})
+	runtime.Register(".tsx", Runtime{})
 }
 
 // Code template.

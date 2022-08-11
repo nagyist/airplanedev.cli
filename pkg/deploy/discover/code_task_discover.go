@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 
 	"github.com/airplanedev/lib/pkg/api"
@@ -49,7 +50,7 @@ func (c *CodeTaskDiscoverer) GetAirplaneTasks(ctx context.Context, file string) 
 }
 
 func (c *CodeTaskDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]TaskConfig, error) {
-	defs, err := parseDefinitions(ctx, file)
+	defs, err := c.parseDefinitions(ctx, file)
 	if err != nil {
 		return nil, err
 	}
@@ -102,71 +103,69 @@ type ParsedDefinition struct {
 	PathMetadata TaskPathMetadata
 }
 
-func parseDefinitions(ctx context.Context, file string) ([]ParsedDefinition, error) {
-	if strings.HasSuffix(file, ".aptask.ts") || strings.HasSuffix(file, ".aptask.js") {
-		return parseNodeDefinitions(ctx, file)
+func (c *CodeTaskDiscoverer) parseDefinitions(ctx context.Context, file string) ([]ParsedDefinition, error) {
+	if strings.HasSuffix(file, ".aptask.ts") || strings.HasSuffix(file, ".aptask.js") ||
+		strings.HasSuffix(file, ".view.tsx") || strings.HasSuffix(file, ".view.jsx") {
+		return c.parseNodeDefinitions(ctx, file)
 	} else if strings.HasSuffix(file, "_aptask.py") {
-		return parsePythonDefinitions(ctx, file)
+		return c.parsePythonDefinitions(ctx, file)
 	}
 	return nil, nil
 }
 
-func parseNodeDefinitions(ctx context.Context, file string) ([]ParsedDefinition, error) {
-	tempFile, err := os.CreateTemp("", "airplane.parser.node.*.ts")
+func (c *CodeTaskDiscoverer) parseNodeDefinitions(ctx context.Context, file string) ([]ParsedDefinition, error) {
+	pm, err := taskPathMetadata(file, build.TaskKindNode)
 	if err != nil {
-		return nil, errors.Wrap(err, "creating temporary directory")
-	}
-	defer os.Remove(tempFile.Name())
-	_, err = tempFile.Write(nodeParserScript)
-	if err != nil {
-		return nil, errors.Wrap(err, "writing parser script")
+		return nil, errors.Wrap(err, "unable to interpret task path metadata")
 	}
 
-	// Run parser on the file
-	out, err := exec.Command("npx", "-p", "typescript", "-p", "@types/node", "-p", "ts-node",
-		"ts-node", tempFile.Name(), file).Output()
-	if err != nil {
-		if ee, ok := err.(*exec.ExitError); ok {
-			return nil, errors.Wrapf(err, "parsing file=%q: %s", file, ee.Stderr)
+	if err := esbuildUserFiles(pm.RootDir); err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := os.RemoveAll(path.Join(pm.RootDir, ".airplane")); err != nil {
+			c.Logger.Warning("unable to remove temporary directory: %s")
 		}
-		return nil, errors.Wrapf(err, "parsing file=%q", file)
+	}()
+
+	cleanup, err := maybePatchNodeModules(c.Logger, pm.RootDir)
+	defer cleanup()
+	if err != nil {
+		return nil, err
 	}
 
-	var parsedTasks []map[string]interface{}
-	if err := json.Unmarshal(out, &parsedTasks); err != nil {
-		return nil, errors.Wrap(err, "unmarshaling parser output")
-	}
-	if len(parsedTasks) == 0 {
-		return nil, nil
+	compiledJSPath, err := compiledFilePath(pm.RootDir, file)
+	if err != nil {
+		return nil, err
 	}
 
-	pathMetadata, err := taskPathMetadata(file, build.TaskKindNode)
+	parsedConfigs, err := extractConfigs(compiledJSPath)
 	if err != nil {
 		return nil, err
 	}
 
 	var parsedDefinitions []ParsedDefinition
-	for _, parsedTask := range parsedTasks {
+	for _, parsedTask := range parsedConfigs.TaskConfigs {
 		parsedTask["node"] = map[string]interface{}{
 			"nodeVersion": build.LatestNodeVersion,
-			"entrypoint":  pathMetadata.RelEntrypoint,
+			"entrypoint":  pm.RelEntrypoint,
 		}
 
-		def, err := constructDefinition(parsedTask, pathMetadata)
+		def, err := constructDefinition(parsedTask, pm)
 		if err != nil {
 			return nil, err
 		}
 
 		parsedDefinitions = append(parsedDefinitions, ParsedDefinition{
 			Def:          def,
-			PathMetadata: pathMetadata,
+			PathMetadata: pm,
 		})
 	}
 
 	return parsedDefinitions, nil
 }
 
-func parsePythonDefinitions(ctx context.Context, file string) ([]ParsedDefinition, error) {
+func (c *CodeTaskDiscoverer) parsePythonDefinitions(ctx context.Context, file string) ([]ParsedDefinition, error) {
 	out, err := exec.Command("python3", "-c", string(pythonParserScript), file).Output()
 	if err != nil {
 		return nil, err

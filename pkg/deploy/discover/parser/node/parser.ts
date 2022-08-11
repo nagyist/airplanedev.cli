@@ -1,6 +1,6 @@
 const path = require("node:path");
 
-type Param = {
+type TaskParam = {
   slug: string;
   name: string;
   type: string;
@@ -11,11 +11,11 @@ type Param = {
   regex?: string;
 };
 
-type Def = {
+type TaskDef = {
   slug: string;
   name?: string;
   description?: string;
-  parameters?: Param[];
+  parameters?: TaskParam[];
   requireRequests?: boolean;
   allowSelfApprovals?: boolean;
   timeout?: number;
@@ -25,12 +25,24 @@ type Def = {
   runtime?: "" | "workflow";
 };
 
-type DefWithBuildArgs = Def & {
+type TaskDefWithBuildArgs = TaskDef & {
   entrypointFunc: string;
 };
 
-const extractTaskConfigs = (files: string[]): DefWithBuildArgs[] => {
-  let configs: DefWithBuildArgs[] = [];
+type ViewDef = {
+  slug: string;
+  name: string;
+  description?: string;
+}
+
+type AirplaneConfigs = {
+  taskConfigs: TaskDefWithBuildArgs[];
+  viewConfigs: ViewDef[];
+}
+
+const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
+  let taskConfigs: TaskDefWithBuildArgs[] = [];
+  let viewConfigs: ViewDef[] = [];
   for (const file of files) {
     const resolvedPath = path.relative(__dirname, file);
     const lib = resolvedPath.replace(/.ts$/, "");
@@ -41,49 +53,59 @@ const extractTaskConfigs = (files: string[]): DefWithBuildArgs[] => {
 
       if ("__airplane" in item) {
         const config = item.__airplane.config;
+        if (item.__airplane.type === "view") {
+          viewConfigs.push({
+            slug: config.slug,
+            name: config.name,
+            description: config.description,
+          })
+        } else {
+          const params: TaskParam[] = [];
+          for (const uParamSlug in config.parameters) {
+            const uParamConfig = config.parameters[uParamSlug];
 
-        const params: Param[] = [];
-        for (const uParamSlug in config.parameters) {
-          const uParamConfig = config.parameters[uParamSlug];
-
-          if (typeof uParamConfig === "string") {
-            params.push({
-              slug: uParamSlug,
-              name: uParamSlug,
-              type: uParamConfig,
-            });
-          } else {
-            params.push({
-              slug: uParamSlug,
-              name: uParamConfig["name"] ? uParamConfig["name"] : uParamSlug,
-              type: uParamConfig["type"],
-              description: uParamConfig["description"],
-              default: uParamConfig["default"],
-              required: uParamConfig["required"],
-              options: uParamConfig["options"],
-              regex: uParamConfig["regex"],
-            });
+            if (typeof uParamConfig === "string") {
+              params.push({
+                slug: uParamSlug,
+                name: uParamSlug,
+                type: uParamConfig,
+              });
+            } else {
+              params.push({
+                slug: uParamSlug,
+                name: uParamConfig["name"] ? uParamConfig["name"] : uParamSlug,
+                type: uParamConfig["type"],
+                description: uParamConfig["description"],
+                default: uParamConfig["default"],
+                required: uParamConfig["required"],
+                options: uParamConfig["options"],
+                regex: uParamConfig["regex"],
+              });
+            }
           }
-        }
 
-        configs = configs.concat({
-          slug: config.slug,
-          name: config.name ?? config.slug,
-          description: config.description,
-          requireRequests: config.requireRequests,
-          allowSelfApprovals: config.allowSelfApprovals,
-          timeout: config.timeout,
-          constraints: config.constraints,
-          runtime: config.runtime === "workflow" ? "workflow" : "",
-          resources: config.resources,
-          schedules: config.schedules,
-          parameters: params,
-          entrypointFunc: exportName,
-        });
+          taskConfigs.push({
+            slug: config.slug,
+            name: config.name ?? config.slug,
+            description: config.description,
+            requireRequests: config.requireRequests,
+            allowSelfApprovals: config.allowSelfApprovals,
+            timeout: config.timeout,
+            constraints: config.constraints,
+            runtime: config.runtime === "workflow" ? "workflow" : "",
+            resources: config.resources,
+            schedules: config.schedules,
+            parameters: params,
+            entrypointFunc: exportName,
+          });
+        }
       }
     }
   }
-  return configs;
+  return {
+    taskConfigs,
+    viewConfigs,
+  }
 };
 
 const files = process.argv.slice(2);

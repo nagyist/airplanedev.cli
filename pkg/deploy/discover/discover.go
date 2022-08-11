@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 
 	"github.com/airplanedev/lib/pkg/api"
@@ -17,6 +18,7 @@ var ignoredDirectories = map[string]bool{
 	"node_modules": true,
 	"__pycache__":  true,
 	".git":         true,
+	".airplane":    true,
 }
 
 type ConfigSource string
@@ -94,7 +96,7 @@ func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]TaskConfi
 	taskConfigsBySlug := map[string][]TaskConfig{}
 	viewConfigsBySlug := map[string][]ViewConfig{}
 	for _, p := range paths {
-		if ignoredDirectories[p] {
+		if ignoredDirectories[filepath.Base(p)] {
 			continue
 		}
 		fileInfo, err := os.Stat(p)

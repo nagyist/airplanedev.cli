@@ -26,6 +26,7 @@ import (
 // Init register the runtime.
 func init() {
 	runtime.Register(".js", Runtime{})
+	runtime.Register(".jsx", Runtime{})
 }
 
 // Code template.

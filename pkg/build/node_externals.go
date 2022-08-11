@@ -17,7 +17,8 @@ import (
 var esmModules = map[string]bool{
 	"node-fetch": true,
 	// airplane>=0.2.0 depends on node-fetch
-	"airplane": true,
+	"airplane":        true,
+	"@airplane/views": true,
 }
 
 // ExternalPackages reads package.json and returns all dependencies and dev dependencies.
