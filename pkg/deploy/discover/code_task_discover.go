@@ -114,24 +114,27 @@ func parseDefinitions(ctx context.Context, file string) ([]ParsedDefinition, err
 func parseNodeDefinitions(ctx context.Context, file string) ([]ParsedDefinition, error) {
 	tempFile, err := os.CreateTemp("", "airplane.parser.node.*.ts")
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "creating temporary directory")
 	}
 	defer os.Remove(tempFile.Name())
 	_, err = tempFile.Write(nodeParserScript)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "writing parser script")
 	}
 
 	// Run parser on the file
 	out, err := exec.Command("npx", "-p", "typescript", "-p", "@types/node", "-p", "ts-node",
 		"ts-node", tempFile.Name(), file).Output()
 	if err != nil {
-		return nil, err
+		if ee, ok := err.(*exec.ExitError); ok {
+			return nil, errors.Wrapf(err, "parsing file=%q: %s", file, ee.Stderr)
+		}
+		return nil, errors.Wrapf(err, "parsing file=%q", file)
 	}
 
 	var parsedTasks []map[string]interface{}
 	if err := json.Unmarshal(out, &parsedTasks); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "unmarshaling parser output")
 	}
 	if len(parsedTasks) == 0 {
 		return nil, nil
