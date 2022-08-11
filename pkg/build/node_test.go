@@ -2,9 +2,12 @@ package build
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/airplanedev/lib/pkg/examples"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNodeBuilder(t *testing.T) {
@@ -220,4 +223,57 @@ func TestNodeWorkflowBuilder(t *testing.T) {
 	}
 
 	RunTests(t, ctx, tests)
+}
+
+func TestGenShimPackageJSON(t *testing.T) {
+	testCases := []struct {
+		desc                    string
+		packageJSON             string
+		isWorkflow              bool
+		expectedShimPackageJSON shimPackageJSON
+	}{
+		{
+			desc:        "Yarn workspace with no shim dependencies",
+			packageJSON: "typescript/yarnworkspacesnoairplane/package.json",
+
+			isWorkflow: true,
+			expectedShimPackageJSON: shimPackageJSON{
+				Dependencies: map[string]string{
+					"airplane":                   sdkVersion,
+					"@airplane/workflow-runtime": sdkVersion,
+				},
+			},
+		},
+		{
+			desc:        "Yarn workspace with shim dependency already included",
+			packageJSON: "typescript/yarnworkspaces/package.json",
+			isWorkflow:  true,
+			expectedShimPackageJSON: shimPackageJSON{
+				Dependencies: map[string]string{
+					"@airplane/workflow-runtime": sdkVersion,
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			require := require.New(t)
+			assert := assert.New(t)
+
+			packageJSONs, _, err := GetPackageJSONs(examples.Path(t, tc.packageJSON))
+			require.NoError(err)
+
+			shimPackageJSONSerialized, err := GenShimPackageJSON(packageJSONs, tc.isWorkflow)
+			require.NoError(err)
+
+			shimJSON := shimPackageJSON{}
+
+			err = json.Unmarshal(shimPackageJSONSerialized, &shimJSON)
+			require.NoError(err)
+
+			assert.Equal(tc.expectedShimPackageJSON, shimJSON)
+		})
+	}
+
 }

@@ -174,7 +174,12 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 
 	// Install the dependencies we need for our shim file:
 	rootPackageJSON := filepath.Join(root, "package.json")
-	pjson, err := build.GenShimPackageJSON(rootPackageJSON, false)
+	packageJSONs, usesWorkspaces, err := build.GetPackageJSONs(rootPackageJSON)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "getting package JSONs")
+	}
+
+	pjson, err := build.GenShimPackageJSON(packageJSONs, false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -196,7 +201,7 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 
 	// Workaround to get esbuild to not bundle dependencies.
 	// See build.ExternalPackages for details.
-	externalDeps, err := build.ExternalPackages(rootPackageJSON)
+	externalDeps, err := build.ExternalPackages(packageJSONs, usesWorkspaces)
 	if err != nil {
 		return nil, nil, err
 	}

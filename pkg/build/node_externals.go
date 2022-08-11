@@ -21,23 +21,18 @@ var esmModules = map[string]bool{
 	"@airplane/views": true,
 }
 
-// ExternalPackages reads package.json and returns all dependencies and dev dependencies.
-// This is used as a bit of a workaround for esbuild - we're using esbuild to transform code but
-// don't actually want it to bundle. We hit issues when it tries to bundle optional packages
-// (and the packages aren't installed) - for example, pg optionally depends on pg-native, and
-// using just pg causes esbuild to bundle pg which bundles pg-native, which errors.
-// TODO: replace this with a cleaner esbuild plugin that can mark dependencies as external:
-// https://github.com/evanw/esbuild/issues/619#issuecomment-751995294
-func ExternalPackages(rootPackageJSON string) ([]string, error) {
-	usesWorkspaces, err := hasWorkspaces(rootPackageJSON)
+// GetPackageJSONs list all the package.json files that belong to a workspace, or just the root package.json if not
+// using workspaces. Also returns a boolean indicating whether workspaces are used.
+func GetPackageJSONs(rootPackageJSON string) (pathPackageJSONs []string, usesWorkspaces bool, err error) {
+	usesWorkspaces, err = hasWorkspaces(rootPackageJSON)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	pathPackageJSONs := []string{rootPackageJSON}
+	pathPackageJSONs = []string{rootPackageJSON}
 	if usesWorkspaces {
 		workspacePackageJSONs, err := findWorkspacePackageJSONs(rootPackageJSON)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		for _, j := range workspacePackageJSONs {
 			if j != rootPackageJSON {
@@ -46,9 +41,20 @@ func ExternalPackages(rootPackageJSON string) ([]string, error) {
 		}
 	}
 
+	return pathPackageJSONs, usesWorkspaces, nil
+}
+
+// ExternalPackages reads a list of package.json files and returns all dependencies and dev dependencies. This is used
+// as a bit of a workaround for esbuild - we're using esbuild to transform code but don't actually want it to bundle.
+// We hit issues when it tries to bundle optional packages (and the packages aren't installed) - for example, pg
+// optionally depends on pg-native, and using just pg causes esbuild to bundle pg which bundles pg-native, which errors.
+// TODO: replace this with a cleaner esbuild plugin that can mark dependencies as external:
+// https://github.com/evanw/esbuild/issues/619#issuecomment-751995294
+func ExternalPackages(packageJSONs []string, usesWorkspaces bool) ([]string, error) {
 	var deps []string
-	for _, pathPackageJSON := range pathPackageJSONs {
+	for _, pathPackageJSON := range packageJSONs {
 		var yarnWorkspacePackages map[string]bool
+		var err error
 		if usesWorkspaces {
 			// If we are in a npm/yarn workspace, we want to bundle all packages in the same
 			// workspaces so they are run through esbuild.
@@ -73,6 +79,20 @@ func ExternalPackages(rootPackageJSON string) ([]string, error) {
 				deps = append(deps, dep)
 			}
 		}
+	}
+
+	return deps, nil
+}
+
+// ListDependenciesFromPackageJSONs lists all dependencies in a set of `package.json` files.
+func ListDependenciesFromPackageJSONs(packageJSONs []string) ([]string, error) {
+	var deps []string
+	for _, pathPackageJSON := range packageJSONs {
+		allDeps, err := ListDependencies(pathPackageJSON)
+		if err != nil {
+			return nil, err
+		}
+		deps = append(deps, allDeps...)
 	}
 
 	return deps, nil

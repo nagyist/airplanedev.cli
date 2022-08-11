@@ -15,6 +15,7 @@ import (
 )
 
 const LatestNodeVersion = "18"
+const sdkVersion = "0.2.0-25"
 
 type templateParams struct {
 	Workdir                          string
@@ -57,10 +58,12 @@ func node(root string, options KindOptions, buildArgs []string) (string, error) 
 	workdir, _ := options["workdir"].(string)
 	rootPackageJSON := filepath.Join(root, "package.json")
 	hasPackageJSON := fsx.AssertExistsAll(rootPackageJSON) == nil
+
 	pathYarnLock := filepath.Join(root, "yarn.lock")
+	isYarn := fsx.AssertExistsAll(pathYarnLock) == nil
+
 	pathPackageLock := filepath.Join(root, "package-lock.json")
 	hasPackageLock := fsx.AssertExistsAll(pathPackageLock) == nil
-	isYarn := fsx.AssertExistsAll(pathYarnLock) == nil
 
 	runtime, ok := options["runtime"]
 	var isWorkflow bool
@@ -82,7 +85,7 @@ func node(root string, options KindOptions, buildArgs []string) (string, error) 
 		// Check to see if the package.json uses yarn/npm workspaces.
 		// If the package.json has a "workspaces" key, it uses workspaces!
 		// We want to know this because if we are in a workspace, our install
-		// has to honor all of the package.json in the workspace.
+		// has to honor all the package.json files in the workspace.
 		buf, err := os.ReadFile(rootPackageJSON)
 		if err != nil {
 			return "", errors.Wrapf(err, "node: reading %s", rootPackageJSON)
@@ -110,10 +113,15 @@ func node(root string, options KindOptions, buildArgs []string) (string, error) 
 		IsWorkflow:         isWorkflow,
 	}
 
+	packageJSONs, usesWorkspaces, err := GetPackageJSONs(rootPackageJSON)
+	if err != nil {
+		return "", err
+	}
+
 	if cfg.HasPackageJSON {
 		// Workaround to get esbuild to not bundle dependencies.
 		// See build.ExternalPackages for details.
-		deps, err := ExternalPackages(rootPackageJSON)
+		deps, err := ExternalPackages(packageJSONs, usesWorkspaces)
 		if err != nil {
 			return "", err
 		}
@@ -140,7 +148,7 @@ func node(root string, options KindOptions, buildArgs []string) (string, error) 
 		return "", err
 	}
 
-	pjson, err := GenShimPackageJSON(rootPackageJSON, isWorkflow)
+	pjson, err := GenShimPackageJSON(packageJSONs, isWorkflow)
 	if err != nil {
 		return "", err
 	}
@@ -270,16 +278,20 @@ func node(root string, options KindOptions, buildArgs []string) (string, error) 
 	`), cfg)
 }
 
-func GenShimPackageJSON(pathPackageJSON string, isWorkflow bool) ([]byte, error) {
-	deps, err := ListDependencies(pathPackageJSON)
+type shimPackageJSON struct {
+	Dependencies map[string]string `json:"dependencies"`
+	Type         string            `json:"type,omitempty"`
+}
+
+// GenShimPackageJSON generates the `package.json` that contains the dependencies required for the shim to run. If the
+// dependency is satisfied by a parent directory (i.e. the user's code), then no need to include it here.
+func GenShimPackageJSON(packageJSONs []string, isWorkflow bool) ([]byte, error) {
+	deps, err := ListDependenciesFromPackageJSONs(packageJSONs)
 	if err != nil {
 		return nil, err
 	}
 
-	pjson := struct {
-		Dependencies map[string]string `json:"dependencies"`
-		Type         string            `json:"type,omitempty"`
-	}{
+	pjson := shimPackageJSON{
 		Dependencies: map[string]string{
 			"airplane": "~0.1.2",
 		},
@@ -288,7 +300,6 @@ func GenShimPackageJSON(pathPackageJSON string, isWorkflow bool) ([]byte, error)
 	if isWorkflow {
 		// @airplane/workflow-runtime already includes the temporal dependencies, and so we don't need to include them
 		// here.
-		sdkVersion := "0.2.0-25"
 		pjson.Dependencies["airplane"] = sdkVersion
 		pjson.Dependencies["@airplane/workflow-runtime"] = sdkVersion
 	}

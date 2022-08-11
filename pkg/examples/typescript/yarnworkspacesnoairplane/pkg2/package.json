@@ -1,0 +1,12 @@
+{
+  "name": "pkg2",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "pkg1": "1.0.0"
+  },
+  "airplane": {
+    "root": ".."
+  }
+}
