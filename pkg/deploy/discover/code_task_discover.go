@@ -104,10 +104,11 @@ type ParsedDefinition struct {
 }
 
 func (c *CodeTaskDiscoverer) parseDefinitions(ctx context.Context, file string) ([]ParsedDefinition, error) {
-	if strings.HasSuffix(file, ".aptask.ts") || strings.HasSuffix(file, ".aptask.js") ||
+	if strings.HasSuffix(file, ".airplane.ts") || strings.HasSuffix(file, ".airplane.js") ||
+		strings.HasSuffix(file, ".airplane.tsx") || strings.HasSuffix(file, ".airplane.jsx") ||
 		strings.HasSuffix(file, ".view.tsx") || strings.HasSuffix(file, ".view.jsx") {
 		return c.parseNodeDefinitions(ctx, file)
-	} else if strings.HasSuffix(file, "_aptask.py") {
+	} else if strings.HasSuffix(file, "_airplane.py") {
 		return c.parsePythonDefinitions(ctx, file)
 	}
 	return nil, nil

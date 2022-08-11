@@ -25,7 +25,8 @@ type CodeViewDiscoverer struct {
 var _ ViewDiscoverer = &CodeViewDiscoverer{}
 
 func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*ViewConfig, error) {
-	if !isCodeViewFile(file) {
+	if !strings.HasSuffix(file, ".airplane.tsx") && !strings.HasSuffix(file, ".airplane.jsx") &&
+		!strings.HasSuffix(file, ".view.tsx") && !strings.HasSuffix(file, ".view.jsx") {
 		return nil, nil
 	}
 
@@ -122,13 +123,4 @@ func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 
 func (dd *CodeViewDiscoverer) ConfigSource() ConfigSource {
 	return ConfigSourceCode
-}
-
-func isCodeViewFile(file string) bool {
-	for _, suffix := range []string{".view.tsx", ".view.jsx"} {
-		if strings.HasSuffix(file, suffix) {
-			return true
-		}
-	}
-	return false
 }

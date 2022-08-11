@@ -382,7 +382,7 @@ func TestDiscover(t *testing.T) {
 		},
 		{
 			name:  "python code definition",
-			paths: []string{"./fixtures/code_only_aptask.py"},
+			paths: []string{"./fixtures/code_only_task_airplane.py"},
 			existingTasks: map[string]api.Task{
 				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindPython, InterpolationMode: "jst"},
 			},
@@ -390,7 +390,7 @@ func TestDiscover(t *testing.T) {
 				{
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
-					TaskEntrypoint: fixturesPath + "/code_only_aptask.py",
+					TaskEntrypoint: fixturesPath + "/code_only_task_airplane.py",
 					Def: &definitions.Definition_0_3{
 						Name: "Collatz Conjecture Step",
 						Slug: "collatz",
@@ -402,7 +402,7 @@ func TestDiscover(t *testing.T) {
 							},
 						},
 						Python: &definitions.PythonDefinition_0_3{
-							Entrypoint: "code_only_aptask.py",
+							Entrypoint: "code_only_task_airplane.py",
 						},
 					},
 					Source: ConfigSourceCode,
@@ -410,17 +410,17 @@ func TestDiscover(t *testing.T) {
 			},
 			buildConfigs: []build.BuildConfig{
 				{
-					"entrypoint":     "code_only_aptask.py",
+					"entrypoint":     "code_only_task_airplane.py",
 					"entrypointFunc": "collatz",
 				},
 			},
 			absEntrypoints: []string{
-				fixturesPath + "/code_only_aptask.py",
+				fixturesPath + "/code_only_task_airplane.py",
 			},
 		},
 		{
 			name:  "node code definition",
-			paths: []string{"./fixtures/codeOnly.aptask.ts"},
+			paths: []string{"./fixtures/codeOnlyTask.airplane.ts"},
 			existingTasks: map[string]api.Task{
 				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindPython, InterpolationMode: "jst"},
 			},
@@ -428,7 +428,7 @@ func TestDiscover(t *testing.T) {
 				{
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
-					TaskEntrypoint: fixturesPath + "/codeOnly.aptask.ts",
+					TaskEntrypoint: fixturesPath + "/codeOnlyTask.airplane.ts",
 					Def: &definitions.Definition_0_3{
 						Name: "Collatz Conjecture Step",
 						Slug: "collatz",
@@ -440,7 +440,7 @@ func TestDiscover(t *testing.T) {
 							},
 						},
 						Node: &definitions.NodeDefinition_0_3{
-							Entrypoint:  "codeOnly.aptask.ts",
+							Entrypoint:  "codeOnlyTask.airplane.ts",
 							NodeVersion: "18",
 						},
 					},
@@ -449,17 +449,37 @@ func TestDiscover(t *testing.T) {
 			},
 			buildConfigs: []build.BuildConfig{
 				{
-					"entrypoint":     "codeOnly.aptask.ts",
+					"entrypoint":     "codeOnlyTask.airplane.ts",
 					"entrypointFunc": "collatz",
 					"workdir":        "",
 				},
 			},
 			absEntrypoints: []string{
-				fixturesPath + "/codeOnly.aptask.ts",
+				fixturesPath + "/codeOnlyTask.airplane.ts",
 			},
 		},
 		{
 			name:  "view code definition",
+			paths: []string{"./fixtures/view/codeOnlyView.airplane.tsx"},
+			existingViews: map[string]api.View{
+				"my_view": {ID: "view123", Slug: "my_view", Name: "My View"},
+			},
+			expectedViewConfigs: []ViewConfig{
+				{
+					ID: "view123",
+					Def: definitions.ViewDefinition{
+						Name:        "My View",
+						Slug:        "my_view",
+						Description: "Test view yaml file",
+						Entrypoint:  fixturesPath + "/view/codeOnlyView.airplane.tsx",
+					},
+					Root:   fixturesPath,
+					Source: ConfigSourceCode,
+				},
+			},
+		},
+		{
+			name:  "view code definition legacy",
 			paths: []string{"./fixtures/view/codeOnly.view.tsx"},
 			existingViews: map[string]api.View{
 				"my_view": {ID: "view123", Slug: "my_view", Name: "My View"},
