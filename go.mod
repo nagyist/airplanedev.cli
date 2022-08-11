@@ -3,10 +3,10 @@ module github.com/airplanedev/cli
 go 1.19
 
 require (
-	cloud.google.com/go/storage v1.24.0
+	cloud.google.com/go/storage v1.25.0
 	github.com/AlecAivazis/survey/v2 v2.3.5
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/airplanedev/lib v0.5.38
+	github.com/airplanedev/lib v0.5.39
 	github.com/airplanedev/ojson v0.1.0
 	github.com/airplanedev/trap v0.1.0
 	github.com/briandowns/spinner v1.19.0
@@ -37,7 +37,7 @@ require (
 	github.com/stretchr/testify v1.8.0
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035
-	google.golang.org/api v0.91.0
+	google.golang.org/api v0.92.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -132,8 +132,8 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20220624142145-8cd45d7dbd1f // indirect
-	google.golang.org/grpc v1.47.0 // indirect
+	google.golang.org/genproto v0.0.0-20220720214146-176da50484ac // indirect
+	google.golang.org/grpc v1.48.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
