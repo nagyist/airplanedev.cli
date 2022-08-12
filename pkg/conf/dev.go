@@ -5,16 +5,21 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/airplanedev/cli/pkg/resource"
+	"github.com/AlecAivazis/survey/v2"
+	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/lib/pkg/resources"
+	_ "github.com/airplanedev/lib/pkg/resources/kinds"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
+
+var DefaultDevConfigFileName = "airplane.dev.yaml"
 
 // DevConfig represents an airplane dev configuration.
 type DevConfig struct {
 	Env              map[string]string                 `yaml:"env"`
 	Resources        map[string]map[string]interface{} `yaml:"resources"`
-	DecodedResources map[string]resource.Resource
+	DecodedResources map[string]resources.Resource     `yaml:"-"`
 }
 
 func ReadDevConfig(path string) (DevConfig, error) {
@@ -33,11 +38,11 @@ func ReadDevConfig(path string) (DevConfig, error) {
 		return DevConfig{}, errors.Wrap(err, "unmarshal config")
 	}
 
-	slugToResource := map[string]resource.Resource{}
+	slugToResource := map[string]resources.Resource{}
 	for slug, r := range cfg.Resources {
 		if kind, ok := r["kind"]; ok {
 			if kindStr, ok := kind.(string); ok {
-				slugToResource[slug], err = resource.GetResource(resource.ResourceKind(kindStr), r)
+				slugToResource[slug], err = resources.GetResource(resources.ResourceKind(kindStr), r)
 				if err != nil {
 					return DevConfig{}, errors.Wrap(err, "getting resource struct from kind")
 				}
@@ -69,4 +74,32 @@ func WriteDevConfig(path string, config DevConfig) error {
 	}
 
 	return nil
+}
+
+func PromptDevConfigFileCreation(defaultPath string) (string, error) {
+	ok, err := utils.Confirm("Dev config file not found - would you like to create one?")
+	if err != nil {
+		return "", err
+	} else if !ok {
+		return "", nil
+	}
+
+	var path string
+	if err := survey.AskOne(
+		&survey.Input{
+			Message: "Where would you like to create the dev config file?",
+			Default: defaultPath,
+		},
+		&path,
+	); err != nil {
+		return "", err
+	}
+
+	f, err := os.Create(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	return path, nil
 }

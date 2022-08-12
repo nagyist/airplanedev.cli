@@ -12,11 +12,11 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
-	"github.com/airplanedev/cli/pkg/resource"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
+	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -87,7 +87,7 @@ func TestExecute(t *testing.T) {
 		File:        "my_task.task.yaml",
 		Slug:        slug,
 		EnvSlug:     "stage",
-		Resources:   map[string]resource.Resource{},
+		Resources:   map[string]resources.Resource{},
 		LogStore:    logStore,
 	}
 	mockExecutor.On("Execute", mock.Anything, runConfig).Return(nil)

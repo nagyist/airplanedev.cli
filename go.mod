@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/storage v1.25.0
 	github.com/AlecAivazis/survey/v2 v2.3.5
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/airplanedev/lib v0.5.39
+	github.com/airplanedev/lib v0.5.41
 	github.com/airplanedev/ojson v0.1.0
 	github.com/airplanedev/trap v0.1.0
 	github.com/briandowns/spinner v1.19.0
@@ -27,7 +27,6 @@ require (
 	github.com/kr/text v0.2.0
 	github.com/mattn/go-isatty v0.0.14
 	github.com/mitchellh/hashstructure/v2 v2.0.2
-	github.com/mitchellh/mapstructure v1.5.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/analytics-go v1.2.1-0.20201110202747-0566e489c7b9
@@ -71,6 +70,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
+	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/goccy/go-yaml v1.9.5 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -97,6 +97,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
+	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/sys/mount v0.3.0 // indirect
 	github.com/moby/sys/mountinfo v0.5.0 // indirect
 	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635 // indirect
@@ -124,8 +125,10 @@ require (
 	github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0 // indirect
 	github.com/yudai/gojsondiff v1.0.0 // indirect
 	github.com/yudai/golcs v0.0.0-20170316035057-ecda9a501e82 // indirect
+	go.mongodb.org/mongo-driver v1.10.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
+	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
 	golang.org/x/oauth2 v0.0.0-20220622183110-fd043fe589d2 // indirect
 	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect

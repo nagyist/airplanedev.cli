@@ -2,6 +2,7 @@ package cli
 
 import (
 	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -65,4 +66,11 @@ func Must(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// DevCLI stores information for subcommands under airplane dev.
+type DevCLI struct {
+	*Config
+	DevConfig conf.DevConfig
+	Filepath  string
 }

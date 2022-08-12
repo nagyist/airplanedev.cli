@@ -20,7 +20,7 @@ type taskInfo struct {
 	resourceAttachments map[string]string
 }
 
-func getTaskInfo(ctx context.Context, cfg config) (taskInfo, error) {
+func getTaskInfo(ctx context.Context, cfg taskDevConfig) (taskInfo, error) {
 	switch definitions.GetTaskDefFormat(cfg.fileOrDir) {
 	case definitions.DefFormatYAML, definitions.DefFormatJSON:
 		return getTaskInfoFromDefn(ctx, cfg)
@@ -29,7 +29,7 @@ func getTaskInfo(ctx context.Context, cfg config) (taskInfo, error) {
 	}
 }
 
-func getTaskInfoFromDefn(ctx context.Context, cfg config) (taskInfo, error) {
+func getTaskInfoFromDefn(ctx context.Context, cfg taskDevConfig) (taskInfo, error) {
 	dir, err := taskdir.Open(cfg.fileOrDir)
 	if err != nil {
 		return taskInfo{}, err
@@ -56,7 +56,7 @@ func getTaskInfoFromDefn(ctx context.Context, cfg config) (taskInfo, error) {
 	}, nil
 }
 
-func getTaskInfoFromScript(ctx context.Context, cfg config) (taskInfo, error) {
+func getTaskInfoFromScript(ctx context.Context, cfg taskDevConfig) (taskInfo, error) {
 	slug, err := utils.SlugFrom(cfg.fileOrDir)
 	if err != nil {
 		return taskInfo{}, err
@@ -81,7 +81,7 @@ func getTaskInfoFromScript(ctx context.Context, cfg config) (taskInfo, error) {
 
 // getRuntime gets the runtime of a task. It is separate from getTaskInfo because that latter requires us to make
 // an API call to fetch task information, whereas we can derive the runtime from the task definition itself.
-func getRuntime(cfg config) (build.TaskRuntime, error) {
+func getRuntime(cfg taskDevConfig) (build.TaskRuntime, error) {
 	switch definitions.GetTaskDefFormat(cfg.fileOrDir) {
 	case definitions.DefFormatYAML, definitions.DefFormatJSON:
 		dir, err := taskdir.Open(cfg.fileOrDir)

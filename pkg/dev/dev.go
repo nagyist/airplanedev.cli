@@ -17,11 +17,11 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
-	"github.com/airplanedev/cli/pkg/resource"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/outputs"
+	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils/bufiox"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
@@ -52,7 +52,7 @@ type LocalRunConfig struct {
 	EnvSlug     string
 	Env         map[string]string
 	// Mapping from alias to resource
-	Resources map[string]resource.Resource
+	Resources map[string]resources.Resource
 	IsBuiltin bool
 	LogStore  *LogStore
 }

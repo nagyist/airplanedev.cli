@@ -6,7 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/airplanedev/cli/pkg/resource"
+	"github.com/airplanedev/lib/pkg/resources"
+	"github.com/airplanedev/lib/pkg/resources/kinds"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
@@ -102,7 +103,7 @@ func TestDevConfig(t *testing.T) {
 		env := map[string]string{
 			"ENV_VAR": "value",
 		}
-		resources := map[string]map[string]interface{}{
+		resourceMap := map[string]map[string]interface{}{
 			"db": {
 				"kind":     "postgres",
 				"slug":     "db",
@@ -112,18 +113,18 @@ func TestDevConfig(t *testing.T) {
 		}
 		err := WriteDevConfig(path, DevConfig{
 			Env:       env,
-			Resources: resources,
+			Resources: resourceMap,
 		})
 		assert.NoError(err)
 
 		cfg, err := ReadDevConfig(path)
 		assert.NoError(err)
 		assert.Equal(env, cfg.Env)
-		assert.Equal(resources, cfg.Resources)
-		assert.Equal(map[string]resource.Resource{
-			"db": resource.PostgresResource{
-				BaseResource: resource.BaseResource{
-					Kind: resource.ResourceKindPostgres,
+		assert.Equal(resourceMap, cfg.Resources)
+		assert.Equal(map[string]resources.Resource{
+			"db": kinds.PostgresResource{
+				BaseResource: resources.BaseResource{
+					Kind: kinds.ResourceKindPostgres,
 					Slug: "db",
 				},
 				Username: "postgres",

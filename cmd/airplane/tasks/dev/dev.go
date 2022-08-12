@@ -10,6 +10,7 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
+	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config"
 	viewsdev "github.com/airplanedev/cli/cmd/airplane/views/dev"
 	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/cli"
@@ -27,7 +28,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type config struct {
+type taskDevConfig struct {
 	root          *cli.Config
 	fileOrDir     string
 	args          []string
@@ -37,7 +38,7 @@ type config struct {
 }
 
 func New(c *cli.Config) *cobra.Command {
-	var cfg = config{root: c}
+	var cfg = taskDevConfig{root: c}
 
 	cmd := &cobra.Command{
 		Use:   "dev ./path/to/file",
@@ -68,13 +69,15 @@ func New(c *cli.Config) *cobra.Command {
 		},
 	}
 
+	cmd.AddCommand(config.New(c))
+
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
 	cmd.Flags().IntVar(&cfg.port, "port", server.DefaultPort, "The port to start the local airplane api server on - defaults to 4000.")
-	cmd.Flags().StringVar(&cfg.devConfigPath, "config-path", "", "The path to the dev config file to load into the local dev server.")
+	cmd.Flags().StringVar(&cfg.devConfigPath, "config-path", conf.DefaultDevConfigFileName, "The path to the dev config file to load into the local dev server.")
 	return cmd
 }
 
-func run(ctx context.Context, cfg config) error {
+func run(ctx context.Context, cfg taskDevConfig) error {
 	if !fsx.Exists(cfg.fileOrDir) {
 		return errors.Errorf("Unable to open: %s", cfg.fileOrDir)
 	}
@@ -108,10 +111,25 @@ func run(ctx context.Context, cfg config) error {
 		// local dev, we send requests to a locally running api server, and so we override the host here.
 		cfg.root.Client.Host = fmt.Sprintf("127.0.0.1:%d", cfg.port)
 
-		if cfg.devConfigPath != "" {
-			devConfig, err = conf.ReadDevConfig(cfg.devConfigPath)
-			if err != nil {
-				return errors.Wrap(err, "loading in dev config file")
+		devConfig, err = conf.ReadDevConfig(cfg.devConfigPath)
+		if err != nil {
+			var devConfigCreated bool
+			if errors.Is(err, conf.ErrMissing) {
+				if path, creationErr := conf.PromptDevConfigFileCreation(cfg.devConfigPath); creationErr != nil {
+					logger.Warning("Unable to create dev config file: %v", creationErr)
+				} else {
+					devConfig, err = conf.ReadDevConfig(path)
+					if err != nil {
+						return err
+					} else {
+						devConfigCreated = true
+					}
+				}
+			}
+
+			if !devConfigCreated {
+				devConfig = conf.DevConfig{}
+				logger.Warning("Unable to read dev config file, using empty dev config")
 			}
 		}
 
