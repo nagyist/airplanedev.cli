@@ -190,11 +190,10 @@ var _ yaml.Unmarshaler = &EnvVarValue{}
 // UnmarshalJSON allows you set an env var's `value` using either
 // of these notations:
 //
-//   AIRPLANE_DSN: "foobar"
+//	AIRPLANE_DSN: "foobar"
 //
-//   AIRPLANE_DSN:
-//     value: "foobar"
-//
+//	AIRPLANE_DSN:
+//	  value: "foobar"
 func (ev *EnvVarValue) UnmarshalYAML(node *yaml.Node) error {
 	// First, try to unmarshal as a string.
 	// This would be the first case above.
@@ -374,4 +373,15 @@ type Schedule struct {
 	Description string                 `json:"description,omitempty"`
 	CronExpr    string                 `json:"cronExpr"`
 	ParamValues map[string]interface{} `json:"paramValues,omitempty"`
+}
+
+type Display struct {
+	ID        string    `json:"id"`
+	RunID     string    `json:"runID"`
+	Kind      string    `json:"kind"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+
+	// kind=markdown
+	Content string `json:"content"`
 }
