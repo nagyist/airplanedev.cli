@@ -9,20 +9,20 @@ import (
 
 type ResourceFactory func(map[string]interface{}) (Resource, error)
 
-var resourceFactories = map[ResourceKind]ResourceFactory{}
+var ResourceFactories = map[ResourceKind]ResourceFactory{}
 
 func RegisterResourceFactory(kind ResourceKind, factory ResourceFactory) {
-	if _, ok := resourceFactories[kind]; ok {
+	if _, ok := ResourceFactories[kind]; ok {
 		panic(fmt.Sprintf("resource factory already registered for kind %s", kind))
 	}
-	resourceFactories[kind] = factory
+	ResourceFactories[kind] = factory
 }
 
 func RegisterBaseResourceFactory(kind ResourceKind, makeResource func() Resource) {
-	if _, ok := resourceFactories[kind]; ok {
+	if _, ok := ResourceFactories[kind]; ok {
 		panic(fmt.Sprintf("resource factory already registered for kind %s", kind))
 	}
-	resourceFactories[kind] = func(serialized map[string]interface{}) (Resource, error) {
+	ResourceFactories[kind] = func(serialized map[string]interface{}) (Resource, error) {
 		resource := makeResource()
 		if err := BaseFactory(serialized, &resource); err != nil {
 			return nil, err
@@ -32,7 +32,7 @@ func RegisterBaseResourceFactory(kind ResourceKind, makeResource func() Resource
 }
 
 func GetResource(kind ResourceKind, serialized map[string]interface{}) (Resource, error) {
-	factory, ok := resourceFactories[kind]
+	factory, ok := ResourceFactories[kind]
 	if !ok {
 		return nil, errors.Errorf("no factory for kind %s", kind)
 	}
