@@ -21,7 +21,6 @@ import (
 	"github.com/airplanedev/cli/pkg/resource"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/utils"
-	libBuild "github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
@@ -30,11 +29,18 @@ import (
 
 type taskDevConfig struct {
 	root          *cli.Config
-	fileOrDir     string
-	args          []string
-	envSlug       string
 	port          int
 	devConfigPath string
+	envSlug       string
+
+	// Short-lived dev command fields
+	// TODO: Remove these fields once launching the dev server is the default behavior of airplane dev
+	fileOrDir string
+	args      []string
+
+	// Airplane dev server-related fields
+	editor bool
+	dir    string
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -53,16 +59,32 @@ func New(c *cli.Config) *cobra.Command {
 			return login.EnsureLoggedIn(cmd.Root().Context(), c)
 		}),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 || strings.HasPrefix(args[0], "-") {
-				wd, err := os.Getwd()
-				if err != nil {
-					return errors.Wrap(err, "error determining current working directory")
+			wd, err := os.Getwd()
+			if err != nil {
+				return errors.Wrap(err, "error determining current working directory")
+			}
+			if cfg.editor {
+				// TODO: Support multiple dev server roots
+				if len(args) == 0 {
+					cfg.dir = wd
+				} else if len(args) > 1 {
+					return errors.New("Multiple dev server roots detected, please supply only one directory to discover tasks and views")
+				} else {
+					cfg.dir = args[0]
 				}
+			} else if len(args) == 0 || strings.HasPrefix(args[0], "-") {
 				cfg.fileOrDir = wd
 				cfg.args = args
 			} else {
 				cfg.fileOrDir = args[0]
 				cfg.args = args[1:]
+			}
+
+			if cfg.devConfigPath == "" {
+				// Check if default dev config exists
+				if _, err := os.Stat(conf.DefaultDevConfigFileName); err == nil {
+					cfg.devConfigPath = conf.DefaultDevConfigFileName
+				}
 			}
 
 			return run(cmd.Root().Context(), cfg)
@@ -73,11 +95,20 @@ func New(c *cli.Config) *cobra.Command {
 
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
 	cmd.Flags().IntVar(&cfg.port, "port", server.DefaultPort, "The port to start the local airplane api server on - defaults to 4000.")
-	cmd.Flags().StringVar(&cfg.devConfigPath, "config-path", conf.DefaultDevConfigFileName, "The path to the dev config file to load into the local dev server.")
+	cmd.Flags().StringVar(&cfg.devConfigPath, "config-path", "", "The path to the dev config file to load into the local dev server.")
+	// TODO: Make opening the editor the default behavior.
+	cmd.PersistentFlags().BoolVar(&cfg.editor, "editor", false, "Run the local airplane editor")
+	if err := cmd.PersistentFlags().MarkHidden("editor"); err != nil {
+		logger.Debug("error: %s", err)
+	}
 	return cmd
 }
 
 func run(ctx context.Context, cfg taskDevConfig) error {
+	if cfg.editor {
+		return runLocalDevServer(ctx, cfg)
+	}
+
 	if !fsx.Exists(cfg.fileOrDir) {
 		return errors.Errorf("Unable to open: %s", cfg.fileOrDir)
 	}
@@ -99,21 +130,17 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		return errors.Errorf("%s is a directory", cfg.fileOrDir)
 	}
 
-	// Start local api server for workflow tasks only
 	localExecutor := &dev.LocalExecutor{}
-	var devConfig conf.DevConfig
-	runtime, err := getRuntime(cfg)
-	if err != nil {
-		return errors.Wrap(err, "getting runtime")
-	}
-	if runtime == libBuild.TaskRuntimeWorkflow {
-		// The API client is set in the root command, and defaults to api.airplane.dev as the host for deploys, etc. For
-		// local dev, we send requests to a locally running api server, and so we override the host here.
-		cfg.root.Client.Host = fmt.Sprintf("127.0.0.1:%d", cfg.port)
+	// The API client is set in the root command, and defaults to api.airplane.dev as the host for deploys, etc. For
+	// local dev, we send requests to a locally running api server, and so we override the host here.
+	cfg.root.Client.Host = fmt.Sprintf("127.0.0.1:%d", cfg.port)
 
+	var devConfig conf.DevConfig
+	var devConfigLoaded bool
+	if cfg.devConfigPath != "" {
 		devConfig, err = conf.ReadDevConfig(cfg.devConfigPath)
 		if err != nil {
-			var devConfigCreated bool
+			// Attempt to create dev config file
 			if errors.Is(err, conf.ErrMissing) {
 				if path, creationErr := conf.PromptDevConfigFileCreation(cfg.devConfigPath); creationErr != nil {
 					logger.Warning("Unable to create dev config file: %v", creationErr)
@@ -122,52 +149,57 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 					if err != nil {
 						return err
 					} else {
-						devConfigCreated = true
+						devConfigLoaded = true
 					}
 				}
+			} else {
+				logger.Warning("Unable to read dev config, using empty config")
 			}
-
-			if !devConfigCreated {
-				devConfig = conf.DevConfig{}
-				logger.Warning("Unable to read dev config file, using empty dev config")
-			}
+		} else {
+			devConfigLoaded = true
 		}
-
-		apiServer, err := server.Start(server.Options{
-			CLI:       cfg.root,
-			EnvSlug:   cfg.envSlug,
-			Executor:  localExecutor,
-			Port:      cfg.port,
-			DevConfig: devConfig,
-		})
-		if err != nil {
-			return errors.Wrap(err, "starting local dev api server")
-		}
-
-		defer func() {
-			if err := apiServer.Stop(context.Background()); err != nil {
-				logger.Error("failed to stop local api server: %+v", err)
-			}
-		}()
-
-		// Discover local tasks in the directory of the file.
-		d := &discover.Discoverer{
-			TaskDiscoverers: []discover.TaskDiscoverer{
-				&discover.DefnDiscoverer{
-					Client: cfg.root.Client,
-				},
-			},
-			EnvSlug: cfg.envSlug,
-			Client:  cfg.root.Client,
-		}
-		taskConfigs, viewConfigs, err := d.Discover(ctx, filepath.Dir(cfg.fileOrDir))
-		if err != nil {
-			return errors.Wrap(err, "discovering task configs")
-		}
-
-		// TODO: Allow users to re-register tasks once we move to a long-running local api server
-		apiServer.RegisterTasksAndViews(taskConfigs, viewConfigs)
 	}
+
+	if devConfigLoaded {
+		logger.Log("Loaded dev config file at %s", cfg.devConfigPath)
+	} else {
+		devConfig = conf.DevConfig{}
+	}
+
+	apiServer, err := server.Start(server.Options{
+		CLI:       cfg.root,
+		EnvSlug:   cfg.envSlug,
+		Executor:  localExecutor,
+		Port:      cfg.port,
+		DevConfig: devConfig,
+	})
+	if err != nil {
+		return errors.Wrap(err, "starting local dev api server")
+	}
+
+	defer func() {
+		if err := apiServer.Stop(context.Background()); err != nil {
+			logger.Error("failed to stop local api server: %+v", err)
+		}
+	}()
+
+	// Discover local tasks in the directory of the file.
+	d := &discover.Discoverer{
+		TaskDiscoverers: []discover.TaskDiscoverer{
+			&discover.DefnDiscoverer{
+				Client: cfg.root.Client,
+			},
+		},
+		EnvSlug: cfg.envSlug,
+		Client:  cfg.root.Client,
+	}
+	taskConfigs, viewConfigs, err := d.Discover(ctx, filepath.Dir(cfg.fileOrDir))
+	if err != nil {
+		return errors.Wrap(err, "discovering task configs")
+	}
+
+	// TODO: Allow users to re-register tasks once we move to a long-running local api server
+	apiServer.RegisterTasksAndViews(taskConfigs, viewConfigs)
 
 	taskInfo, err := getTaskInfo(ctx, cfg)
 	if err != nil {

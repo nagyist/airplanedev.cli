@@ -78,25 +78,3 @@ func getTaskInfoFromScript(ctx context.Context, cfg taskDevConfig) (taskInfo, er
 		parameters:  task.Parameters,
 	}, nil
 }
-
-// getRuntime gets the runtime of a task. It is separate from getTaskInfo because that latter requires us to make
-// an API call to fetch task information, whereas we can derive the runtime from the task definition itself.
-func getRuntime(cfg taskDevConfig) (build.TaskRuntime, error) {
-	switch definitions.GetTaskDefFormat(cfg.fileOrDir) {
-	case definitions.DefFormatYAML, definitions.DefFormatJSON:
-		dir, err := taskdir.Open(cfg.fileOrDir)
-		if err != nil {
-			return build.TaskRuntimeStandard, err
-		}
-		defer dir.Close()
-
-		def, err := dir.ReadDefinition()
-		if err != nil {
-			return build.TaskRuntimeStandard, err
-		}
-
-		return def.GetRuntime(), nil
-	default:
-		return build.TaskRuntimeStandard, nil
-	}
-}

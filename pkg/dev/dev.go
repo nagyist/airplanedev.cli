@@ -144,8 +144,7 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	cmd := cmdConfig.cmd
 	r := cmdConfig.runtime
 	entrypoint := cmdConfig.entrypoint
-	print.BoxPrint(fmt.Sprintf("Locally running task [%s] %s", config.Slug,
-		config.Root.Client.TaskURL(config.Slug, config.EnvSlug)))
+	print.BoxPrint(fmt.Sprintf("Locally running task [%s]", config.Slug))
 	logger.Log("")
 
 	logger.Debug("Running %s", logger.Bold(strings.Join(cmd.Args, " ")))

@@ -29,7 +29,7 @@ func ReadDevConfig(path string) (DevConfig, error) {
 		return DevConfig{}, ErrMissing
 	}
 
-	buf, err := ioutil.ReadFile(path)
+	buf, err := os.ReadFile(path)
 	if err != nil {
 		return DevConfig{}, errors.Wrap(err, "read config")
 	}

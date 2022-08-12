@@ -1,4 +1,4 @@
-package server
+package dev
 
 import (
 	"context"
@@ -8,54 +8,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
 )
 
-type config struct {
-	root          *cli.Config
-	dir           string
-	envSlug       string
-	port          int
-	devConfigPath string
-}
-
-func New(c *cli.Config) *cobra.Command {
-	var cfg = config{root: c}
-	var err error
-
-	cmd := &cobra.Command{
-		Use:   "server",
-		Short: "Starts the local dev server",
-		Long:  "Starts the local dev server",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				cfg.dir = args[0]
-			} else {
-				if cfg.dir, err = os.Getwd(); err != nil {
-					return errors.Wrap(err, "error determining current working directory")
-				}
-			}
-
-			return run(cmd.Root().Context(), cfg)
-		},
-		// TODO: Support multiple dev roots
-		Args: cobra.MaximumNArgs(1),
-	}
-
-	cmd.Flags().IntVar(&cfg.port, "port", server.DefaultPort, "The port to start the local airplane api server on - defaults to 4000.")
-	cmd.Flags().StringVar(&cfg.devConfigPath, "config-path", "", "The path to the dev config file to load into the local dev server.")
-
-	return cmd
-}
-
-func run(ctx context.Context, cfg config) error {
+func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	appUrl := cfg.root.Client.AppURL()
 	// The API client is set in the root command, and defaults to api.airplane.dev as the host for deploys, etc. For
 	// local dev, we send requests to a locally running api server, and so we override the host here.

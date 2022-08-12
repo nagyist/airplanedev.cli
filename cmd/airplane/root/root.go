@@ -11,7 +11,6 @@ import (
 	"github.com/airplanedev/cli/cmd/airplane/auth/logout"
 	"github.com/airplanedev/cli/cmd/airplane/configs"
 	"github.com/airplanedev/cli/cmd/airplane/runs"
-	"github.com/airplanedev/cli/cmd/airplane/server"
 	"github.com/airplanedev/cli/cmd/airplane/tasks"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/deploy"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev"
@@ -124,7 +123,6 @@ func New() *cobra.Command {
 	cmd.AddCommand(views.New(cfg))
 	cmd.AddCommand(runs.New(cfg))
 	cmd.AddCommand(version.New(cfg))
-	cmd.AddCommand(server.New(cfg))
 
 	return cmd
 }
