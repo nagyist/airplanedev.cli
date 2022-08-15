@@ -39,6 +39,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		Executor:  localExecutor,
 		Port:      cfg.port,
 		DevConfig: devConfig,
+		Dir:       cfg.dir,
 	})
 	if err != nil {
 		return errors.Wrap(err, "starting local dev server")

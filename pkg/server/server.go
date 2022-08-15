@@ -65,6 +65,7 @@ type Options struct {
 	Port      int
 	Executor  dev.Executor
 	DevConfig conf.DevConfig
+	Dir       string
 }
 
 // newServer returns a new HTTP server with API routes
@@ -89,6 +90,7 @@ func Start(opts Options) (*Server, error) {
 		port:      opts.Port,
 		runs:      NewRunStore(),
 		devConfig: opts.DevConfig,
+		dir:       opts.Dir,
 	}
 
 	r := newRouter(state)

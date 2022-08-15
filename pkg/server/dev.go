@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
@@ -55,24 +56,41 @@ type AppMetadata struct {
 }
 
 type ListEntrypointsHandlerResponse struct {
-	Tasks []AppMetadata `json:"tasks"`
-	Views []AppMetadata `json:"views"`
+	Entrypoints map[string][]AppMetadata `json:"entrypoints"`
 }
 
-// ListEntrypointsHandler handles requests to the /dev/list endpoint.
+// ListEntrypointsHandler handles requests to the /dev/list endpoint. It generates a mapping from entrypoint relative to
+// the dev server root to the list of tasks and views that use that entrypoint.
 func ListEntrypointsHandler(ctx context.Context, state *State, r *http.Request) (ListEntrypointsHandlerResponse, error) {
-	tasks := make([]AppMetadata, 0, len(state.taskConfigs))
+	entrypoints := make(map[string][]AppMetadata)
 	for slug, taskConfig := range state.taskConfigs {
-		tasks = append(tasks, AppMetadata{
+		absoluteEntrypoint := taskConfig.TaskEntrypoint
+
+		ep, err := filepath.Rel(state.dir, absoluteEntrypoint)
+		if err != nil {
+			return ListEntrypointsHandlerResponse{}, errors.Wrap(err, "Getting relative path")
+		}
+		if _, ok := entrypoints[ep]; !ok {
+			entrypoints[ep] = make([]AppMetadata, 0, 1)
+		}
+		entrypoints[ep] = append(entrypoints[ep], AppMetadata{
 			Name: taskConfig.Def.GetName(),
 			Slug: slug,
 			Kind: AppKindTask,
 		})
 	}
 
-	views := make([]AppMetadata, 0, len(state.viewConfigs))
 	for slug, viewConfig := range state.viewConfigs {
-		views = append(views, AppMetadata{
+		absoluteEntrypoint := viewConfig.Def.Entrypoint
+
+		ep, err := filepath.Rel(state.dir, absoluteEntrypoint)
+		if err != nil {
+			return ListEntrypointsHandlerResponse{}, errors.Wrap(err, "Getting relative path")
+		}
+		if _, ok := entrypoints[ep]; !ok {
+			entrypoints[ep] = make([]AppMetadata, 0, 1)
+		}
+		entrypoints[ep] = append(entrypoints[ep], AppMetadata{
 			Name: viewConfig.Def.Name,
 			Slug: slug,
 			Kind: AppKindView,
@@ -80,8 +98,7 @@ func ListEntrypointsHandler(ctx context.Context, state *State, r *http.Request) 
 	}
 
 	return ListEntrypointsHandlerResponse{
-		Tasks: tasks,
-		Views: views,
+		Entrypoints: entrypoints,
 	}, nil
 }
 

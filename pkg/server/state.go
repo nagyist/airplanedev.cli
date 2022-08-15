@@ -12,10 +12,12 @@ import (
 
 type State struct {
 	cliConfig *cli.Config
-	envSlug   string
-	executor  dev.Executor
-	port      int
-	runs      *runsStore
+	// Directory from which tasks and views were discovered
+	dir      string
+	envSlug  string
+	executor dev.Executor
+	port     int
+	runs     *runsStore
 	// Mapping from task slug to task config
 	taskConfigs map[string]discover.TaskConfig
 	// Mapping from view slug to view config
@@ -28,7 +30,7 @@ type State struct {
 // TODO: add limit on max items
 type runsStore struct {
 	runs map[string]LocalRun
-	// A tasks's previous runs
+	// A task's previous runs
 	runHistory map[string][]string
 	mu         sync.Mutex
 }

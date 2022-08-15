@@ -27,7 +27,7 @@ func TestPing(t *testing.T) {
 	require.Equal("ok", body.Raw())
 }
 
-func TestListDevMetadata(t *testing.T) {
+func TestListEntrypoints(t *testing.T) {
 	require := require.New(t)
 
 	taskSlug := "my_task"
@@ -43,8 +43,9 @@ func TestListDevMetadata(t *testing.T) {
 
 	viewSlug := "my_view"
 	viewDefinition := definitions.ViewDefinition{
-		Name: "My view",
-		Slug: viewSlug,
+		Name:       "My view",
+		Entrypoint: "my_view.ts",
+		Slug:       viewSlug,
 	}
 
 	h := getHttpExpect(
@@ -76,20 +77,22 @@ func TestListDevMetadata(t *testing.T) {
 	var resp ListEntrypointsHandlerResponse
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
-	require.Equal([]AppMetadata{
-		{
-			Name: "My task",
-			Slug: "my_task",
-			Kind: AppKindTask,
+	require.Equal(map[string][]AppMetadata{
+		"my_task.ts": {
+			{
+				Name: "My task",
+				Slug: "my_task",
+				Kind: AppKindTask,
+			},
 		},
-	}, resp.Tasks)
-	require.Equal([]AppMetadata{
-		{
-			Name: "My view",
-			Slug: "my_view",
-			Kind: AppKindView,
+		"my_view.ts": {
+			{
+				Name: "My view",
+				Slug: "my_view",
+				Kind: AppKindView,
+			},
 		},
-	}, resp.Views)
+	}, resp.Entrypoints)
 }
 
 func TestGetTask(t *testing.T) {
