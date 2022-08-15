@@ -161,8 +161,10 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "entrypoint is not within the task root")
 	}
+	entrypointFunc, _ := opts.KindOptions["entrypointFunc"].(string)
 	shim, err := build.TemplatedNodeShim(build.NodeShimParams{
-		Entrypoint: entrypoint,
+		Entrypoint:     entrypoint,
+		EntrypointFunc: entrypointFunc,
 	})
 	if err != nil {
 		return nil, nil, err
