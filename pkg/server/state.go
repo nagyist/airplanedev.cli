@@ -62,7 +62,6 @@ func (store *runsStore) add(taskID string, runID string, run LocalRun) {
 	if !contains(runID, store.runHistory[taskID]) {
 		store.runHistory[taskID] = append([]string{runID}, store.runHistory[taskID]...)
 	}
-	return
 }
 
 func (store *runsStore) get(runID string) (LocalRun, bool) {
@@ -76,6 +75,6 @@ func (store *runsStore) getRunHistory(taskID string) []LocalRun {
 	for i, runID := range runIDs {
 		res[i] = store.runs[runID]
 	}
-	return res
 
+	return res
 }

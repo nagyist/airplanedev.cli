@@ -73,7 +73,7 @@ func TestListDevMetadata(t *testing.T) {
 		Expect().
 		Status(http.StatusOK).Body()
 
-	var resp ListAppMetadataHandlerResponse
+	var resp ListEntrypointsHandlerResponse
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
 	require.Equal([]AppMetadata{

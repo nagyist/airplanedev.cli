@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -53,16 +52,14 @@ func AttachAPIRoutes(r *mux.Router, state *State) {
 	const basePath = "/v0/"
 	r = r.NewRoute().PathPrefix(basePath).Subrouter()
 
-	r.Handle("/tasks/execute", ExecuteTaskHandler(state)).Methods("POST", "OPTIONS")
-	r.Handle("/tasks/getMetadata", GetTaskMetadataHandler(state)).Methods("GET", "OPTIONS")
-	r.Handle("/tasks/get", GetTaskInfoHandler(state)).Methods("GET", "OPTIONS")
-	r.Handle("/runs/getOutputs", GetOutputsHandler(state)).Methods("GET", "OPTIONS")
-	r.Handle("/runs/get", GetRunHandler(state)).Methods("GET", "OPTIONS")
-	r.Handle("/runs/list", ListRunsHandler(state)).Methods("GET", "OPTIONS")
-
-	r.Handle("/resources/list", ListResourcesHandler(state)).Methods("GET", "OPTIONS")
-
-	r.Handle("/views/get", GetViewHandler(state)).Methods("GET", "OPTIONS")
+	r.Handle("/tasks/execute", HandlerWithBody(state, ExecuteTaskHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/tasks/getMetadata", Handler(state, GetTaskMetadataHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/tasks/get", Handler(state, GetTaskInfoHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/getOutputs", Handler(state, GetOutputsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/get", Handler(state, GetRunHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/list", Handler(state, ListRunsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/resources/list", Handler(state, ListResourcesHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/views/get", Handler(state, GetViewHandler)).Methods("GET", "OPTIONS")
 }
 
 type ExecuteTaskRequest struct {
@@ -73,149 +70,134 @@ type ExecuteTaskRequest struct {
 }
 
 // ExecuteTaskHandler handles requests to the /v0/tasks/execute endpoint
-func ExecuteTaskHandler(state *State) http.HandlerFunc {
-	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-		var req ExecuteTaskRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			return errors.Wrap(err, "failed to decode request body")
+func ExecuteTaskHandler(ctx context.Context, state *State, req ExecuteTaskRequest) (LocalRun, error) {
+	// Allow run IDs to be generated beforehand; this is needed so that the /dev/logs endpoint can start waiting
+	// for logs for a given run before that run's execution has started.
+	runID := req.RunID
+	var run LocalRun
+	if runID != "" {
+		run, _ = state.runs.get(runID)
+	} else {
+		runID = "run" + utils.RandomString(10, utils.CharsetLowercaseNumeric)
+		run = *NewLocalRun()
+	}
+
+	localTaskConfig, ok := state.taskConfigs[req.Slug]
+	isBuiltin := builtins.IsBuiltinTaskSlug(req.Slug)
+	var parameters libapi.Parameters
+	start := time.Now()
+	if isBuiltin || ok {
+		runConfig := dev.LocalRunConfig{
+			ParamValues: req.ParamValues,
+			Port:        state.port,
+			Root:        state.cliConfig,
+			Slug:        req.Slug,
+			EnvSlug:     state.envSlug,
+			IsBuiltin:   isBuiltin,
+			LogStore:    run.LogStore,
 		}
-
-		// Allow run IDs to be generated beforehand; this is needed so that the /dev/logs endpoint can start waiting
-		// for logs for a given run before that run's execution has started.
-		runID := req.RunID
-		var run LocalRun
-		if runID != "" {
-			run, _ = state.runs.get(runID)
-		} else {
-			runID = "run" + utils.RandomString(10, utils.CharsetLowercaseNumeric)
-			run = *NewLocalRun()
-		}
-
-		localTaskConfig, ok := state.taskConfigs[req.Slug]
-		isBuiltin := builtins.IsBuiltinTaskSlug(req.Slug)
-		var parameters libapi.Parameters
-		start := time.Now()
-		if isBuiltin || ok {
-			runConfig := dev.LocalRunConfig{
-				ParamValues: req.ParamValues,
-				Port:        state.port,
-				Root:        state.cliConfig,
-				Slug:        req.Slug,
-				EnvSlug:     state.envSlug,
-				IsBuiltin:   isBuiltin,
-				LogStore:    run.LogStore,
+		resourceAttachments := map[string]string{}
+		if isBuiltin {
+			// builtins have access to all resources the parent task has
+			for slug := range state.devConfig.DecodedResources {
+				resourceAttachments[slug] = slug
 			}
-			resourceAttachments := map[string]string{}
-			if isBuiltin {
-				// builtins have access to all resources the parent task has
-				for slug := range state.devConfig.DecodedResources {
-					resourceAttachments[slug] = slug
-				}
-			} else if localTaskConfig.Def != nil {
-				kind, kindOptions, err := localTaskConfig.Def.GetKindAndOptions()
-				if err != nil {
-					return errors.Wrap(err, "failed to get kind and options from task config")
-				}
-				runConfig.Kind = kind
-				runConfig.KindOptions = kindOptions
-				runConfig.Name = localTaskConfig.Def.GetName()
-				runConfig.File = localTaskConfig.Def.GetDefnFilePath()
-				resourceAttachments = localTaskConfig.Def.GetResourceAttachments()
-				parameters = localTaskConfig.Def.GetParameters()
-
-			}
-			resources, err := resource.GenerateAliasToResourceMap(
-				resourceAttachments,
-				state.devConfig.DecodedResources,
-			)
+		} else if localTaskConfig.Def != nil {
+			kind, kindOptions, err := localTaskConfig.Def.GetKindAndOptions()
 			if err != nil {
-				return errors.Wrap(err, "generating alias to resource map")
+				return LocalRun{}, errors.Wrap(err, "failed to get kind and options from task config")
 			}
-			runConfig.Resources = resources
+			runConfig.Kind = kind
+			runConfig.KindOptions = kindOptions
+			runConfig.Name = localTaskConfig.Def.GetName()
+			runConfig.File = localTaskConfig.Def.GetDefnFilePath()
+			resourceAttachments = localTaskConfig.Def.GetResourceAttachments()
+			parameters = localTaskConfig.Def.GetParameters()
 
-			outputs, err := state.executor.Execute(ctx, runConfig)
-			if err != nil {
-				run.Status = api.RunFailed
-			} else if err == nil {
-				run.Status = api.RunSucceeded
-			}
-			run.Outputs = outputs
-		} else {
-			logger.Error("task with slug %s is not registered locally", req.Slug)
 		}
-
-		run.RunID = runID
-		run.CreatedAt = start
-		run.ParamValues = req.ParamValues
-		run.Parameters = &parameters
-		run.TaskName = req.Slug
-		// if the user is authenticated in CLI, use their ID
-		run.CreatorID = state.cliConfig.ParseTokenForAnalytics().UserID
-		now := time.Now()
-		if run.Status == api.RunSucceeded {
-			run.SucceededAt = &now
-		} else {
-			run.FailedAt = &now
+		resources, err := resource.GenerateAliasToResourceMap(
+			resourceAttachments,
+			state.devConfig.DecodedResources,
+		)
+		if err != nil {
+			return LocalRun{}, errors.Wrap(err, "generating alias to resource map")
 		}
+		runConfig.Resources = resources
 
-		state.runs.add(req.Slug, runID, run)
+		outputs, err := state.executor.Execute(ctx, runConfig)
+		if err != nil {
+			run.Status = api.RunFailed
+		} else if err == nil {
+			run.Status = api.RunSucceeded
+		}
+		run.Outputs = outputs
+	} else {
+		logger.Error("task with slug %s is not registered locally", req.Slug)
+	}
 
-		return json.NewEncoder(w).Encode(run)
-	})
+	run.RunID = runID
+	run.CreatedAt = start
+	run.ParamValues = req.ParamValues
+	run.Parameters = &parameters
+	run.TaskName = req.Slug
+	// if the user is authenticated in CLI, use their ID
+	run.CreatorID = state.cliConfig.ParseTokenForAnalytics().UserID
+	now := time.Now()
+	if run.Status == api.RunSucceeded {
+		run.SucceededAt = &now
+	} else {
+		run.FailedAt = &now
+	}
+
+	state.runs.add(req.Slug, runID, run)
+
+	return run, nil
 }
 
 // GetTaskMetadataHandler handles requests to the /v0/tasks/metadata endpoint. It generates a deterministic task ID for
 // each task found locally, and its primary purpose is to ensure that the task discoverer does not error.
-func GetTaskMetadataHandler(state *State) http.HandlerFunc {
-	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-		slug := r.URL.Query().Get("slug")
-		return json.NewEncoder(w).Encode(libapi.TaskMetadata{
-			ID:   fmt.Sprintf("tsk-%s", slug),
-			Slug: slug,
-		})
-	})
+func GetTaskMetadataHandler(ctx context.Context, state *State, r *http.Request) (libapi.TaskMetadata, error) {
+	slug := r.URL.Query().Get("slug")
+	return libapi.TaskMetadata{
+		ID:   fmt.Sprintf("tsk-%s", slug),
+		Slug: slug,
+	}, nil
 }
 
 // GetViewHandler handles requests to the /v0/views/get endpoint. It generates a deterministic view ID for each view
 // found locally, and its primary purpose is to ensure that the view discoverer does not error.
-func GetViewHandler(state *State) http.HandlerFunc {
-	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-		slug := r.URL.Query().Get("slug")
-		if slug == "" {
-			return errors.New("slug cannot be empty")
-		}
+func GetViewHandler(ctx context.Context, state *State, r *http.Request) (libapi.View, error) {
+	slug := r.URL.Query().Get("slug")
+	if slug == "" {
+		return libapi.View{}, errors.New("slug cannot be empty")
+	}
 
-		return json.NewEncoder(w).Encode(libapi.View{
-			ID:   fmt.Sprintf("vew-%s", slug),
-			Slug: r.URL.Query().Get("slug"),
-		})
-	})
+	return libapi.View{
+		ID:   fmt.Sprintf("vew-%s", slug),
+		Slug: r.URL.Query().Get("slug"),
+	}, nil
 }
 
 // GetRunHandler handles requests to the /v0/runs/get endpoint
-func GetRunHandler(state *State) http.HandlerFunc {
-	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-		runID := r.URL.Query().Get("id")
-		run, ok := state.runs.get(runID)
-		if !ok {
-			return errors.Errorf("run with id %s not found", runID)
-		}
-		return json.NewEncoder(w).Encode(run)
-	})
+func GetRunHandler(ctx context.Context, state *State, r *http.Request) (LocalRun, error) {
+	runID := r.URL.Query().Get("id")
+	run, ok := state.runs.get(runID)
+	if !ok {
+		return LocalRun{}, errors.Errorf("run with id %s not found", runID)
+	}
+	return run, nil
 }
 
 type ListRunsResponse struct {
 	Runs []LocalRun `json:"runs"`
 }
 
-func ListRunsHandler(state *State) http.HandlerFunc {
-	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-		taskSlug := r.URL.Query().Get("taskSlug")
-		runs := state.runs.getRunHistory(taskSlug)
-		return json.NewEncoder(w).Encode(ListRunsResponse{
-			Runs: runs,
-		})
-	})
+func ListRunsHandler(ctx context.Context, state *State, r *http.Request) (ListRunsResponse, error) {
+	taskSlug := r.URL.Query().Get("taskSlug")
+	runs := state.runs.getRunHistory(taskSlug)
+	return ListRunsResponse{
+		Runs: runs,
+	}, nil
 }
 
 type GetOutputsResponse struct {
@@ -224,35 +206,48 @@ type GetOutputsResponse struct {
 }
 
 // GetOutputsHandler handles requests to the /v0/runs/getOutputs endpoint
-func GetOutputsHandler(state *State) http.HandlerFunc {
-	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-		runID := r.URL.Query().Get("id")
-		run, ok := state.runs.get(runID)
-		if !ok {
-			return errors.Errorf("run with id %s not found", runID)
-		}
+func GetOutputsHandler(ctx context.Context, state *State, r *http.Request) (GetOutputsResponse, error) {
+	runID := r.URL.Query().Get("id")
+	run, ok := state.runs.get(runID)
+	if !ok {
+		return GetOutputsResponse{}, errors.Errorf("run with id %s not found", runID)
+	}
 
-		return json.NewEncoder(w).Encode(GetOutputsResponse{
-			Output: run.Outputs,
-		})
-	})
+	return GetOutputsResponse{
+		Output: run.Outputs,
+	}, nil
+}
+
+// GetTaskInfoHandler handles requests to the /v0/tasks?slug=<task_slug> endpoint.
+func GetTaskInfoHandler(ctx context.Context, state *State, r *http.Request) (libapi.UpdateTaskRequest, error) {
+	taskSlug := r.URL.Query().Get("slug")
+	if taskSlug == "" {
+		return libapi.UpdateTaskRequest{}, errors.New("Task slug was not supplied, request path must be of the form /v0/tasks?slug=<task_slug>")
+	}
+	taskConfig, ok := state.taskConfigs[taskSlug]
+	if !ok {
+		return libapi.UpdateTaskRequest{}, errors.Errorf("Task with slug %s not found", taskSlug)
+	}
+	req, err := taskConfig.Def.GetUpdateTaskRequest(ctx, state.cliConfig.Client)
+	if err != nil {
+		return libapi.UpdateTaskRequest{}, errors.Errorf("error getting task %s", taskSlug)
+	}
+	return req, nil
 }
 
 // ListResourcesHandler handles requests to the /v0/resources/list endpoint
-func ListResourcesHandler(state *State) http.HandlerFunc {
-	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-		resources := make([]libapi.Resource, 0, len(state.devConfig.Resources))
-		for slug := range state.devConfig.Resources {
-			// It doesn't matter what we include in the resource struct, as long as we include the slug - this handler
-			// is only used so that requests to the local dev api server for this endpoint don't error, in particular:
-			// https://github.com/airplanedev/lib/blob/d4c8ed7d1b30095c5cacac2b5c4da8f3ada6378f/pkg/deploy/taskdir/definitions/def_0_3.go#L1081-L1087
-			resources = append(resources, libapi.Resource{
-				Slug: slug,
-			})
-		}
-
-		return json.NewEncoder(w).Encode(libapi.ListResourcesResponse{
-			Resources: resources,
+func ListResourcesHandler(ctx context.Context, state *State, r *http.Request) (libapi.ListResourcesResponse, error) {
+	resources := make([]libapi.Resource, 0, len(state.devConfig.Resources))
+	for slug := range state.devConfig.Resources {
+		// It doesn't matter what we include in the resource struct, as long as we include the slug - this handler
+		// is only used so that requests to the local dev api server for this endpoint don't error, in particular:
+		// https://github.com/airplanedev/lib/blob/d4c8ed7d1b30095c5cacac2b5c4da8f3ada6378f/pkg/deploy/taskdir/definitions/def_0_3.go#L1081-L1087
+		resources = append(resources, libapi.Resource{
+			Slug: slug,
 		})
-	})
+	}
+
+	return libapi.ListResourcesResponse{
+		Resources: resources,
+	}, nil
 }
