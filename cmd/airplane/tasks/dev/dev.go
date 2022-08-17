@@ -37,6 +37,9 @@ type taskDevConfig struct {
 	// TODO: Remove these fields once launching the dev server is the default behavior of airplane dev
 	fileOrDir string
 	args      []string
+	// If there are multiple tasks a, b in file f (config as code), specifying airplane
+	// dev f::a would set fileOrDir to f and entrypointFunc to a.
+	entrypointFunc string
 
 	// Airplane dev server-related fields
 	editor bool
@@ -52,7 +55,7 @@ func New(c *cli.Config) *cobra.Command {
 		Long:  "Locally runs a task, optionally with specific parameters.",
 		Example: heredoc.Doc(`
 			airplane dev ./task.js [-- <parameters...>]
-			airplane dev ./task.ts [-- <parameters...>]
+			airplane dev ./task.ts::<exportName> [-- <parameters...>] (for multiple tasks in one file)
 		`),
 		PersistentPreRunE: utils.WithParentPersistentPreRunE(func(cmd *cobra.Command, args []string) error {
 			// TODO: update the `dev` command to work w/out internet access
@@ -78,6 +81,12 @@ func New(c *cli.Config) *cobra.Command {
 			} else {
 				cfg.fileOrDir = args[0]
 				cfg.args = args[1:]
+			}
+
+			fileAndFunction := strings.Split(cfg.fileOrDir, "::")
+			if len(fileAndFunction) > 1 {
+				cfg.fileOrDir = fileAndFunction[0]
+				cfg.entrypointFunc = fileAndFunction[1]
 			}
 
 			if cfg.devConfigPath == "" {
@@ -189,6 +198,9 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 			&discover.DefnDiscoverer{
 				Client: cfg.root.Client,
 			},
+			&discover.CodeTaskDiscoverer{
+				Client: cfg.root.Client,
+			},
 		},
 		EnvSlug: cfg.envSlug,
 		Client:  cfg.root.Client,
@@ -197,36 +209,40 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	if err != nil {
 		return errors.Wrap(err, "discovering task configs")
 	}
+	taskConfig, err := getLocalDevTaskConfig(taskConfigs, cfg)
+	if err != nil {
+		return err
+	}
 
 	// TODO: Allow users to re-register tasks once we move to a long-running local api server
 	apiServer.RegisterTasksAndViews(taskConfigs, viewConfigs)
 
-	taskInfo, err := getTaskInfo(ctx, cfg)
-	if err != nil {
-		return errors.Wrap(err, "getting task info")
-	}
-
-	paramValues, err := params.CLI(cfg.args, taskInfo.name, taskInfo.parameters)
+	paramValues, err := params.CLI(cfg.args, taskConfig.Def.GetName(), taskConfig.Def.GetParameters())
 	if errors.Is(err, flag.ErrHelp) {
 		return nil
 	} else if err != nil {
 		return err
 	}
 
-	resources, err := resource.GenerateAliasToResourceMap(taskInfo.resourceAttachments, devConfig.DecodedResources)
+	resources, err := resource.GenerateAliasToResourceMap(taskConfig.Def.GetResourceAttachments(), devConfig.DecodedResources)
 	if err != nil {
 		return errors.Wrap(err, "generating alias to resource map")
 	}
 
+	kind, kindOptions, err := dev.GetKindAndOptions(taskConfig)
+	if err != nil {
+		return err
+	}
+
 	localRunConfig := dev.LocalRunConfig{
-		Name:        taskInfo.name,
-		Kind:        taskInfo.kind,
-		KindOptions: taskInfo.kindOptions,
+		Name:        taskConfig.Def.GetName(),
+		Kind:        kind,
+		KindOptions: kindOptions,
 		ParamValues: paramValues,
 		Port:        cfg.port,
 		Root:        cfg.root,
 		File:        cfg.fileOrDir,
-		Slug:        taskInfo.slug,
+		Slug:        taskConfig.Def.GetSlug(),
 		EnvSlug:     cfg.envSlug,
 		Env:         devConfig.Env,
 		Resources:   resources,
@@ -241,9 +257,9 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	analytics.Track(cfg.root, "Run Executed Locally", map[string]interface{}{
-		"kind":         taskInfo.kind,
-		"task_slug":    taskInfo.slug,
-		"task_name":    taskInfo.name,
+		"kind":         kind,
+		"task_slug":    taskConfig.Def.GetSlug(),
+		"task_name":    taskConfig.Def.GetName(),
 		"env_slug":     cfg.envSlug,
 		"num_params":   len(paramValues),
 		"num_env_vars": len(devConfig.Env),
@@ -252,4 +268,41 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	})
 
 	return nil
+}
+
+func getLocalDevTaskConfig(taskConfigs []discover.TaskConfig, cfg taskDevConfig) (discover.TaskConfig, error) {
+	absPath, err := filepath.Abs(cfg.fileOrDir)
+	if err != nil {
+		return discover.TaskConfig{}, errors.Wrap(err, "converting file to absolute")
+	}
+	var potentialTaskConfigs []discover.TaskConfig
+	for _, taskConfig := range taskConfigs {
+		if taskConfig.Def.GetDefnFilePath() == absPath || taskConfig.TaskEntrypoint == absPath {
+			potentialTaskConfigs = append(potentialTaskConfigs, taskConfig)
+		}
+	}
+
+	if len(potentialTaskConfigs) == 0 {
+		return discover.TaskConfig{}, errors.New("unable to find any task in file")
+	}
+
+	if len(potentialTaskConfigs) == 1 && cfg.entrypointFunc == "" {
+		return potentialTaskConfigs[0], nil
+	}
+
+	for _, taskConfig := range potentialTaskConfigs {
+		buildConfig, err := taskConfig.Def.GetBuildConfig()
+		if err != nil {
+			return discover.TaskConfig{}, errors.Wrap(err, "getting build config")
+		}
+		entrypointFunc, _ := buildConfig["entrypointFunc"].(string)
+
+		if cfg.entrypointFunc == "" && entrypointFunc == "default" {
+			return taskConfig, nil
+		} else if cfg.entrypointFunc == entrypointFunc {
+			return taskConfig, nil
+		}
+	}
+
+	return discover.TaskConfig{}, errors.New("unable to find specified task in file")
 }

@@ -56,6 +56,9 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 			&discover.DefnDiscoverer{
 				Client: cfg.root.Client,
 			},
+			&discover.CodeTaskDiscoverer{
+				Client: cfg.root.Client,
+			},
 		},
 		EnvSlug: cfg.envSlug,
 		Client:  cfg.root.Client,

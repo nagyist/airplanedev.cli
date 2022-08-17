@@ -82,6 +82,12 @@ func NewViewDirectory(ctx context.Context, cfg *cli.Config, root string, searchP
 		ViewDiscoverers: []discover.ViewDiscoverer{
 			&discover.ViewDefnDiscoverer{
 				Client:             cfg.Client,
+				Logger:             logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
+				MissingViewHandler: missingViewHandler,
+			},
+			&discover.CodeViewDiscoverer{
+				Client:             cfg.Client,
+				Logger:             logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
 				MissingViewHandler: missingViewHandler,
 			},
 		},

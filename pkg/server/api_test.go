@@ -84,7 +84,7 @@ func TestExecute(t *testing.T) {
 		},
 		ParamValues: paramValues,
 		Port:        1234,
-		File:        "my_task.task.yaml",
+		File:        "my_task.ts",
 		Slug:        slug,
 		EnvSlug:     "stage",
 		Resources:   map[string]resources.Resource{},

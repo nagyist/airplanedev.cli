@@ -103,14 +103,14 @@ func ExecuteTaskHandler(ctx context.Context, state *State, req ExecuteTaskReques
 				resourceAttachments[slug] = slug
 			}
 		} else if localTaskConfig.Def != nil {
-			kind, kindOptions, err := localTaskConfig.Def.GetKindAndOptions()
+			kind, kindOptions, err := dev.GetKindAndOptions(localTaskConfig)
 			if err != nil {
-				return LocalRun{}, errors.Wrap(err, "failed to get kind and options from task config")
+				return LocalRun{}, err
 			}
 			runConfig.Kind = kind
 			runConfig.KindOptions = kindOptions
 			runConfig.Name = localTaskConfig.Def.GetName()
-			runConfig.File = localTaskConfig.Def.GetDefnFilePath()
+			runConfig.File = localTaskConfig.TaskEntrypoint
 			resourceAttachments = localTaskConfig.Def.GetResourceAttachments()
 			parameters = localTaskConfig.Def.GetParameters()
 

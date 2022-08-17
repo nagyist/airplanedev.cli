@@ -18,6 +18,7 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/outputs"
@@ -223,6 +224,23 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	}
 
 	return outputs, err
+}
+
+func GetKindAndOptions(taskConfig discover.TaskConfig) (build.TaskKind, build.KindOptions, error) {
+	kind, kindOptions, err := taskConfig.Def.GetKindAndOptions()
+	if err != nil {
+		return "", build.KindOptions{}, errors.Wrap(err, "getting kind and kind options")
+	}
+
+	buildConfig, err := taskConfig.Def.GetBuildConfig()
+	if err != nil {
+		return "", build.KindOptions{}, errors.Wrap(err, "getting build config")
+	}
+	if entrypointFunc, ok := buildConfig["entrypointFunc"]; ok {
+		// Config as code depends on using the correct import name
+		kindOptions["entrypointFunc"] = entrypointFunc
+	}
+	return kind, kindOptions, nil
 }
 
 func scanLogLine(config LocalRunConfig, line string, mu *sync.Mutex, o *ojson.Value, chunks map[string]*strings.Builder) {
