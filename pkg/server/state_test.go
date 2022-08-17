@@ -64,3 +64,22 @@ func TestStoreDupes(t *testing.T) {
 	runHistory := store.getRunHistory(taskID)
 	require.Len(t, runHistory, 1)
 }
+
+func TestStoreUpdate(t *testing.T) {
+	store := NewRunStore()
+	taskID := "task1"
+	runID := "task1_run"
+	run := LocalRun{RunID: runID, TaskName: taskID, Status: api.RunQueued}
+
+	store.add(taskID, runID, run)
+	res, ok := store.get(runID)
+	require.True(t, ok)
+	require.Equal(t, run, res)
+
+	now := time.Now()
+	updatedRun := LocalRun{RunID: runID, TaskName: taskID, Status: api.RunFailed, FailedAt: &now}
+	store.update(runID, updatedRun)
+	res, ok = store.get(runID)
+	require.True(t, ok)
+	require.Equal(t, updatedRun, res)
+}

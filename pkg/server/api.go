@@ -123,6 +123,15 @@ func ExecuteTaskHandler(ctx context.Context, state *State, req ExecuteTaskReques
 			return LocalRun{}, errors.Wrap(err, "generating alias to resource map")
 		}
 		runConfig.Resources = resources
+		run.RunID = runID
+		run.CreatedAt = start
+		run.ParamValues = req.ParamValues
+		run.Parameters = &parameters
+		run.TaskName = req.Slug
+		run.Status = api.RunActive
+		// if the user is authenticated in CLI, use their ID
+		run.CreatorID = state.cliConfig.ParseTokenForAnalytics().UserID
+		state.runs.add(req.Slug, runID, run)
 
 		outputs, err := state.executor.Execute(ctx, runConfig)
 		if err != nil {
@@ -134,23 +143,13 @@ func ExecuteTaskHandler(ctx context.Context, state *State, req ExecuteTaskReques
 	} else {
 		logger.Error("task with slug %s is not registered locally", req.Slug)
 	}
-
-	run.RunID = runID
-	run.CreatedAt = start
-	run.ParamValues = req.ParamValues
-	run.Parameters = &parameters
-	run.TaskName = req.Slug
-	// if the user is authenticated in CLI, use their ID
-	run.CreatorID = state.cliConfig.ParseTokenForAnalytics().UserID
 	now := time.Now()
 	if run.Status == api.RunSucceeded {
 		run.SucceededAt = &now
 	} else {
 		run.FailedAt = &now
 	}
-
-	state.runs.add(req.Slug, runID, run)
-
+	state.runs.update(runID, run)
 	return run, nil
 }
 

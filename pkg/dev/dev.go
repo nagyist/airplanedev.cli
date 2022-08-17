@@ -208,10 +208,7 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 		return cmd.Wait()
 	})
 
-	if err := eg.Wait(); err != nil {
-		return api.Outputs{}, err
-	}
-
+	err = eg.Wait()
 	outputs := api.Outputs(o)
 	logger.Log("")
 	logger.Log("%s for task %s:", logger.Gray("Output"), logger.Gray(config.Slug))
@@ -225,7 +222,7 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 		config.LogStore.DoneChannel <- true
 	}
 
-	return outputs, nil
+	return outputs, err
 }
 
 func scanLogLine(config LocalRunConfig, line string, mu *sync.Mutex, o *ojson.Value, chunks map[string]*strings.Builder) {

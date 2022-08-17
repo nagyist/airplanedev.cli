@@ -71,6 +71,12 @@ func (store *runsStore) get(runID string) (LocalRun, bool) {
 	return res, ok
 }
 
+func (store *runsStore) update(runID string, run LocalRun) {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	store.runs[runID] = run
+}
+
 func (store *runsStore) getRunHistory(taskID string) []LocalRun {
 	runIDs := store.runHistory[taskID]
 	res := make([]LocalRun, len(runIDs))
