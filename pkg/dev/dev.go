@@ -361,7 +361,6 @@ func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error
 	if err != nil {
 		return nil, errors.Wrap(err, "marshaling resources")
 	}
-
 	env = append(env, fmt.Sprintf("AIRPLANE_RESOURCES=%s", string(serialized)))
 	return env, nil
 }

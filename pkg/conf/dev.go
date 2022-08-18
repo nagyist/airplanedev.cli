@@ -38,11 +38,11 @@ func ReadDevConfig(path string) (DevConfig, error) {
 		return DevConfig{}, errors.Wrap(err, "unmarshal config")
 	}
 
-	slugToResource := map[string]resources.Resource{}
+	cfg.DecodedResources = map[string]resources.Resource{}
 	for slug, r := range cfg.Resources {
 		if kind, ok := r["kind"]; ok {
 			if kindStr, ok := kind.(string); ok {
-				slugToResource[slug], err = resources.GetResource(resources.ResourceKind(kindStr), r)
+				cfg.DecodedResources[slug], err = resources.GetResource(resources.ResourceKind(kindStr), r)
 				if err != nil {
 					return DevConfig{}, errors.Wrap(err, "getting resource struct from kind")
 				}
@@ -53,8 +53,6 @@ func ReadDevConfig(path string) (DevConfig, error) {
 			return DevConfig{}, errors.New("missing kind property in resource")
 		}
 	}
-
-	cfg.DecodedResources = slugToResource
 
 	return cfg, nil
 }

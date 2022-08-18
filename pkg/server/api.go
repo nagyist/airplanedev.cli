@@ -97,10 +97,29 @@ func ExecuteTaskHandler(ctx context.Context, state *State, req ExecuteTaskReques
 			LogStore:    run.LogStore,
 		}
 		resourceAttachments := map[string]string{}
+		// Builtins have a specific alias in the form of "rest", "db", etc. that is required by the builtins binary,
+		// and so we need to manually generate resource attachments.
 		if isBuiltin {
-			// builtins have access to all resources the parent task has
-			for slug := range state.devConfig.DecodedResources {
-				resourceAttachments[slug] = slug
+			// The SDK should provide us with exactly one resource for builtins.
+			if len(req.Resources) != 1 {
+				return LocalRun{}, errors.Errorf("unable to determine resource required by builtin, there is not exactly one resource in request: %+v", req.Resources)
+			}
+
+			// Get the only entry in the request resource map.
+			var builtinAlias, resourceID string
+			for builtinAlias, resourceID = range req.Resources {
+			}
+
+			var foundResource bool
+			for slug, res := range state.devConfig.DecodedResources {
+				if res.ID() == resourceID {
+					resourceAttachments[builtinAlias] = slug
+					foundResource = true
+				}
+			}
+
+			if !foundResource {
+				return LocalRun{}, errors.Errorf("resource with id %s not found in dev config file", resourceID)
 			}
 		} else if localTaskConfig.Def != nil {
 			kind, kindOptions, err := dev.GetKindAndOptions(localTaskConfig)

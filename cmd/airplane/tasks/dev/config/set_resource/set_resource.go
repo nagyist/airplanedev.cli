@@ -105,6 +105,7 @@ func run(ctx context.Context, cfg config) error {
 	// Set base resource fields
 	serializedResource["kind"] = cfg.kind
 	serializedResource["slug"] = cfg.slug
+	serializedResource["id"] = fmt.Sprintf("res-%s", cfg.slug)
 
 	// Iterate over resource struct fields and dynamically prompt user for input
 	v := reflect.ValueOf(emptyResource)

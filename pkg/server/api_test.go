@@ -17,6 +17,7 @@ import (
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/resources"
+	"github.com/airplanedev/lib/pkg/resources/kinds"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -97,6 +98,105 @@ func TestExecute(t *testing.T) {
 			Slug:        slug,
 			ParamValues: paramValues,
 			RunID:       "run1234",
+		}).
+		Expect().
+		Status(http.StatusOK).Body()
+
+	mockExecutor.AssertCalled(t, "Execute", mock.Anything, runConfig)
+
+	var resp LocalRun
+	err := json.Unmarshal([]byte(body.Raw()), &resp)
+	require.NoError(err)
+	require.True(strings.HasPrefix(resp.RunID, "run"))
+}
+
+func TestExecuteBuiltin(t *testing.T) {
+	require := require.New(t)
+	mockExecutor := new(dev.MockExecutor)
+	slug := "airplane:sql_query"
+
+	taskDefinition := &definitions.Definition_0_3{
+		Name: "My Task",
+		Slug: slug,
+		Node: &definitions.NodeDefinition_0_3{
+			Entrypoint:  "my_task.ts",
+			NodeVersion: "18",
+		},
+		Resources: definitions.ResourceDefinition_0_3{Attachments: map[string]string{"my_db": "database"}},
+	}
+	taskDefinition.SetDefnFilePath("my_task.task.yaml")
+
+	runID := "run1234"
+	logStore := &dev.LogStore{
+		Channel: make(chan dev.ResponseLog),
+		Logs:    make([]dev.ResponseLog, 0),
+	}
+	store := NewRunStore()
+	store.add(slug, runID, LocalRun{
+		RunID:    runID,
+		LogStore: logStore,
+	},
+	)
+	cliConfig := &cli.Config{Client: &api.Client{}}
+	dbResource := kinds.PostgresResource{
+		BaseResource: resources.BaseResource{
+			Kind: kinds.ResourceKindPostgres,
+			Slug: "database",
+			ID:   "res-database",
+		},
+		Username: "postgres",
+		Password: "password",
+	}
+
+	h := getHttpExpect(
+		context.Background(),
+		t,
+		newRouter(&State{
+			cliConfig: cliConfig,
+			envSlug:   "stage",
+			executor:  mockExecutor,
+			port:      1234,
+			runs:      store,
+			taskConfigs: map[string]discover.TaskConfig{
+				slug: {
+					TaskID:         "tsk123",
+					TaskRoot:       ".",
+					TaskEntrypoint: "my_task.ts",
+					Def:            taskDefinition,
+					Source:         discover.ConfigSourceDefn,
+				},
+			},
+			devConfig: conf.DevConfig{DecodedResources: map[string]resources.Resource{
+				"database": dbResource,
+			}},
+		}),
+	)
+
+	paramValues := api.Values{
+		"query":           "select * from users limit 1",
+		"transactionMode": "auto",
+	}
+
+	runConfig := dev.LocalRunConfig{
+		Root:        cliConfig,
+		ParamValues: paramValues,
+		Port:        1234,
+		Slug:        slug,
+		EnvSlug:     "stage",
+		Resources: map[string]resources.Resource{
+			"db": dbResource,
+		},
+		IsBuiltin: true,
+		LogStore:  logStore,
+	}
+	mockExecutor.On("Execute", mock.Anything, runConfig).Return(nil)
+
+	body := h.POST("/v0/tasks/execute").
+		WithJSON(ExecuteTaskRequest{
+			Slug:        slug,
+			ParamValues: paramValues,
+			RunID:       "run1234",
+			Resources:   map[string]string{"db": "res-database"},
 		}).
 		Expect().
 		Status(http.StatusOK).Body()
