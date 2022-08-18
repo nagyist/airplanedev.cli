@@ -144,3 +144,7 @@ func (r SMTPResource) Kind() resources.ResourceKind {
 func (r SMTPResource) String() string {
 	return fmt.Sprintf("SMTPResource<%s:%s>", r.Hostname, r.Port)
 }
+
+func (r SMTPResource) ID() string {
+	return r.BaseResource.ID
+}

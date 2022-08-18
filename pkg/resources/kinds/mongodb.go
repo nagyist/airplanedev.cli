@@ -38,3 +38,7 @@ func (r MongoDBResource) Kind() resources.ResourceKind {
 func (r MongoDBResource) String() string {
 	return "MongoDBResource"
 }
+
+func (r MongoDBResource) ID() string {
+	return r.BaseResource.ID
+}

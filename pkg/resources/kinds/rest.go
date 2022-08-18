@@ -47,3 +47,7 @@ func (r RESTResource) Kind() resources.ResourceKind {
 func (r RESTResource) String() string {
 	return fmt.Sprintf("RESTResource<%s>", r.BaseURL)
 }
+
+func (r RESTResource) ID() string {
+	return r.BaseResource.ID
+}

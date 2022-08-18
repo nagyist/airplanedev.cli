@@ -33,3 +33,7 @@ func (r SendGridResource) Kind() resources.ResourceKind {
 func (r SendGridResource) String() string {
 	return "SendGridResource"
 }
+
+func (r SendGridResource) ID() string {
+	return r.BaseResource.ID
+}

@@ -71,3 +71,7 @@ func (r SnowflakeResource) GetSSHConfig() *SSHConfig {
 func (r SnowflakeResource) GetSQLDriver() SQLDriver {
 	return SQLDriverSnowflake
 }
+
+func (r SnowflakeResource) ID() string {
+	return r.BaseResource.ID
+}

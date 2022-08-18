@@ -39,3 +39,7 @@ func (r MailgunResource) Kind() resources.ResourceKind {
 func (r MailgunResource) String() string {
 	return fmt.Sprintf("MailgunResource<%s>", r.Domain)
 }
+
+func (r MailgunResource) ID() string {
+	return r.BaseResource.ID
+}

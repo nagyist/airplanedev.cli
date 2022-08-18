@@ -100,3 +100,7 @@ func (r SQLServerResource) GetSSHConfig() *SSHConfig {
 func (r SQLServerResource) GetSQLDriver() SQLDriver {
 	return SQLDriverSQLServer
 }
+
+func (r SQLServerResource) ID() string {
+	return r.BaseResource.ID
+}

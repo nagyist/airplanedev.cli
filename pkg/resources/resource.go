@@ -115,6 +115,7 @@ type Resource interface {
 	Validate() error
 	Kind() ResourceKind
 	String() string
+	ID() string
 }
 
 type EnvLookupFunc func(string) (string, bool)

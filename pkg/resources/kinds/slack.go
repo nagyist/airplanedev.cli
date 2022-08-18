@@ -33,3 +33,7 @@ func (r SlackResource) Kind() resources.ResourceKind {
 func (r SlackResource) String() string {
 	return "SlackResource"
 }
+
+func (r SlackResource) ID() string {
+	return r.BaseResource.ID
+}

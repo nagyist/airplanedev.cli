@@ -40,3 +40,7 @@ func (r RedshiftResource) GetSSHConfig() *SSHConfig {
 func (r RedshiftResource) GetSQLDriver() SQLDriver {
 	return r.PostgresResource.GetSQLDriver()
 }
+
+func (r RedshiftResource) ID() string {
+	return r.BaseResource.ID
+}

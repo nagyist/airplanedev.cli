@@ -112,3 +112,7 @@ func dsnForMySQL(username, host, port, database, tls, password string) string {
 	cfg.Passwd = password
 	return cfg.FormatDSN()
 }
+
+func (r MySQLResource) ID() string {
+	return r.BaseResource.ID
+}

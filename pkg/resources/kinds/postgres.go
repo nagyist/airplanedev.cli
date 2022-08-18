@@ -100,3 +100,7 @@ func (r PostgresResource) GetSSHConfig() *SSHConfig {
 func (r PostgresResource) GetSQLDriver() SQLDriver {
 	return SQLDriverPostgres
 }
+
+func (r PostgresResource) ID() string {
+	return r.BaseResource.ID
+}

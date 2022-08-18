@@ -65,3 +65,7 @@ func (r BigQueryResource) GetSSHConfig() *SSHConfig {
 func (r BigQueryResource) GetSQLDriver() SQLDriver {
 	return SQLDriverBigQuery
 }
+
+func (r BigQueryResource) ID() string {
+	return r.BaseResource.ID
+}
