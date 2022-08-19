@@ -20,7 +20,7 @@ type TaskDef = {
   allowSelfApprovals?: boolean;
   timeout?: number;
   constraints?: Record<string, string>;
-  resources: Record<string, string>;
+  resources: Record<string, string> | string[];
   schedules: Record<string, any>;
   runtime?: "" | "workflow";
 };
