@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/airplanedev/cli/pkg/logger"
@@ -54,6 +55,42 @@ func Handler[Resp any](state *State,
 		}
 		w.Header().Set("Content-Type", "application/json")
 		return json.NewEncoder(w).Encode(resp)
+	})
+}
+
+func HandlerSSE[Resp any](state *State, f func(ctx context.Context, state *State, r *http.Request, flush func(resp Resp) error) error) http.HandlerFunc {
+	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+
+		flusher, _ := w.(http.Flusher)
+		flush := func(resp Resp) error {
+			if _, err := fmt.Fprint(w, "data: "); err != nil {
+				return errors.Wrap(err, "serializing event field")
+			}
+			e := json.NewEncoder(w)
+			e.SetEscapeHTML(false)
+			if err := e.Encode(resp); err != nil {
+				return errors.Wrap(err, "serializing event data")
+			}
+			if _, err := fmt.Fprint(w, "\n"); err != nil {
+				return errors.Wrap(err, "serializing final event newline")
+			}
+
+			if flusher != nil {
+				flusher.Flush()
+			}
+
+			return nil
+		}
+
+		err := f(ctx, state, r, flush)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	})
 }
 

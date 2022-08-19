@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -11,7 +10,7 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/views"
 	"github.com/airplanedev/cli/pkg/views/viewdir"
@@ -29,7 +28,7 @@ func AttachDevRoutes(r *mux.Router, state *State) {
 	r.Handle("/list", Handler(state, ListEntrypointsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/tasks/{task_slug}", Handler(state, GetTaskHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/startView/{view_slug}", Handler(state, StartViewHandler)).Methods("POST", "OPTIONS")
-	r.Handle("/logs/{run_id}", LogsHandler(state)).Methods("GET", "OPTIONS")
+	r.Handle("/logs/{run_id}", HandlerSSE(state, LogsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/create", HandlerWithBody(state, CreateRunHandler)).Methods("POST", "OPTIONS")
 }
 
@@ -203,68 +202,46 @@ func StartViewHandler(ctx context.Context, state *State, r *http.Request) (Start
 	return StartViewResponse{ViteServer: viteServer}, nil
 }
 
-func LogsHandler(state *State) http.HandlerFunc {
-	// TODO: Extract logic into SSE Handler
-	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-		w.Header().Set("Content-Type", "text/event-stream")
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Connection", "keep-alive")
+func LogsHandler(ctx context.Context, state *State, r *http.Request, flush func(dev.ResponseLog) error) error {
+	vars := mux.Vars(r)
+	runID, ok := vars["run_id"]
+	if !ok {
+		return errors.Errorf("Run id was not supplied, request path must be of the form /dev/logs/<run_id>")
+	}
 
-		vars := mux.Vars(r)
-		runID, ok := vars["run_id"]
-		if !ok {
-			return errors.Errorf("Run id was not supplied, request path must be of the form /dev/logs/<run_id>")
+	run, ok := state.runs.get(runID)
+	if !ok {
+		return errors.Errorf("Run with id %s not found", runID)
+	}
+
+	// Send logs that have already been persisted.
+	// TODO: Move this to a dedicated /getLogs endpoint
+	for _, log := range run.LogStore.Logs {
+		if err := flush(log); err != nil {
+			return err
 		}
+	}
 
-		run, ok := state.runs.get(runID)
-		if !ok {
-			return errors.Errorf("Run with id %s not found", runID)
-		}
+	// If the run has finished, then we've already sent all the logs above.
+	if run.Status == api.RunSucceeded {
+		return nil
+	}
 
-		// Send logs that have already been persisted.
-		// TODO: Move this to a dedicated /getLogs endpoint
-		for _, log := range run.LogStore.Logs {
-			encodedLog, err := json.Marshal(log)
-			if err != nil {
-				return errors.Wrap(err, "marshaling log")
-			}
-			fmt.Fprintf(w, "data: %s\n\n", encodedLog)
-		}
-
-		if f, ok := w.(http.Flusher); ok {
-			f.Flush()
-		}
-
-		// If the run has finished, then we've already sent all the logs above.
-		if run.Status == api.RunSucceeded {
+	for {
+		select {
+		// If the client has closed their request, then we should stop the event stream.
+		case <-ctx.Done():
 			return nil
-		}
-
-		logger.Debug("Waiting for logs from command output")
-		for {
-			select {
-			case log := <-run.LogStore.Channel:
-				logger.Debug("Sending log to event stream")
-				encodedLog, err := json.Marshal(log)
-				if err != nil {
-					return errors.Wrap(err, "marshaling log")
-				}
-				fmt.Fprintf(w, "data: %s\n\n", encodedLog)
-				if f, ok := w.(http.Flusher); ok {
-					f.Flush()
-				}
-				run.LogStore.Logs = append(run.LogStore.Logs, log)
-			// If the client has closed their request, then we should stop the event stream.
-			case <-r.Context().Done():
-				logger.Debug("Event stream closed")
-				return nil
-			// If the command has finished running, we should close the event stream.
-			case <-run.LogStore.DoneChannel:
-				logger.Debug("Done executing")
-				return nil
+		// If the command has finished running, we should close the event stream.
+		case <-run.LogStore.DoneChannel:
+			return nil
+		case log := <-run.LogStore.Channel:
+			if err := flush(log); err != nil {
+				return err
 			}
+			run.LogStore.Logs = append(run.LogStore.Logs, log)
 		}
-	})
+	}
 }
 
 func GenerateRunID() string {
