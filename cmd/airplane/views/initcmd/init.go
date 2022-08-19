@@ -20,7 +20,6 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/build"
-	"github.com/airplanedev/lib/pkg/deploy/taskdir"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
@@ -40,7 +39,7 @@ type config struct {
 const gettingStartedExample = "github.com/airplanedev/examples/views/getting_started"
 
 func New(c *cli.Config) *cobra.Command {
-	var cfg = config{client: c.Client}
+	var cfg = GetConfig(c.Client)
 
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -55,7 +54,7 @@ func New(c *cli.Config) *cobra.Command {
 			return login.EnsureLoggedIn(cmd.Root().Context(), c)
 		}),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return run(cmd.Root().Context(), cfg)
+			return Run(cmd.Root().Context(), cfg)
 		},
 	}
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
@@ -65,19 +64,25 @@ func New(c *cli.Config) *cobra.Command {
 	return cmd
 }
 
-func run(ctx context.Context, cfg config) error {
+func GetConfig(client *api.Client) config {
+	return config{client: client}
+}
+
+func Run(ctx context.Context, cfg config) error {
 	if cfg.gettingStarted {
 		_, err := createDemoDB(ctx, cfg)
 		if err != nil {
 			return err
 		}
-		if err := initWithExample(&cfg, gettingStartedExample); err != nil {
+		if err := utils.CopyFromGithubPath(gettingStartedExample); err != nil {
 			return err
 		}
+		(&cfg).viewDir = filepath.Base(gettingStartedExample)
 	} else if cfg.from != "" {
-		if err := initWithExample(&cfg, cfg.from); err != nil {
+		if err := utils.CopyFromGithubPath(cfg.from); err != nil {
 			return err
 		}
+		(&cfg).viewDir = filepath.Base(cfg.from)
 	} else {
 		if err := promptForNewView(&cfg); err != nil {
 			return err
@@ -108,9 +113,10 @@ func createViewScaffolding(ctx context.Context, cfg *config) error {
 
 	// Default to creating folder with the slug
 	directory := slug
-	if err := createViewDir(cfg, directory); err != nil {
+	if err := utils.CreateDirectory(directory); err != nil {
 		return err
 	}
+	cfg.viewDir = directory
 
 	// TODO: Add the views scaffolding files to directory
 	if err := createViewDefinition(*cfg); err != nil {
@@ -125,25 +131,6 @@ func createViewScaffolding(ctx context.Context, cfg *config) error {
 	if err := createPackageJSON(*cfg); err != nil {
 		return err
 	}
-	return nil
-}
-
-func createViewDir(cfg *config, directoryName string) error {
-	if fsx.Exists(directoryName) {
-		question := fmt.Sprintf("Directory %s already exists. Do you want to remove its existing files and continue creating view?", directoryName)
-
-		if ok, err := utils.Confirm(question); err != nil {
-			return err
-		} else if !ok {
-			return errors.New("canceled airplane views init")
-		}
-		os.RemoveAll(directoryName)
-	}
-	if err := os.MkdirAll(directoryName, 0755); err != nil {
-		return err
-	}
-	cfg.viewDir = directoryName
-	logger.Step("Created folder %s", directoryName)
 	return nil
 }
 
@@ -393,69 +380,4 @@ func suggestNextSteps(cfg config) {
 		"airplane deploy %s",
 		deployDir,
 	)
-}
-
-// initWithExample tries to copy a directory or file into the current working directory.
-// TODO: figure out smarter way to merge package.json or conditionally copy/create package.json
-func initWithExample(cfg *config, gitPath string) error {
-	if !(strings.HasPrefix(gitPath, "github.com/") || strings.HasPrefix(gitPath, "https://github.com/")) {
-		return errors.New("expected --from to be in the format github.com/ORG/REPO/PATH/TO/FOLDER[@REF]")
-	}
-	// TODO: Refactor lib so opening from a github path is not specific to tasks and task definitions
-	d, err := taskdir.Open(gitPath)
-	if err != nil {
-		return err
-	}
-	defer d.Close()
-
-	path := d.DefinitionPath()
-
-	fileInfo, err := os.Stat(path)
-	if err != nil {
-		return err
-	}
-
-	if fileInfo.IsDir() {
-		viewDirectory := filepath.Base(path)
-		if err := createViewDir(cfg, viewDirectory); err != nil {
-			return err
-		}
-		if err := utils.CopyDirectoryContents(path, cfg.viewDir); err != nil {
-			return err
-		}
-
-		if fsx.Exists(filepath.Join(viewDirectory, "package.json")) {
-			useYarn := utils.ShouldUseYarn(viewDirectory)
-			logger.Step("Installing dependencies...")
-			if err = utils.InstallDependencies(viewDirectory, useYarn); err != nil {
-				logger.Debug(err.Error())
-				if useYarn {
-					return errors.New("error installing dependencies using yarn. Try installing yarn.")
-				}
-				return err
-			}
-			logger.Step("Finished installing dependencies")
-			return nil
-		}
-	} else {
-		cwd, err := os.Getwd()
-		if err != nil {
-			return err
-		}
-		fileName := filepath.Base(path)
-
-		if fsx.Exists(fileName) {
-			question := fmt.Sprintf("File %s already exists. Do you want to overwrite it and continue creating view?", fileName)
-
-			if ok, err := utils.Confirm(question); err != nil {
-				return err
-			} else if !ok {
-				return errors.New("canceled airplane views init")
-			}
-		}
-		if err := utils.CopyFile(path, cwd); err != nil {
-			return err
-		}
-	}
-	return nil
 }

@@ -53,7 +53,7 @@ type newTaskInfo struct {
 }
 
 func New(c *cli.Config) *cobra.Command {
-	var cfg = config{client: c.Client}
+	var cfg = GetConfig(c.Client)
 
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -73,7 +73,7 @@ func New(c *cli.Config) *cobra.Command {
 			if len(args) > 0 {
 				cfg.file = args[0]
 			}
-			return run(cmd.Root().Context(), cfg)
+			return Run(cmd.Root().Context(), cfg)
 		},
 	}
 
@@ -94,7 +94,11 @@ func New(c *cli.Config) *cobra.Command {
 	return cmd
 }
 
-func run(ctx context.Context, cfg config) error {
+func GetConfig(client *api.Client) config {
+	return config{client: client}
+}
+
+func Run(ctx context.Context, cfg config) error {
 	// Check for mutually exclusive flags.
 	if cfg.assumeYes && cfg.assumeNo {
 		return errors.New("Cannot specify both --yes and --no")

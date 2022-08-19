@@ -1,12 +1,16 @@
 package utils
 
 import (
+	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/lib/pkg/utils/fsx"
+	"github.com/airplanedev/lib/pkg/utils/github"
 	"github.com/pkg/errors"
 )
 
@@ -44,4 +48,82 @@ func CopyDirectoryContents(srcDirectory string, dstDirectory string) error {
 		}
 		return CopyFile(path, filepath.Join(dstDirectory, filepath.Dir(rel)))
 	})
+}
+
+func CreateDirectory(directoryName string) error {
+	if fsx.Exists(directoryName) {
+		question := fmt.Sprintf("Directory %s already exists. Do you want to remove its existing files and continue?", directoryName)
+
+		if ok, err := Confirm(question); err != nil {
+			return err
+		} else if !ok {
+			return errors.New(fmt.Sprintf("canceled creating directory %s", directoryName))
+		}
+		os.RemoveAll(directoryName)
+	}
+	if err := os.MkdirAll(directoryName, 0755); err != nil {
+		return err
+	}
+	logger.Step("Created directory %s", directoryName)
+	return nil
+}
+
+func CopyFromGithubPath(gitPath string) error {
+	if !(strings.HasPrefix(gitPath, "github.com/") || strings.HasPrefix(gitPath, "https://github.com/")) {
+		return errors.New("expected path to be in the format github.com/ORG/REPO/PATH/TO/FOLDER[@REF]")
+	}
+	tempPath, closer, err := github.OpenGitHubDirectory(gitPath)
+	if err != nil {
+		return err
+	}
+	defer closer.Close()
+
+	fileInfo, err := os.Stat(tempPath)
+	if err != nil {
+		return errors.New("path to directory or file not found")
+	}
+
+	if fileInfo.IsDir() {
+		directory := filepath.Base(tempPath)
+		if err := CreateDirectory(directory); err != nil {
+			return err
+		}
+		if err := CopyDirectoryContents(tempPath, directory); err != nil {
+			return err
+		}
+
+		if fsx.Exists(filepath.Join(directory, "package.json")) {
+			useYarn := ShouldUseYarn(directory)
+			logger.Step("Installing dependencies...")
+			if err = InstallDependencies(directory, useYarn); err != nil {
+				logger.Debug(err.Error())
+				if useYarn {
+					return errors.New("error installing dependencies using yarn. Try installing yarn.")
+				}
+				return err
+			}
+			logger.Step("Finished installing dependencies")
+			return nil
+		}
+	} else {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		fileName := filepath.Base(tempPath)
+
+		if fsx.Exists(fileName) {
+			question := fmt.Sprintf("File %s already exists. Do you want to overwrite it?", fileName)
+
+			if ok, err := Confirm(question); err != nil {
+				return err
+			} else if !ok {
+				return errors.New("canceled airplane views init")
+			}
+		}
+		if err := CopyFile(tempPath, cwd); err != nil {
+			return err
+		}
+	}
+	return nil
 }
