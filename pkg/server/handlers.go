@@ -27,14 +27,14 @@ func Wrap(f func(ctx context.Context, w http.ResponseWriter, r *http.Request) er
 // HandlerWithBody is an API handler that reads a JSON-encoded request body, calls a provided handler,
 // and then writes the JSON encoded response. It is used for handling an API request with a body.
 func HandlerWithBody[Req any, Resp any](state *State,
-	f func(ctx context.Context, state *State, req Req) (Resp, error)) http.HandlerFunc {
+	f func(ctx context.Context, state *State, r *http.Request, req Req) (Resp, error)) http.HandlerFunc {
 	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 		var req Req
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			return errors.Wrap(err, "failed to decode request body")
 		}
 
-		resp, err := f(ctx, state, req)
+		resp, err := f(ctx, state, r, req)
 		if err != nil {
 			return err
 		}

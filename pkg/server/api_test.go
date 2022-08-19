@@ -76,6 +76,7 @@ func TestExecute(t *testing.T) {
 	}
 
 	runConfig := dev.LocalRunConfig{
+		ID:   runID,
 		Name: "My Task",
 		Root: cliConfig,
 		Kind: build.TaskKindNode,
@@ -97,7 +98,7 @@ func TestExecute(t *testing.T) {
 		WithJSON(ExecuteTaskRequest{
 			Slug:        slug,
 			ParamValues: paramValues,
-			RunID:       "run1234",
+			RunID:       runID,
 		}).
 		Expect().
 		Status(http.StatusOK).Body()
@@ -178,6 +179,7 @@ func TestExecuteBuiltin(t *testing.T) {
 	}
 
 	runConfig := dev.LocalRunConfig{
+		ID:          runID,
 		Root:        cliConfig,
 		ParamValues: paramValues,
 		Port:        1234,
@@ -195,7 +197,7 @@ func TestExecuteBuiltin(t *testing.T) {
 		WithJSON(ExecuteTaskRequest{
 			Slug:        slug,
 			ParamValues: paramValues,
-			RunID:       "run1234",
+			RunID:       runID,
 			Resources:   map[string]string{"db": "res-database"},
 		}).
 		Expect().

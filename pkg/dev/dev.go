@@ -42,6 +42,7 @@ type LocalExecutor struct{}
 
 // LocalRunConfig is a struct that contains the necessary configs for running a task locally.
 type LocalRunConfig struct {
+	ID          string
 	Name        string
 	Kind        build.TaskKind
 	KindOptions build.KindOptions
@@ -356,6 +357,14 @@ func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error
 	env = append(env, fmt.Sprintf("AIRPLANE_API_HOST=http://127.0.0.1:%d", config.Port))
 	env = append(env, "AIRPLANE_RUNTIME=dev")
 	env = append(env, "AIRPLANE_RESOURCES_VERSION=2")
+
+	token, err := GenerateInsecureAirplaneToken(AirplaneTokenClaims{
+		RunID: config.ID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	env = append(env, fmt.Sprintf("AIRPLANE_TOKEN=%s", token))
 
 	serialized, err := json.Marshal(config.Resources)
 	if err != nil {

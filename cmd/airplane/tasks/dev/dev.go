@@ -235,6 +235,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	localRunConfig := dev.LocalRunConfig{
+		ID:          server.GenerateRunID(),
 		Name:        taskConfig.Def.GetName(),
 		Kind:        kind,
 		KindOptions: kindOptions,

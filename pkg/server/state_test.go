@@ -78,7 +78,9 @@ func TestStoreUpdate(t *testing.T) {
 
 	now := time.Now()
 	updatedRun := LocalRun{RunID: runID, TaskName: taskID, Status: api.RunFailed, FailedAt: &now}
-	store.update(runID, updatedRun)
+	store.update(runID, func(run *LocalRun) {
+		*run = updatedRun
+	})
 	res, ok = store.get(runID)
 	require.True(t, ok)
 	require.Equal(t, updatedRun, res)

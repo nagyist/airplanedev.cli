@@ -110,12 +110,12 @@ type CreateRunRequest struct {
 	TaskSlug string `json:"taskSlug"`
 }
 
-func CreateRunHandler(ctx context.Context, state *State, req CreateRunRequest) (CreateRunResponse, error) {
+func CreateRunHandler(ctx context.Context, state *State, r *http.Request, req CreateRunRequest) (CreateRunResponse, error) {
 	if req.TaskSlug == "" {
 		return CreateRunResponse{}, errors.New("Task slug is required")
 	}
 
-	runID := "run" + utils.RandomString(10, utils.CharsetLowercaseNumeric)
+	runID := GenerateRunID()
 	run := *NewLocalRun()
 	run.CreatorID = state.cliConfig.ParseTokenForAnalytics().UserID
 	state.runs.add(req.TaskSlug, runID, run)
@@ -265,4 +265,8 @@ func LogsHandler(state *State) http.HandlerFunc {
 			}
 		}
 	})
+}
+
+func GenerateRunID() string {
+	return "run" + utils.RandomString(10, utils.CharsetLowercaseNumeric)
 }

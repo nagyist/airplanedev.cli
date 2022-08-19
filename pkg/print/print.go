@@ -81,11 +81,24 @@ func Print(obj interface{}, defaultPrintFunc func()) {
 // | hello |
 // +-------+
 func BoxPrint(s string) {
+	BoxPrintWithPrefix(s, "")
+}
+
+func BoxPrintWithPrefix(s, prefix string) {
 	Print(s, func() {
-		sLen := len(s)
-		logger.Log("+" + strings.Repeat("-", sLen+2) + "+")
-		logger.Log("| " + s + " |")
-		logger.Log("+" + strings.Repeat("-", sLen+2) + "+")
+		lines := strings.Split(s, "\n")
+		sLen := 0
+		for _, line := range lines {
+			if len(line) > sLen {
+				sLen = len(line)
+			}
+		}
+		logger.Log(prefix + "+" + strings.Repeat("-", sLen+2) + "+")
+		for _, line := range lines {
+			padding := strings.Repeat(" ", sLen-len(line))
+			logger.Log(prefix + "| " + line + padding + " |")
+		}
+		logger.Log(prefix + "+" + strings.Repeat("-", sLen+2) + "+")
 	})
 }
 

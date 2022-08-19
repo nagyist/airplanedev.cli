@@ -9,6 +9,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/resource"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
@@ -29,6 +30,7 @@ type LocalRun struct {
 	Parameters  *libapi.Parameters     `json:"parameters"`
 	LogStore    *dev.LogStore          `json:"-"`
 	TaskName    string                 `json:"taskName"`
+	Displays    []libapi.Display       `json:"displays"`
 }
 
 // NewLocalRun initializes a run for local dev.
@@ -42,6 +44,7 @@ func NewLocalRun() *LocalRun {
 			DoneChannel: make(chan bool, 1),
 			Logs:        make([]dev.ResponseLog, 0),
 		},
+		Displays: []libapi.Display{},
 	}
 }
 
@@ -58,8 +61,13 @@ func AttachAPIRoutes(r *mux.Router, state *State) {
 	r.Handle("/runs/getOutputs", Handler(state, GetOutputsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/get", Handler(state, GetRunHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/list", Handler(state, ListRunsHandler)).Methods("GET", "OPTIONS")
+
 	r.Handle("/resources/list", Handler(state, ListResourcesHandler)).Methods("GET", "OPTIONS")
+
 	r.Handle("/views/get", Handler(state, GetViewHandler)).Methods("GET", "OPTIONS")
+
+	r.Handle("/displays/list", Handler(state, ListDisplaysHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/displays/create", HandlerWithBody(state, CreateDisplayHandler)).Methods("POST", "OPTIONS")
 }
 
 type ExecuteTaskRequest struct {
@@ -70,7 +78,7 @@ type ExecuteTaskRequest struct {
 }
 
 // ExecuteTaskHandler handles requests to the /v0/tasks/execute endpoint
-func ExecuteTaskHandler(ctx context.Context, state *State, req ExecuteTaskRequest) (LocalRun, error) {
+func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req ExecuteTaskRequest) (LocalRun, error) {
 	// Allow run IDs to be generated beforehand; this is needed so that the /dev/logs endpoint can start waiting
 	// for logs for a given run before that run's execution has started.
 	runID := req.RunID
@@ -78,7 +86,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State, req ExecuteTaskReques
 	if runID != "" {
 		run, _ = state.runs.get(runID)
 	} else {
-		runID = "run" + utils.RandomString(10, utils.CharsetLowercaseNumeric)
+		runID = GenerateRunID()
 		run = *NewLocalRun()
 	}
 
@@ -88,6 +96,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State, req ExecuteTaskReques
 	start := time.Now()
 	if isBuiltin || ok {
 		runConfig := dev.LocalRunConfig{
+			ID:          runID,
 			ParamValues: req.ParamValues,
 			Port:        state.port,
 			Root:        state.cliConfig,
@@ -153,22 +162,22 @@ func ExecuteTaskHandler(ctx context.Context, state *State, req ExecuteTaskReques
 		state.runs.add(req.Slug, runID, run)
 
 		outputs, err := state.executor.Execute(ctx, runConfig)
-		if err != nil {
-			run.Status = api.RunFailed
-		} else if err == nil {
-			run.Status = api.RunSucceeded
-		}
-		run.Outputs = outputs
+
+		completedAt := time.Now()
+		run, _ = state.runs.update(runID, func(run *LocalRun) {
+			if err != nil {
+				run.Status = api.RunFailed
+				run.FailedAt = &completedAt
+			} else {
+				run.Status = api.RunSucceeded
+				run.SucceededAt = &completedAt
+			}
+			run.Outputs = outputs
+		})
 	} else {
 		logger.Error("task with slug %s is not registered locally", req.Slug)
 	}
-	now := time.Now()
-	if run.Status == api.RunSucceeded {
-		run.SucceededAt = &now
-	} else {
-		run.FailedAt = &now
-	}
-	state.runs.update(runID, run)
+
 	return run, nil
 }
 
@@ -267,5 +276,66 @@ func ListResourcesHandler(ctx context.Context, state *State, r *http.Request) (l
 
 	return libapi.ListResourcesResponse{
 		Resources: resources,
+	}, nil
+}
+
+type ListDisplaysResponse struct {
+	Displays []libapi.Display `json:"displays"`
+}
+
+func ListDisplaysHandler(ctx context.Context, state *State, r *http.Request) (ListDisplaysResponse, error) {
+	runID := r.URL.Query().Get("runID")
+	run, ok := state.runs.get(runID)
+	if !ok {
+		return ListDisplaysResponse{}, errors.Errorf("run with id %q not found", runID)
+	}
+
+	return ListDisplaysResponse{
+		Displays: append([]libapi.Display{}, run.Displays...),
+	}, nil
+}
+
+type CreateDisplayRequest struct {
+	Display libapi.Display `json:"display"`
+}
+
+type CreateDisplayResponse struct {
+	Display libapi.Display `json:"display"`
+}
+
+func CreateDisplayHandler(ctx context.Context, state *State, r *http.Request, req CreateDisplayRequest) (CreateDisplayResponse, error) {
+	token := r.Header.Get("X-Airplane-Token")
+	if token == "" {
+		return CreateDisplayResponse{}, errors.Errorf("expected a X-Airplane-Token header")
+	}
+	claims, err := dev.ParseInsecureAirplaneToken(token)
+	if err != nil {
+		return CreateDisplayResponse{}, errors.Errorf("invalid airplane token: %s", err.Error())
+	}
+	runID := claims.RunID
+
+	now := time.Now()
+	display := libapi.Display{
+		ID:        "dsp" + utils.RandomString(10, utils.CharsetLowercaseNumeric),
+		RunID:     runID,
+		Kind:      req.Display.Kind,
+		CreatedAt: now,
+		UpdatedAt: now,
+		Content:   req.Display.Content,
+	}
+
+	run, ok := state.runs.update(runID, func(run *LocalRun) {
+		run.Displays = append(run.Displays, display)
+	})
+	if !ok {
+		return CreateDisplayResponse{}, errors.Errorf("run with id %q not found", runID)
+	}
+
+	content := fmt.Sprintf("[kind=%s]\n\n%s", display.Kind, display.Content)
+	prefix := "[" + logger.Gray(run.TaskName+" display") + "] "
+	print.BoxPrintWithPrefix(content, prefix)
+
+	return CreateDisplayResponse{
+		Display: display,
 	}, nil
 }
