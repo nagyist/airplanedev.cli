@@ -147,10 +147,10 @@ func (c *CodeTaskDiscoverer) parseNodeDefinitions(ctx context.Context, file stri
 
 	var parsedDefinitions []ParsedDefinition
 	for _, parsedTask := range parsedConfigs.TaskConfigs {
-		parsedTask["node"] = map[string]interface{}{
-			"nodeVersion": build.LatestNodeVersion,
-			"entrypoint":  pm.RelEntrypoint,
-		}
+		// Add the entrypoint to the json definition before validation
+		// since it is unknown to the parser.
+		nodeConfig := parsedTask["node"].(map[string]interface{})
+		nodeConfig["entrypoint"] = pm.RelEntrypoint
 
 		def, err := constructDefinition(parsedTask, pm)
 		if err != nil {

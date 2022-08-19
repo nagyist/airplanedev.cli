@@ -11,8 +11,14 @@ type TaskParam = {
   regex?: string;
 };
 
+type NodeDef = {
+  nodeVersion: "12" | "14" | "15" | "16" | "18";
+  envVars?: Record<string, string | { config: string } | { value: string }>;
+}
+
 type TaskDef = {
   slug: string;
+  node: NodeDef;
   name?: string;
   description?: string;
   parameters?: TaskParam[];
@@ -44,9 +50,8 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
   let taskConfigs: TaskDefWithBuildArgs[] = [];
   let viewConfigs: ViewDef[] = [];
   for (const file of files) {
-    const resolvedPath = path.relative(__dirname, file);
-    const lib = resolvedPath.replace(/.ts$/, "");
-    const exports = require(`./${lib}`);
+    const relPath = path.relative(__dirname, file);
+    const exports = require(`./${relPath}`);
 
     for (const exportName in exports) {
       const item = exports[exportName];
@@ -97,6 +102,10 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
             schedules: config.schedules,
             parameters: params,
             entrypointFunc: exportName,
+            node: {
+              nodeVersion: config.nodeVersion ?? "18",
+              envVars: config.envVars,
+            }
           });
         }
       }
