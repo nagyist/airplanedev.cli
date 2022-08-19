@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/airplanedev/lib/pkg/utils/github"
 	"github.com/pkg/errors"
 )
 
@@ -37,7 +38,7 @@ func Open(file string) (TaskDirectory, error) {
 	var td TaskDirectory
 	var err error
 	if strings.HasPrefix(file, "github.com/") || strings.HasPrefix(file, "https://github.com/") {
-		td.defPath, td.closer, err = openGitHubDirectory(file)
+		td.defPath, td.closer, err = github.OpenGitHubDirectory(file)
 		if err != nil {
 			return TaskDirectory{}, err
 		}

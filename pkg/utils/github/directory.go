@@ -1,4 +1,4 @@
-package taskdir
+package github
 
 import (
 	"fmt"
@@ -29,20 +29,20 @@ var (
 	gitHubRegex = regexp.MustCompile(`^(?:https:\/\/)?github\.com\/([A-Za-z0-9_.\-]+)\/([A-Za-z0-9_.\-]+)\/([\p{L}0-9_.\-\/]+)(@[A-Za-z0-9_.\-]+)?$`)
 )
 
-type gitHubFilePath struct {
+type gitHubPath struct {
 	Org  string
 	Repo string
 	Path string
 	Ref  string
 }
 
-func parseGitHubFilePath(file string) (gitHubFilePath, error) {
-	matches := gitHubRegex.FindAllStringSubmatch(file, -1)
+func parseGitHubPath(path string) (gitHubPath, error) {
+	matches := gitHubRegex.FindAllStringSubmatch(path, -1)
 	if len(matches) != 1 || len(matches[0]) < 4 || len(matches[0]) > 5 {
-		return gitHubFilePath{}, errors.Errorf("invalid github URL (m=%d): expected github.com/ORG/REPO/PATH/TO/FILE[@REF]", len(matches))
+		return gitHubPath{}, errors.Errorf("invalid github URL (m=%d): expected github.com/ORG/REPO/PATH/TO/FILE[@REF]", len(matches))
 	}
 
-	var fp gitHubFilePath
+	var fp gitHubPath
 	fp.Org = matches[0][1]
 	fp.Repo = matches[0][2]
 	fp.Path = matches[0][3]
@@ -53,8 +53,8 @@ func parseGitHubFilePath(file string) (gitHubFilePath, error) {
 	return fp, nil
 }
 
-func openGitHubDirectory(file string) (string, io.Closer, error) {
-	fp, err := parseGitHubFilePath(file)
+func OpenGitHubDirectory(githubPath string) (string, io.Closer, error) {
+	p, err := parseGitHubPath(githubPath)
 	if err != nil {
 		return "", nil, err
 	}
@@ -70,27 +70,27 @@ func openGitHubDirectory(file string) (string, io.Closer, error) {
 	//
 	// See: https://stackoverflow.com/questions/600079/how-do-i-clone-a-subdirectory-only-of-a-git-repository/52269934#52269934
 	r, err := git.PlainClone(tmpDir, false, &git.CloneOptions{
-		URL: fmt.Sprintf("https://github.com/%s/%s.git", fp.Org, fp.Repo),
+		URL: fmt.Sprintf("https://github.com/%s/%s.git", p.Org, p.Repo),
 	})
 	if err != nil {
 		// TODO: provide better errors for common edge cases, f.e. lacking auth
 		// or a typo in the org/repo, or the configured file not existing.
 		return "", nil, errors.Wrap(err, "cloning repo")
 	}
-	if fp.Ref != "" {
+	if p.Ref != "" {
 		wt, err := r.Worktree()
 		if err != nil {
 			return "", nil, errors.Wrap(err, "getting working tree")
 		}
 		if err := wt.Checkout(&git.CheckoutOptions{
 			// TODO: add support for commit and tag references, too.
-			Branch: plumbing.NewRemoteReferenceName("origin", fp.Ref),
+			Branch: plumbing.NewRemoteReferenceName("origin", p.Ref),
 		}); err != nil {
 			return "", nil, errors.Wrap(err, "checking out revision")
 		}
 	}
 
-	return path.Join(tmpDir, fp.Path), CloseFunc(func() error {
+	return path.Join(tmpDir, p.Path), CloseFunc(func() error {
 		return errors.Wrap(os.RemoveAll(tmpDir), "cleaning up cloned github repo")
 	}), nil
 }
