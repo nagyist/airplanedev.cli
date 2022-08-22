@@ -11,8 +11,10 @@ import (
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
+	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 const DefaultPort = 4000
@@ -105,19 +107,42 @@ func Start(opts Options) (*Server, error) {
 	return s, nil
 }
 
+type UnsupportedApp struct {
+	Name   string
+	Kind   AppKind
+	Reason string
+}
+
 // RegisterTasksAndViews generates a mapping of slug to task and view configs and stores the mappings in the server
 // state. Task registration must occur after the local dev server has started because the task discoverer hits the
 // /v0/tasks/getMetadata endpoint.
-func (s *Server) RegisterTasksAndViews(taskConfigs []discover.TaskConfig, viewConfigs []discover.ViewConfig) {
+func (s *Server) RegisterTasksAndViews(taskConfigs []discover.TaskConfig, viewConfigs []discover.ViewConfig) ([]UnsupportedApp, error) {
 	s.state.taskConfigs = map[string]discover.TaskConfig{}
+	unsupported := []UnsupportedApp{}
 	for _, cfg := range taskConfigs {
-		s.state.taskConfigs[cfg.Def.GetSlug()] = cfg
+		kind, _, err := cfg.Def.GetKindAndOptions()
+		if err != nil {
+			return []UnsupportedApp{}, errors.Wrap(err, "getting task kind")
+		}
+		r, err := runtime.Lookup(cfg.TaskEntrypoint, kind)
+		if err != nil {
+			return []UnsupportedApp{}, errors.Wrap(err, "looking up runtime")
+		}
+		if r.SupportsLocalExecution() {
+			s.state.taskConfigs[cfg.Def.GetSlug()] = cfg
+		} else {
+			unsupported = append(unsupported, UnsupportedApp{
+				Name:   cfg.Def.GetName(),
+				Kind:   AppKindTask,
+				Reason: fmt.Sprintf("%v task does not support local execution", kind)})
+		}
 	}
-
 	s.state.viewConfigs = map[string]discover.ViewConfig{}
 	for _, cfg := range viewConfigs {
 		s.state.viewConfigs[cfg.Def.Slug] = cfg
+
 	}
+	return unsupported, nil
 }
 
 // Stop terminates the local dev API server.

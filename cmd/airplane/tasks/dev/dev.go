@@ -215,8 +215,9 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	// TODO: Allow users to re-register tasks once we move to a long-running local api server
-	apiServer.RegisterTasksAndViews(taskConfigs, viewConfigs)
-
+	if _, err := apiServer.RegisterTasksAndViews(taskConfigs, viewConfigs); err != nil {
+		return err
+	}
 	paramValues, err := params.CLI(cfg.args, taskConfig.Def.GetName(), taskConfig.Def.GetParameters())
 	if errors.Is(err, flag.ErrHelp) {
 		return nil

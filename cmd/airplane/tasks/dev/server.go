@@ -92,7 +92,17 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	// Register discovered tasks with local dev server
-	apiServer.RegisterTasksAndViews(taskConfigs, viewConfigs)
+	unsupported, err := apiServer.RegisterTasksAndViews(taskConfigs, viewConfigs)
+	if err != nil {
+		return err
+	}
+	if len(unsupported) > 0 {
+		logger.Log(" ")
+		logger.Log("Skipping %v unsupported tasks or views:", len(unsupported))
+		for _, app := range unsupported {
+			logger.Log("- %s: %s", app.Name, app.Reason)
+		}
+	}
 
 	logger.Log("")
 	logger.Log("Visit https://%s/editor?host=http://localhost:%d for a development UI.", appUrl.Host, cfg.port)
