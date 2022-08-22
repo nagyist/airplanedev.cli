@@ -25,7 +25,7 @@ require (
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/joho/godotenv v1.4.0
 	github.com/kr/text v0.2.0
-	github.com/mattn/go-isatty v0.0.14
+	github.com/mattn/go-isatty v0.0.16
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pkg/errors v0.9.1
@@ -36,7 +36,7 @@ require (
 	github.com/stretchr/testify v1.8.0
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035
-	google.golang.org/api v0.92.0
+	google.golang.org/api v0.93.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -131,7 +131,7 @@ require (
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
 	golang.org/x/oauth2 v0.0.0-20220622183110-fd043fe589d2 // indirect
-	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
+	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	google.golang.org/appengine v1.6.7 // indirect
