@@ -107,27 +107,24 @@ func Start(opts Options) (*Server, error) {
 	return s, nil
 }
 
-type UnsupportedApp struct {
-	Name   string
-	Kind   AppKind
-	Reason string
-}
-
 // RegisterTasksAndViews generates a mapping of slug to task and view configs and stores the mappings in the server
 // state. Task registration must occur after the local dev server has started because the task discoverer hits the
 // /v0/tasks/getMetadata endpoint.
-func (s *Server) RegisterTasksAndViews(taskConfigs []discover.TaskConfig, viewConfigs []discover.ViewConfig) ([]UnsupportedApp, error) {
+func (s *Server) RegisterTasksAndViews(taskConfigs []discover.TaskConfig, viewConfigs []discover.ViewConfig) (RegistrationWarnings, error) {
 	s.state.taskConfigs = map[string]discover.TaskConfig{}
-	unsupported := []UnsupportedApp{}
+	var unsupported []UnsupportedApp
+	var unattachedResources []UnattachedResource
 	for _, cfg := range taskConfigs {
 		kind, _, err := cfg.Def.GetKindAndOptions()
 		if err != nil {
-			return []UnsupportedApp{}, errors.Wrap(err, "getting task kind")
+			return RegistrationWarnings{}, errors.Wrap(err, "getting task kind")
 		}
 		r, err := runtime.Lookup(cfg.TaskEntrypoint, kind)
 		if err != nil {
-			return []UnsupportedApp{}, errors.Wrap(err, "looking up runtime")
+			return RegistrationWarnings{}, errors.Wrap(err, "looking up runtime")
 		}
+
+		// Check if task kind can be locally developed.
 		if r.SupportsLocalExecution() {
 			s.state.taskConfigs[cfg.Def.GetSlug()] = cfg
 		} else {
@@ -136,13 +133,31 @@ func (s *Server) RegisterTasksAndViews(taskConfigs []discover.TaskConfig, viewCo
 				Kind:   AppKindTask,
 				Reason: fmt.Sprintf("%v task does not support local execution", kind)})
 		}
+
+		// Check resource attachments.
+		var missingResources []string
+		for _, resourceSlug := range cfg.Def.GetResourceAttachments() {
+			if _, ok := s.state.devConfig.DecodedResources[resourceSlug]; !ok {
+				missingResources = append(missingResources, resourceSlug)
+			}
+		}
+		if len(missingResources) > 0 {
+			unattachedResources = append(unattachedResources, UnattachedResource{
+				TaskName:      cfg.Def.GetName(),
+				ResourceSlugs: missingResources,
+			})
+		}
 	}
+
 	s.state.viewConfigs = map[string]discover.ViewConfig{}
 	for _, cfg := range viewConfigs {
 		s.state.viewConfigs[cfg.Def.Slug] = cfg
-
 	}
-	return unsupported, nil
+
+	return RegistrationWarnings{
+		UnsupportedApps:     unsupported,
+		UnattachedResources: unattachedResources,
+	}, nil
 }
 
 // Stop terminates the local dev API server.

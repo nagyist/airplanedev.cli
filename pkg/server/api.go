@@ -257,6 +257,7 @@ func GetTaskInfoHandler(ctx context.Context, state *State, r *http.Request) (lib
 	}
 	req, err := taskConfig.Def.GetUpdateTaskRequest(ctx, state.cliConfig.Client)
 	if err != nil {
+		logger.Error("Encountered error while getting task info: %v", err)
 		return libapi.UpdateTaskRequest{}, errors.Errorf("error getting task %s", taskSlug)
 	}
 	return req, nil

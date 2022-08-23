@@ -99,15 +99,25 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	// Register discovered tasks with local dev server
-	unsupported, err := apiServer.RegisterTasksAndViews(taskConfigs, viewConfigs)
+	warnings, err := apiServer.RegisterTasksAndViews(taskConfigs, viewConfigs)
 	if err != nil {
 		return err
 	}
-	if len(unsupported) > 0 {
+	if len(warnings.UnsupportedApps) > 0 {
 		logger.Log(" ")
-		logger.Log("Skipping %v unsupported tasks or views:", len(unsupported))
-		for _, app := range unsupported {
+		logger.Log("Skipping %v unsupported tasks or views:", len(warnings.UnsupportedApps))
+		for _, app := range warnings.UnsupportedApps {
 			logger.Log("- %s: %s", app.Name, app.Reason)
+		}
+	}
+
+	if len(warnings.UnattachedResources) > 0 {
+		logger.Log(" ")
+		logger.Log(
+			"The following tasks have resource attachments that are not defined in the dev config file. Please " +
+				"add them through the previewer or run `airplane dev config set-resource`.")
+		for _, ur := range warnings.UnattachedResources {
+			logger.Log("- %s: %s", ur.TaskName, ur.ResourceSlugs)
 		}
 	}
 
