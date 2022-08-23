@@ -2,7 +2,6 @@ package viewdir
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -12,7 +11,6 @@ import (
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
-	"github.com/mitchellh/hashstructure/v2"
 	"github.com/pkg/errors"
 )
 
@@ -34,14 +32,6 @@ func (this *ViewDirectory) Root() string {
 
 func (this *ViewDirectory) EntrypointPath() string {
 	return this.entrypointPath
-}
-
-func (this *ViewDirectory) CacheDir() string {
-	hash, err := hashstructure.Hash(this, hashstructure.FormatV2, nil)
-	if err != nil {
-		logger.Log("error with hashing viewdir, using default hash value: %d", hash)
-	}
-	return filepath.Join(os.TempDir(), fmt.Sprintf("airplane-view-%d", hash))
 }
 
 func missingViewHandler(ctx context.Context, defn definitions.ViewDefinition) (*api.View, error) {

@@ -31,7 +31,7 @@ func Dev(v viewdir.ViewDirectory, viteOpts ViteOpts) (*exec.Cmd, string, error) 
 	root := v.Root()
 	logger.Debug("Root directory: %s", v.Root())
 	logger.Debug("Entrypoint: %s", v.EntrypointPath())
-	tmpdir := v.CacheDir()
+	tmpdir := filepath.Join(root, ".airplane-view")
 	if _, err := os.Stat(tmpdir); os.IsNotExist(err) {
 		if err := os.Mkdir(tmpdir, 0755); err != nil {
 			return nil, "", errors.Wrap(err, "creating temporary dir")
@@ -91,21 +91,6 @@ func Dev(v viewdir.ViewDirectory, viteOpts ViteOpts) (*exec.Cmd, string, error) 
 		return nil, "", errors.Wrap(err, "creating vite config")
 	}
 
-	// Create symlink to original directory.
-	symlinkPath := filepath.Join(tmpdir, "src")
-	if stat, err := os.Lstat(symlinkPath); err == nil {
-		if stat.Mode().Type() == fs.ModeSymlink {
-			if err := os.Remove(symlinkPath); err != nil {
-				return nil, "", errors.Wrap(err, "deleting old symlink")
-			}
-		} else {
-			return nil, "", errors.New("non-symlink found at src/ location")
-		}
-	}
-	if err := os.Symlink(root, symlinkPath); err != nil {
-		return nil, "", errors.Wrap(err, "creating symlink")
-	}
-
 	// Run npm/yarn install.
 	useYarn := utils.ShouldUseYarn(tmpdir)
 	if err := utils.InstallDependencies(tmpdir, useYarn); err != nil {
@@ -126,6 +111,7 @@ func Dev(v viewdir.ViewDirectory, viteOpts ViteOpts) (*exec.Cmd, string, error) 
 }
 
 func createWrapperTemplates(tmpdir string, entrypointFile string) error {
+	entrypointFile = filepath.Join("..", entrypointFile)
 	if !strings.HasSuffix(entrypointFile, ".tsx") {
 		return errors.New("expected entrypoint file to end in .tsx")
 	}
