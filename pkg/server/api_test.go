@@ -12,6 +12,7 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/dev/logs"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
@@ -38,14 +39,11 @@ func TestExecute(t *testing.T) {
 	taskDefinition.SetDefnFilePath("my_task.task.yaml")
 
 	runID := "run1234"
-	logStore := &dev.LogStore{
-		Channel: make(chan dev.ResponseLog),
-		Logs:    make([]dev.ResponseLog, 0),
-	}
+	logBroker := logs.NewDevLogBroker()
 	store := NewRunStore()
 	store.add(slug, runID, LocalRun{
-		RunID:    runID,
-		LogStore: logStore,
+		RunID:     runID,
+		LogBroker: logBroker,
 	},
 	)
 	cliConfig := &cli.Config{Client: &api.Client{}}
@@ -90,7 +88,7 @@ func TestExecute(t *testing.T) {
 		Slug:        slug,
 		EnvSlug:     "stage",
 		Resources:   map[string]resources.Resource{},
-		LogStore:    logStore,
+		LogBroker:   logBroker,
 	}
 	mockExecutor.On("Execute", mock.Anything, runConfig).Return(nil)
 
@@ -128,14 +126,11 @@ func TestExecuteBuiltin(t *testing.T) {
 	taskDefinition.SetDefnFilePath("my_task.task.yaml")
 
 	runID := "run1234"
-	logStore := &dev.LogStore{
-		Channel: make(chan dev.ResponseLog),
-		Logs:    make([]dev.ResponseLog, 0),
-	}
+	logBroker := logs.NewDevLogBroker()
 	store := NewRunStore()
 	store.add(slug, runID, LocalRun{
-		RunID:    runID,
-		LogStore: logStore,
+		RunID:     runID,
+		LogBroker: logBroker,
 	},
 	)
 	cliConfig := &cli.Config{Client: &api.Client{}}
@@ -189,7 +184,7 @@ func TestExecuteBuiltin(t *testing.T) {
 			"db": dbResource,
 		},
 		IsBuiltin: true,
-		LogStore:  logStore,
+		LogBroker: logBroker,
 	}
 	mockExecutor.On("Execute", mock.Anything, runConfig).Return(nil)
 

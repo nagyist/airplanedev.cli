@@ -247,10 +247,6 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		EnvSlug:     cfg.envSlug,
 		Env:         devConfig.Env,
 		Resources:   resources,
-		LogStore: &dev.LogStore{
-			Channel: make(chan dev.ResponseLog),
-			Logs:    make([]dev.ResponseLog, 0),
-		},
 	}
 	_, err = localExecutor.Execute(ctx, localRunConfig)
 	if err != nil {

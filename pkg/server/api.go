@@ -8,6 +8,7 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/resource"
@@ -28,7 +29,7 @@ type LocalRun struct {
 	FailedAt    *time.Time             `json:"failedAt"`
 	ParamValues map[string]interface{} `json:"paramValues"`
 	Parameters  *libapi.Parameters     `json:"parameters"`
-	LogStore    *dev.LogStore          `json:"-"`
+	LogBroker   logs.LogBroker         `json:"-"`
 	TaskName    string                 `json:"taskName"`
 	Displays    []libapi.Display       `json:"displays"`
 }
@@ -39,12 +40,8 @@ func NewLocalRun() *LocalRun {
 		Status:      api.RunQueued,
 		ParamValues: map[string]interface{}{},
 		CreatedAt:   time.Now(),
-		LogStore: &dev.LogStore{
-			Channel:     make(chan dev.ResponseLog),
-			DoneChannel: make(chan bool, 1),
-			Logs:        make([]dev.ResponseLog, 0),
-		},
-		Displays: []libapi.Display{},
+		LogBroker:   logs.NewDevLogBroker(),
+		Displays:    []libapi.Display{},
 	}
 }
 
@@ -103,7 +100,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 			Slug:        req.Slug,
 			EnvSlug:     state.envSlug,
 			IsBuiltin:   isBuiltin,
-			LogStore:    run.LogStore,
+			LogBroker:   run.LogBroker,
 		}
 		resourceAttachments := map[string]string{}
 		// Builtins have a specific alias in the form of "rest", "db", etc. that is required by the builtins binary,

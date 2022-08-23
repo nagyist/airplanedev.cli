@@ -15,6 +15,7 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/lib/pkg/build"
@@ -56,20 +57,7 @@ type LocalRunConfig struct {
 	// Mapping from alias to resource
 	Resources map[string]resources.Resource
 	IsBuiltin bool
-	LogStore  *LogStore
-}
-
-type ResponseLog struct {
-	Timestamp time.Time `json:"timestamp"`
-	InsertID  string    `json:"insertID"`
-	Text      string    `json:"text"`
-	Level     string    `json:"level"`
-}
-
-type LogStore struct {
-	DoneChannel chan bool
-	Channel     chan ResponseLog
-	Logs        []ResponseLog
+	LogBroker logs.LogBroker
 }
 
 type CmdConfig struct {
@@ -81,7 +69,7 @@ type CmdConfig struct {
 
 var LogIDGen IDGenerator
 
-// Returns the command needed to execute the task locally
+// Cmd returns the command needed to execute the task locally
 func (l *LocalExecutor) Cmd(ctx context.Context, config LocalRunConfig) (CmdConfig, error) {
 	if config.IsBuiltin {
 		builtinClient, err := NewBuiltinClient(goruntime.GOOS, goruntime.GOARCH)
@@ -185,6 +173,13 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 		return api.Outputs{}, errors.Wrap(err, "starting")
 	}
 
+	if config.LogBroker == nil {
+		config.LogBroker = &logs.MockLogBroker{}
+	}
+	defer func() {
+		config.LogBroker.Close()
+	}()
+
 	// mu guards o and chunks
 	var mu sync.Mutex
 	var o ojson.Value
@@ -195,6 +190,14 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 		for scanner.Scan() {
 			line := scanner.Text()
 			scanLogLine(config, line, &mu, &o, chunks)
+			config.LogBroker.Record(api.LogItem{
+				Timestamp: time.Now(),
+				InsertID:  LogIDGen.Next(),
+				Text:      line,
+				Level:     "info",
+			})
+
+			logger.Log("[%s %s] %s", logger.Gray(config.Name), logger.Gray("log"), line)
 		}
 		return errors.Wrap(scanner.Err(), "scanning logs")
 	}
@@ -206,11 +209,14 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	eg.Go(func() error {
 		return logParser(stderr)
 	})
-	eg.Go(func() error {
-		return cmd.Wait()
-	})
 
-	err = eg.Wait()
+	if err = eg.Wait(); err != nil {
+		return api.Outputs{}, err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return api.Outputs{}, err
+	}
 	outputs := api.Outputs(o)
 	logger.Log("")
 	logger.Log("%s for task %s:", logger.Gray("Output"), logger.Gray(config.Slug))
@@ -219,10 +225,6 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	logger.Log("")
 	print.BoxPrint(fmt.Sprintf("Finished running task [%s]", config.Slug))
 	logger.Log("")
-
-	if config.LogStore.DoneChannel != nil {
-		config.LogStore.DoneChannel <- true
-	}
 
 	return outputs, err
 }
@@ -260,24 +262,6 @@ func scanLogLine(config LocalRunConfig, line string, mu *sync.Mutex, o *ojson.Va
 			return
 		}
 	}
-
-	log := ResponseLog{
-		Timestamp: time.Now(),
-		InsertID:  LogIDGen.Next(),
-		Text:      line,
-		Level:     "info",
-	}
-	// If there is a receiver on the other end of the log channel, send the log line to the channel, or else
-	// just append it to the run's logs.
-	select {
-	case config.LogStore.Channel <- log:
-		logger.Debug("sending log to receiver")
-	default:
-		logger.Debug("appending log to run's log store")
-		config.LogStore.Logs = append(config.LogStore.Logs, log)
-	}
-
-	logger.Log("[%s %s] %s", logger.Gray(config.Name), logger.Gray("log"), line)
 }
 
 // getDevEnv will return a map of env vars, loading from .env and airplane.env

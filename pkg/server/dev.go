@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/views"
 	"github.com/airplanedev/cli/pkg/views/viewdir"
@@ -202,7 +201,7 @@ func StartViewHandler(ctx context.Context, state *State, r *http.Request) (Start
 	return StartViewResponse{ViteServer: viteServer}, nil
 }
 
-func LogsHandler(ctx context.Context, state *State, r *http.Request, flush func(dev.ResponseLog) error) error {
+func LogsHandler(ctx context.Context, state *State, r *http.Request, flush func(log api.LogItem) error) error {
 	vars := mux.Vars(r)
 	runID, ok := vars["run_id"]
 	if !ok {
@@ -214,32 +213,21 @@ func LogsHandler(ctx context.Context, state *State, r *http.Request, flush func(
 		return errors.Errorf("Run with id %s not found", runID)
 	}
 
-	// Send logs that have already been persisted.
-	// TODO: Move this to a dedicated /getLogs endpoint
-	for _, log := range run.LogStore.Logs {
-		if err := flush(log); err != nil {
-			return err
-		}
-	}
-
-	// If the run has finished, then we've already sent all the logs above.
-	if run.Status == api.RunSucceeded {
-		return nil
-	}
-
+	watcher := run.LogBroker.NewWatcher()
+	defer watcher.Close()
 	for {
 		select {
-		// If the client has closed their request, then we should stop the event stream.
+		// If the client has closed their request, then we unregister the current watcher.
 		case <-ctx.Done():
 			return nil
-		// If the command has finished running, we should close the event stream.
-		case <-run.LogStore.DoneChannel:
-			return nil
-		case log := <-run.LogStore.Channel:
+		case log, open := <-watcher.Logs():
+			if !open {
+				// All logs have been received.
+				return nil
+			}
 			if err := flush(log); err != nil {
 				return err
 			}
-			run.LogStore.Logs = append(run.LogStore.Logs, log)
 		}
 	}
 }
