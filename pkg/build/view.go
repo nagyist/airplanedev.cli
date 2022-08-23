@@ -38,7 +38,7 @@ func view(root string, options KindOptions) (string, error) {
 		return "", err
 	}
 
-	mainTsxStr, err := MainTsxString(entrypoint)
+	mainTsxStr, err := MainTsxString("./src/" + entrypoint)
 	if err != nil {
 		return "", err
 	}

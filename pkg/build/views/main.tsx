@@ -6,7 +6,7 @@ import {
 } from "@airplane/views";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./src/{{.Entrypoint}}";
+import App from "{{.Entrypoint}}";
 
 setEnvVars(
   import.meta.env.AIRPLANE_API_HOST || "https://api.airplane.dev",
