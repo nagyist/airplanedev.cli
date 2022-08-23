@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -33,13 +34,19 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		}
 	}
 
+	// Use absolute path to dev root to allow the local dev server to more easily calculate relative paths.
+	dir := filepath.Dir(cfg.fileOrDir)
+	absoluteDir, err := filepath.Abs(dir)
+	if err != nil {
+		return errors.Wrap(err, "getting absolute directory of dev server root")
+	}
 	apiServer, err := server.Start(server.Options{
 		CLI:       cfg.root,
 		EnvSlug:   cfg.envSlug,
 		Executor:  localExecutor,
 		Port:      cfg.port,
 		DevConfig: devConfig,
-		Dir:       cfg.dir,
+		Dir:       absoluteDir,
 	})
 	if err != nil {
 		return errors.Wrap(err, "starting local dev server")
@@ -65,7 +72,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 	d.ViewDiscoverers = append(d.ViewDiscoverers, &discover.ViewDefnDiscoverer{Client: cfg.root.Client})
 
-	taskConfigs, viewConfigs, err := d.Discover(ctx, cfg.dir)
+	taskConfigs, viewConfigs, err := d.Discover(ctx, cfg.fileOrDir)
 	if err != nil {
 		return errors.Wrap(err, "discovering task configs")
 	}

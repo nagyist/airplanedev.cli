@@ -62,12 +62,12 @@ type ListEntrypointsHandlerResponse struct {
 // the dev server root to the list of tasks and views that use that entrypoint.
 func ListEntrypointsHandler(ctx context.Context, state *State, r *http.Request) (ListEntrypointsHandlerResponse, error) {
 	entrypoints := make(map[string][]AppMetadata)
+
 	for slug, taskConfig := range state.taskConfigs {
 		absoluteEntrypoint := taskConfig.TaskEntrypoint
-
 		ep, err := filepath.Rel(state.dir, absoluteEntrypoint)
 		if err != nil {
-			return ListEntrypointsHandlerResponse{}, errors.Wrap(err, "Getting relative path")
+			return ListEntrypointsHandlerResponse{}, errors.Wrap(err, "getting relative path to task")
 		}
 		if _, ok := entrypoints[ep]; !ok {
 			entrypoints[ep] = make([]AppMetadata, 0, 1)
@@ -84,7 +84,7 @@ func ListEntrypointsHandler(ctx context.Context, state *State, r *http.Request) 
 
 		ep, err := filepath.Rel(state.dir, absoluteEntrypoint)
 		if err != nil {
-			return ListEntrypointsHandlerResponse{}, errors.Wrap(err, "Getting relative path")
+			return ListEntrypointsHandlerResponse{}, errors.Wrap(err, "getting relative path to view")
 		}
 		if _, ok := entrypoints[ep]; !ok {
 			entrypoints[ep] = make([]AppMetadata, 0, 1)

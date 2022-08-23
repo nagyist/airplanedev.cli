@@ -43,7 +43,6 @@ type taskDevConfig struct {
 
 	// Airplane dev server-related fields
 	editor bool
-	dir    string
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -69,11 +68,11 @@ func New(c *cli.Config) *cobra.Command {
 			if cfg.editor {
 				// TODO: Support multiple dev server roots
 				if len(args) == 0 {
-					cfg.dir = wd
+					cfg.fileOrDir = wd
 				} else if len(args) > 1 {
 					return errors.New("Multiple dev server roots detected, please supply only one directory to discover tasks and views")
 				} else {
-					cfg.dir = args[0]
+					cfg.fileOrDir = args[0]
 				}
 			} else if len(args) == 0 || strings.HasPrefix(args[0], "-") {
 				cfg.fileOrDir = wd
