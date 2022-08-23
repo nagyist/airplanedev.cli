@@ -147,8 +147,8 @@ func extractConfigs(file string) (ParsedConfigs, error) {
 	}
 
 	// Run parser on the file
-	out, err := exec.Command("npx", "-p", "typescript", "-p", "@types/node", "-p", "ts-node",
-		"ts-node", "-O", "{\"strict\": false}", tempFile.Name(), file).Output()
+	out, err := exec.Command("npx", "-p", "typescript", "-p", "@types/node", "-p", "tsx",
+		"tsx", tempFile.Name(), file).Output()
 	if err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
 			return ParsedConfigs{}, errors.Wrapf(err, "parsing file=%q: %s", file, ee.Stderr)
