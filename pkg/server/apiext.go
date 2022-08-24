@@ -20,18 +20,24 @@ import (
 )
 
 type LocalRun struct {
-	RunID       string                 `json:"runID"`
-	Status      api.RunStatus          `json:"status"`
-	Outputs     api.Outputs            `json:"outputs"`
-	CreatedAt   time.Time              `json:"createdAt"`
-	CreatorID   string                 `json:"creatorID"`
-	SucceededAt *time.Time             `json:"succeededAt"`
-	FailedAt    *time.Time             `json:"failedAt"`
-	ParamValues map[string]interface{} `json:"paramValues"`
-	Parameters  *libapi.Parameters     `json:"parameters"`
-	LogBroker   logs.LogBroker         `json:"-"`
-	TaskName    string                 `json:"taskName"`
-	Displays    []libapi.Display       `json:"displays"`
+	RunID         string                 `json:"runID"`
+	Status        api.RunStatus          `json:"status"`
+	Outputs       api.Outputs            `json:"outputs"`
+	CreatedAt     time.Time              `json:"createdAt"`
+	CreatorID     string                 `json:"creatorID"`
+	SucceededAt   *time.Time             `json:"succeededAt"`
+	FailedAt      *time.Time             `json:"failedAt"`
+	ParamValues   map[string]interface{} `json:"paramValues"`
+	Parameters    *libapi.Parameters     `json:"parameters"`
+	ParentID      string                 `json:"parentID"`
+	TaskName      string                 `json:"taskName"`
+	Displays      []libapi.Display       `json:"displays"`
+	IsStdAPI      bool                   `json:"isStdAPI"`
+	StdAPIRequest dev.StdAPIRequest      `json:"stdAPIRequest"`
+
+	// internal fields
+	LogStore  logs.LogBroker `json:"-"`
+	LogBroker logs.LogBroker `json:"-"`
 }
 
 // NewLocalRun initializes a run for local dev.
@@ -55,9 +61,11 @@ func AttachExternalAPIRoutes(r *mux.Router, state *State) {
 	r.Handle("/tasks/execute", HandlerWithBody(state, ExecuteTaskHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/tasks/getMetadata", Handler(state, GetTaskMetadataHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/tasks/get", Handler(state, GetTaskInfoHandler)).Methods("GET", "OPTIONS")
+
 	r.Handle("/runs/getOutputs", Handler(state, GetOutputsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/get", Handler(state, GetRunHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/list", Handler(state, ListRunsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/getDescendants", Handler(state, GetDescendantsHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/resources/list", Handler(state, ListResourcesHandler)).Methods("GET", "OPTIONS")
 
@@ -74,6 +82,17 @@ type ExecuteTaskRequest struct {
 	Resources   map[string]string `json:"resources"`
 }
 
+func getParentID(r *http.Request) (string, error) {
+	if token := r.Header.Get("X-Airplane-Token"); token != "" {
+		claims, err := dev.ParseInsecureAirplaneToken(token)
+		if err != nil {
+			return "", err
+		}
+		return claims.RunID, nil
+	}
+	return "", nil
+}
+
 // ExecuteTaskHandler handles requests to the /v0/tasks/execute endpoint
 func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req ExecuteTaskRequest) (LocalRun, error) {
 	// Allow run IDs to be generated beforehand; this is needed so that the /dev/logs endpoint can start waiting
@@ -87,9 +106,15 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 		run = *NewLocalRun()
 	}
 
+	parentID, err := getParentID(r)
+	if err != nil {
+		return run, err
+	}
+	run.ParentID = parentID
+
 	localTaskConfig, ok := state.taskConfigs[req.Slug]
 	isBuiltin := builtins.IsBuiltinTaskSlug(req.Slug)
-	var parameters libapi.Parameters
+	parameters := libapi.Parameters{}
 	start := time.Now()
 	if isBuiltin || ok {
 		runConfig := dev.LocalRunConfig{
@@ -127,6 +152,12 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 			if !foundResource {
 				return LocalRun{}, errors.Errorf("resource with id %s not found in dev config file", resourceID)
 			}
+			run.IsStdAPI = true
+			stdapiReq, err := dev.BuiltinRequest(req.Slug, req.ParamValues)
+			if err != nil {
+				return run, err
+			}
+			run.StdAPIRequest = stdapiReq
 		} else if localTaskConfig.Def != nil {
 			kind, kindOptions, err := dev.GetKindAndOptions(localTaskConfig)
 			if err != nil {
@@ -221,6 +252,22 @@ func ListRunsHandler(ctx context.Context, state *State, r *http.Request) (ListRu
 	runs := state.runs.getRunHistory(taskSlug)
 	return ListRunsResponse{
 		Runs: runs,
+	}, nil
+}
+
+type GetDescendantsResponse struct {
+	Descendants []LocalRun `json:"descendants"`
+}
+
+func GetDescendantsHandler(ctx context.Context, state *State, r *http.Request) (GetDescendantsResponse, error) {
+	runID := r.URL.Query().Get("runID")
+	if runID == "" {
+		return GetDescendantsResponse{}, errors.New("runID cannot be empty")
+	}
+	descendants := state.runs.getDescendants(runID)
+
+	return GetDescendantsResponse{
+		Descendants: descendants,
 	}, nil
 }
 

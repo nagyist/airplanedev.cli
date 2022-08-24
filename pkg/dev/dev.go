@@ -77,7 +77,7 @@ func (l *LocalExecutor) Cmd(ctx context.Context, config LocalRunConfig) (CmdConf
 			logger.Error(err.Error())
 			return CmdConfig{}, err
 		}
-		req, err := marshalBuiltinRequest(ctx, config.Slug, config.ParamValues)
+		req, err := marshalBuiltinRequest(config.Slug, config.ParamValues)
 		if err != nil {
 			return CmdConfig{}, errors.New("invalid builtin request")
 		}

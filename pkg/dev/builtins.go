@@ -34,18 +34,30 @@ func isLocalExecutionSupported(opSystem, arch string) bool {
 	return osSupported && archSupported
 }
 
-func marshalBuiltinRequest(ctx context.Context, slug string, paramValues api.Values) (string, error) {
+type StdAPIRequest struct {
+	Namespace string                 `json:"namespace"`
+	Name      string                 `json:"name"`
+	Request   map[string]interface{} `json:"request"`
+}
+
+func BuiltinRequest(slug string, paramValues api.Values) (StdAPIRequest, error) {
 	fs, err := builtins.GetBuiltinFunctionSpecification(slug)
 	if err != nil {
-		return "", errors.New("invalid builtin slug")
+		return StdAPIRequest{}, errors.New("invalid builtin slug")
 	}
-
-	req := map[string]interface{}{
-		"namespace": fs.Namespace,
-		"name":      fs.Name,
-		"request":   paramValues,
+	req := StdAPIRequest{
+		Namespace: fs.Namespace,
+		Name:      fs.Name,
+		Request:   paramValues,
 	}
+	return req, nil
+}
 
+func marshalBuiltinRequest(slug string, paramValues api.Values) (string, error) {
+	req, err := BuiltinRequest(slug, paramValues)
+	if err != nil {
+		log.Fatal(err)
+	}
 	b, err := json.Marshal(req)
 	if err != nil {
 		log.Fatal(err)

@@ -31,16 +31,21 @@ type State struct {
 
 // TODO: add limit on max items
 type runsStore struct {
+	// All runs
 	runs map[string]LocalRun
 	// A task's previous runs
 	runHistory map[string][]string
-	mu         sync.Mutex
+	// A run's descendants
+	runDescendants map[string][]string
+
+	mu sync.Mutex
 }
 
 func NewRunStore() *runsStore {
 	r := &runsStore{
-		runs:       map[string]LocalRun{},
-		runHistory: map[string][]string{},
+		runs:           map[string]LocalRun{},
+		runHistory:     map[string][]string{},
+		runDescendants: map[string][]string{},
 	}
 	return r
 }
@@ -66,11 +71,28 @@ func (store *runsStore) add(taskID string, runID string, run LocalRun) {
 	if !contains(runID, store.runHistory[taskID]) {
 		store.runHistory[taskID] = append([]string{runID}, store.runHistory[taskID]...)
 	}
+
+	if run.ParentID != "" {
+		// attach run to parent
+		store.runDescendants[run.ParentID] = append(store.runDescendants[run.ParentID], runID)
+	}
 }
 
 func (store *runsStore) get(runID string) (LocalRun, bool) {
 	res, ok := store.runs[runID]
 	return res, ok
+}
+
+func (store *runsStore) getDescendants(runID string) []LocalRun {
+	descendants := []LocalRun{}
+	descIDs, ok := store.runDescendants[runID]
+	if !ok {
+		return []LocalRun{}
+	}
+	for _, descID := range descIDs {
+		descendants = append(descendants, store.runs[descID])
+	}
+	return descendants
 }
 
 func (store *runsStore) update(runID string, f func(run *LocalRun)) (LocalRun, bool) {
