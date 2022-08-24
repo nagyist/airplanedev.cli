@@ -5,7 +5,6 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -37,17 +36,10 @@ func New(c *cli.DevCLI) *cobra.Command {
 
 func run(ctx context.Context, cfg config) error {
 	devConfig := cfg.devCLI.DevConfig
-	if devConfig.Resources != nil {
-		if _, ok := devConfig.Resources[cfg.slug]; ok {
-			delete(devConfig.Resources, cfg.slug)
-			if err := conf.WriteDevConfig(cfg.devCLI.Filepath, devConfig); err != nil {
-				return err
-			}
-
-			logger.Log("Deleted resource with slug `%s` from dev config file.", cfg.slug)
-			return nil
-		}
+	if err := devConfig.RemoveResource(cfg.slug); err != nil {
+		return errors.Wrap(err, "removing resource from dev config file")
 	}
 
-	return errors.Errorf("Resource with slug `%s` does not exist in dev config file", cfg.slug)
+	logger.Log("Removed resource with slug %s from dev config file, if it existed.", cfg.slug)
+	return nil
 }

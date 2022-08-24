@@ -143,7 +143,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	// local dev, we send requests to a locally running api server, and so we override the host here.
 	cfg.root.Client.Host = fmt.Sprintf("127.0.0.1:%d", cfg.port)
 
-	var devConfig conf.DevConfig
+	var devConfig *conf.DevConfig
 	var devConfigLoaded bool
 	if cfg.devConfigPath != "" {
 		devConfig, err = conf.ReadDevConfig(cfg.devConfigPath)
@@ -171,7 +171,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	if devConfigLoaded {
 		logger.Log("Loaded dev config file at %s", cfg.devConfigPath)
 	} else {
-		devConfig = conf.DevConfig{}
+		devConfig = &conf.DevConfig{}
 	}
 
 	apiServer, err := server.Start(server.Options{
@@ -224,7 +224,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		return err
 	}
 
-	resources, err := resource.GenerateAliasToResourceMap(taskConfig.Def.GetResourceAttachments(), devConfig.DecodedResources)
+	resources, err := resource.GenerateAliasToResourceMap(taskConfig.Def.GetResourceAttachments(), devConfig.Resources)
 	if err != nil {
 		return errors.Wrap(err, "generating alias to resource map")
 	}

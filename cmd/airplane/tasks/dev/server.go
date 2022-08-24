@@ -24,7 +24,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	cfg.root.Client.Host = fmt.Sprintf("127.0.0.1:%d", cfg.port)
 
 	localExecutor := &dev.LocalExecutor{}
-	var devConfig conf.DevConfig
+	devConfig := &conf.DevConfig{}
 	var err error
 
 	if cfg.devConfigPath != "" {

@@ -21,6 +21,7 @@ import (
 
 type config struct {
 	devCLI      *cli.DevCLI
+	name        string
 	kind        string
 	slug        string
 	useDefaults bool
@@ -44,6 +45,17 @@ func New(c *cli.DevCLI) *cobra.Command {
 				if err := survey.AskOne(
 					&survey.Input{Message: "What's the slug of your resource? This should match the <alias>: <slug> entry in your resource attachments."},
 					&cfg.slug,
+					survey.WithStdio(os.Stdin, os.Stderr, os.Stderr),
+					survey.WithValidator(survey.Required),
+				); err != nil {
+					return err
+				}
+			}
+
+			if cfg.name == "" {
+				if err := survey.AskOne(
+					&survey.Input{Message: "What's the name of your resource? This should be a human-readable name for your resource."},
+					&cfg.name,
 					survey.WithStdio(os.Stdin, os.Stderr, os.Stderr),
 					survey.WithValidator(survey.Required),
 				); err != nil {
@@ -82,6 +94,7 @@ func New(c *cli.DevCLI) *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&cfg.kind, "kind", "k", "", "Kind of resource")
+	cmd.Flags().StringVarP(&cfg.name, "name", "n", "", "Name of resource")
 	cmd.Flags().BoolVar(&cfg.useDefaults, "use-defaults", false, "If set, create an entry in the dev config file for the user to fill in")
 
 	return cmd
@@ -97,14 +110,16 @@ func run(ctx context.Context, cfg config) error {
 
 	// REST and SMTP resources have slice/map/struct fields - it is awkward to support these using prompts, and so we
 	// direct the user to modify the files directly.
-	// TODO: Support REST and SMTP resources
-	if !cfg.useDefaults && (kind == kinds.ResourceKindREST || kind == kinds.ResourceKindSMTP) {
-		return errors.Errorf("We do not currently support adding resources of kind %s through the CLI, please modify the file directly.", kind)
+	// TODO: Support the resource kinds below
+	switch kind {
+	case kinds.ResourceKindREST, kinds.ResourceKindSMTP:
+		return errors.Errorf("We do not currently support adding resources of kind %s through the CLI, please create the resource through the previewer.", kind)
 	}
 
 	// Set base resource fields
 	serializedResource["kind"] = cfg.kind
 	serializedResource["slug"] = cfg.slug
+	serializedResource["name"] = cfg.name
 	serializedResource["id"] = fmt.Sprintf("res-%s", cfg.slug)
 
 	// Iterate over resource struct fields and dynamically prompt user for input
@@ -115,7 +130,6 @@ func run(ctx context.Context, cfg config) error {
 		if fieldName == "" {
 			continue
 		}
-
 		var value string
 		if !cfg.useDefaults {
 			if err := survey.AskOne(
@@ -126,16 +140,17 @@ func run(ctx context.Context, cfg config) error {
 				return err
 			}
 		}
-
 		serializedResource[fieldName] = value
 	}
 
 	devConfig := cfg.devCLI.DevConfig
-	if devConfig.Resources == nil {
-		devConfig.Resources = map[string]map[string]interface{}{}
+	// Remove resource with the same slug if it exists.
+	if err := devConfig.RemoveResource(cfg.slug); err != nil {
+		return errors.Wrap(err, "removing resource from dev config file")
 	}
-	devConfig.Resources[cfg.slug] = serializedResource
-	if err := conf.WriteDevConfig(cfg.devCLI.Filepath, devConfig); err != nil {
+	devConfig.RawResources = append(devConfig.RawResources, serializedResource)
+
+	if err := conf.WriteDevConfig(devConfig); err != nil {
 		return err
 	}
 

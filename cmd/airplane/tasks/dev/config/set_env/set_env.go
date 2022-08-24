@@ -56,7 +56,7 @@ func run(ctx context.Context, cfg config) error {
 		devConfig.Env = map[string]string{}
 	}
 	devConfig.Env[cfg.key] = cfg.value
-	err := conf.WriteDevConfig(cfg.devCLI.Filepath, devConfig)
+	err := conf.WriteDevConfig(devConfig)
 	if err != nil {
 		return err
 	}

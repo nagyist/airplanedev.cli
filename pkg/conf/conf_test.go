@@ -103,24 +103,25 @@ func TestDevConfig(t *testing.T) {
 		env := map[string]string{
 			"ENV_VAR": "value",
 		}
-		resourceMap := map[string]map[string]interface{}{
-			"db": {
+		configResources := []map[string]interface{}{
+			{
 				"kind":     "postgres",
 				"slug":     "db",
 				"username": "postgres",
 				"password": "password",
 			},
 		}
-		err := WriteDevConfig(path, DevConfig{
-			Env:       env,
-			Resources: resourceMap,
+		err := WriteDevConfig(&DevConfig{
+			Path:         path,
+			Env:          env,
+			RawResources: configResources,
 		})
 		assert.NoError(err)
 
 		cfg, err := ReadDevConfig(path)
 		assert.NoError(err)
 		assert.Equal(env, cfg.Env)
-		assert.Equal(resourceMap, cfg.Resources)
+		assert.Equal(configResources, cfg.RawResources)
 		assert.Equal(map[string]resources.Resource{
 			"db": kinds.PostgresResource{
 				BaseResource: resources.BaseResource{
@@ -130,6 +131,6 @@ func TestDevConfig(t *testing.T) {
 				Username: "postgres",
 				Password: "password",
 			},
-		}, cfg.DecodedResources)
+		}, cfg.Resources)
 	})
 }

@@ -45,10 +45,10 @@ func NewLocalRun() *LocalRun {
 	}
 }
 
-// AttachAPIRoutes attaches a minimal subset of the actual Airplane API endpoints that are necessary to locally develop
+// AttachExternalAPIRoutes attaches a minimal subset of the actual Airplane API endpoints that are necessary to locally develop
 // a task. For example, a workflow task might call airplane.execute, which would normally make a request to the
 // /v0/tasks/execute endpoint in production, but instead we have our own implementation below.
-func AttachAPIRoutes(r *mux.Router, state *State) {
+func AttachExternalAPIRoutes(r *mux.Router, state *State) {
 	const basePath = "/v0/"
 	r = r.NewRoute().PathPrefix(basePath).Subrouter()
 
@@ -117,7 +117,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 			}
 
 			var foundResource bool
-			for slug, res := range state.devConfig.DecodedResources {
+			for slug, res := range state.devConfig.Resources {
 				if res.ID() == resourceID {
 					resourceAttachments[builtinAlias] = slug
 					foundResource = true
@@ -142,7 +142,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 		}
 		resources, err := resource.GenerateAliasToResourceMap(
 			resourceAttachments,
-			state.devConfig.DecodedResources,
+			state.devConfig.Resources,
 		)
 		if err != nil {
 			return LocalRun{}, errors.Wrap(err, "generating alias to resource map")
@@ -258,23 +258,6 @@ func GetTaskInfoHandler(ctx context.Context, state *State, r *http.Request) (lib
 		return libapi.UpdateTaskRequest{}, errors.Errorf("error getting task %s", taskSlug)
 	}
 	return req, nil
-}
-
-// ListResourcesHandler handles requests to the /v0/resources/list endpoint
-func ListResourcesHandler(ctx context.Context, state *State, r *http.Request) (libapi.ListResourcesResponse, error) {
-	resources := make([]libapi.Resource, 0, len(state.devConfig.Resources))
-	for slug := range state.devConfig.Resources {
-		// It doesn't matter what we include in the resource struct, as long as we include the slug - this handler
-		// is only used so that requests to the local dev api server for this endpoint don't error, in particular:
-		// https://github.com/airplanedev/lib/blob/d4c8ed7d1b30095c5cacac2b5c4da8f3ada6378f/pkg/deploy/taskdir/definitions/def_0_3.go#L1081-L1087
-		resources = append(resources, libapi.Resource{
-			Slug: slug,
-		})
-	}
-
-	return libapi.ListResourcesResponse{
-		Resources: resources,
-	}, nil
 }
 
 type ListDisplaysResponse struct {

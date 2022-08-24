@@ -71,6 +71,6 @@ func Must(err error) {
 // DevCLI stores information for subcommands under airplane dev.
 type DevCLI struct {
 	*Config
-	DevConfig conf.DevConfig
+	DevConfig *conf.DevConfig
 	Filepath  string
 }

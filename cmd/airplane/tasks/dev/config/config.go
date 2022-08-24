@@ -53,11 +53,11 @@ func New(c *cli.Config) *cobra.Command {
 				}
 			}
 
-			devConfig, err := conf.ReadDevConfig(cfg.Filepath)
+			var err error
+			cfg.DevConfig, err = conf.ReadDevConfig(cfg.Filepath)
 			if err != nil {
 				return err
 			}
-			cfg.DevConfig = devConfig
 
 			return nil
 		}),
@@ -65,8 +65,8 @@ func New(c *cli.Config) *cobra.Command {
 
 	cmd.PersistentFlags().StringVarP(
 		&cfg.Filepath,
-		"file",
-		"f",
+		"config-path",
+		"c",
 		"",
 		"Path to airplane dev config file",
 	)

@@ -8,6 +8,7 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
+	"github.com/airplanedev/lib/pkg/utils/logger"
 )
 
 type State struct {
@@ -22,9 +23,10 @@ type State struct {
 	taskConfigs map[string]discover.TaskConfig
 	// Mapping from view slug to view config
 	viewConfigs map[string]discover.ViewConfig
-	devConfig   conf.DevConfig
+	devConfig   *conf.DevConfig
 	viteProcess *os.Process
 	viteMutex   sync.Mutex
+	logger      logger.Logger
 }
 
 // TODO: add limit on max items

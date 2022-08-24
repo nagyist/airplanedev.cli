@@ -43,7 +43,7 @@ func run(ctx context.Context, cfg config) error {
 	}
 
 	delete(devConfig.Env, cfg.key)
-	if err := conf.WriteDevConfig(cfg.devCLI.Filepath, devConfig); err != nil {
+	if err := conf.WriteDevConfig(devConfig); err != nil {
 		return err
 	}
 

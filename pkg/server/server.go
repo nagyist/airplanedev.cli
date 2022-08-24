@@ -53,10 +53,13 @@ func newRouter(state *State) *mux.Router {
 		handlers.AllowedHeaders([]string{
 			"content-type",
 			"accept",
+			"x-airplane-env-id",
+			"x-team-id",
 		}),
 	))
 
-	AttachAPIRoutes(r.NewRoute().Subrouter(), state)
+	AttachExternalAPIRoutes(r.NewRoute().Subrouter(), state)
+	AttachInternalAPIRoutes(r.NewRoute().Subrouter(), state)
 	AttachDevRoutes(r.NewRoute().Subrouter(), state)
 	return r
 }
@@ -66,7 +69,7 @@ type Options struct {
 	EnvSlug   string
 	Port      int
 	Executor  dev.Executor
-	DevConfig conf.DevConfig
+	DevConfig *conf.DevConfig
 	Dir       string
 }
 
@@ -93,6 +96,7 @@ func Start(opts Options) (*Server, error) {
 		runs:      NewRunStore(),
 		devConfig: opts.DevConfig,
 		dir:       opts.Dir,
+		logger:    logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
 	}
 
 	r := newRouter(state)
@@ -137,7 +141,7 @@ func (s *Server) RegisterTasksAndViews(taskConfigs []discover.TaskConfig, viewCo
 		// Check resource attachments.
 		var missingResources []string
 		for _, resourceSlug := range cfg.Def.GetResourceAttachments() {
-			if _, ok := s.state.devConfig.DecodedResources[resourceSlug]; !ok {
+			if _, ok := s.state.devConfig.Resources[resourceSlug]; !ok {
 				missingResources = append(missingResources, resourceSlug)
 			}
 		}

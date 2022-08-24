@@ -13,7 +13,6 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/logs"
-	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
@@ -65,6 +64,7 @@ func TestExecute(t *testing.T) {
 					Source:         discover.ConfigSourceDefn,
 				},
 			},
+			devConfig: &conf.DevConfig{},
 		}),
 	)
 
@@ -162,7 +162,7 @@ func TestExecuteBuiltin(t *testing.T) {
 					Source:         discover.ConfigSourceDefn,
 				},
 			},
-			devConfig: conf.DevConfig{DecodedResources: map[string]resources.Resource{
+			devConfig: &conf.DevConfig{Resources: map[string]resources.Resource{
 				"database": dbResource,
 			}},
 		}),
@@ -295,40 +295,4 @@ func TestListRuns(t *testing.T) {
 		// runHistory is ordered by most recent
 		require.EqualValues(resp.Runs[i], testRuns[len(testRuns)-i-1])
 	}
-}
-
-func TestListResources(t *testing.T) {
-	require := require.New(t)
-	h := getHttpExpect(
-		context.Background(),
-		t,
-		newRouter(&State{
-			devConfig: conf.DevConfig{
-				Resources: map[string]map[string]interface{}{
-					"db": {
-						"slug": "db",
-					},
-					"slack": {
-						"slug": "slack",
-					},
-				},
-			},
-		}),
-	)
-
-	body := h.GET("/v0/resources/list").
-		Expect().
-		Status(http.StatusOK).Body()
-
-	var resp libapi.ListResourcesResponse
-	err := json.Unmarshal([]byte(body.Raw()), &resp)
-	require.NoError(err)
-	require.ElementsMatch([]libapi.Resource{
-		{
-			Slug: "db",
-		},
-		{
-			Slug: "slack",
-		},
-	}, resp.Resources)
 }
