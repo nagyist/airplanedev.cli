@@ -13,7 +13,7 @@ func init() {
 }
 
 type MailgunResource struct {
-	resources.BaseResource `mapstructure:",squash"`
+	resources.BaseResource `mapstructure:",squash" yaml:",inline"`
 
 	APIKey string `json:"apiKey" mapstructure:"apiKey"`
 	Domain string `json:"domain" mapstructure:"domain"`

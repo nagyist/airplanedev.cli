@@ -13,7 +13,7 @@ func init() {
 }
 
 type MongoDBResource struct {
-	resources.BaseResource `mapstructure:",squash"`
+	resources.BaseResource `mapstructure:",squash" yaml:",inline"`
 
 	ConnectionString string `json:"connectionString" mapstructure:"connectionString"`
 }

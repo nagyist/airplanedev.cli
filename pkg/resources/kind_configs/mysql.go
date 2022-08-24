@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	KindMySQL ResourceKind = "mysql"
+	KindMySQL resources.ResourceKind = "mysql"
 )
 
 func init() {

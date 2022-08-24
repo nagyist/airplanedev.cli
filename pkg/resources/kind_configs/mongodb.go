@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	KindMongoDB ResourceKind = "mongodb"
+	KindMongoDB resources.ResourceKind = "mongodb"
 )
 
 func init() {

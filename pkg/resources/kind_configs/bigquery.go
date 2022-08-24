@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	KindBigQuery ResourceKind = "bigquery"
+	KindBigQuery resources.ResourceKind = "bigquery"
 )
 
 func init() {

@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	KindMailgun  ResourceKind = "mailgun"
-	KindSendGrid ResourceKind = "sendgrid"
-	KindSMTP     ResourceKind = "smtp"
+	KindMailgun  resources.ResourceKind = "mailgun"
+	KindSendGrid resources.ResourceKind = "sendgrid"
+	KindSMTP     resources.ResourceKind = "smtp"
 )
 
 func init() {

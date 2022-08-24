@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	KindSQLServer ResourceKind = "sqlserver"
+	KindSQLServer resources.ResourceKind = "sqlserver"
 )
 
 func init() {

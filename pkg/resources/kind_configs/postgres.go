@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	KindPostgres ResourceKind = "postgres"
+	KindPostgres resources.ResourceKind = "postgres"
 )
 
 func init() {

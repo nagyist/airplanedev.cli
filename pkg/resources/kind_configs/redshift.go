@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	KindRedshift ResourceKind = "redshift"
+	KindRedshift resources.ResourceKind = "redshift"
 )
 
 func init() {

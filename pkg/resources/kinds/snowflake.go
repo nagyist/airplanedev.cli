@@ -15,7 +15,7 @@ func init() {
 }
 
 type SnowflakeResource struct {
-	resources.BaseResource `mapstructure:",squash"`
+	resources.BaseResource `mapstructure:",squash" yaml:",inline"`
 
 	Account   string `json:"account" mapstructure:"account"`
 	Warehouse string `json:"warehouse" mapstructure:"warehouse"`

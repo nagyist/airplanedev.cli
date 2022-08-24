@@ -15,7 +15,7 @@ func init() {
 }
 
 type RESTResource struct {
-	resources.BaseResource `mapstructure:",squash"`
+	resources.BaseResource `mapstructure:",squash" yaml:",inline"`
 
 	BaseURL       string            `json:"baseURL" mapstructure:"baseURL"`
 	Headers       map[string]string `json:"headers" mapstructure:"headers"`

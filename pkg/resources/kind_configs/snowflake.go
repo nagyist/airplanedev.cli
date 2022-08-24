@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	KindSnowflake ResourceKind = "snowflake"
+	KindSnowflake resources.ResourceKind = "snowflake"
 )
 
 func init() {

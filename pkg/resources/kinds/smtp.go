@@ -14,7 +14,7 @@ func init() {
 }
 
 type SMTPResource struct {
-	resources.BaseResource `mapstructure:",squash"`
+	resources.BaseResource `mapstructure:",squash" yaml:",inline"`
 
 	Hostname string   `json:"hostname" mapstructure:"hostname"`
 	Port     string   `json:"port" mapstructure:"port"`

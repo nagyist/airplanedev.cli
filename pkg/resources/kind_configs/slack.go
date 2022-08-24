@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const KindSlack ResourceKind = "slack"
+const KindSlack resources.ResourceKind = "slack"
 
 func init() {
 	ResourceKindToKindConfig[KindSlack] = &SlackKindConfig{}

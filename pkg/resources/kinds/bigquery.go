@@ -15,7 +15,7 @@ func init() {
 }
 
 type BigQueryResource struct {
-	resources.BaseResource `mapstructure:",squash"`
+	resources.BaseResource `mapstructure:",squash" yaml:",inline"`
 
 	Credentials string `json:"credentials" mapstructure:"credentials"`
 	ProjectID   string `json:"projectId" mapstructure:"projectId"`

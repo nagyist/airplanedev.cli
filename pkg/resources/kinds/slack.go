@@ -11,7 +11,7 @@ func init() {
 }
 
 type SlackResource struct {
-	resources.BaseResource `mapstructure:",squash"`
+	resources.BaseResource `mapstructure:",squash" yaml:",inline"`
 
 	AccessToken string `json:"accessToken" mapstructure:"accessToken"`
 }

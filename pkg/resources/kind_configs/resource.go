@@ -9,28 +9,26 @@ import (
 )
 
 // ResourceKindToKindConfig is a mapping from ResourceKind to an empty kind config struct for that resource kind.
-var ResourceKindToKindConfig = make(map[ResourceKind]ResourceConfigValues)
+var ResourceKindToKindConfig = make(map[resources.ResourceKind]ResourceConfigValues)
 
-type APIResource struct {
-	ID         string             `json:"id" db:"id"`
-	Slug       string             `json:"slug" db:"slug"`
-	Name       string             `json:"name" db:"name"`
-	Kind       ResourceKind       `json:"kind" db:"kind"`
-	KindConfig ResourceKindConfig `json:"kindConfig" db:"kind_config"`
+type InternalResource struct {
+	ID         string                 `json:"id" db:"id"`
+	Slug       string                 `json:"slug" db:"slug"`
+	Name       string                 `json:"name" db:"name"`
+	Kind       resources.ResourceKind `json:"kind" db:"kind"`
+	KindConfig ResourceKindConfig     `json:"kindConfig" db:"kind_config"`
 }
 
-func (r APIResource) ToExternalResource() (resources.Resource, error) {
+func (r InternalResource) ToExternalResource() (resources.Resource, error) {
 	return r.KindConfig.ToExternalResource(resources.BaseResource{
 		ID:   r.ID,
 		Slug: r.Slug,
-		Kind: resources.ResourceKind(r.Kind),
+		Kind: r.Kind,
 		Name: r.Name,
 	})
 }
 
-type ResourceKind string
-
-const KindUnknown ResourceKind = ""
+const KindUnknown resources.ResourceKind = ""
 
 // ResourceConfigValues should be implemented by each *KindConfig
 type ResourceConfigValues interface {
@@ -55,7 +53,7 @@ type ResourceKindConfig struct {
 	SQLServer *SQLServerKindConfig `json:"sqlserver,omitempty" yaml:"sqlserver,omitempty"`
 }
 
-func (this ResourceKindConfig) KindValue() (ResourceKind, ResourceConfigValues) {
+func (this ResourceKindConfig) KindValue() (resources.ResourceKind, ResourceConfigValues) {
 	switch {
 	case this.BigQuery != nil:
 		return KindBigQuery, this.BigQuery
@@ -86,7 +84,7 @@ func (this ResourceKindConfig) KindValue() (ResourceKind, ResourceConfigValues) 
 	}
 }
 
-func (this ResourceKindConfig) Kind() ResourceKind {
+func (this ResourceKindConfig) Kind() resources.ResourceKind {
 	kind, _ := this.KindValue()
 	return kind
 }

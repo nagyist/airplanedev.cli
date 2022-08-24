@@ -53,3 +53,13 @@ func BaseFactory(serialized map[string]interface{}, result interface{}) error {
 	}
 	return nil
 }
+
+// RegisteredResourceKinds lists all registered resource kinds.
+func RegisteredResourceKinds() []ResourceKind {
+	kinds := make([]ResourceKind, 0, len(ResourceFactories))
+	for kind := range ResourceFactories {
+		kinds = append(kinds, kind)
+	}
+
+	return kinds
+}

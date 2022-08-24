@@ -16,7 +16,7 @@ func init() {
 }
 
 type SQLServerResource struct {
-	resources.BaseResource `mapstructure:",squash"`
+	resources.BaseResource `mapstructure:",squash" yaml:",inline"`
 
 	Username    string `json:"username" mapstructure:"username"`
 	Host        string `json:"host" mapstructure:"host"`

@@ -11,8 +11,8 @@ func init() {
 }
 
 type RedshiftResource struct {
-	resources.BaseResource `mapstructure:",squash"`
-	PostgresResource       `mapstructure:",squash"`
+	resources.BaseResource `mapstructure:",squash" yaml:",inline"`
+	PostgresResource       `mapstructure:",squash" yaml:",inline"`
 }
 
 var _ SQLResourceInterface = RedshiftResource{}

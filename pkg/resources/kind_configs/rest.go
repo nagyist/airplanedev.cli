@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const KindREST ResourceKind = "rest"
+const KindREST resources.ResourceKind = "rest"
 
 func init() {
 	ResourceKindToKindConfig[KindREST] = &RESTKindConfig{}
