@@ -57,14 +57,6 @@ func TestDev(tt *testing.T) {
 				// latest version of Node) it doesn't actually test that the compiled
 				// code _runs_ in an older version of Node. We have more control over
 				// this in our Docker-based builder tests, so we test that there.
-				KindOptions: build.KindOptions{"nodeVersion": "12"},
-			},
-		},
-		{
-			Kind: build.TaskKindNode,
-			Opts: runtime.PrepareRunOptions{
-				Path: "typescript/esnext/main.ts",
-				// See nodeVersion comment above.
 				KindOptions: build.KindOptions{"nodeVersion": "14"},
 			},
 		},

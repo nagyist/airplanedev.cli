@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const LatestNodeVersion = "18"
+const DefaultNodeVersion = "18"
 const sdkVersion = "0.2.0-25"
 
 type templateParams struct {
@@ -316,13 +316,12 @@ func GenShimPackageJSON(packageJSONs []string, isWorkflow bool) ([]byte, error) 
 }
 
 func GetNodeVersion(opts KindOptions) string {
-	defaultVersion := "16"
 	if opts == nil || opts["nodeVersion"] == nil {
-		return defaultVersion
+		return DefaultNodeVersion
 	}
 	nv, ok := opts["nodeVersion"].(string)
 	if !ok {
-		return defaultVersion
+		return DefaultNodeVersion
 	}
 
 	return nv
@@ -470,7 +469,7 @@ func nodeLegacyBuilder(root string, options KindOptions) (string, error) {
 
 func getBaseNodeImage(version string) (string, error) {
 	if version == "" {
-		version = "16"
+		version = DefaultNodeVersion
 	}
 	v, err := GetVersion(NameNode, version)
 	if err != nil {

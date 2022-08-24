@@ -47,7 +47,7 @@ func esbuildUserFiles(rootDir string) error {
 
 		Platform: esbuild.PlatformNode,
 		Engines: []esbuild.Engine{
-			{Name: esbuild.EngineNode, Version: build.LatestNodeVersion},
+			{Name: esbuild.EngineNode, Version: build.DefaultNodeVersion},
 		},
 		Format: esbuild.FormatCommonJS,
 	})
