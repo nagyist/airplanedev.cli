@@ -385,3 +385,13 @@ type Display struct {
 	// kind=markdown
 	Content string `json:"content"`
 }
+
+type Prompt struct {
+	ID          string                 `json:"id"`
+	RunID       string                 `json:"runID"`
+	Schema      Parameters             `json:"schema"`
+	Values      map[string]interface{} `json:"values"`
+	CreatedAt   time.Time              `json:"createdAt"`
+	SubmittedAt *time.Time             `json:"submittedAt"`
+	SubmittedBy *string                `json:"submittedBy"`
+}
