@@ -1,6 +1,6 @@
 module github.com/airplanedev/lib
 
-go 1.18
+go 1.19
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.5
@@ -10,18 +10,18 @@ require (
 	github.com/alessio/shellescape v1.4.1
 	github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible
 	github.com/blang/semver/v4 v4.0.0
-	github.com/evanw/esbuild v0.14.50
+	github.com/evanw/esbuild v0.15.5
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/goccy/go-yaml v1.9.5
-	github.com/mitchellh/mapstructure v1.4.3
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/otiai10/copy v1.7.0
 	github.com/pkg/errors v0.9.1
-	github.com/snowflakedb/gosnowflake v1.6.12
+	github.com/snowflakedb/gosnowflake v1.6.13
 	github.com/stretchr/testify v1.8.0
 	github.com/xeipuuv/gojsonschema v1.2.0
-	go.mongodb.org/mongo-driver v1.10.0
+	go.mongodb.org/mongo-driver v1.10.1
 	golang.org/x/exp v0.0.0-20220823124025-807a23277127
 	golang.org/x/sync v0.0.0-20220819030929-7fc1605a5dde
 )
@@ -97,7 +97,7 @@ require (
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
 	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f // indirect
-	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
+	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
@@ -113,7 +113,7 @@ require (
 	github.com/Microsoft/hcsshim v0.9.1 // indirect
 	github.com/airplanedev/dlog v0.0.0-20210615011719-ca8d3becde5e
 	github.com/docker/docker v20.10.12+incompatible
-	github.com/mattn/go-isatty v0.0.14
+	github.com/mattn/go-isatty v0.0.16
 	github.com/moby/sys/mount v0.3.0 // indirect
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/segmentio/ksuid v1.0.4
