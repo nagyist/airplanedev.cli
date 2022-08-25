@@ -15,14 +15,16 @@ import (
 	viewinit "github.com/airplanedev/cli/cmd/airplane/views/initcmd"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
 type config struct {
-	client   *api.Client
-	template string
+	client      *api.Client
+	template    string
+	resetDemoDB bool
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -46,6 +48,7 @@ func New(c *cli.Config) *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&cfg.template, "template", "t", "", "Path of a template to initialize from in the format github.com/org/repo/path/to/template or path/to/template (in the airplanedev/templates repository)")
+	cmd.Flags().BoolVar(&cfg.resetDemoDB, "reset-demo-db", false, "Resets the SQL DB resource [Demo DB] to its original state")
 
 	return cmd
 }
@@ -61,6 +64,15 @@ var orderedInitOptions = []string{
 }
 
 func run(ctx context.Context, cfg config) error {
+	if cfg.resetDemoDB {
+		resourceID, err := cfg.client.ResetDemoDB(ctx)
+		if err != nil {
+			return errors.Wrap(err, "resetting demo db")
+		}
+		logger.Step("Demo DB reset")
+		logger.Debug("Demo DB has resource ID %s", resourceID)
+	}
+
 	if cfg.template != "" {
 		if strings.HasPrefix(cfg.template, "github.com/") || strings.HasPrefix(cfg.template, "https://github.com/") {
 			return utils.CopyFromGithubPath(cfg.template)

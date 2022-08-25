@@ -4,6 +4,7 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	"github.com/airplanedev/cli/cmd/airplane/demo/createdb"
+	"github.com/airplanedev/cli/cmd/airplane/demo/resetdb"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/spf13/cobra"
@@ -17,6 +18,7 @@ func New(c *cli.Config) *cobra.Command {
 		Long:  "Handles demo-related commands",
 		Example: heredoc.Doc(`
 			airplane demo create-db
+			airplane demo reset-db
 		`),
 		PersistentPreRunE: utils.WithParentPersistentPreRunE(func(cmd *cobra.Command, args []string) error {
 			return login.EnsureLoggedIn(cmd.Root().Context(), c)
@@ -24,6 +26,7 @@ func New(c *cli.Config) *cobra.Command {
 	}
 
 	cmd.AddCommand(createdb.New(c))
+	cmd.AddCommand(resetdb.New(c))
 
 	return cmd
 }

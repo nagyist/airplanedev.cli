@@ -387,6 +387,17 @@ func (c Client) CreateDemoDB(ctx context.Context, name string) (string, error) {
 	return reply.ResourceID, nil
 }
 
+func (c Client) ResetDemoDB(ctx context.Context) (string, error) {
+	reply := struct {
+		ResourceID string `json:"resourceID"`
+	}{}
+	err := c.do(ctx, "POST", "/resources/resetDemoDB", nil, &reply)
+	if err != nil {
+		return "", err
+	}
+	return reply.ResourceID, nil
+}
+
 // GetConfig returns a config by name and tag.
 func (c Client) GetConfig(ctx context.Context, req GetConfigRequest) (res GetConfigResponse, err error) {
 	err = c.do(ctx, "POST", encodeQueryString("/configs/get", url.Values{
