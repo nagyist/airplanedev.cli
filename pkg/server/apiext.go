@@ -333,7 +333,15 @@ func CreateDisplayHandler(ctx context.Context, state *State, r *http.Request, re
 		Kind:      req.Display.Kind,
 		CreatedAt: now,
 		UpdatedAt: now,
-		Content:   req.Display.Content,
+	}
+	switch req.Display.Kind {
+	case "markdown":
+		display.Content = req.Display.Content
+	case "table":
+		display.Rows = req.Display.Rows
+		display.Columns = req.Display.Columns
+	case "json":
+		display.Value = req.Display.Value
 	}
 
 	run, err := state.runs.update(runID, func(run *LocalRun) error {
