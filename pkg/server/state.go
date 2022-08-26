@@ -9,6 +9,7 @@ import (
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/utils/logger"
+	"github.com/pkg/errors"
 )
 
 type State struct {
@@ -95,18 +96,20 @@ func (store *runsStore) getDescendants(runID string) []LocalRun {
 	return descendants
 }
 
-func (store *runsStore) update(runID string, f func(run *LocalRun)) (LocalRun, bool) {
+func (store *runsStore) update(runID string, f func(run *LocalRun) error) (LocalRun, error) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 
 	res, ok := store.runs[runID]
 	if !ok {
-		return LocalRun{}, false
+		return LocalRun{}, errors.Errorf("run with id %q not found", runID)
 	}
-	f(&res)
+	if err := f(&res); err != nil {
+		return LocalRun{}, err
+	}
 	store.runs[runID] = res
 
-	return res, true
+	return res, nil
 }
 
 func (store *runsStore) getRunHistory(taskID string) []LocalRun {

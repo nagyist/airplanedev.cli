@@ -191,7 +191,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 		outputs, err := state.executor.Execute(ctx, runConfig)
 
 		completedAt := time.Now()
-		run, _ = state.runs.update(runID, func(run *LocalRun) {
+		run, err = state.runs.update(runID, func(run *LocalRun) error {
 			if err != nil {
 				run.Status = api.RunFailed
 				run.FailedAt = &completedAt
@@ -200,6 +200,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 				run.SucceededAt = &completedAt
 			}
 			run.Outputs = outputs
+			return nil
 		})
 	} else {
 		logger.Error("task with slug %s is not registered locally", req.Slug)
@@ -335,11 +336,12 @@ func CreateDisplayHandler(ctx context.Context, state *State, r *http.Request, re
 		Content:   req.Display.Content,
 	}
 
-	run, ok := state.runs.update(runID, func(run *LocalRun) {
+	run, err := state.runs.update(runID, func(run *LocalRun) error {
 		run.Displays = append(run.Displays, display)
+		return nil
 	})
-	if !ok {
-		return CreateDisplayResponse{}, errors.Errorf("run with id %q not found", runID)
+	if err != nil {
+		return CreateDisplayResponse{}, err
 	}
 
 	content := fmt.Sprintf("[kind=%s]\n\n%s", display.Kind, display.Content)
