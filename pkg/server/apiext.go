@@ -188,7 +188,9 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 		run.CreatorID = state.cliConfig.ParseTokenForAnalytics().UserID
 		state.runs.add(req.Slug, runID, run)
 
-		outputs, err := state.executor.Execute(ctx, runConfig)
+		// use a new context while executing
+		// so the handler context doesn't cancel task execution
+		outputs, err := state.executor.Execute(context.Background(), runConfig)
 
 		completedAt := time.Now()
 		run, err = state.runs.update(runID, func(run *LocalRun) error {
