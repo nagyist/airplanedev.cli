@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/ojson"
 	"gopkg.in/yaml.v3"
 )
 
@@ -384,6 +385,18 @@ type Display struct {
 
 	// kind=markdown
 	Content string `json:"content"`
+
+	// kind=table
+	Rows    []ojson.Value        `json:"rows"`
+	Columns []DisplayTableColumn `json:"columns"`
+
+	// kind=json
+	Value any `json:"value"`
+}
+
+type DisplayTableColumn struct {
+	Name string `json:"name"`
+	Slug string `json:"slug"`
 }
 
 type Prompt struct {
