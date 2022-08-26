@@ -65,7 +65,6 @@ func AttachExternalAPIRoutes(r *mux.Router, state *State) {
 	r.Handle("/runs/getOutputs", Handler(state, GetOutputsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/get", Handler(state, GetRunHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/list", Handler(state, ListRunsHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/runs/getDescendants", Handler(state, GetDescendantsHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/resources/list", Handler(state, ListResourcesHandler)).Methods("GET", "OPTIONS")
 
@@ -252,22 +251,6 @@ func ListRunsHandler(ctx context.Context, state *State, r *http.Request) (ListRu
 	runs := state.runs.getRunHistory(taskSlug)
 	return ListRunsResponse{
 		Runs: runs,
-	}, nil
-}
-
-type GetDescendantsResponse struct {
-	Descendants []LocalRun `json:"descendants"`
-}
-
-func GetDescendantsHandler(ctx context.Context, state *State, r *http.Request) (GetDescendantsResponse, error) {
-	runID := r.URL.Query().Get("runID")
-	if runID == "" {
-		return GetDescendantsResponse{}, errors.New("runID cannot be empty")
-	}
-	descendants := state.runs.getDescendants(runID)
-
-	return GetDescendantsResponse{
-		Descendants: descendants,
 	}, nil
 }
 

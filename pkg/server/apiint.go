@@ -23,6 +23,8 @@ func AttachInternalAPIRoutes(r *mux.Router, state *State) {
 	r.Handle("/resources/get", Handler(state, GetResourceHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/resources/list", Handler(state, ListResourcesHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/resources/update", HandlerWithBody(state, UpdateResourceHandler)).Methods("POST", "OPTIONS")
+
+	r.Handle("/runs/getDescendants", Handler(state, GetDescendantsHandler)).Methods("GET", "OPTIONS")
 }
 
 type CreateResourceRequest struct {
@@ -143,5 +145,21 @@ func UpdateResourceHandler(ctx context.Context, state *State, r *http.Request, r
 
 	return UpdateResourceResponse{
 		ResourceID: req.Slug,
+	}, nil
+}
+
+type GetDescendantsResponse struct {
+	Descendants []LocalRun `json:"descendants"`
+}
+
+func GetDescendantsHandler(ctx context.Context, state *State, r *http.Request) (GetDescendantsResponse, error) {
+	runID := r.URL.Query().Get("runID")
+	if runID == "" {
+		return GetDescendantsResponse{}, errors.New("runID cannot be empty")
+	}
+	descendants := state.runs.getDescendants(runID)
+
+	return GetDescendantsResponse{
+		Descendants: descendants,
 	}, nil
 }
