@@ -154,21 +154,21 @@ func node(root string, options KindOptions, buildArgs []string) (string, error) 
 	}
 	cfg.InlineShimPackageJSON = inlineString(string(pjson))
 
+	entrypointFunc, _ := options["entrypointFunc"].(string)
 	if isWorkflow {
 		cfg.InlineShim = inlineString(workerShim)
 		cfg.InlineWorkflowBundlerScript = inlineString(workflowBundlerScript)
 		cfg.InlineWorkflowInterceptorsScript = inlineString(workflowInterceptorsScript)
 
 		workflowShim, err := TemplateEntrypoint(workflowShimScript, NodeShimParams{
-			Entrypoint: entrypoint,
+			Entrypoint:     entrypoint,
+			EntrypointFunc: entrypointFunc,
 		})
 		if err != nil {
 			return "", err
 		}
 		cfg.InlineWorkflowShimScript = inlineString(workflowShim)
 	} else {
-		entrypointFunc, _ := options["entrypointFunc"].(string)
-
 		shim, err := TemplatedNodeShim(NodeShimParams{
 			Entrypoint:     entrypoint,
 			EntrypointFunc: entrypointFunc,

@@ -1,6 +1,10 @@
 import airplane from 'airplane';
 import { proxySinks, CancelledFailure } from '@temporalio/workflow';
-import task from '{{.Entrypoint}}';
+{{if and (.EntrypointFunc) (ne .EntrypointFunc "default") }}
+import { {{.EntrypointFunc}} as task } from "{{.Entrypoint}}";
+{{else}}
+import task from "{{.Entrypoint}}";
+{{end}}
 import { registerWorkflowRuntime } from "@airplane/workflow-runtime/internal";
 
 const { logger } = proxySinks();
@@ -25,9 +29,14 @@ export async function __airplaneEntrypoint(params, workflowArgs) {
       error: logger.error
     }
 
-    var result = await task(JSON.parse(params[0]));
-    if (result !== undefined) {
-      airplane.setOutput(result);
+    var ret;
+    if ("__airplane" in task) {
+      ret = await task.__airplane.baseFunc(JSON.parse(params[0]));
+    } else {
+      ret = await task(JSON.parse(params[0]));
+    }
+    if (ret !== undefined) {
+      airplane.setOutput(ret);
     }
 
     logger.internal('airplane_status:succeeded');
