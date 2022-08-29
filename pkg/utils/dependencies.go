@@ -11,13 +11,16 @@ import (
 )
 
 func InstallDependencies(dir string, useYarn bool) error {
+	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{WithLoader: true})
+	defer l.StopLoader()
+
 	var cmd *exec.Cmd
 	if useYarn {
 		cmd = exec.Command("yarn")
-		logger.Debug("Installing dependencies with yarn")
+		l.Debug("Installing dependencies with yarn")
 	} else {
 		cmd = exec.Command("npm", "install")
-		logger.Debug("Installing dependencies with npm")
+		l.Debug("Installing dependencies with npm")
 	}
 	cmd.Dir = dir
 
@@ -33,7 +36,7 @@ func InstallDependencies(dir string, useYarn bool) error {
 		defer wg.Done()
 		for scanner.Scan() {
 			m := scanner.Text()
-			logger.Debug(m)
+			l.Debug(m)
 		}
 	}()
 	if err = cmd.Start(); err != nil {

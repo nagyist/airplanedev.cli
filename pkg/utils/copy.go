@@ -95,6 +95,7 @@ func CopyFromGithubPath(gitPath string) error {
 		if fsx.Exists(filepath.Join(directory, "package.json")) {
 			useYarn := ShouldUseYarn(directory)
 			logger.Step("Installing dependencies...")
+
 			if err = InstallDependencies(directory, useYarn); err != nil {
 				logger.Debug(err.Error())
 				if useYarn {

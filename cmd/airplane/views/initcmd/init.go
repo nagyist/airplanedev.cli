@@ -239,6 +239,8 @@ func createPackageJSON(cfg config) error {
 }
 
 func addAllPackages(packageJSONDirPath string, useYarn bool) error {
+	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{WithLoader: true})
+	defer l.StopLoader()
 	packageJSONPath := filepath.Join(packageJSONDirPath, "package.json")
 	existingDeps, err := build.ListDependencies(packageJSONPath)
 	if err != nil {
@@ -253,17 +255,17 @@ func addAllPackages(packageJSONDirPath string, useYarn bool) error {
 	devPackagesToAdd := getPackagesToAdd(devPackagesToCheck, existingDeps)
 
 	if len(packagesToAdd) > 0 || len(devPackagesToAdd) > 0 {
-		logger.Step("Installing dependencies...")
+		l.Step("Installing dependencies...")
 	}
 
 	if len(packagesToAdd) > 0 {
-		if err := addPackages(packageJSONDirPath, packagesToAdd, false, useYarn); err != nil {
+		if err := addPackages(l, packageJSONDirPath, packagesToAdd, false, useYarn); err != nil {
 			return errors.Wrap(err, "installing dependencies")
 		}
 	}
 
 	if len(devPackagesToAdd) > 0 {
-		if err := addPackages(packageJSONDirPath, devPackagesToAdd, true, useYarn); err != nil {
+		if err := addPackages(l, packageJSONDirPath, devPackagesToAdd, true, useYarn); err != nil {
 			return errors.Wrap(err, "installing dev dependencies")
 		}
 	}
@@ -287,7 +289,7 @@ func getPackagesToAdd(packagesToCheck, existingDeps []string) []string {
 	return packagesToAdd
 }
 
-func addPackages(packageJSONDirPath string, packageNames []string, dev, useYarn bool) error {
+func addPackages(l logger.Logger, packageJSONDirPath string, packageNames []string, dev, useYarn bool) error {
 	installArgs := []string{"add"}
 	if dev {
 		if useYarn {
@@ -300,24 +302,24 @@ func addPackages(packageJSONDirPath string, packageNames []string, dev, useYarn 
 	var cmd *exec.Cmd
 	if useYarn {
 		cmd = exec.Command("yarn", installArgs...)
-		logger.Debug("Adding packages using yarn")
+		l.Debug("Adding packages using yarn")
 	} else {
 		cmd = exec.Command("npm", installArgs...)
-		logger.Debug("Adding packages using npm")
+		l.Debug("Adding packages using npm")
 	}
 
 	cmd.Dir = packageJSONDirPath
 	err := cmd.Run()
 	if err != nil {
 		if dev {
-			logger.Log("Failed to install devDependencies")
+			l.Log("Failed to install devDependencies")
 		} else {
-			logger.Log("Failed to install dependencies")
+			l.Log("Failed to install dependencies")
 		}
 		return err
 	}
 	for _, pkg := range packageNames {
-		logger.Step(fmt.Sprintf("Installed %s", pkg))
+		l.Step(fmt.Sprintf("Installed %s", pkg))
 	}
 	return nil
 }

@@ -29,16 +29,19 @@ const (
 
 func Dev(v viewdir.ViewDirectory, viteOpts ViteOpts) (*exec.Cmd, string, error) {
 	root := v.Root()
-	logger.Debug("Root directory: %s", v.Root())
-	logger.Debug("Entrypoint: %s", v.EntrypointPath())
+	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{WithLoader: true})
+	defer l.StopLoader()
+
+	l.Debug("Root directory: %s", v.Root())
+	l.Debug("Entrypoint: %s", v.EntrypointPath())
 	tmpdir := filepath.Join(root, ".airplane-view")
 	if _, err := os.Stat(tmpdir); os.IsNotExist(err) {
 		if err := os.Mkdir(tmpdir, 0755); err != nil {
 			return nil, "", errors.Wrap(err, "creating temporary dir")
 		}
-		logger.Debug("created temporary dir %s", tmpdir)
+		l.Debug("created temporary dir %s", tmpdir)
 	} else {
-		logger.Debug("temporary dir %s exists", tmpdir)
+		l.Debug("temporary dir %s exists", tmpdir)
 	}
 
 	entrypointFile, err := filepath.Rel(v.Root(), v.EntrypointPath())
@@ -94,12 +97,14 @@ func Dev(v viewdir.ViewDirectory, viteOpts ViteOpts) (*exec.Cmd, string, error) 
 	// Run npm/yarn install.
 	useYarn := utils.ShouldUseYarn(tmpdir)
 	if err := utils.InstallDependencies(tmpdir, useYarn); err != nil {
-		logger.Debug(err.Error())
+		l.Debug(err.Error())
 		if useYarn {
 			return nil, "", errors.New("error installing dependencies using yarn. Try installing yarn.")
 		}
 		return nil, "", errors.Wrap(err, "running npm/yarn install")
 	}
+
+	l.StopLoader()
 
 	// Run vite.
 	cmd, viteServer, err := runVite(viteOpts, tmpdir)
