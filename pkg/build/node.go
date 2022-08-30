@@ -15,7 +15,7 @@ import (
 )
 
 const DefaultNodeVersion = "18"
-const sdkVersion = "0.2.0-25"
+const defaultSDKVersion = "0.2.0-25"
 
 type templateParams struct {
 	Workdir                          string
@@ -291,23 +291,30 @@ func GenShimPackageJSON(packageJSONs []string, isWorkflow bool) ([]byte, error) 
 		return nil, err
 	}
 
-	pjson := shimPackageJSON{
-		Dependencies: map[string]string{
-			"airplane": "~0.1.2",
-		},
-	}
-
+	var pjson shimPackageJSON
 	if isWorkflow {
-		// @airplane/workflow-runtime already includes the temporal dependencies, and so we don't need to include them
-		// here.
-		pjson.Dependencies["airplane"] = sdkVersion
-		pjson.Dependencies["@airplane/workflow-runtime"] = sdkVersion
+		pjson = shimPackageJSON{
+			Dependencies: map[string]string{
+				"airplane":                   defaultSDKVersion,
+				"@airplane/workflow-runtime": defaultSDKVersion,
+			},
+		}
+	} else {
+		pjson = shimPackageJSON{
+			Dependencies: map[string]string{
+				"airplane": "~0.1.2",
+			},
+		}
 	}
 
 	// Allow users to override any shim dependencies. Given shim code is bundled
 	// with user code, we cannot use separate versions of these dependencies so
 	// default to whichever version the user requests.
-	for _, dep := range deps {
+	for dep, version := range deps {
+		// Always keep the versions of airplane and @airplane/workflow-runtime in sync.
+		if dep == "airplane" && isWorkflow {
+			pjson.Dependencies["@airplane/workflow-runtime"] = version
+		}
 		delete(pjson.Dependencies, dep)
 	}
 

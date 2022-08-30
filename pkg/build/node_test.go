@@ -206,7 +206,7 @@ func TestNodeWorkflowBuilder(t *testing.T) {
 			Kind: TaskKindNode,
 			Options: KindOptions{
 				"shim":       "true",
-				"entrypoint": "task.js",
+				"entrypoint": "main.js",
 				"runtime":    TaskRuntimeWorkflow,
 			},
 			SkipRun: true,
@@ -226,12 +226,11 @@ func TestGenShimPackageJSON(t *testing.T) {
 		{
 			desc:        "Yarn workspace with no shim dependencies",
 			packageJSON: "typescript/yarnworkspacesnoairplane/package.json",
-
-			isWorkflow: true,
+			isWorkflow:  true,
 			expectedShimPackageJSON: shimPackageJSON{
 				Dependencies: map[string]string{
-					"airplane":                   sdkVersion,
-					"@airplane/workflow-runtime": sdkVersion,
+					"airplane":                   defaultSDKVersion,
+					"@airplane/workflow-runtime": defaultSDKVersion,
 				},
 			},
 		},
@@ -241,7 +240,7 @@ func TestGenShimPackageJSON(t *testing.T) {
 			isWorkflow:  true,
 			expectedShimPackageJSON: shimPackageJSON{
 				Dependencies: map[string]string{
-					"@airplane/workflow-runtime": sdkVersion,
+					"@airplane/workflow-runtime": "0.2.0-32",
 				},
 			},
 		},

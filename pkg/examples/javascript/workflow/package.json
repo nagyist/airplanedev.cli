@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "dependencies": {
-    "airplane": "0.2.0-19"
+  "optionalDependencies": {
+    "airplane": "0.2.0-32"
   }
 }

@@ -68,7 +68,7 @@ func ExternalPackages(packageJSONs []string, usesWorkspaces bool) ([]string, err
 		if err != nil {
 			return nil, err
 		}
-		for _, dep := range allDeps {
+		for dep := range allDeps {
 			// Mark all dependencies as external, except for known ESM-only deps. These deps
 			// need to be bundled by esbuild so that esbuild can convert them to CommonJS.
 			// As long as these modules don't happen to pull in any optional modules, we should be OK.
@@ -85,27 +85,30 @@ func ExternalPackages(packageJSONs []string, usesWorkspaces bool) ([]string, err
 }
 
 // ListDependenciesFromPackageJSONs lists all dependencies in a set of `package.json` files.
-func ListDependenciesFromPackageJSONs(packageJSONs []string) ([]string, error) {
-	var deps []string
+func ListDependenciesFromPackageJSONs(packageJSONs []string) (map[string]string, error) {
+	allDeps := make(map[string]string)
 	for _, pathPackageJSON := range packageJSONs {
-		allDeps, err := ListDependencies(pathPackageJSON)
+		deps, err := ListDependencies(pathPackageJSON)
 		if err != nil {
 			return nil, err
 		}
-		deps = append(deps, allDeps...)
+
+		for k, v := range deps {
+			allDeps[k] = v
+		}
 	}
 
-	return deps, nil
+	return allDeps, nil
 }
 
-// ListDependencies lists all dependencies (including dev and optional) in a `package.json` file.
-func ListDependencies(pathPackageJSON string) ([]string, error) {
-	var deps []string
+// ListDependencies lists all dependencies (including dev and optional) and their versions in a `package.json` file.
+func ListDependencies(pathPackageJSON string) (map[string]string, error) {
+	deps := make(map[string]string)
 
 	f, err := os.Open(pathPackageJSON)
 	if err != nil {
 		// There is no package.json (or we can't open it). Treat as having no dependencies.
-		return []string{}, nil
+		return map[string]string{}, nil
 	}
 	defer f.Close()
 	b, err := ioutil.ReadAll(f)
@@ -121,14 +124,14 @@ func ListDependencies(pathPackageJSON string) ([]string, error) {
 		return nil, errors.Wrap(err, "unmarshaling package.json")
 	}
 
-	for k := range d.Dependencies {
-		deps = append(deps, k)
+	for k, v := range d.Dependencies {
+		deps[k] = v
 	}
-	for k := range d.DevDependencies {
-		deps = append(deps, k)
+	for k, v := range d.DevDependencies {
+		deps[k] = v
 	}
-	for k := range d.OptionalDependencies {
-		deps = append(deps, k)
+	for k, v := range d.OptionalDependencies {
+		deps[k] = v
 	}
 	return deps, nil
 }
