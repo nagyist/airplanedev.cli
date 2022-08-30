@@ -131,6 +131,9 @@ type Resource struct {
 	UpdatedBy string    `json:"updatedBy"`
 
 	IsPrivate bool `json:"isPrivate"`
+
+	CanUseResource    bool `json:"canUseResource"`
+	CanUpdateResource bool `json:"canUpdateResource"`
 }
 
 type ResourceKind string
