@@ -1,10 +1,10 @@
 // This file includes a shim that will execute your task code.
 import airplane from "airplane";
-{{if and (.EntrypointFunc) (ne .EntrypointFunc "default") }}
+{{ if and (.EntrypointFunc) (ne .EntrypointFunc "default") -}}
 import { {{.EntrypointFunc}} as task } from "{{.Entrypoint}}";
-{{else}}
+{{ else -}}
 import task from "{{.Entrypoint}}";
-{{end}}
+{{- end }}
 
 async function main() {
   if (process.argv.length !== 3) {
