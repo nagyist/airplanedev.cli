@@ -33,6 +33,9 @@ type LocalRun struct {
 	Displays    []libapi.Display       `json:"displays"`
 	Prompts     []libapi.Prompt        `json:"prompts"`
 
+	// Map of a run's attached resources: slug to ID
+	Resources map[string]string `json:"resources"`
+
 	IsStdAPI      bool              `json:"isStdAPI"`
 	StdAPIRequest dev.StdAPIRequest `json:"stdAPIRequest"`
 
@@ -50,6 +53,7 @@ func NewLocalRun() *LocalRun {
 		LogBroker:   logs.NewDevLogBroker(),
 		Displays:    []libapi.Display{},
 		Prompts:     []libapi.Prompt{},
+		Resources:   map[string]string{},
 	}
 }
 
@@ -183,6 +187,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 			return LocalRun{}, errors.Wrap(err, "generating alias to resource map")
 		}
 		runConfig.Resources = resources
+		run.Resources = resource.GenerateResourceAliasToID(resources)
 		run.RunID = runID
 		run.CreatedAt = start
 		run.ParamValues = req.ParamValues

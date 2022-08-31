@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"sort"
 	"testing"
 	"time"
 
@@ -27,12 +28,16 @@ func TestListResources(t *testing.T) {
 				Resources: map[string]resources.Resource{
 					"db": kinds.PostgresResource{
 						BaseResource: resources.BaseResource{
+							ID:   "r-1",
 							Slug: "db",
+							Kind: kinds.ResourceKindPostgres,
 						},
 					},
 					"slack": kinds.SlackResource{
 						BaseResource: resources.BaseResource{
+							ID:   "r-2",
 							Slug: "slack",
+							Kind: kinds.ResourceKindSlack,
 						},
 					},
 				},
@@ -47,14 +52,29 @@ func TestListResources(t *testing.T) {
 	var resp libapi.ListResourcesResponse
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
-	require.ElementsMatch([]libapi.Resource{
+	expected := []libapi.Resource{
 		{
 			Slug: "db",
+			ID:   "r-1",
+			Kind: libapi.ResourceKind(kinds.ResourceKindPostgres),
 		},
 		{
 			Slug: "slack",
+			ID:   "r-2",
+			Kind: libapi.ResourceKind(kinds.ResourceKindSlack),
 		},
-	}, resp.Resources)
+	}
+
+	// sort so we can compare- since resources are stored as a map
+	sort.Slice(resp.Resources, func(i, j int) bool {
+		return resp.Resources[i].ID < resp.Resources[j].ID
+	})
+
+	for i := range expected {
+		require.Equal(expected[i].Slug, resp.Resources[i].Slug)
+		require.Equal(expected[i].ID, resp.Resources[i].ID)
+		require.Equal(expected[i].Kind, resp.Resources[i].Kind)
+	}
 }
 
 func TestSubmitPrompts(t *testing.T) {
