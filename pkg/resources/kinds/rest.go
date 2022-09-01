@@ -11,7 +11,7 @@ import (
 var ResourceKindREST resources.ResourceKind = "rest"
 
 func init() {
-	resources.RegisterBaseResourceFactory(ResourceKindREST, func() resources.Resource { return RESTResource{} })
+	resources.RegisterResourceFactory(ResourceKindREST, RESTResourceFactory)
 }
 
 type RESTResource struct {
@@ -20,9 +20,63 @@ type RESTResource struct {
 	BaseURL       string            `json:"baseURL" mapstructure:"baseURL"`
 	Headers       map[string]string `json:"headers" mapstructure:"headers"`
 	SecretHeaders []string          `json:"secretHeaders" mapstructure:"secretHeaders"`
+	Auth          RESTAuth          `json:"auth" mapstructure:"-"`
 }
 
 var _ resources.Resource = RESTResource{}
+
+type RESTAuth interface {
+}
+
+type RESTAuthKind string
+
+const (
+	RESTAuthKindBasic RESTAuthKind = "basic"
+)
+
+type RESTAuthBasic struct {
+	Kind     RESTAuthKind      `json:"kind" mapstructure:"kind"`
+	Username *string           `json:"username,omitempty" mapstructure:"username,omitempty"`
+	Password *string           `json:"password,omitempty" mapstructure:"password,omitempty"`
+	Headers  map[string]string `json:"headers" mapstructure:"headers"`
+}
+
+func RESTResourceFactory(serialized map[string]interface{}) (resources.Resource, error) {
+	resource := RESTResource{}
+
+	serializedAuth, ok := serialized["auth"]
+	if ok {
+		authMap, ok := serializedAuth.(map[string]interface{})
+		if !ok {
+			return nil, errors.Errorf("expected auth to be a map, got %T", serializedAuth)
+		}
+
+		kind, ok := authMap["kind"]
+		if !ok {
+			return nil, errors.New("missing kind property on REST auth")
+		}
+
+		kindStr, ok := kind.(string)
+		if !ok {
+			return nil, errors.Errorf("expected kind to be a string, got %T", kind)
+		}
+
+		switch kindStr {
+		case string(RESTAuthKindBasic):
+			resource.Auth = RESTAuthBasic{}
+			if err := resources.BaseFactory(authMap, &resource.Auth); err != nil {
+				return nil, err
+			}
+		default:
+			return nil, errors.Errorf("unsupported auth kind: %s", kindStr)
+		}
+	}
+
+	if err := resources.BaseFactory(serialized, &resource); err != nil {
+		return nil, err
+	}
+	return resource, nil
+}
 
 func (r RESTResource) Validate() error {
 	if r.BaseURL == "" {

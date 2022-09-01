@@ -93,6 +93,11 @@ func (this RESTKindConfig) ToExternalResource(base resources.BaseResource) (reso
 			return nil, errors.Wrap(err, "generating auth header")
 		}
 		r.Headers["Authorization"] = authHeader
+		auth, err := this.AuthConfig.toExternalAuth()
+		if err != nil {
+			return nil, errors.Wrap(err, "converting AuthConfig to external auth")
+		}
+		r.Auth = auth
 	}
 
 	return r, nil
@@ -157,5 +162,25 @@ func (this RESTAuthConfig) authHeader() (string, error) {
 		return fmt.Sprintf("Basic %s", token), nil
 	default:
 		return "", errors.Errorf("unknown auth kind: %s", this.Kind)
+	}
+}
+
+func (this RESTAuthConfig) toExternalAuth() (kinds.RESTAuth, error) {
+	switch this.Kind {
+	case KindBasic:
+		header, err := this.authHeader()
+		if err != nil {
+			return nil, errors.Wrap(err, "error generating auth header")
+		}
+		return kinds.RESTAuthBasic{
+			Kind:     kinds.RESTAuthKindBasic,
+			Username: this.Username,
+			Password: this.Password,
+			Headers: map[string]string{
+				"Authorization": header,
+			},
+		}, nil
+	default:
+		return nil, errors.Errorf("unknown auth kind: %s", this.Kind)
 	}
 }
