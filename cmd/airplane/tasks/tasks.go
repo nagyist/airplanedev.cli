@@ -24,7 +24,7 @@ func New(c *cli.Config) *cobra.Command {
 		Aliases: []string{"task"},
 		Example: heredoc.Doc(`
 			airplane tasks init
-			airplane tasks deploy -f mytask.yml
+			airplane tasks deploy my_task.task.yaml
 			airplane tasks get my_task
 			airplane tasks execute my_task
 		`),

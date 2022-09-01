@@ -54,7 +54,7 @@ func run(ctx context.Context, cfg config) error {
 		logger.Log(heredoc.Doc(`
 			There are no tasks yet.
 
-			To get started, follow our quickstart guide: https://docs.airplane.dev/getting-started/quickstart-guide
+			Check out the getting started guides: https://docs.airplane.dev/getting-started/tasks
 		`))
 		return nil
 	}
