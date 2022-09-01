@@ -75,8 +75,7 @@ func (d *DevConfig) SetResource(slug string, resource resources.Resource) error 
 	return nil
 }
 
-// RemoveResource removes the resource in the dev config file with the given slug, if it exists, and returns whether or
-// not the resource was removed.
+// RemoveResource removes the resource in the dev config file with the given slug, if it exists.
 func (d *DevConfig) RemoveResource(slug string) error {
 	for s := range d.Resources {
 		if s == slug {

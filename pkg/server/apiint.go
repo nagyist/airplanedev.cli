@@ -27,6 +27,7 @@ func AttachInternalAPIRoutes(r *mux.Router, state *State) {
 	r.Handle("/resources/get", Handler(state, GetResourceHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/resources/list", Handler(state, ListResourcesHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/resources/update", HandlerWithBody(state, UpdateResourceHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/resources/isSlugAvailable", Handler(state, IsResourceSlugAvailableHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/prompts/list", Handler(state, ListPromptHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/prompts/submit", HandlerWithBody(state, SubmitPromptHandler)).Methods("POST", "OPTIONS")
@@ -45,7 +46,7 @@ type CreateResourceResponse struct {
 	ResourceID string `json:"resourceID"`
 }
 
-// CreateResourceHandler handles requests to the /v0/resources/get endpoint
+// CreateResourceHandler handles requests to the /i/resources/get endpoint
 func CreateResourceHandler(ctx context.Context, state *State, r *http.Request, req CreateResourceRequest) (CreateResourceResponse, error) {
 	resourceSlug := req.Slug
 	var err error
@@ -90,7 +91,7 @@ type GetResourceResponse struct {
 	Resource kind_configs.InternalResource
 }
 
-// GetResourceHandler handles requests to the /v0/resources/get endpoint
+// GetResourceHandler handles requests to the /i/resources/get endpoint
 func GetResourceHandler(ctx context.Context, state *State, r *http.Request) (GetResourceResponse, error) {
 	slug := r.URL.Query().Get("slug")
 	if slug == "" {
@@ -110,7 +111,7 @@ func GetResourceHandler(ctx context.Context, state *State, r *http.Request) (Get
 	return GetResourceResponse{}, errors.Errorf("Resource with slug %s is not in dev config file", slug)
 }
 
-// ListResourcesHandler handles requests to the /v0/resources/list endpoint
+// ListResourcesHandler handles requests to the /i/resources/list endpoint
 func ListResourcesHandler(ctx context.Context, state *State, r *http.Request) (libapi.ListResourcesResponse, error) {
 	resources := make([]libapi.Resource, 0, len(state.devConfig.RawResources))
 	for slug, resource := range state.devConfig.Resources {
@@ -149,10 +150,22 @@ type UpdateResourceResponse struct {
 	ResourceID string `json:"resourceID"`
 }
 
-// UpdateResourceHandler handles requests to the /v0/resources/get endpoint
+// UpdateResourceHandler handles requests to the /i/resources/get endpoint
 func UpdateResourceHandler(ctx context.Context, state *State, r *http.Request, req UpdateResourceRequest) (UpdateResourceResponse, error) {
-	resource, ok := state.devConfig.Resources[req.Slug]
-	if !ok {
+	// Check if resource exists in dev config file.
+	var foundResource bool
+	var oldSlug string
+	var resource resources.Resource
+	for configSlug, configResource := range state.devConfig.Resources {
+		// We can't rely on the slug for existence since it may have changed.
+		if configResource.ID() == req.ID {
+			foundResource = true
+			resource = configResource
+			oldSlug = configSlug
+			break
+		}
+	}
+	if !foundResource {
 		return UpdateResourceResponse{}, errors.Errorf("resource with slug %s not found in dev config file", req.Slug)
 	}
 
@@ -165,6 +178,9 @@ func UpdateResourceHandler(ctx context.Context, state *State, r *http.Request, r
 	// Update internal resource - utilize KindConfig.Update to not overwrite sensitive fields.
 	internalResource.Slug = req.Slug
 	internalResource.Name = req.Name
+	// Set a new resource ID based on the new slug.
+	newResourceID := fmt.Sprintf("res-%s", req.Slug)
+	internalResource.ID = newResourceID
 	if err := internalResource.KindConfig.Update(req.KindConfig); err != nil {
 		return UpdateResourceResponse{}, errors.Wrap(err, "updating kind config of internal resource")
 	}
@@ -175,12 +191,32 @@ func UpdateResourceHandler(ctx context.Context, state *State, r *http.Request, r
 		return UpdateResourceResponse{}, errors.Wrap(err, "converting to external resource")
 	}
 
+	// Remove the old resource first - we need to do this since devConfig.Resources is a mapping from slug to resource,
+	// and if the update resource request involves updating the slug, we don't want to leave the old resource (under the
+	// old slug) in the dev config file.
+	if err := state.devConfig.RemoveResource(oldSlug); err != nil {
+		return UpdateResourceResponse{}, errors.Wrap(err, "deleting old resource")
+	}
+
 	if err := state.devConfig.SetResource(req.Slug, newResource); err != nil {
 		return UpdateResourceResponse{}, errors.Wrap(err, "setting resource")
 	}
 
 	return UpdateResourceResponse{
-		ResourceID: req.Slug,
+		ResourceID: newResourceID,
+	}, nil
+}
+
+type IsResourceSlugAvailableResponse struct {
+	Available bool `json:"available"`
+}
+
+// IsResourceSlugAvailableHandler handles requests to the /i/resources/isSlugAvailable endpoint
+func IsResourceSlugAvailableHandler(ctx context.Context, state *State, r *http.Request) (IsResourceSlugAvailableResponse, error) {
+	slug := r.URL.Query().Get("slug")
+	res, ok := state.devConfig.Resources[slug]
+	return IsResourceSlugAvailableResponse{
+		Available: !ok || res.ID() == r.URL.Query().Get("id"),
 	}, nil
 }
 
