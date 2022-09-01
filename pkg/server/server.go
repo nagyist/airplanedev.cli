@@ -11,6 +11,7 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/gorilla/handlers"
@@ -114,6 +115,16 @@ func Start(opts Options) (*Server, error) {
 	return s, nil
 }
 
+func supportsLocalExecution(name string, entrypoint string, kind build.TaskKind) bool {
+	r, err := runtime.Lookup(entrypoint, kind)
+	if err != nil {
+		logger.Debug("%s does not support local execution: %v", name, err)
+		return false
+	}
+	// Check if task kind can be locally developed.
+	return r.SupportsLocalExecution()
+}
+
 // RegisterTasksAndViews generates a mapping of slug to task and view configs and stores the mappings in the server
 // state. Task registration must occur after the local dev server has started because the task discoverer hits the
 // /v0/tasks/getMetadata endpoint.
@@ -126,20 +137,16 @@ func (s *Server) RegisterTasksAndViews(taskConfigs []discover.TaskConfig, viewCo
 		if err != nil {
 			return RegistrationWarnings{}, errors.Wrap(err, "getting task kind")
 		}
-		r, err := runtime.Lookup(cfg.TaskEntrypoint, kind)
-		if err != nil {
-			return RegistrationWarnings{}, errors.Wrap(err, "looking up runtime")
-		}
-
-		// Check if task kind can be locally developed.
-		if r.SupportsLocalExecution() {
-			s.state.taskConfigs[cfg.Def.GetSlug()] = cfg
-		} else {
+		supported := supportsLocalExecution(cfg.Def.GetName(), cfg.TaskEntrypoint, kind)
+		if !supported {
 			unsupported = append(unsupported, UnsupportedApp{
 				Name:   cfg.Def.GetName(),
 				Kind:   AppKindTask,
 				Reason: fmt.Sprintf("%v task does not support local execution", kind)})
+			continue
 		}
+
+		s.state.taskConfigs[cfg.Def.GetSlug()] = cfg
 
 		// Check resource attachments.
 		var missingResources []string
