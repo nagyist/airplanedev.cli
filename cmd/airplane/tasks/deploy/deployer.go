@@ -191,7 +191,7 @@ func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig
 	if repo != nil && !mismatchedGitRepos {
 		gitMeta, err = GetGitMetadata(repo)
 		if err != nil {
-			analytics.ReportMessage(fmt.Sprintf("failed to gather git metadata at %s: %v", taskConfigs[0].TaskEntrypoint, err))
+			analytics.ReportMessage(fmt.Sprintf("failed to gather git metadata: %v", err))
 		}
 		gitMeta.User = conf.GetGitUser()
 		// Use the env variable provided repo if it exists.
