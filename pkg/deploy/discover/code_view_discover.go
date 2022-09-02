@@ -57,7 +57,7 @@ func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 
 	parsedConfigs, err := extractConfigs(compiledJSPath)
 	if err != nil {
-		return nil, err
+		dd.Logger.Warning(`Unable to discover inline configured views: %s`, err.Error())
 	}
 
 	if len(parsedConfigs.ViewConfigs) == 0 {

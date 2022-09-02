@@ -142,7 +142,7 @@ func (c *CodeTaskDiscoverer) parseNodeDefinitions(ctx context.Context, file stri
 
 	parsedConfigs, err := extractConfigs(compiledJSPath)
 	if err != nil {
-		return nil, err
+		c.Logger.Warning(`Unable to discover inline configured tasks: %s`, err.Error())
 	}
 
 	var parsedDefinitions []ParsedDefinition
