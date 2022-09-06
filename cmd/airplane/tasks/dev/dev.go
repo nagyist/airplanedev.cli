@@ -245,7 +245,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		File:        cfg.fileOrDir,
 		Slug:        taskConfig.Def.GetSlug(),
 		EnvSlug:     cfg.envSlug,
-		Env:         devConfig.Env,
+		Env:         devConfig.EnvVars,
 		Resources:   resources,
 	}
 	_, err = localExecutor.Execute(ctx, localRunConfig)
@@ -259,7 +259,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		"task_name":    taskConfig.Def.GetName(),
 		"env_slug":     cfg.envSlug,
 		"num_params":   len(paramValues),
-		"num_env_vars": len(devConfig.Env),
+		"num_env_vars": len(devConfig.EnvVars),
 	}, analytics.TrackOpts{
 		SkipSlack: true,
 	})

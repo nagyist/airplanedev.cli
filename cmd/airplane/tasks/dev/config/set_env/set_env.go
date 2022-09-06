@@ -52,10 +52,10 @@ func New(c *cli.DevCLI) *cobra.Command {
 
 func run(ctx context.Context, cfg config) error {
 	devConfig := cfg.devCLI.DevConfig
-	if devConfig.Env == nil {
-		devConfig.Env = map[string]string{}
+	if devConfig.EnvVars == nil {
+		devConfig.EnvVars = map[string]string{}
 	}
-	devConfig.Env[cfg.key] = cfg.value
+	devConfig.EnvVars[cfg.key] = cfg.value
 	err := conf.WriteDevConfig(devConfig)
 	if err != nil {
 		return err

@@ -113,14 +113,14 @@ func TestDevConfig(t *testing.T) {
 		}
 		err := WriteDevConfig(&DevConfig{
 			Path:         path,
-			Env:          env,
+			EnvVars:      env,
 			RawResources: configResources,
 		})
 		assert.NoError(err)
 
 		cfg, err := ReadDevConfig(path)
 		assert.NoError(err)
-		assert.Equal(env, cfg.Env)
+		assert.Equal(env, cfg.EnvVars)
 		assert.Equal(configResources, cfg.RawResources)
 		assert.Equal(map[string]resources.Resource{
 			"db": kinds.PostgresResource{

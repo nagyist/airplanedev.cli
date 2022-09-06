@@ -38,11 +38,11 @@ func New(c *cli.DevCLI) *cobra.Command {
 // Run runs the open command.
 func run(ctx context.Context, cfg config) error {
 	devConfig := cfg.devCLI.DevConfig
-	if _, ok := devConfig.Env[cfg.key]; !ok {
+	if _, ok := devConfig.EnvVars[cfg.key]; !ok {
 		return errors.Errorf("Environment variable `%s` not found in dev config file", cfg.key)
 	}
 
-	delete(devConfig.Env, cfg.key)
+	delete(devConfig.EnvVars, cfg.key)
 	if err := conf.WriteDevConfig(devConfig); err != nil {
 		return err
 	}

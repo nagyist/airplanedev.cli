@@ -152,8 +152,8 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	cmd.Env = os.Environ()
 	// only non builtins have a runtime
 	if r != nil {
-		// Load environment variables from .env files:
-		env, err := getDevEnv(r, entrypoint)
+		// Load environment variables from dev config file:
+		env, err := getDevEnvVars(r, entrypoint)
 		if err != nil {
 			return api.Outputs{}, err
 		}
@@ -264,13 +264,13 @@ func scanLogLine(config LocalRunConfig, line string, mu *sync.Mutex, o *ojson.Va
 	}
 }
 
-// getDevEnv will return a map of env vars, loading from .env and airplane.env
+// getDevEnvVars will return a map of env vars, loading from .env and airplane.env
 // files inside the task root.
 //
 // Env variables are first loaded by looking for any .env files between the root
 // and entrypoint dir (inclusive). A second pass is done to look for airplane.env
 // files. Env vars from successive files are merged in and overwrite duplicate keys.
-func getDevEnv(r runtime.Interface, path string) (map[string]string, error) {
+func getDevEnvVars(r runtime.Interface, path string) (map[string]string, error) {
 	root, err := r.Root(path)
 	if err != nil {
 		return nil, err
