@@ -11,6 +11,8 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/version"
+	"github.com/airplanedev/cli/pkg/version/latest"
 	"github.com/airplanedev/cli/pkg/views"
 	"github.com/airplanedev/cli/pkg/views/viewdir"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
@@ -24,6 +26,8 @@ func AttachDevRoutes(r *mux.Router, state *State) {
 	r = r.NewRoute().PathPrefix(basePath).Subrouter()
 
 	r.Handle("/ping", PingHandler()).Methods("GET", "OPTIONS")
+	r.Handle("/version", Handler(state, GetVersionHandler)).Methods("GET", "OPTIONS")
+
 	r.Handle("/list", Handler(state, ListEntrypointsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/tasks/{task_slug}", Handler(state, GetTaskHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/startView/{view_slug}", Handler(state, StartViewHandler)).Methods("POST", "OPTIONS")
@@ -37,6 +41,22 @@ func PingHandler() http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, "ok")
 	}
+}
+
+type VersionResponse struct {
+	Status   string `json:"status"`
+	Version  string `json:"version"`
+	IsLatest bool   `json:"isLatest"`
+}
+
+func GetVersionHandler(ctx context.Context, state *State, r *http.Request) (VersionResponse, error) {
+	isLatest := latest.CheckLatest(ctx)
+
+	return VersionResponse{
+		Status:   "ok",
+		Version:  version.Get(),
+		IsLatest: isLatest,
+	}, nil
 }
 
 type AppKind string

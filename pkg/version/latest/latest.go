@@ -24,20 +24,20 @@ type release struct {
 }
 
 // CheckLatest queries the GitHub API for newer releases and prints a warning if the CLI is outdated.
-func CheckLatest(ctx context.Context) {
+func CheckLatest(ctx context.Context) bool {
 	if version.Get() == "<unknown>" || version.Prerelease() {
 		// Pass silently if we don't know the current CLI version or are on a pre-release.
-		return
+		return true
 	}
 
 	latest, err := getLatest(ctx)
 	if err != nil {
 		analytics.ReportError(err)
 		logger.Debug("An error ocurred checking for the latest version: %s", err)
-		return
+		return true
 	} else if latest == "" {
 		// Pass silently if we can't identify the latest version.
-		return
+		return true
 	}
 
 	latestWithoutPrefix := strings.TrimPrefix(latest, "v")
@@ -46,7 +46,9 @@ func CheckLatest(ctx context.Context) {
 		logger.Warning("A newer CLI version is available (%s -> %s). To upgrade, run", version.Get(), latestWithoutPrefix)
 		logger.Log(logger.Gray("  " + getUpgradeCommand()))
 		logger.Log("")
+		return false
 	}
+	return true
 }
 
 func getUpgradeCommand() string {
