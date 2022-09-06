@@ -45,7 +45,7 @@ func RESTResourceFactory(serialized map[string]interface{}) (resources.Resource,
 	resource := RESTResource{}
 
 	serializedAuth, ok := serialized["auth"]
-	if ok {
+	if ok && serializedAuth != nil {
 		authMap, ok := serializedAuth.(map[string]interface{})
 		if !ok {
 			return nil, errors.Errorf("expected auth to be a map, got %T", serializedAuth)
