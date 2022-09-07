@@ -114,6 +114,9 @@ func CopyFromGithubPath(gitPath string) error {
 			}
 			logger.Log(string(readme))
 		}
+		if err := CreateDefaultGitignoreFile(filepath.Join(directory, ".gitignore")); err != nil {
+			return err
+		}
 	} else {
 		cwd, err := os.Getwd()
 		if err != nil {

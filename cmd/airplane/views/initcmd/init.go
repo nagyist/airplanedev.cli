@@ -131,6 +131,9 @@ func createViewScaffolding(ctx context.Context, cfg *config) error {
 	if err := createPackageJSON(*cfg); err != nil {
 		return err
 	}
+	if err := utils.CreateDefaultGitignoreFile(".gitignore"); err != nil {
+		return err
+	}
 	return nil
 }
 
