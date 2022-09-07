@@ -163,7 +163,7 @@ func TestExecuteBuiltin(t *testing.T) {
 				},
 			},
 			devConfig: &conf.DevConfig{Resources: map[string]resources.Resource{
-				"database": dbResource,
+				"database": &dbResource,
 			}},
 		}),
 	)
@@ -181,7 +181,7 @@ func TestExecuteBuiltin(t *testing.T) {
 		Slug:        slug,
 		EnvSlug:     "stage",
 		Resources: map[string]resources.Resource{
-			"db": dbResource,
+			"db": &dbResource,
 		},
 		IsBuiltin: true,
 		LogBroker: logBroker,

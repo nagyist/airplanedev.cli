@@ -26,14 +26,14 @@ func TestListResources(t *testing.T) {
 		newRouter(&State{
 			devConfig: &conf.DevConfig{
 				Resources: map[string]resources.Resource{
-					"db": kinds.PostgresResource{
+					"db": &kinds.PostgresResource{
 						BaseResource: resources.BaseResource{
 							ID:   "r-1",
 							Slug: "db",
 							Kind: kinds.ResourceKindPostgres,
 						},
 					},
-					"slack": kinds.SlackResource{
+					"slack": &kinds.SlackResource{
 						BaseResource: resources.BaseResource{
 							ID:   "r-2",
 							Slug: "slack",

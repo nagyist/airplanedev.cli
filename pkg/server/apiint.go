@@ -100,7 +100,7 @@ func GetResourceHandler(ctx context.Context, state *State, r *http.Request) (Get
 
 	for s, resource := range state.devConfig.Resources {
 		if s == slug {
-			internalResource, err := conversion.ConvertToInternalResource(resource, state.logger)
+			internalResource, err := conversion.ConvertToInternalResource(resource)
 			if err != nil {
 				return GetResourceResponse{}, errors.Wrap(err, "converting to internal resource")
 			}
@@ -115,7 +115,7 @@ func GetResourceHandler(ctx context.Context, state *State, r *http.Request) (Get
 func ListResourcesHandler(ctx context.Context, state *State, r *http.Request) (libapi.ListResourcesResponse, error) {
 	resources := make([]libapi.Resource, 0, len(state.devConfig.RawResources))
 	for slug, resource := range state.devConfig.Resources {
-		internalResource, err := conversion.ConvertToInternalResource(resource, state.logger)
+		internalResource, err := conversion.ConvertToInternalResource(resource)
 		if err != nil {
 			return libapi.ListResourcesResponse{}, errors.Wrap(err, "converting to internal resource")
 		}
@@ -170,7 +170,7 @@ func UpdateResourceHandler(ctx context.Context, state *State, r *http.Request, r
 	}
 
 	// Convert to internal representation of resource for updating.
-	internalResource, err := conversion.ConvertToInternalResource(resource, state.logger)
+	internalResource, err := conversion.ConvertToInternalResource(resource)
 	if err != nil {
 		return UpdateResourceResponse{}, errors.Wrap(err, "converting to external resource")
 	}

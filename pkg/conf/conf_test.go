@@ -123,7 +123,7 @@ func TestDevConfig(t *testing.T) {
 		assert.Equal(env, cfg.EnvVars)
 		assert.Equal(configResources, cfg.RawResources)
 		assert.Equal(map[string]resources.Resource{
-			"db": kinds.PostgresResource{
+			"db": &kinds.PostgresResource{
 				BaseResource: resources.BaseResource{
 					Kind: kinds.ResourceKindPostgres,
 					Slug: "db",
