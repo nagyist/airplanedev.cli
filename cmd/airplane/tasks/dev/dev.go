@@ -113,6 +113,7 @@ func New(c *cli.Config) *cobra.Command {
 }
 
 func run(ctx context.Context, cfg taskDevConfig) error {
+	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{})
 	if cfg.editor {
 		return runLocalDevServer(ctx, cfg)
 	}
@@ -151,7 +152,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 			// Attempt to create dev config file
 			if errors.Is(err, conf.ErrMissing) {
 				if path, creationErr := conf.PromptDevConfigFileCreation(cfg.devConfigPath); creationErr != nil {
-					logger.Warning("Unable to create dev config file: %v", creationErr)
+					l.Warning("Unable to create dev config file: %v", creationErr)
 				} else {
 					devConfig, err = conf.ReadDevConfig(path)
 					if err != nil {
@@ -161,7 +162,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 					}
 				}
 			} else {
-				logger.Warning("Unable to read dev config, using empty config")
+				l.Warning("Unable to read dev config, using empty config")
 			}
 		} else {
 			devConfigLoaded = true
@@ -169,7 +170,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	if devConfigLoaded {
-		logger.Log("Loaded dev config file at %s", cfg.devConfigPath)
+		l.Log("Loaded dev config file at %s", cfg.devConfigPath)
 	} else {
 		devConfig = &conf.DevConfig{}
 	}
@@ -187,7 +188,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 
 	defer func() {
 		if err := apiServer.Stop(context.Background()); err != nil {
-			logger.Error("failed to stop local api server: %+v", err)
+			l.Error("failed to stop local api server: %+v", err)
 		}
 	}()
 
@@ -196,9 +197,11 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		TaskDiscoverers: []discover.TaskDiscoverer{
 			&discover.DefnDiscoverer{
 				Client: cfg.root.Client,
+				Logger: l,
 			},
 			&discover.CodeTaskDiscoverer{
 				Client: cfg.root.Client,
+				Logger: l,
 			},
 		},
 		EnvSlug: cfg.envSlug,
