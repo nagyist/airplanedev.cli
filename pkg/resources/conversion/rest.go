@@ -3,11 +3,10 @@ package conversion
 import (
 	"github.com/airplanedev/lib/pkg/resources/kind_configs"
 	"github.com/airplanedev/lib/pkg/resources/kinds"
-	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/pkg/errors"
 )
 
-func ConvertRESTResource(r *kinds.RESTResource, logger logger.Logger) (kind_configs.InternalResource, error) {
+func ConvertRESTResource(r *kinds.RESTResource) (kind_configs.InternalResource, error) {
 	var authConfig *kind_configs.RESTAuthConfig
 	switch auth := r.Auth.(type) {
 	case *kinds.RESTAuthBasic:

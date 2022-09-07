@@ -3,11 +3,10 @@ package conversion
 import (
 	"github.com/airplanedev/lib/pkg/resources/kind_configs"
 	"github.com/airplanedev/lib/pkg/resources/kinds"
-	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/pkg/errors"
 )
 
-func ConvertSMTPResource(r *kinds.SMTPResource, l logger.Logger) (kind_configs.InternalResource, error) {
+func ConvertSMTPResource(r *kinds.SMTPResource) (kind_configs.InternalResource, error) {
 	authConfig := kind_configs.SMTPAuthConfig{}
 	switch auth := r.Auth.(type) {
 	case *kinds.SMTPAuthPlain:
