@@ -7,6 +7,10 @@ import (
 )
 
 func ConvertRESTResource(r *kinds.RESTResource) (kind_configs.InternalResource, error) {
+	headers := map[string]string{}
+	for k, v := range r.Headers {
+		headers[k] = v
+	}
 	var authConfig *kind_configs.RESTAuthConfig
 	switch auth := r.Auth.(type) {
 	case *kinds.RESTAuthBasic:
@@ -14,6 +18,11 @@ func ConvertRESTResource(r *kinds.RESTResource) (kind_configs.InternalResource, 
 			Kind:     kind_configs.KindBasic,
 			Username: auth.Username,
 			Password: auth.Password,
+		}
+		for authKey, authValue := range auth.Headers {
+			if v, ok := headers[authKey]; ok && v == authValue {
+				delete(headers, authKey)
+			}
 		}
 	case nil:
 		// nothing
@@ -29,7 +38,7 @@ func ConvertRESTResource(r *kinds.RESTResource) (kind_configs.InternalResource, 
 		KindConfig: kind_configs.ResourceKindConfig{
 			REST: &kind_configs.RESTKindConfig{
 				BaseURL:       r.BaseURL,
-				Headers:       r.Headers,
+				Headers:       headers,
 				SecretHeaders: r.SecretHeaders,
 				AuthConfig:    authConfig,
 			},
