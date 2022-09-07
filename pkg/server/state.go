@@ -62,17 +62,16 @@ func contains(runID string, history []string) bool {
 	return false
 }
 
-func (store *runsStore) add(taskID string, runID string, run LocalRun) {
+func (store *runsStore) add(taskSlug string, runID string, run LocalRun) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	run.RunID = runID
-	run.TaskName = taskID
 	store.runs[runID] = run
-	if _, ok := store.runHistory[taskID]; !ok {
-		store.runHistory[taskID] = make([]string, 0)
+	if _, ok := store.runHistory[taskSlug]; !ok {
+		store.runHistory[taskSlug] = make([]string, 0)
 	}
-	if !contains(runID, store.runHistory[taskID]) {
-		store.runHistory[taskID] = append([]string{runID}, store.runHistory[taskID]...)
+	if !contains(runID, store.runHistory[taskSlug]) {
+		store.runHistory[taskSlug] = append([]string{runID}, store.runHistory[taskSlug]...)
 	}
 
 	if run.ParentID != "" {

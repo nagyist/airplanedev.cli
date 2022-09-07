@@ -225,12 +225,12 @@ func TestGetRun(t *testing.T) {
 		Expect().
 		Status(http.StatusOK).Body()
 
-	var resp LocalRun
+	var resp GetRunResponse
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
 
-	require.Equal(runID, resp.RunID)
-	require.Equal(api.RunSucceeded, resp.Status)
+	require.Equal(runID, resp.Run.RunID)
+	require.Equal(api.RunSucceeded, resp.Run.Status)
 }
 
 func TestGetOutput(t *testing.T) {
@@ -267,9 +267,9 @@ func TestListRuns(t *testing.T) {
 
 	runstore := NewRunStore()
 	testRuns := []LocalRun{
-		{RunID: "run_0", TaskName: taskSlug, Outputs: api.Outputs{V: "run0"}},
-		{RunID: "run_1", TaskName: taskSlug, Outputs: api.Outputs{V: "run1"}, CreatorID: "user1"},
-		{RunID: "run_2", TaskName: taskSlug, Outputs: api.Outputs{V: "run2"}},
+		{RunID: "run_0", TaskID: taskSlug, Outputs: api.Outputs{V: "run0"}},
+		{RunID: "run_1", TaskID: taskSlug, Outputs: api.Outputs{V: "run1"}, CreatorID: "user1"},
+		{RunID: "run_2", TaskID: taskSlug, Outputs: api.Outputs{V: "run2"}},
 	}
 	for i, run := range testRuns {
 		runstore.add(taskSlug, fmt.Sprintf("run_%v", i), run)

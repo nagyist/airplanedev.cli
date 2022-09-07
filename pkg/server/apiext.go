@@ -29,6 +29,7 @@ type LocalRun struct {
 	ParamValues map[string]interface{} `json:"paramValues"`
 	Parameters  *libapi.Parameters     `json:"parameters"`
 	ParentID    string                 `json:"parentID"`
+	TaskID      string                 `json:"taskID"`
 	TaskName    string                 `json:"taskName"`
 	Displays    []libapi.Display       `json:"displays"`
 	Prompts     []libapi.Prompt        `json:"prompts"`
@@ -166,6 +167,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 				return run, err
 			}
 			run.StdAPIRequest = stdapiReq
+			run.TaskName = req.Slug
 		} else if localTaskConfig.Def != nil {
 			kind, kindOptions, err := dev.GetKindAndOptions(localTaskConfig)
 			if err != nil {
@@ -177,7 +179,8 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 			runConfig.File = localTaskConfig.TaskEntrypoint
 			resourceAttachments = localTaskConfig.Def.GetResourceAttachments()
 			parameters = localTaskConfig.Def.GetParameters()
-
+			run.TaskID = req.Slug
+			run.TaskName = localTaskConfig.Def.GetName()
 		}
 		resources, err := resource.GenerateAliasToResourceMap(
 			resourceAttachments,
@@ -246,13 +249,35 @@ func GetViewHandler(ctx context.Context, state *State, r *http.Request) (libapi.
 }
 
 // GetRunHandler handles requests to the /v0/runs/get endpoint
-func GetRunHandler(ctx context.Context, state *State, r *http.Request) (LocalRun, error) {
+type GetRunResponse struct {
+	Run  LocalRun     `json:"run"`
+	Task *libapi.Task `json:"task"`
+}
+
+func GetRunHandler(ctx context.Context, state *State, r *http.Request) (GetRunResponse, error) {
 	runID := r.URL.Query().Get("id")
 	run, ok := state.runs.get(runID)
 	if !ok {
-		return LocalRun{}, errors.Errorf("run with id %s not found", runID)
+		return GetRunResponse{}, errors.Errorf("run with id %s not found", runID)
 	}
-	return run, nil
+	response := GetRunResponse{Run: run}
+
+	if taskConfig, ok := state.taskConfigs[run.TaskID]; ok {
+		utr, err := taskConfig.Def.GetUpdateTaskRequest(ctx, state.localClient)
+		if err != nil {
+			logger.Error("Encountered error while getting task info: %v", err)
+			return GetRunResponse{}, errors.Errorf("error getting task %s", taskConfig.Def.GetSlug())
+		}
+		response.Task = &libapi.Task{
+			ID:          taskConfig.Def.GetSlug(),
+			Name:        taskConfig.Def.GetName(),
+			Slug:        taskConfig.Def.GetSlug(),
+			Description: taskConfig.Def.GetDescription(),
+			Parameters:  utr.Parameters,
+		}
+	}
+
+	return response, nil
 }
 
 type ListRunsResponse struct {
@@ -365,7 +390,7 @@ func CreateDisplayHandler(ctx context.Context, state *State, r *http.Request, re
 	}
 
 	content := fmt.Sprintf("[kind=%s]\n\n%s", display.Kind, display.Content)
-	prefix := "[" + logger.Gray(run.TaskName+" display") + "] "
+	prefix := "[" + logger.Gray(run.TaskID+" display") + "] "
 	print.BoxPrintWithPrefix(content, prefix)
 
 	return CreateDisplayResponse{

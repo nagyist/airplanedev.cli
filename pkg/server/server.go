@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"regexp"
 
 	"github.com/airplanedev/cli/pkg/api"
@@ -108,7 +109,8 @@ func Start(opts Options) (*Server, error) {
 
 	go func() {
 		if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("failed to start api server")
+			logger.Error(fmt.Sprintf("failed to start api server: %v", err))
+			os.Exit(1)
 		}
 	}()
 

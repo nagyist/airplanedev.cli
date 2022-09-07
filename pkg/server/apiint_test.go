@@ -107,10 +107,10 @@ func TestSubmitPrompts(t *testing.T) {
 
 	runstore := NewRunStore()
 	run := LocalRun{
-		RunID:    runID,
-		TaskName: taskSlug,
-		Outputs:  api.Outputs{V: "run0"},
-		Prompts:  []libapi.Prompt{prompt1, prompt2},
+		RunID:   runID,
+		TaskID:  taskSlug,
+		Outputs: api.Outputs{V: "run0"},
+		Prompts: []libapi.Prompt{prompt1, prompt2},
 	}
 	runstore.add(taskSlug, runID, run)
 
