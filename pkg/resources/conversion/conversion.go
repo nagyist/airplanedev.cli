@@ -10,29 +10,29 @@ import (
 
 func ConvertToInternalResource(r resources.Resource, l logger.Logger) (kind_configs.InternalResource, error) {
 	switch resource := r.(type) {
-	case kinds.BigQueryResource:
+	case *kinds.BigQueryResource:
 		return ConvertBigQueryResource(resource, l)
-	case kinds.MailgunResource:
+	case *kinds.MailgunResource:
 		return ConvertMailgunResource(resource, l)
-	case kinds.MongoDBResource:
+	case *kinds.MongoDBResource:
 		return ConvertMongoDBResource(resource, l)
-	case kinds.MySQLResource:
+	case *kinds.MySQLResource:
 		return ConvertMySQLResource(resource, l)
-	case kinds.PostgresResource:
+	case *kinds.PostgresResource:
 		return ConvertPostgresResource(resource, l)
-	case kinds.RedshiftResource:
+	case *kinds.RedshiftResource:
 		return ConvertRedshiftResource(resource, l)
-	case kinds.RESTResource:
+	case *kinds.RESTResource:
 		return ConvertRESTResource(resource, l)
-	case kinds.SendGridResource:
+	case *kinds.SendGridResource:
 		return ConvertSendGridResource(resource, l)
-	case kinds.SlackResource:
+	case *kinds.SlackResource:
 		return ConvertSlackResource(resource, l)
-	case kinds.SMTPResource:
+	case *kinds.SMTPResource:
 		return ConvertSMTPResource(resource, l)
-	case kinds.SnowflakeResource:
+	case *kinds.SnowflakeResource:
 		return ConvertSnowflakeResource(resource, l)
-	case kinds.SQLServerResource:
+	case *kinds.SQLServerResource:
 		return ConvertSQLServerResource(resource, l)
 	default:
 		return kind_configs.InternalResource{}, errors.Errorf("Unkonwn resource type %T", resource)

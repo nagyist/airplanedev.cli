@@ -13,7 +13,7 @@ var ResourceKindMySQL resources.ResourceKind = "mysql"
 const SQLDriverMySQL SQLDriver = "mysql"
 
 func init() {
-	resources.RegisterBaseResourceFactory(ResourceKindMySQL, func() resources.Resource { return MySQLResource{} })
+	resources.RegisterBaseResourceFactory(ResourceKindMySQL, func() resources.Resource { return &MySQLResource{} })
 }
 
 type MySQLResource struct {
@@ -34,7 +34,13 @@ type MySQLResource struct {
 	SSHPrivateKey string `json:"sshPrivateKey" mapstructure:"sshPrivateKey"`
 }
 
-var _ SQLResourceInterface = MySQLResource{}
+var _ SQLResourceInterface = &MySQLResource{}
+
+func (r *MySQLResource) ScrubSensitiveData() {
+	r.Password = ""
+	r.SSHPrivateKey = ""
+	r.DSN = ""
+}
 
 func (r MySQLResource) Validate() error {
 	if r.Username == "" {

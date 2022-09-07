@@ -12,7 +12,7 @@ var ResourceKindPostgres resources.ResourceKind = "postgres"
 const SQLDriverPostgres SQLDriver = "postgres"
 
 func init() {
-	resources.RegisterBaseResourceFactory(ResourceKindPostgres, func() resources.Resource { return PostgresResource{} })
+	resources.RegisterBaseResourceFactory(ResourceKindPostgres, func() resources.Resource { return &PostgresResource{} })
 }
 
 type PostgresResource struct {
@@ -33,7 +33,13 @@ type PostgresResource struct {
 	SSHPrivateKey string `json:"sshPrivateKey" mapstructure:"sshPrivateKey"`
 }
 
-var _ SQLResourceInterface = PostgresResource{}
+var _ SQLResourceInterface = &PostgresResource{}
+
+func (r *PostgresResource) ScrubSensitiveData() {
+	r.Password = ""
+	r.SSHPrivateKey = ""
+	r.DSN = ""
+}
 
 func (r PostgresResource) Validate() error {
 	if r.Username == "" {

@@ -7,7 +7,7 @@ import (
 var ResourceKindSendGrid resources.ResourceKind = "sendgrid"
 
 func init() {
-	resources.RegisterBaseResourceFactory(ResourceKindSendGrid, func() resources.Resource { return SendGridResource{} })
+	resources.RegisterBaseResourceFactory(ResourceKindSendGrid, func() resources.Resource { return &SendGridResource{} })
 }
 
 type SendGridResource struct {
@@ -16,7 +16,11 @@ type SendGridResource struct {
 	APIKey string `json:"apiKey" mapstructure:"apiKey"`
 }
 
-var _ resources.Resource = SendGridResource{}
+var _ resources.Resource = &SendGridResource{}
+
+func (r *SendGridResource) ScrubSensitiveData() {
+	r.APIKey = ""
+}
 
 func (r SendGridResource) Validate() error {
 	if r.APIKey == "" {

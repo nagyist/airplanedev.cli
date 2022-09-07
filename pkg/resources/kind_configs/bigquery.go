@@ -69,7 +69,7 @@ func (this BigQueryKindConfig) ToExternalResource(base resources.BaseResource) (
 		return nil, err
 	}
 
-	return kinds.BigQueryResource{
+	return &kinds.BigQueryResource{
 		BaseResource: base,
 		Credentials:  this.Credentials,
 		ProjectID:    this.ProjectID,

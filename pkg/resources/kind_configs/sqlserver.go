@@ -67,7 +67,7 @@ func (this SQLServerKindConfig) dsn() string {
 }
 
 func (this SQLServerKindConfig) ToExternalResource(base resources.BaseResource) (resources.Resource, error) {
-	return kinds.SQLServerResource{
+	return &kinds.SQLServerResource{
 		BaseResource: base,
 		Username:     this.Username,
 		Host:         this.Host,

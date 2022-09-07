@@ -7,21 +7,21 @@ import (
 	"github.com/pkg/errors"
 )
 
-func ConvertSMTPResource(r kinds.SMTPResource, l logger.Logger) (kind_configs.InternalResource, error) {
+func ConvertSMTPResource(r *kinds.SMTPResource, l logger.Logger) (kind_configs.InternalResource, error) {
 	authConfig := kind_configs.SMTPAuthConfig{}
 	switch auth := r.Auth.(type) {
-	case kinds.SMTPAuthPlain:
+	case *kinds.SMTPAuthPlain:
 		authConfig.Plain = &kind_configs.SMTPAuthConfigPlain{
 			Identity: auth.Identity,
 			Username: auth.Username,
 			Password: auth.Password,
 		}
-	case kinds.SMTPAuthCRAMMD5:
+	case *kinds.SMTPAuthCRAMMD5:
 		authConfig.CRAMMD5 = &kind_configs.SMTPAuthConfigCRAMMD5{
 			Username: auth.Username,
 			Secret:   auth.Secret,
 		}
-	case kinds.SMTPAuthLogin:
+	case *kinds.SMTPAuthLogin:
 		authConfig.Login = &kind_configs.SMTPAuthConfigLogin{
 			Username: auth.Username,
 			Password: auth.Password,

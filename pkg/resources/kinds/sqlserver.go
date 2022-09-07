@@ -12,7 +12,7 @@ var ResourceKindSQLServer resources.ResourceKind = "sqlserver"
 const SQLDriverSQLServer SQLDriver = "sqlserver"
 
 func init() {
-	resources.RegisterBaseResourceFactory(ResourceKindSQLServer, func() resources.Resource { return SQLServerResource{} })
+	resources.RegisterBaseResourceFactory(ResourceKindSQLServer, func() resources.Resource { return &SQLServerResource{} })
 }
 
 type SQLServerResource struct {
@@ -33,7 +33,13 @@ type SQLServerResource struct {
 	SSHPrivateKey string `json:"sshPrivateKey" mapstructure:"sshPrivateKey"`
 }
 
-var _ SQLResourceInterface = SQLServerResource{}
+var _ SQLResourceInterface = &SQLServerResource{}
+
+func (r *SQLServerResource) ScrubSensitiveData() {
+	r.Password = ""
+	r.SSHPrivateKey = ""
+	r.DSN = ""
+}
 
 func (r SQLServerResource) Validate() error {
 	if r.Username == "" {

@@ -17,7 +17,7 @@ func TestResourceFactories(t *testing.T) {
 	}{
 		{
 			name: "slack",
-			resource: kinds.SlackResource{
+			resource: &kinds.SlackResource{
 				BaseResource: resources.BaseResource{
 					Kind: "slack",
 					ID:   "slack id",
@@ -29,7 +29,7 @@ func TestResourceFactories(t *testing.T) {
 		},
 		{
 			name: "smtp",
-			resource: kinds.SMTPResource{
+			resource: &kinds.SMTPResource{
 				BaseResource: resources.BaseResource{
 					Kind: "smtp",
 					ID:   "smtp id",
@@ -38,7 +38,7 @@ func TestResourceFactories(t *testing.T) {
 				},
 				Hostname: "hostname",
 				Port:     "port",
-				Auth: kinds.SMTPAuthPlain{
+				Auth: &kinds.SMTPAuthPlain{
 					Kind:     "plain",
 					Username: "username",
 					Password: "password",

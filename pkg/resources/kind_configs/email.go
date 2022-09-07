@@ -46,7 +46,7 @@ func (kc MailgunKindConfig) Validate() error {
 }
 
 func (kc MailgunKindConfig) ToExternalResource(base resources.BaseResource) (resources.Resource, error) {
-	return kinds.MailgunResource{
+	return &kinds.MailgunResource{
 		BaseResource: base,
 		APIKey:       kc.APIKey,
 		Domain:       kc.Domain,
@@ -79,7 +79,7 @@ func (kc SendGridKindConfig) Validate() error {
 }
 
 func (kc SendGridKindConfig) ToExternalResource(base resources.BaseResource) (resources.Resource, error) {
-	return kinds.SendGridResource{
+	return &kinds.SendGridResource{
 		BaseResource: base,
 		APIKey:       kc.APIKey,
 	}, nil
@@ -117,7 +117,7 @@ func (kc SMTPKindConfig) ToExternalResource(base resources.BaseResource) (resour
 	if err != nil {
 		return nil, err
 	}
-	return kinds.SMTPResource{
+	return &kinds.SMTPResource{
 		BaseResource: base,
 		Auth:         authConfig,
 		Hostname:     kc.Hostname,
@@ -226,20 +226,20 @@ func (ac SMTPAuthConfig) validate() error { // nolint:unused
 
 func (ac SMTPAuthConfig) toExternalSMTPAuth() (kinds.SMTPAuth, error) {
 	if ac.Plain != nil {
-		return kinds.SMTPAuthPlain{
+		return &kinds.SMTPAuthPlain{
 			Kind:     kinds.EmailSMTPAuthKindPlain,
 			Identity: ac.Plain.Identity,
 			Username: ac.Plain.Username,
 			Password: ac.Plain.Password,
 		}, nil
 	} else if ac.CRAMMD5 != nil {
-		return kinds.SMTPAuthCRAMMD5{
+		return &kinds.SMTPAuthCRAMMD5{
 			Kind:     kinds.EmailSMTPAuthKindCRAMMD5,
 			Username: ac.CRAMMD5.Username,
 			Secret:   ac.CRAMMD5.Secret,
 		}, nil
 	} else if ac.Login != nil {
-		return kinds.SMTPAuthLogin{
+		return &kinds.SMTPAuthLogin{
 			Kind:     kinds.EmailSMTPAuthKindLogin,
 			Username: ac.Login.Username,
 			Password: ac.Login.Password,

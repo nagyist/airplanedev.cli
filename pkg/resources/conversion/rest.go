@@ -7,10 +7,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-func ConvertRESTResource(r kinds.RESTResource, logger logger.Logger) (kind_configs.InternalResource, error) {
+func ConvertRESTResource(r *kinds.RESTResource, logger logger.Logger) (kind_configs.InternalResource, error) {
 	var authConfig *kind_configs.RESTAuthConfig
 	switch auth := r.Auth.(type) {
-	case kinds.RESTAuthBasic:
+	case *kinds.RESTAuthBasic:
 		authConfig = &kind_configs.RESTAuthConfig{
 			Kind:     kind_configs.KindBasic,
 			Username: auth.Username,

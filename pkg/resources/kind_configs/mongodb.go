@@ -41,7 +41,7 @@ func (this MongoDBKindConfig) Validate() error {
 }
 
 func (this MongoDBKindConfig) ToExternalResource(base resources.BaseResource) (resources.Resource, error) {
-	return kinds.MongoDBResource{
+	return &kinds.MongoDBResource{
 		BaseResource:     base,
 		ConnectionString: this.ConnectionString,
 	}, nil

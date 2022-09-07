@@ -23,9 +23,10 @@ type RESTResource struct {
 	Auth          RESTAuth          `json:"auth" mapstructure:"-"`
 }
 
-var _ resources.Resource = RESTResource{}
+var _ resources.Resource = &RESTResource{}
 
 type RESTAuth interface {
+	scrubSensitiveData()
 }
 
 type RESTAuthKind string
@@ -63,7 +64,7 @@ func RESTResourceFactory(serialized map[string]interface{}) (resources.Resource,
 
 		switch kindStr {
 		case string(RESTAuthKindBasic):
-			resource.Auth = RESTAuthBasic{}
+			resource.Auth = &RESTAuthBasic{}
 			if err := resources.BaseFactory(authMap, &resource.Auth); err != nil {
 				return nil, err
 			}
@@ -75,7 +76,23 @@ func RESTResourceFactory(serialized map[string]interface{}) (resources.Resource,
 	if err := resources.BaseFactory(serialized, &resource); err != nil {
 		return nil, err
 	}
-	return resource, nil
+	return &resource, nil
+}
+
+func (r *RESTResource) ScrubSensitiveData() {
+	scrubbedHeaders := map[string]string{}
+	for k, v := range r.Headers {
+		if isSecretHeader(r.SecretHeaders, k) {
+			scrubbedHeaders[k] = ""
+		} else {
+			scrubbedHeaders[k] = v
+		}
+	}
+	r.Headers = scrubbedHeaders
+
+	if r.Auth != nil {
+		r.Auth.scrubSensitiveData()
+	}
 }
 
 func (r RESTResource) Validate() error {
@@ -104,4 +121,19 @@ func (r RESTResource) String() string {
 
 func (r RESTResource) ID() string {
 	return r.BaseResource.ID
+}
+
+func isSecretHeader(secretHeaders []string, header string) bool {
+	for _, secretHeader := range secretHeaders {
+		if secretHeader == header {
+			return true
+		}
+	}
+	return false
+}
+
+func (a *RESTAuthBasic) scrubSensitiveData() {
+	a.Username = nil
+	a.Password = nil
+	a.Headers = map[string]string{}
 }

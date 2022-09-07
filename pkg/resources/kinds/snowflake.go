@@ -11,7 +11,7 @@ var ResourceKindSnowflake resources.ResourceKind = "snowflake"
 const SQLDriverSnowflake SQLDriver = "snowflake"
 
 func init() {
-	resources.RegisterBaseResourceFactory(ResourceKindSnowflake, func() resources.Resource { return SnowflakeResource{} })
+	resources.RegisterBaseResourceFactory(ResourceKindSnowflake, func() resources.Resource { return &SnowflakeResource{} })
 }
 
 type SnowflakeResource struct {
@@ -27,7 +27,12 @@ type SnowflakeResource struct {
 	DSN       string `json:"dsn" mapstructure:"dsn"`
 }
 
-var _ SQLResourceInterface = SnowflakeResource{}
+var _ SQLResourceInterface = &SnowflakeResource{}
+
+func (r *SnowflakeResource) ScrubSensitiveData() {
+	r.Password = ""
+	r.DSN = ""
+}
 
 func (r SnowflakeResource) Validate() error {
 	if r.Account == "" {

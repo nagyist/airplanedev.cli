@@ -21,9 +21,11 @@ type SMTPResource struct {
 	Auth     SMTPAuth `json:"auth" mapstructure:"-"`
 }
 
-var _ resources.Resource = SMTPResource{}
+var _ resources.Resource = &SMTPResource{}
 
 type SMTPAuth interface {
+	scrubSensitiveData()
+	validate(path string) error
 }
 
 type EmailSMTPAuthKind string
@@ -54,7 +56,7 @@ type SMTPAuthLogin struct {
 }
 
 func SMTPResourceFactory(serialized map[string]interface{}) (resources.Resource, error) {
-	resource := SMTPResource{}
+	resource := &SMTPResource{}
 
 	serializedAuth, ok := serialized["auth"]
 	if ok {
@@ -75,17 +77,17 @@ func SMTPResourceFactory(serialized map[string]interface{}) (resources.Resource,
 
 		switch kindStr {
 		case "plain":
-			resource.Auth = SMTPAuthPlain{}
+			resource.Auth = &SMTPAuthPlain{}
 			if err := resources.BaseFactory(authMap, &resource.Auth); err != nil {
 				return nil, err
 			}
 		case "crammd5":
-			resource.Auth = SMTPAuthCRAMMD5{}
+			resource.Auth = &SMTPAuthCRAMMD5{}
 			if err := resources.BaseFactory(authMap, &resource.Auth); err != nil {
 				return nil, err
 			}
 		case "login":
-			resource.Auth = SMTPAuthLogin{}
+			resource.Auth = &SMTPAuthLogin{}
 			if err := resources.BaseFactory(authMap, &resource.Auth); err != nil {
 				return nil, err
 			}
@@ -100,6 +102,12 @@ func SMTPResourceFactory(serialized map[string]interface{}) (resources.Resource,
 	return resource, nil
 }
 
+func (r *SMTPResource) ScrubSensitiveData() {
+	if r.Auth != nil {
+		r.Auth.scrubSensitiveData()
+	}
+}
+
 func (r SMTPResource) Validate() error {
 	if r.Hostname == "" {
 		return resources.NewErrMissingResourceField("hostname")
@@ -107,31 +115,12 @@ func (r SMTPResource) Validate() error {
 	if r.Port == "" {
 		return resources.NewErrMissingResourceField("port")
 	}
-	switch auth := r.Auth.(type) {
-	case SMTPAuthPlain:
-		// Identity can & usually is empty string, no need to check.
-		if auth.Username == "" {
-			return resources.NewErrMissingResourceField("auth.username")
+	if r.Auth != nil {
+		if err := r.Auth.validate("auth"); err != nil {
+			return err
 		}
-		if auth.Password == "" {
-			return resources.NewErrMissingResourceField("auth.password")
-		}
-	case SMTPAuthCRAMMD5:
-		if auth.Username == "" {
-			return resources.NewErrMissingResourceField("auth.username")
-		}
-		if auth.Secret == "" {
-			return resources.NewErrMissingResourceField("auth.secret")
-		}
-	case SMTPAuthLogin:
-		if auth.Username == "" {
-			return resources.NewErrMissingResourceField("auth.username")
-		}
-		if auth.Password == "" {
-			return resources.NewErrMissingResourceField("auth.password")
-		}
-	default:
-		return errors.Errorf("Unknown SMTP auth kind: %T", r.Auth)
+	} else {
+		return resources.NewErrMissingResourceField("auth")
 	}
 
 	return nil
@@ -147,4 +136,47 @@ func (r SMTPResource) String() string {
 
 func (r SMTPResource) ID() string {
 	return r.BaseResource.ID
+}
+
+func (a *SMTPAuthPlain) scrubSensitiveData() {
+	a.Password = ""
+}
+
+func (a *SMTPAuthPlain) validate(path string) error {
+	// Identity can & usually is empty string, no need to check.
+	if a.Username == "" {
+		return resources.NewErrMissingResourceField(fmt.Sprintf("%s.username", path))
+	}
+	if a.Password == "" {
+		return resources.NewErrMissingResourceField(fmt.Sprintf("%s.password", path))
+	}
+	return nil
+}
+
+func (a *SMTPAuthCRAMMD5) scrubSensitiveData() {
+	a.Secret = ""
+}
+
+func (a *SMTPAuthCRAMMD5) validate(path string) error {
+	if a.Username == "" {
+		return resources.NewErrMissingResourceField(fmt.Sprintf("%s.username", path))
+	}
+	if a.Secret == "" {
+		return resources.NewErrMissingResourceField(fmt.Sprintf("%s.secret", path))
+	}
+	return nil
+}
+
+func (a *SMTPAuthLogin) scrubSensitiveData() {
+	a.Password = ""
+}
+
+func (a *SMTPAuthLogin) validate(path string) error {
+	if a.Username == "" {
+		return resources.NewErrMissingResourceField(fmt.Sprintf("%s.username", path))
+	}
+	if a.Password == "" {
+		return resources.NewErrMissingResourceField(fmt.Sprintf("%s.password", path))
+	}
+	return nil
 }

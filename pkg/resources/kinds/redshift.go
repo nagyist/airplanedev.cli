@@ -7,7 +7,7 @@ import (
 var ResourceKindRedshift resources.ResourceKind = "redshift"
 
 func init() {
-	resources.RegisterBaseResourceFactory(ResourceKindRedshift, func() resources.Resource { return RedshiftResource{} })
+	resources.RegisterBaseResourceFactory(ResourceKindRedshift, func() resources.Resource { return &RedshiftResource{} })
 }
 
 type RedshiftResource struct {
@@ -15,7 +15,11 @@ type RedshiftResource struct {
 	PostgresResource       `mapstructure:",squash" yaml:",inline"`
 }
 
-var _ SQLResourceInterface = RedshiftResource{}
+var _ SQLResourceInterface = &RedshiftResource{}
+
+func (r *RedshiftResource) ScrubSensitiveData() {
+	r.PostgresResource.ScrubSensitiveData()
+}
 
 func (r RedshiftResource) Validate() error {
 	return r.PostgresResource.Validate()

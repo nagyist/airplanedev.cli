@@ -86,7 +86,7 @@ func (this PostgresKindConfig) dsn() string {
 }
 
 func (this PostgresKindConfig) ToExternalResource(base resources.BaseResource) (resources.Resource, error) {
-	return kinds.PostgresResource{
+	return &kinds.PostgresResource{
 		BaseResource: base,
 		Username:     this.Username,
 		Host:         this.Host,

@@ -7,7 +7,7 @@ import (
 var ResourceKindSlack resources.ResourceKind = "slack"
 
 func init() {
-	resources.RegisterBaseResourceFactory(ResourceKindSlack, func() resources.Resource { return SlackResource{} })
+	resources.RegisterBaseResourceFactory(ResourceKindSlack, func() resources.Resource { return &SlackResource{} })
 }
 
 type SlackResource struct {
@@ -16,7 +16,11 @@ type SlackResource struct {
 	AccessToken string `json:"accessToken" mapstructure:"accessToken"`
 }
 
-var _ resources.Resource = SlackResource{}
+var _ resources.Resource = &SlackResource{}
+
+func (r *SlackResource) ScrubSensitiveData() {
+	r.AccessToken = ""
+}
 
 func (r SlackResource) Validate() error {
 	if r.AccessToken == "" {

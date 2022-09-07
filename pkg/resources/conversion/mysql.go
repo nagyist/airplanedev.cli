@@ -6,7 +6,7 @@ import (
 	"github.com/airplanedev/lib/pkg/utils/logger"
 )
 
-func ConvertMySQLResource(r kinds.MySQLResource, l logger.Logger) (kind_configs.InternalResource, error) {
+func ConvertMySQLResource(r *kinds.MySQLResource, l logger.Logger) (kind_configs.InternalResource, error) {
 	return kind_configs.InternalResource{
 		ID:   r.ID(),
 		Slug: r.Slug,

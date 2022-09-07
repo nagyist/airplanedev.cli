@@ -2,6 +2,7 @@ package kind_configs
 
 import (
 	"github.com/airplanedev/lib/pkg/resources"
+	"github.com/airplanedev/lib/pkg/resources/kinds"
 	"github.com/pkg/errors"
 )
 
@@ -41,5 +42,16 @@ func (this RedshiftKindConfig) dsn() string { // nolint:unused
 }
 
 func (this RedshiftKindConfig) ToExternalResource(base resources.BaseResource) (resources.Resource, error) {
-	return this.PostgresKindConfig.ToExternalResource(base)
+	res, err := this.PostgresKindConfig.ToExternalResource(base)
+	if err != nil {
+		return nil, err
+	}
+	postgres, ok := res.(*kinds.PostgresResource)
+	if !ok {
+		return nil, errors.Errorf("expecting postgres resource, got %T", res)
+	}
+	return &kinds.RedshiftResource{
+		BaseResource:     base,
+		PostgresResource: *postgres,
+	}, nil
 }

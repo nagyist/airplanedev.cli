@@ -100,7 +100,7 @@ func (this RESTKindConfig) ToExternalResource(base resources.BaseResource) (reso
 		r.Auth = auth
 	}
 
-	return r, nil
+	return &r, nil
 }
 
 type RESTAuthConfig struct {
@@ -172,7 +172,7 @@ func (this RESTAuthConfig) toExternalAuth() (kinds.RESTAuth, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "error generating auth header")
 		}
-		return kinds.RESTAuthBasic{
+		return &kinds.RESTAuthBasic{
 			Kind:     kinds.RESTAuthKindBasic,
 			Username: this.Username,
 			Password: this.Password,

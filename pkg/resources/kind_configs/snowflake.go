@@ -71,7 +71,7 @@ func (this SnowflakeKindConfig) ToExternalResource(base resources.BaseResource) 
 		return nil, err
 	}
 
-	return kinds.SnowflakeResource{
+	return &kinds.SnowflakeResource{
 		BaseResource: base,
 		Username:     this.Username,
 		Database:     this.Database,

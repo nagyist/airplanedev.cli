@@ -6,7 +6,7 @@ import (
 	"github.com/airplanedev/lib/pkg/utils/logger"
 )
 
-func ConvertSnowflakeResource(r kinds.SnowflakeResource, l logger.Logger) (kind_configs.InternalResource, error) {
+func ConvertSnowflakeResource(r *kinds.SnowflakeResource, l logger.Logger) (kind_configs.InternalResource, error) {
 	return kind_configs.InternalResource{
 		ID:   r.ID(),
 		Slug: r.Slug,

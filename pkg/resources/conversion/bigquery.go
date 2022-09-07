@@ -6,7 +6,7 @@ import (
 	"github.com/airplanedev/lib/pkg/utils/logger"
 )
 
-func ConvertBigQueryResource(r kinds.BigQueryResource, l logger.Logger) (kind_configs.InternalResource, error) {
+func ConvertBigQueryResource(r *kinds.BigQueryResource, l logger.Logger) (kind_configs.InternalResource, error) {
 	return kind_configs.InternalResource{
 		ID:   r.ID(),
 		Slug: r.Slug,

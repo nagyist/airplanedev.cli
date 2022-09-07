@@ -31,7 +31,7 @@ func (kc SlackKindConfig) Validate() error {
 }
 
 func (kc SlackKindConfig) ToExternalResource(base resources.BaseResource) (resources.Resource, error) {
-	return kinds.SlackResource{
+	return &kinds.SlackResource{
 		BaseResource: base,
 		AccessToken:  kc.AccessToken,
 	}, nil

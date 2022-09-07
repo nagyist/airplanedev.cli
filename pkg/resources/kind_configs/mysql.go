@@ -60,7 +60,7 @@ func (this MySQLKindConfig) dsn() string {
 }
 
 func (this MySQLKindConfig) ToExternalResource(base resources.BaseResource) (resources.Resource, error) {
-	return kinds.MySQLResource{
+	return &kinds.MySQLResource{
 		BaseResource: base,
 		Username:     this.Username,
 		Host:         this.Host,

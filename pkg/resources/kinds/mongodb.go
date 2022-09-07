@@ -9,7 +9,7 @@ import (
 var ResourceKindMongoDB resources.ResourceKind = "mongodb"
 
 func init() {
-	resources.RegisterBaseResourceFactory(ResourceKindMongoDB, func() resources.Resource { return MongoDBResource{} })
+	resources.RegisterBaseResourceFactory(ResourceKindMongoDB, func() resources.Resource { return &MongoDBResource{} })
 }
 
 type MongoDBResource struct {
@@ -18,7 +18,11 @@ type MongoDBResource struct {
 	ConnectionString string `json:"connectionString" mapstructure:"connectionString"`
 }
 
-var _ resources.Resource = MongoDBResource{}
+var _ resources.Resource = &MongoDBResource{}
+
+func (r *MongoDBResource) ScrubSensitiveData() {
+	r.ConnectionString = ""
+}
 
 func (r MongoDBResource) Validate() error {
 	if r.ConnectionString == "" {

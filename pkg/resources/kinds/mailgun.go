@@ -9,7 +9,7 @@ import (
 var ResourceKindMailgun resources.ResourceKind = "mailgun"
 
 func init() {
-	resources.RegisterBaseResourceFactory(ResourceKindMailgun, func() resources.Resource { return MailgunResource{} })
+	resources.RegisterBaseResourceFactory(ResourceKindMailgun, func() resources.Resource { return &MailgunResource{} })
 }
 
 type MailgunResource struct {
@@ -19,7 +19,11 @@ type MailgunResource struct {
 	Domain string `json:"domain" mapstructure:"domain"`
 }
 
-var _ resources.Resource = MailgunResource{}
+var _ resources.Resource = &MailgunResource{}
+
+func (r *MailgunResource) ScrubSensitiveData() {
+	r.APIKey = ""
+}
 
 func (r MailgunResource) Validate() error {
 	if r.APIKey == "" {

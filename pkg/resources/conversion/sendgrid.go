@@ -6,7 +6,7 @@ import (
 	"github.com/airplanedev/lib/pkg/utils/logger"
 )
 
-func ConvertSendGridResource(r kinds.SendGridResource, l logger.Logger) (kind_configs.InternalResource, error) {
+func ConvertSendGridResource(r *kinds.SendGridResource, l logger.Logger) (kind_configs.InternalResource, error) {
 	return kind_configs.InternalResource{
 		ID:   r.ID(),
 		Slug: r.Slug,

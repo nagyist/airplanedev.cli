@@ -11,7 +11,7 @@ var ResourceKindBigQuery resources.ResourceKind = "bigquery"
 const SQLDriverBigQuery SQLDriver = "bigquery"
 
 func init() {
-	resources.RegisterBaseResourceFactory(ResourceKindBigQuery, func() resources.Resource { return BigQueryResource{} })
+	resources.RegisterBaseResourceFactory(ResourceKindBigQuery, func() resources.Resource { return &BigQueryResource{} })
 }
 
 type BigQueryResource struct {
@@ -24,7 +24,12 @@ type BigQueryResource struct {
 	DSN         string `json:"dsn" mapstructure:"dsn"`
 }
 
-var _ SQLResourceInterface = BigQueryResource{}
+var _ SQLResourceInterface = &BigQueryResource{}
+
+func (r *BigQueryResource) ScrubSensitiveData() {
+	r.Credentials = ""
+	r.DSN = ""
+}
 
 func (r BigQueryResource) Validate() error {
 	if r.Credentials == "" {
