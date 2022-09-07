@@ -2,6 +2,7 @@ package createdb
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
@@ -44,7 +45,8 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return err
 	}
-	logger.Log("Demo DB created")
+	logger.Log(fmt.Sprintf("Resource %s has been created:", cfg.Name))
+	logger.Log(fmt.Sprintf("%s/settings/resources/%s", cfg.Root.Client.AppURL().String(), resourceID))
 	logger.Debug("Demo DB has resource ID %s", resourceID)
 	return nil
 }
