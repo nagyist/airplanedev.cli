@@ -2,12 +2,15 @@ package sql
 
 import (
 	"context"
+	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 )
@@ -34,6 +37,11 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 // Generate implementation.
 func (r Runtime) Generate(t *runtime.Task) ([]byte, os.FileMode, error) {
 	return code, 0644, nil
+}
+
+// GenerateInline implementation.
+func (r Runtime) GenerateInline(def *definitions.Definition_0_3) ([]byte, fs.FileMode, error) {
+	return nil, 0, errors.New("cannot generate inline sql task configuration")
 }
 
 // Workdir implementation.

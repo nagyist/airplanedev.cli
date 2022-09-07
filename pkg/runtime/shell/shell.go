@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
@@ -117,6 +119,11 @@ func (r Runtime) Generate(t *runtime.Task) ([]byte, os.FileMode, error) {
 
 	// 0744 has +x to execute shell scripts.
 	return buf.Bytes(), 0744, nil
+}
+
+// GenerateInline implementation.
+func (r Runtime) GenerateInline(def *definitions.Definition_0_3) ([]byte, fs.FileMode, error) {
+	return nil, 0, errors.New("cannot generate inline shell task configuration")
 }
 
 // Workdir implementation.

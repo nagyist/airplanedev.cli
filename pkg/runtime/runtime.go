@@ -16,6 +16,7 @@ import (
 	"sort"
 
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/pkg/errors"
 )
@@ -40,6 +41,13 @@ type Interface interface {
 	// os.FileMode is used for the permissions of the generated file. Files will typically use 0644
 	// but might use 0744 for executable scripts (e.g. shell scripts).
 	Generate(task *Task) ([]byte, os.FileMode, error)
+
+	// GenerateInline accepts a definition and generates code to match
+	// the task.
+	//
+	// os.FileMode is used for the permissions of the generated file. Files will typically use 0644
+	// but might use 0744 for executable scripts (e.g. shell scripts).
+	GenerateInline(def *definitions.Definition_0_3) ([]byte, os.FileMode, error)
 
 	// Workdir attempts to detect the root of the given task path.
 	//

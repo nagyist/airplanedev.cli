@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
@@ -47,6 +48,165 @@ export default async function(params) {
 }
 `))
 
+// Inline code template function helpers.
+func escapeString(s string) (string, error) {
+	val, err := json.Marshal(s)
+	if err != nil {
+		return "", err
+	}
+	return string(val[1 : len(val)-1]), nil
+}
+
+func toJavascriptTypeVar(value interface{}) (string, error) {
+	switch v := value.(type) {
+	case string:
+		val, err := escapeString(v)
+		return fmt.Sprintf("\"%s\"", val), err
+	default:
+		return fmt.Sprintf("%v", v), nil
+	}
+}
+
+func paramRequired(param definitions.ParameterDefinition_0_3) bool {
+	return param.Required.Value()
+}
+
+// Inline code template.
+var inlineCode = template.Must(template.New("ts").Funcs(template.FuncMap{
+	"escape":        escapeString,
+	"toJSTypeVar":   toJavascriptTypeVar,
+	"paramRequired": paramRequired,
+}).Parse(`import airplane from "airplane"
+
+export default airplane.task(
+  {
+    slug: "{{.Slug}}",
+    {{- with .Name}}
+    name: "{{escape .}}",
+    {{- end}}
+    {{- with .Description}}
+    description: "{{escape .}}",
+    {{- end}}
+    {{- if .Parameters}}
+    parameters: {
+    {{- range $key, $value := .Parameters}}
+      {{$value.Slug}}: {
+        type: "{{$value.Type}}",
+        {{- if $value.Name}}
+        name: "{{escape $value.Name}}",
+        {{- end}}
+        {{- if $value.Description}}
+        description: "{{escape $value.Description}}",
+        {{- end}}
+        {{- if not (paramRequired $value)}}
+        required: false,
+        {{- end}}
+        {{- if ne $value.Default nil}}
+        default: {{toJSTypeVar $value.Default}},
+        {{- end}}
+        {{- if $value.Options}}
+        options: [
+          {{- range $oKey, $oValue := $value.Options}}
+          {{- if $oValue.Label}}
+          {label: "{{escape $oValue.Label}}", value: {{toJSTypeVar $oValue.Value}}},
+          {{- else}}
+          {{toJSTypeVar $oValue.Value}},
+          {{- end}}
+          {{- end}}
+        ]
+        {{- end}}
+        {{- if $value.Regex}}
+        regex: "{{escape $value.Regex}}",
+        {{- end}}
+      },
+    {{- end}}
+    },
+    {{- end}}
+    {{- if .RequireRequests}}
+    requireRequests: true,
+    {{- end}}
+    {{- if not .AllowSelfApprovals}}
+    allowSelfApprovals: false,
+    {{- end}}
+    {{- if ne .Timeout 3600}}
+    timeout: {{.Timeout}},
+    {{- end}}
+    {{- if .Constraints}}
+    constraints: {
+    {{- range $key, $value := .Constraints}}
+      "{{escape $key}}": "{{escape $value}}",
+    {{- end}}
+    },
+    {{- end}}
+    {{- if .Runtime}}
+    runtime: {{.Runtime}},
+    {{- end}}
+    {{- if .Resources.Attachments}}
+    resources: {
+    {{- range $key, $value := .Resources.Attachments}}
+      "{{escape $key}}": "{{$value}}",
+    {{- end}}
+    },
+    {{- end}}
+    {{- if .Schedules }}
+    schedules: {
+    {{- range $key, $value := .Schedules}}
+      {{$key}}: {
+        cron: "{{$value.CronExpr}}",
+        {{- if $value.Name}}
+        name: "{{escape $value.Name}}",
+        {{- end}}
+        {{- if $value.Description}}
+        description: "{{escape $value.Description}}",
+        {{- end}}
+        {{- if $value.ParamValues}}
+        paramValues: {
+          {{range $pSlug, $pValue := $value.ParamValues}}
+          {{- $pSlug}}: {{toJSTypeVar $pValue}},
+          {{- end}}
+        }
+        {{- end}}
+      }
+    {{- end}}
+    },
+    {{- end}}
+    nodeVersion: "{{.Node.NodeVersion}}",
+    {{- if .Node.EnvVars }}
+    envVars: {
+    {{- range $key, $value := .Node.EnvVars}}
+    {{- if $value.Value}}
+      "{{escape $key}}": "{{escape $value.Value}}",
+    {{- else if $value.Config}}
+      "{{escape $key}}": {
+        config: "{{escape $value.Config}}"
+      },
+    {{- end}}
+    {{- end}}
+    },
+    {{- end}}
+  },
+  {{- if .Parameters}}
+  (params) => {
+  {{- else}}
+  () => {
+  {{- end}}
+    // Put the main logic of the task in this function.
+    {{- if .Parameters}}
+    console.log('parameters:', params);
+    {{- else}}
+    console.log('Hello world!');
+    {{- end}}
+
+    // You can return data to show outputs to users.
+    // Outputs documentation: https://docs.airplane.dev/tasks/outputs
+    return [
+        {element: 'hydrogen', weight: 1.008},
+        {element: 'helium', weight: 4.0026},
+    ];
+  }
+)
+`))
+
 // Data represents the data template.
 type data struct {
 	Comment string
@@ -64,6 +224,27 @@ func (r Runtime) Generate(t *runtime.Task) ([]byte, fs.FileMode, error) {
 
 	var buf bytes.Buffer
 	if err := code.Execute(&buf, d); err != nil {
+		return nil, 0, fmt.Errorf("javascript: template execute - %w", err)
+	}
+
+	return buf.Bytes(), 0644, nil
+}
+
+type inlineHelper struct {
+	*definitions.Definition_0_3
+	AllowSelfApprovals bool
+	Timeout            int
+}
+
+// GenerateInline implementation.
+func (r Runtime) GenerateInline(def *definitions.Definition_0_3) ([]byte, fs.FileMode, error) {
+	var buf bytes.Buffer
+	helper := inlineHelper{
+		Definition_0_3:     def,
+		AllowSelfApprovals: def.AllowSelfApprovals.Value(),
+		Timeout:            def.Timeout.Value(),
+	}
+	if err := inlineCode.Execute(&buf, helper); err != nil {
 		return nil, 0, fmt.Errorf("javascript: template execute - %w", err)
 	}
 
