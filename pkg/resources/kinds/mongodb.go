@@ -24,6 +24,17 @@ func (r *MongoDBResource) ScrubSensitiveData() {
 	r.ConnectionString = ""
 }
 
+func (r *MongoDBResource) Update(other resources.Resource) error {
+	o, ok := other.(*MongoDBResource)
+	if !ok {
+		return errors.Errorf("expected *MongoDBResource got %T", other)
+	}
+
+	r.ConnectionString = o.ConnectionString
+
+	return nil
+}
+
 func (r MongoDBResource) Validate() error {
 	if r.ConnectionString == "" {
 		return resources.NewErrMissingResourceField("connectionString")

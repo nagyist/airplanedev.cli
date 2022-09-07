@@ -2,6 +2,7 @@ package kinds
 
 import (
 	"github.com/airplanedev/lib/pkg/resources"
+	"github.com/pkg/errors"
 )
 
 var ResourceKindSendGrid resources.ResourceKind = "sendgrid"
@@ -20,6 +21,19 @@ var _ resources.Resource = &SendGridResource{}
 
 func (r *SendGridResource) ScrubSensitiveData() {
 	r.APIKey = ""
+}
+
+func (r *SendGridResource) Update(other resources.Resource) error {
+	o, ok := other.(*SendGridResource)
+	if !ok {
+		return errors.Errorf("expected *SendGridResource got %T", other)
+	}
+
+	if o.APIKey != "" {
+		r.APIKey = o.APIKey
+	}
+
+	return nil
 }
 
 func (r SendGridResource) Validate() error {

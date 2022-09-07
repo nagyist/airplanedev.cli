@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/airplanedev/lib/pkg/resources"
+	"github.com/pkg/errors"
 )
 
 var ResourceKindMailgun resources.ResourceKind = "mailgun"
@@ -23,6 +24,20 @@ var _ resources.Resource = &MailgunResource{}
 
 func (r *MailgunResource) ScrubSensitiveData() {
 	r.APIKey = ""
+}
+
+func (r *MailgunResource) Update(other resources.Resource) error {
+	o, ok := other.(*MailgunResource)
+	if !ok {
+		return errors.Errorf("expected *MailgunResource got %T", other)
+	}
+
+	if o.APIKey != "" {
+		r.APIKey = o.APIKey
+	}
+	r.Domain = o.Domain
+
+	return nil
 }
 
 func (r MailgunResource) Validate() error {

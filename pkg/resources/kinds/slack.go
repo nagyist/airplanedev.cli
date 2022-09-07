@@ -2,6 +2,7 @@ package kinds
 
 import (
 	"github.com/airplanedev/lib/pkg/resources"
+	"github.com/pkg/errors"
 )
 
 var ResourceKindSlack resources.ResourceKind = "slack"
@@ -20,6 +21,10 @@ var _ resources.Resource = &SlackResource{}
 
 func (r *SlackResource) ScrubSensitiveData() {
 	r.AccessToken = ""
+}
+
+func (r *SlackResource) Update(other resources.Resource) error {
+	return errors.New("NotImplemented: Slack resource cannot be updated")
 }
 
 func (r SlackResource) Validate() error {

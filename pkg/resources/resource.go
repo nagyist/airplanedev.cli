@@ -113,6 +113,7 @@ func EnvFactoryFromFunc(rf func(string, EnvLookupFunc) (Resource, error), f EnvL
 
 type Resource interface {
 	ScrubSensitiveData()
+	Update(r Resource) error
 	Validate() error
 	Kind() ResourceKind
 	String() string

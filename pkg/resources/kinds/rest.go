@@ -1,7 +1,9 @@
 package kinds
 
 import (
+	"encoding/base64"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/airplanedev/lib/pkg/resources"
@@ -27,6 +29,7 @@ var _ resources.Resource = &RESTResource{}
 
 type RESTAuth interface {
 	scrubSensitiveData()
+	update(a RESTAuth) error
 }
 
 type RESTAuthKind string
@@ -95,6 +98,35 @@ func (r *RESTResource) ScrubSensitiveData() {
 	}
 }
 
+func (r *RESTResource) Update(other resources.Resource) error {
+	o, ok := other.(*RESTResource)
+	if !ok {
+		return errors.Errorf("expected *RESTResource got %T", other)
+	}
+	r.BaseURL = o.BaseURL
+
+	r.SecretHeaders = o.SecretHeaders
+	// Copy all new headers but use existing value if it's a secret and empty.
+	updatedHeaders := map[string]string{}
+	for k, v := range o.Headers {
+		if isSecretHeader(o.SecretHeaders, k) && v == "" {
+			updatedHeaders[k] = r.Headers[k]
+		} else {
+			updatedHeaders[k] = v
+		}
+	}
+	r.Headers = updatedHeaders
+
+	if r.Auth != nil && o.Auth != nil && reflect.TypeOf(r.Auth) == reflect.TypeOf(o.Auth) {
+		if err := r.Auth.update(o.Auth); err != nil {
+			return err
+		}
+	} else {
+		r.Auth = o.Auth
+	}
+	return nil
+}
+
 func (r RESTResource) Validate() error {
 	if r.BaseURL == "" {
 		return resources.NewErrMissingResourceField("baseURL")
@@ -136,4 +168,28 @@ func (a *RESTAuthBasic) scrubSensitiveData() {
 	a.Username = nil
 	a.Password = nil
 	a.Headers = map[string]string{}
+}
+
+func (a *RESTAuthBasic) update(other RESTAuth) error {
+	o, ok := other.(*RESTAuthBasic)
+	if !ok {
+		return errors.Errorf("expected *RESTAuthBasic got %T", other)
+	}
+
+	// nil in the update means don't overwrite the username
+	if o.Username != nil {
+		a.Username = o.Username
+	}
+	// nil in the update means don't overwrite the password.
+	if o.Password != nil {
+		a.Password = o.Password
+	}
+
+	credentials := fmt.Sprintf("%s:%s", *a.Username, *a.Password)
+	token := base64.StdEncoding.EncodeToString([]byte(credentials))
+	a.Headers = map[string]string{
+		"Authorization": fmt.Sprintf("Basic %s", token),
+	}
+
+	return nil
 }

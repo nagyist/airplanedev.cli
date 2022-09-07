@@ -2,6 +2,7 @@ package kinds
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/pkg/errors"
@@ -39,6 +40,35 @@ func (r *SQLServerResource) ScrubSensitiveData() {
 	r.Password = ""
 	r.SSHPrivateKey = ""
 	r.DSN = ""
+}
+
+func (r *SQLServerResource) Update(other resources.Resource) error {
+	o, ok := other.(*SQLServerResource)
+	if !ok {
+		return errors.Errorf("expected *SQLServerResource got %T", other)
+	}
+
+	r.Host = o.Host
+	r.Port = o.Port
+	r.Database = o.Database
+	r.Username = o.Username
+	// Don't clobber over password if empty
+	if o.Password != "" {
+		r.Password = o.Password
+	}
+	r.EncryptMode = o.EncryptMode
+
+	r.SSHHost = o.SSHHost
+	r.SSHPort = o.SSHPort
+	r.SSHUsername = o.SSHUsername
+	// Don't clobber over SSH private key if empty
+	if o.SSHPrivateKey != "" {
+		r.SSHPrivateKey = o.SSHPrivateKey
+	}
+
+	r.DSN = r.dsn()
+
+	return nil
 }
 
 func (r SQLServerResource) Validate() error {
@@ -109,4 +139,24 @@ func (r SQLServerResource) GetSQLDriver() SQLDriver {
 
 func (r SQLServerResource) ID() string {
 	return r.BaseResource.ID
+}
+
+func (r SQLServerResource) dsn() string {
+	q := url.Values{}
+	q.Set("database", r.Database)
+	q.Set("encrypt", r.EncryptMode)
+	q.Set("app name", "Airplane")
+	if r.EncryptMode == "true" {
+		// TrustServerCertificate to match behavior of mysql (skip-verify) and postgres (require)
+		// until we support configuring CA
+		q.Set("TrustServerCertificate", "true")
+	}
+
+	u := url.URL{
+		Scheme:   "sqlserver",
+		User:     url.UserPassword(r.Username, r.Password),
+		Host:     fmt.Sprintf("%s:%s", r.Host, r.Port),
+		RawQuery: q.Encode(),
+	}
+	return u.String()
 }

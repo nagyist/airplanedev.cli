@@ -2,6 +2,7 @@ package kinds
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/pkg/errors"
@@ -39,6 +40,35 @@ func (r *PostgresResource) ScrubSensitiveData() {
 	r.Password = ""
 	r.SSHPrivateKey = ""
 	r.DSN = ""
+}
+
+func (r *PostgresResource) Update(other resources.Resource) error {
+	o, ok := other.(*PostgresResource)
+	if !ok {
+		return errors.Errorf("expected *PostgresResource got %T", other)
+	}
+
+	r.Host = o.Host
+	r.Port = o.Port
+	r.Database = o.Database
+	r.Username = o.Username
+	// Don't clobber over password if empty
+	if o.Password != "" {
+		r.Password = o.Password
+	}
+	r.SSLMode = o.SSLMode
+
+	r.SSHHost = o.SSHHost
+	r.SSHPort = o.SSHPort
+	r.SSHUsername = o.SSHUsername
+	// Don't clobber over SSH private key if empty
+	if o.SSHPrivateKey != "" {
+		r.SSHPrivateKey = o.SSHPrivateKey
+	}
+
+	r.DSN = r.dsn()
+
+	return nil
 }
 
 func (r PostgresResource) Validate() error {
@@ -109,4 +139,17 @@ func (r PostgresResource) GetSQLDriver() SQLDriver {
 
 func (r PostgresResource) ID() string {
 	return r.BaseResource.ID
+}
+
+func (r PostgresResource) dsn() string {
+	q := url.Values{}
+	q.Set("sslmode", r.SSLMode)
+	u := url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(r.Username, r.Password),
+		Host:     fmt.Sprintf("%s:%s", r.Host, r.Port),
+		Path:     r.Database,
+		RawQuery: q.Encode(),
+	}
+	return u.String()
 }

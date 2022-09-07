@@ -2,6 +2,7 @@ package kinds
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/go-sql-driver/mysql"
@@ -40,6 +41,35 @@ func (r *MySQLResource) ScrubSensitiveData() {
 	r.Password = ""
 	r.SSHPrivateKey = ""
 	r.DSN = ""
+}
+
+func (r *MySQLResource) Update(other resources.Resource) error {
+	o, ok := other.(*MySQLResource)
+	if !ok {
+		return errors.Errorf("expected *MySQLResource got %T", other)
+	}
+
+	r.Host = o.Host
+	r.Port = o.Port
+	r.Database = o.Database
+	r.Username = o.Username
+	// Don't clobber over password if empty
+	if o.Password != "" {
+		r.Password = o.Password
+	}
+	r.TLS = o.TLS
+
+	r.SSHHost = o.SSHHost
+	r.SSHPort = o.SSHPort
+	r.SSHUsername = o.SSHUsername
+	// Don't clobber over SSH private key if empty
+	if o.SSHPrivateKey != "" {
+		r.SSHPrivateKey = o.SSHPrivateKey
+	}
+
+	r.DSN = r.dsn()
+
+	return nil
 }
 
 func (r MySQLResource) Validate() error {
@@ -121,4 +151,17 @@ func dsnForMySQL(username, host, port, database, tls, password string) string {
 
 func (r MySQLResource) ID() string {
 	return r.BaseResource.ID
+}
+
+func (r MySQLResource) dsn() string {
+	q := url.Values{}
+	q.Set("tls", r.TLS)
+	u := url.URL{
+		Scheme:   "mysql",
+		User:     url.UserPassword(r.Username, r.Password),
+		Host:     fmt.Sprintf("%s:%s", r.Host, r.Port),
+		Path:     r.Database,
+		RawQuery: q.Encode(),
+	}
+	return u.String()
 }

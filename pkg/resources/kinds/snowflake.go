@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/airplanedev/lib/pkg/resources"
+	"github.com/pkg/errors"
+	"github.com/snowflakedb/gosnowflake"
 )
 
 var ResourceKindSnowflake resources.ResourceKind = "snowflake"
@@ -32,6 +34,32 @@ var _ SQLResourceInterface = &SnowflakeResource{}
 func (r *SnowflakeResource) ScrubSensitiveData() {
 	r.Password = ""
 	r.DSN = ""
+}
+
+func (r *SnowflakeResource) Update(other resources.Resource) error {
+	o, ok := other.(*SnowflakeResource)
+	if !ok {
+		return errors.Errorf("expected *SnowflakeResource got %T", other)
+	}
+
+	r.Account = o.Account
+	r.Warehouse = o.Warehouse
+	r.Database = o.Database
+	r.Schema = o.Schema
+	r.Role = o.Role
+	r.Username = o.Username
+	// Don't clobber over password if empty
+	if o.Password != "" {
+		r.Password = o.Password
+	}
+
+	dsn, err := r.dsn()
+	if err != nil {
+		return errors.Wrapf(err, "error calculating DSN")
+	}
+	r.DSN = dsn
+
+	return nil
 }
 
 func (r SnowflakeResource) Validate() error {
@@ -79,4 +107,18 @@ func (r SnowflakeResource) GetSQLDriver() SQLDriver {
 
 func (r SnowflakeResource) ID() string {
 	return r.BaseResource.ID
+}
+
+func (r SnowflakeResource) dsn() (string, error) {
+	cfg := gosnowflake.Config{
+		Account:     r.Account,
+		Warehouse:   r.Warehouse,
+		Database:    r.Database,
+		Schema:      r.Schema,
+		Role:        r.Role,
+		User:        r.Username,
+		Password:    r.Password,
+		Application: "Airplane",
+	}
+	return gosnowflake.DSN(&cfg)
 }

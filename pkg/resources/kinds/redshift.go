@@ -2,6 +2,7 @@ package kinds
 
 import (
 	"github.com/airplanedev/lib/pkg/resources"
+	"github.com/pkg/errors"
 )
 
 var ResourceKindRedshift resources.ResourceKind = "redshift"
@@ -19,6 +20,15 @@ var _ SQLResourceInterface = &RedshiftResource{}
 
 func (r *RedshiftResource) ScrubSensitiveData() {
 	r.PostgresResource.ScrubSensitiveData()
+}
+
+func (r *RedshiftResource) Update(other resources.Resource) error {
+	o, ok := other.(*RedshiftResource)
+	if !ok {
+		return errors.Errorf("expected *RedshiftResource got %T", other)
+	}
+
+	return r.PostgresResource.Update(&o.PostgresResource)
 }
 
 func (r RedshiftResource) Validate() error {

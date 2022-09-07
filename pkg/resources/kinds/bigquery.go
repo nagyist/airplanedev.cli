@@ -1,9 +1,12 @@
 package kinds
 
 import (
+	"encoding/base64"
 	"fmt"
+	"net/url"
 
 	"github.com/airplanedev/lib/pkg/resources"
+	"github.com/pkg/errors"
 )
 
 var ResourceKindBigQuery resources.ResourceKind = "bigquery"
@@ -29,6 +32,28 @@ var _ SQLResourceInterface = &BigQueryResource{}
 func (r *BigQueryResource) ScrubSensitiveData() {
 	r.Credentials = ""
 	r.DSN = ""
+}
+
+func (r *BigQueryResource) Update(other resources.Resource) error {
+	o, ok := other.(*BigQueryResource)
+	if !ok {
+		return errors.Errorf("expected *BigQueryResource got %T", other)
+	}
+
+	r.ProjectID = o.ProjectID
+	r.Location = o.Location
+	r.DataSet = o.DataSet
+	// Don't clobber over credentials if empty
+	if o.Credentials != "" {
+		// BigQuery creds are in json, but
+		// driver requires creds to be in base64
+		creds := base64.StdEncoding.EncodeToString([]byte(o.Credentials))
+		r.Credentials = creds
+	}
+
+	r.DSN = r.dsn()
+
+	return nil
 }
 
 func (r BigQueryResource) Validate() error {
@@ -73,4 +98,16 @@ func (r BigQueryResource) GetSQLDriver() SQLDriver {
 
 func (r BigQueryResource) ID() string {
 	return r.BaseResource.ID
+}
+
+func (r BigQueryResource) dsn() string {
+	query := url.Values{}
+	query.Set("credentials", r.Credentials)
+
+	u := &url.URL{
+		Scheme:   "bigquery",
+		Path:     fmt.Sprintf("%s/%s/%s", r.ProjectID, r.Location, r.DataSet),
+		RawQuery: query.Encode(),
+	}
+	return u.String()
 }

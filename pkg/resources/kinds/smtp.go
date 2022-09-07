@@ -2,6 +2,7 @@ package kinds
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/pkg/errors"
@@ -25,6 +26,7 @@ var _ resources.Resource = &SMTPResource{}
 
 type SMTPAuth interface {
 	scrubSensitiveData()
+	update(a SMTPAuth) error
 	validate(path string) error
 }
 
@@ -108,6 +110,26 @@ func (r *SMTPResource) ScrubSensitiveData() {
 	}
 }
 
+func (r *SMTPResource) Update(other resources.Resource) error {
+	o, ok := other.(*SMTPResource)
+	if !ok {
+		return errors.Errorf("expected *SMTPResource got %T", other)
+	}
+
+	r.Hostname = o.Hostname
+	r.Port = o.Port
+
+	if r.Auth != nil && o.Auth != nil && reflect.TypeOf(r.Auth) == reflect.TypeOf(o.Auth) {
+		if err := r.Auth.update(o.Auth); err != nil {
+			return err
+		}
+	} else {
+		r.Auth = o.Auth
+	}
+
+	return nil
+}
+
 func (r SMTPResource) Validate() error {
 	if r.Hostname == "" {
 		return resources.NewErrMissingResourceField("hostname")
@@ -142,6 +164,22 @@ func (a *SMTPAuthPlain) scrubSensitiveData() {
 	a.Password = ""
 }
 
+func (a *SMTPAuthPlain) update(other SMTPAuth) error {
+	o, ok := other.(*SMTPAuthPlain)
+	if !ok {
+		return errors.Errorf("expected *SMTPAuthPlain got %T", other)
+	}
+
+	a.Identity = o.Identity
+	a.Username = o.Username
+	// Don't clobber over password if empty
+	if o.Password != "" {
+		a.Password = o.Password
+	}
+
+	return nil
+}
+
 func (a *SMTPAuthPlain) validate(path string) error {
 	// Identity can & usually is empty string, no need to check.
 	if a.Username == "" {
@@ -157,6 +195,21 @@ func (a *SMTPAuthCRAMMD5) scrubSensitiveData() {
 	a.Secret = ""
 }
 
+func (a *SMTPAuthCRAMMD5) update(other SMTPAuth) error {
+	o, ok := other.(*SMTPAuthCRAMMD5)
+	if !ok {
+		return errors.Errorf("expected *SMTPAuthCRAMMD5 got %T", other)
+	}
+
+	a.Username = o.Username
+	// Don't clobber over secret if empty
+	if o.Secret != "" {
+		a.Secret = o.Secret
+	}
+
+	return nil
+}
+
 func (a *SMTPAuthCRAMMD5) validate(path string) error {
 	if a.Username == "" {
 		return resources.NewErrMissingResourceField(fmt.Sprintf("%s.username", path))
@@ -169,6 +222,21 @@ func (a *SMTPAuthCRAMMD5) validate(path string) error {
 
 func (a *SMTPAuthLogin) scrubSensitiveData() {
 	a.Password = ""
+}
+
+func (a *SMTPAuthLogin) update(other SMTPAuth) error {
+	o, ok := other.(*SMTPAuthLogin)
+	if !ok {
+		return errors.Errorf("expected *SMTPAuthLogin got %T", other)
+	}
+
+	a.Username = o.Username
+	// Don't clobber over password if empty
+	if o.Password != "" {
+		a.Password = o.Password
+	}
+
+	return nil
 }
 
 func (a *SMTPAuthLogin) validate(path string) error {
