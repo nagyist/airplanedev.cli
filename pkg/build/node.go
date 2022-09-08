@@ -16,6 +16,7 @@ import (
 
 const DefaultNodeVersion = "18"
 const defaultSDKVersion = "0.2.0-25"
+const workflowRuntimePkg = "@airplane/workflow-runtime"
 
 type templateParams struct {
 	Workdir                          string
@@ -295,8 +296,8 @@ func GenShimPackageJSON(packageJSONs []string, isWorkflow bool) ([]byte, error) 
 	if isWorkflow {
 		pjson = shimPackageJSON{
 			Dependencies: map[string]string{
-				"airplane":                   defaultSDKVersion,
-				"@airplane/workflow-runtime": defaultSDKVersion,
+				"airplane":         defaultSDKVersion,
+				workflowRuntimePkg: defaultSDKVersion,
 			},
 		}
 	} else {
@@ -310,12 +311,18 @@ func GenShimPackageJSON(packageJSONs []string, isWorkflow bool) ([]byte, error) 
 	// Allow users to override any shim dependencies. Given shim code is bundled
 	// with user code, we cannot use separate versions of these dependencies so
 	// default to whichever version the user requests.
-	for dep, version := range deps {
-		// Always keep the versions of airplane and @airplane/workflow-runtime in sync.
-		if dep == "airplane" && isWorkflow {
-			pjson.Dependencies["@airplane/workflow-runtime"] = version
-		}
+	for dep := range deps {
 		delete(pjson.Dependencies, dep)
+	}
+
+	// Always keep the versions of airplane and @airplane/workflow-runtime in sync, unless the task's dependencies
+	// explicitly include @airplane/workflow-runtime.
+	if isWorkflow {
+		if version, containsAirplane := deps["airplane"]; containsAirplane {
+			if _, containsWorkflowRuntime := deps[workflowRuntimePkg]; !containsWorkflowRuntime {
+				pjson.Dependencies[workflowRuntimePkg] = version
+			}
+		}
 	}
 
 	b, err := json.Marshal(pjson)
