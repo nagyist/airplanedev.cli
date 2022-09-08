@@ -18,7 +18,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ViewProvider>
       <ErrorBoundary>
-        <Container size="xl" p="xl">
+        <Container p="xl">
           <App />
         </Container>
       </ErrorBoundary>
