@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -31,6 +32,7 @@ import (
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slices"
 )
 
 type config struct {
@@ -42,6 +44,8 @@ type config struct {
 	assumeYes bool
 	assumeNo  bool
 	envSlug   string
+
+	inline bool
 
 	newTaskInfo newTaskInfo
 }
@@ -84,7 +88,12 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().BoolVarP(&cfg.assumeYes, "yes", "y", false, "True to specify automatic yes to prompts.")
 	cmd.Flags().BoolVarP(&cfg.assumeNo, "no", "n", false, "True to specify automatic no to prompts.")
 
+	cmd.Flags().BoolVar(&cfg.inline, "inline", false, "Generate inline config for custom tasks")
+
 	if err := cmd.Flags().MarkHidden("slug"); err != nil {
+		logger.Debug("error: %s", err)
+	}
+	if err := cmd.Flags().MarkHidden("inline"); err != nil {
 		logger.Debug("error: %s", err)
 	}
 
@@ -106,6 +115,9 @@ func Run(ctx context.Context, cfg config) error {
 	if cfg.codeOnly && cfg.from == "" {
 		return errors.New("Required flag(s) \"from\" not set")
 	}
+	if cfg.codeOnly && cfg.inline {
+		return errors.New("Cannot specify both --code-only and --inline")
+	}
 
 	if strings.HasPrefix(cfg.from, "github.com/") || strings.HasPrefix(cfg.from, "https://github.com/") {
 		return initWithExample(ctx, cfg)
@@ -113,7 +125,7 @@ func Run(ctx context.Context, cfg config) error {
 
 	if cfg.from == "" {
 		// Prompt for new task information.
-		if err := promptForNewTask(cfg.file, &cfg.newTaskInfo); err != nil {
+		if err := promptForNewTask(cfg.file, &cfg.newTaskInfo, cfg.inline); err != nil {
 			return err
 		}
 	}
@@ -136,6 +148,10 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		})
 		if err != nil {
 			return err
+		}
+
+		if cfg.inline && !isInlineSupportedKind(task.Kind) {
+			return errors.New("Inline config is only supported for Node tasks.")
 		}
 
 		def, err = definitions.NewDefinitionFromTask_0_3(ctx, cfg.client, task)
@@ -170,15 +186,32 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 			entrypoint = cfg.file
 		}
 
+		entrypointBase := path.Base(entrypoint)
+		if strings.HasSuffix(entrypointBase, ".view.tsx") || strings.HasSuffix(entrypointBase, ".view.jsx") {
+			logger.Log("Task %s was deployed from the view file %s.", def.GetSlug(), entrypointBase)
+			logger.Log("You should run `airplane views init` if you'd like to initialize this task.")
+			if ok, err := utils.ConfirmWithAssumptions("Are you sure you'd like to continue?", cfg.assumeYes, cfg.assumeNo); err != nil {
+				return err
+			} else if !ok {
+				logger.Log("Exiting flow")
+				return nil
+			}
+		}
+
 		for {
-			entrypoint, err = promptForEntrypoint(def.GetSlug(), kind, entrypoint)
+			entrypoint, err = promptForEntrypoint(def.GetSlug(), kind, entrypoint, cfg.inline)
 			if err != nil {
 				return err
 			}
 
 			if fsx.Exists(entrypoint) {
-				question := fmt.Sprintf("Are you sure you want to link %s? You should only link existing Airplane scripts.", entrypoint)
-				if kind == build.TaskKindSQL {
+				var question string
+				if !cfg.inline {
+					question = fmt.Sprintf("Are you sure you want to link %s? You should only link existing Airplane scripts.", entrypoint)
+					if kind == build.TaskKindSQL {
+						question = fmt.Sprintf("Would you like to overwrite %s?", entrypoint)
+					}
+				} else {
 					question = fmt.Sprintf("Would you like to overwrite %s?", entrypoint)
 				}
 				if ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
@@ -215,6 +248,11 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 				}
 			}
 			logger.Step("Created %s", entrypoint)
+		} else if cfg.inline {
+			if err := createInlineEntrypoint(r, entrypoint, &def); err != nil {
+				return errors.Wrapf(err, "unable to create entrypoint")
+			}
+			logger.Step("Created %s", entrypoint)
 		} else {
 			// Create entrypoint, without comment link, if it doesn't exist.
 			if !fsx.Exists(entrypoint) {
@@ -226,6 +264,39 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		}
 	}
 
+	var resp *writeDefnFileResponse
+	if !cfg.inline {
+		resp, err = writeDefnFile(&def, cfg)
+		if err != nil {
+			return err
+		}
+		if resp == nil {
+			return nil
+		}
+	} else {
+		entrypoint, _ := def.Entrypoint()
+		resp = &writeDefnFileResponse{
+			DefnFile:       entrypoint,
+			EntrypointFile: entrypoint,
+		}
+	}
+
+	suggestNextSteps(suggestNextStepsRequest{
+		defnFile:           resp.DefnFile,
+		entrypoint:         resp.EntrypointFile,
+		showLocalExecution: localExecutionSupported,
+		kind:               kind,
+		isNew:              cfg.from == "",
+	})
+	return nil
+}
+
+type writeDefnFileResponse struct {
+	DefnFile       string
+	EntrypointFile string
+}
+
+func writeDefnFile(def *definitions.Definition_0_3, cfg config) (*writeDefnFileResponse, error) {
 	// Create task defn file.
 	defnFilename := cfg.file
 	if !definitions.IsTaskDef(cfg.file) {
@@ -233,7 +304,7 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		entrypoint, _ := def.Entrypoint()
 		fn, err := promptForNewDefinition(defaultDefnFn, entrypoint)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		defnFilename = fn
 	}
@@ -241,10 +312,10 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		// If it exists, check for existence of this file before overwriting it.
 		question := fmt.Sprintf("Would you like to overwrite %s?", defnFilename)
 		if ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
-			return err
+			return nil, err
 		} else if !ok {
 			// User answered "no", so bail here.
-			return nil
+			return nil, nil
 		}
 	}
 
@@ -253,45 +324,41 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 	if err == definitions.ErrNoEntrypoint {
 		// no-op
 	} else if err != nil {
-		return err
+		return nil, err
 	} else {
 		absEntrypoint, err := filepath.Abs(entrypoint)
 		if err != nil {
-			return errors.Wrap(err, "determining absolute entrypoint")
+			return nil, errors.Wrap(err, "determining absolute entrypoint")
 		}
 
 		absDefnFn, err := filepath.Abs(defnFilename)
 		if err != nil {
-			return errors.Wrap(err, "determining absolute definition file")
+			return nil, errors.Wrap(err, "determining absolute definition file")
 		}
 
 		defnDir := filepath.Dir(absDefnFn)
 		relpath, err := filepath.Rel(defnDir, absEntrypoint)
 		if err != nil {
-			return errors.Wrap(err, "determining relative entrypoint")
+			return nil, errors.Wrap(err, "determining relative entrypoint")
 		}
 		if err := def.SetEntrypoint(relpath); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	buf, err := def.GenerateCommentedFile(definitions.GetTaskDefFormat(defnFilename))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := ioutil.WriteFile(defnFilename, buf, 0644); err != nil {
-		return err
+		return nil, err
 	}
 	logger.Step("Created %s", defnFilename)
-	suggestNextSteps(suggestNextStepsRequest{
-		defnFile:           defnFilename,
-		entrypoint:         entrypoint,
-		showLocalExecution: localExecutionSupported,
-		kind:               kind,
-		isNew:              cfg.from == "",
-	})
-	return nil
+	return &writeDefnFileResponse{
+		DefnFile:       defnFilename,
+		EntrypointFile: entrypoint,
+	}, nil
 }
 
 func initCodeOnly(ctx context.Context, cfg config) error {
@@ -306,7 +373,7 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 	}
 
 	if cfg.file == "" {
-		cfg.file, err = promptForEntrypoint(task.Slug, task.Kind, "")
+		cfg.file, err = promptForEntrypoint(task.Slug, task.Kind, "", false)
 		if err != nil {
 			return err
 		}
@@ -408,6 +475,7 @@ type suggestNextStepsRequest struct {
 }
 
 func suggestNextSteps(req suggestNextStepsRequest) {
+	// Update the next steps for inline code config
 	if req.isNew {
 		steps := []string{}
 		switch req.kind {
@@ -460,11 +528,14 @@ func patch(slug, file string) (ok bool, err error) {
 	return
 }
 
-func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint string) (string, error) {
+func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint string, inline bool) (string, error) {
 	exts := runtime.SuggestExts(kind)
 	if defaultEntrypoint == "" {
 		defaultEntrypoint = slug
-		if len(exts) > 0 {
+		if kind == build.TaskKindNode && len(exts) > 1 {
+			// Special case node tasks and make their extensions '.ts'
+			defaultEntrypoint += ".ts"
+		} else {
 			defaultEntrypoint += exts[0]
 		}
 
@@ -474,6 +545,10 @@ func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint str
 			// Suggest a subdirectory to avoid putting a file directly into home directory.
 			defaultEntrypoint = filepath.Join("airplane", defaultEntrypoint)
 		}
+	}
+
+	if inline {
+		defaultEntrypoint = modifyEntrypointForInline(kind, defaultEntrypoint)
 	}
 
 	var entrypoint string
@@ -581,7 +656,7 @@ var orderedKindNames = []string{
 	"Docker",
 }
 
-func promptForNewTask(file string, info *newTaskInfo) error {
+func promptForNewTask(file string, info *newTaskInfo, inline bool) error {
 	defFormat := definitions.GetTaskDefFormat(file)
 	ext := filepath.Ext(file)
 	base := strings.TrimSuffix(filepath.Base(file), ext)
@@ -633,8 +708,17 @@ func promptForNewTask(file string, info *newTaskInfo) error {
 	if info.kind == "" {
 		return errors.Errorf("Unknown kind selected: %s", selectedKindName)
 	}
+	if inline && !isInlineSupportedKind(info.kind) {
+		return errors.New("Inline config is only supported for Node tasks.")
+	}
 
 	return nil
+}
+
+var inlineSupportedKinds = []build.TaskKind{build.TaskKindNode}
+
+func isInlineSupportedKind(kind build.TaskKind) bool {
+	return slices.Contains(inlineSupportedKinds, kind)
 }
 
 func cwdIsHome() (bool, error) {
@@ -656,6 +740,29 @@ func createEntrypoint(r runtime.Interface, entrypoint string, task *libapi.Task)
 	}
 
 	return writeEntrypoint(entrypoint, code, fileMode)
+}
+
+func createInlineEntrypoint(r runtime.Interface, entrypoint string, def *definitions.Definition_0_3) error {
+	code, fileMode, err := r.GenerateInline(def)
+	if err != nil {
+		return err
+	}
+
+	return writeEntrypoint(entrypoint, code, fileMode)
+}
+
+func modifyEntrypointForInline(kind build.TaskKind, entrypoint string) string {
+	if kind != build.TaskKindNode {
+		return entrypoint
+	}
+
+	ext := filepath.Ext(entrypoint)
+	entrypointWithoutExt := strings.TrimSuffix(entrypoint, ext)
+
+	if !strings.HasSuffix(entrypointWithoutExt, ".airplane") {
+		return fmt.Sprintf("%s.airplane%s", entrypointWithoutExt, ext)
+	}
+	return entrypoint
 }
 
 func writeEntrypoint(path string, b []byte, fileMode os.FileMode) error {
