@@ -97,7 +97,7 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
             allowSelfApprovals: config.allowSelfApprovals,
             timeout: config.timeout,
             constraints: config.constraints,
-            runtime: config.runtime === "workflow" ? "workflow" : "",
+            runtime: item.__airplane.type === "workflow" ? "workflow" : "",
             resources: config.resources,
             schedules: config.schedules,
             parameters: params,
