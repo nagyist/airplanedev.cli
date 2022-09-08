@@ -78,7 +78,7 @@ var inlineCode = template.Must(template.New("ts").Funcs(template.FuncMap{
 	"paramRequired": paramRequired,
 }).Parse(`import airplane from "airplane"
 
-export default airplane.task(
+export default airplane.{{ .SDKMethod }}(
   {
     slug: "{{.Slug}}",
     {{- with .Name}}
@@ -137,9 +137,6 @@ export default airplane.task(
       "{{escape $key}}": "{{escape $value}}",
     {{- end}}
     },
-    {{- end}}
-    {{- if .Runtime}}
-    runtime: {{.Runtime}},
     {{- end}}
     {{- if .Resources.Attachments}}
     resources: {
@@ -234,15 +231,21 @@ type inlineHelper struct {
 	*definitions.Definition_0_3
 	AllowSelfApprovals bool
 	Timeout            int
+	SDKMethod          string
 }
 
 // GenerateInline implementation.
 func (r Runtime) GenerateInline(def *definitions.Definition_0_3) ([]byte, fs.FileMode, error) {
 	var buf bytes.Buffer
+	method := "task"
+	if def.Runtime == build.TaskRuntimeWorkflow {
+		method = "workflow"
+	}
 	helper := inlineHelper{
 		Definition_0_3:     def,
 		AllowSelfApprovals: def.AllowSelfApprovals.Value(),
 		Timeout:            def.Timeout.Value(),
+		SDKMethod:          method,
 	}
 	if err := inlineCode.Execute(&buf, helper); err != nil {
 		return nil, 0, fmt.Errorf("javascript: template execute - %w", err)
