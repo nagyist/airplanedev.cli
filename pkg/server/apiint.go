@@ -33,6 +33,8 @@ func AttachInternalAPIRoutes(r *mux.Router, state *State) {
 	r.Handle("/prompts/submit", HandlerWithBody(state, SubmitPromptHandler)).Methods("POST", "OPTIONS")
 
 	r.Handle("/runs/getDescendants", Handler(state, GetDescendantsHandler)).Methods("GET", "OPTIONS")
+
+	r.Handle("/users/get", Handler(state, GetUserHandler)).Methods("GET", "OPTIONS")
 }
 
 type CreateResourceRequest struct {
@@ -286,5 +288,30 @@ func GetDescendantsHandler(ctx context.Context, state *State, r *http.Request) (
 
 	return GetDescendantsResponse{
 		Descendants: descendants,
+	}, nil
+}
+
+type User struct {
+	ID        string  `json:"userID" db:"id"`
+	Email     string  `json:"email" db:"email"`
+	Name      string  `json:"name" db:"name"`
+	AvatarURL *string `json:"avatarURL" db:"avatar_url"`
+}
+
+type GetUserResponse struct {
+	User User `json:"user"`
+}
+
+func GetUserHandler(ctx context.Context, state *State, r *http.Request) (GetUserResponse, error) {
+	userID := r.URL.Query().Get("userID")
+	// Set avatar to anonymous silhouette
+	gravatarURL := "https://www.gravatar.com/avatar?d=mp"
+	return GetUserResponse{
+		User: User{
+			ID:        userID,
+			Email:     "hello@airplane.dev",
+			Name:      "Airplane editor",
+			AvatarURL: &gravatarURL,
+		},
 	}, nil
 }
