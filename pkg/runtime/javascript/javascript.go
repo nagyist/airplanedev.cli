@@ -183,9 +183,9 @@ export default airplane.{{ .SDKMethod }}(
     {{- end}}
   },
   {{- if .Parameters}}
-  (params) => {
+  async (params) => {
   {{- else}}
-  () => {
+  async () => {
   {{- end}}
     // Put the main logic of the task in this function.
     {{- if .Parameters}}
