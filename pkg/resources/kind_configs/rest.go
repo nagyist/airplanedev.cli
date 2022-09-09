@@ -88,11 +88,6 @@ func (this RESTKindConfig) ToExternalResource(base resources.BaseResource) (reso
 	}
 
 	if this.AuthConfig != nil {
-		authHeader, err := this.AuthConfig.authHeader()
-		if err != nil {
-			return nil, errors.Wrap(err, "generating auth header")
-		}
-		r.Headers["Authorization"] = authHeader
 		auth, err := this.AuthConfig.toExternalAuth()
 		if err != nil {
 			return nil, errors.Wrap(err, "converting AuthConfig to external auth")
