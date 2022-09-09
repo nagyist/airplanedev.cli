@@ -11,20 +11,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPing(t *testing.T) {
+func TestVersion(t *testing.T) {
 	require := require.New(t)
 
 	h := getHttpExpect(
 		context.Background(),
 		t,
-		newRouter(nil),
+		newRouter(&State{}),
 	)
 
-	body := h.GET("/dev/ping").
+	body := h.GET("/dev/version").
 		Expect().
 		Status(http.StatusOK).Body()
 
-	require.Equal("ok", body.Raw())
+	var resp VersionResponse
+	err := json.Unmarshal([]byte(body.Raw()), &resp)
+	require.NoError(err)
+
+	require.Equal(resp.Status, "ok")
+	require.NotEmpty(resp.Status)
+
 }
 
 func TestListEntrypoints(t *testing.T) {

@@ -30,6 +30,21 @@ type State struct {
 	viteProcess *os.Process
 	viteMutex   sync.Mutex
 	logger      logger.Logger
+
+	versionCache VersionCache
+}
+
+// We cache the CLI's version since github rate limits checks
+// When we add hot reload and it's long running, we should expire/periodically refresh this.
+type VersionCache struct {
+	mu      sync.Mutex
+	version *VersionResponse
+}
+
+func (cache *VersionCache) Add(response VersionResponse) {
+	cache.mu.Lock()
+	defer cache.mu.Unlock()
+	cache.version = &response
 }
 
 // TODO: add limit on max items

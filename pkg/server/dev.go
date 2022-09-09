@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -25,7 +24,6 @@ func AttachDevRoutes(r *mux.Router, state *State) {
 	const basePath = "/dev/"
 	r = r.NewRoute().PathPrefix(basePath).Subrouter()
 
-	r.Handle("/ping", PingHandler()).Methods("GET", "OPTIONS")
 	r.Handle("/version", Handler(state, GetVersionHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/list", Handler(state, ListEntrypointsHandler)).Methods("GET", "OPTIONS")
@@ -35,14 +33,6 @@ func AttachDevRoutes(r *mux.Router, state *State) {
 	r.Handle("/runs/create", HandlerWithBody(state, CreateRunHandler)).Methods("POST", "OPTIONS")
 }
 
-// PingHandler handles request to the /dev/ping endpoint.
-func PingHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, "ok")
-	}
-}
-
 type VersionResponse struct {
 	Status   string `json:"status"`
 	Version  string `json:"version"`
@@ -50,13 +40,18 @@ type VersionResponse struct {
 }
 
 func GetVersionHandler(ctx context.Context, state *State, r *http.Request) (VersionResponse, error) {
-	isLatest := latest.CheckLatest(ctx)
+	if state.versionCache.version != nil {
+		return *state.versionCache.version, nil
+	}
 
-	return VersionResponse{
+	isLatest := latest.CheckLatest(ctx)
+	v := VersionResponse{
 		Status:   "ok",
 		Version:  version.Get(),
 		IsLatest: isLatest,
-	}, nil
+	}
+	state.versionCache.Add(v)
+	return v, nil
 }
 
 type AppKind string
