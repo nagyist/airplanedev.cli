@@ -122,8 +122,9 @@ func run(ctx context.Context, cfg config) error {
 	serializedResource["name"] = cfg.name
 	serializedResource["id"] = fmt.Sprintf("res-%s", cfg.slug)
 
-	// Iterate over resource struct fields and dynamically prompt user for input
-	v := reflect.ValueOf(emptyResource)
+	// Iterate over resource struct fields and dynamically prompt user for input.
+	// Resource factories return a pointer to an external resource struct, and so we dereference by calling Elem().
+	v := reflect.ValueOf(emptyResource).Elem()
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Type().Field(i)
 		fieldName := field.Tag.Get("json")
