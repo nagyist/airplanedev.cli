@@ -45,7 +45,8 @@ type config struct {
 	assumeNo  bool
 	envSlug   string
 
-	inline bool
+	inline   bool
+	workflow bool
 
 	newTaskInfo newTaskInfo
 }
@@ -89,6 +90,7 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().BoolVarP(&cfg.assumeNo, "no", "n", false, "True to specify automatic no to prompts.")
 
 	cmd.Flags().BoolVar(&cfg.inline, "inline", false, "Generate inline config for custom tasks")
+	cmd.Flags().BoolVar(&cfg.workflow, "workflow", false, "Generate a workflow inline config for custom tasks")
 
 	if err := cmd.Flags().MarkHidden("slug"); err != nil {
 		logger.Debug("error: %s", err)
@@ -115,6 +117,10 @@ func Run(ctx context.Context, cfg config) error {
 	if cfg.codeOnly && cfg.from == "" {
 		return errors.New("Required flag(s) \"from\" not set")
 	}
+
+	// workflows are also inline
+	cfg.inline = cfg.inline || cfg.workflow
+
 	if cfg.codeOnly && cfg.inline {
 		return errors.New("Cannot specify both --code-only and --inline")
 	}
@@ -140,6 +146,8 @@ func Run(ctx context.Context, cfg config) error {
 func initWithTaskDef(ctx context.Context, cfg config) error {
 	client := cfg.client
 
+	// workflows are also inline
+	cfg.inline = cfg.inline || cfg.workflow
 	var def definitions.Definition_0_3
 	if cfg.from != "" {
 		task, err := client.GetTask(ctx, libapi.GetTaskRequest{
@@ -174,6 +182,10 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 	kind, err := def.Kind()
 	if err != nil {
 		return err
+	}
+
+	if cfg.workflow {
+		def.Runtime = build.TaskRuntimeWorkflow
 	}
 
 	localExecutionSupported := false
