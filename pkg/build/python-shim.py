@@ -8,12 +8,16 @@ import importlib.util as util
 import json
 import os
 import sys
+import traceback
 
 def run(args):
     sys.path.append("{{.TaskRoot}}")
-    
+
     if len(args) != 2:
-        raise Exception("usage: python ./shim.py <args>")
+        err_msg = "usage: python ./shim.py <args>"
+        print(err_msg, file=sys.stderr)
+        airplane.set_output(err_msg, "error")
+        sys.exit(1)
 
     os.chdir("{{.TaskRoot}}")
 
@@ -45,7 +49,9 @@ def run(args):
                 sys.stderr.flush()
                 print(json.dumps(ret, indent=2))
     except Exception as e:
-        raise Exception("executing {{.Entrypoint}}") from e
+        print(traceback.format_exc(), file=sys.stderr)
+        airplane.set_output(str(e), "error")
+        sys.exit(1)
 
 if __name__ == "__main__":
     run(sys.argv)
