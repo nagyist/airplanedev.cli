@@ -135,6 +135,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 			EnvSlug:     state.envSlug,
 			IsBuiltin:   isBuiltin,
 			LogBroker:   run.LogBroker,
+			Env:         state.devConfig.EnvVars,
 		}
 		resourceAttachments := map[string]string{}
 		// Builtins have a specific alias in the form of "rest", "db", etc. that is required by the builtins binary,
