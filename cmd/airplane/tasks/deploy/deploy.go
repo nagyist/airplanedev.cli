@@ -180,7 +180,7 @@ func HandleMissingTask(cfg config, l logger.LoggerWithLoader, createdTasks *map[
 				// User answered "no", so bail here.
 				return nil, nil
 			}
-		} else if !cfg.assumeYes {
+		} else if cfg.assumeNo {
 			return nil, nil
 		}
 
@@ -244,7 +244,7 @@ func HandleMissingView(cfg config, l logger.LoggerWithLoader, createdViews *map[
 				// User answered "no", so bail here.
 				return nil, nil
 			}
-		} else if !cfg.assumeYes {
+		} else if cfg.assumeNo {
 			return nil, nil
 		}
 
