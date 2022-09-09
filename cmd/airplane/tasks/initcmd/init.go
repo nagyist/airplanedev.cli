@@ -20,6 +20,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/node"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
@@ -291,6 +292,10 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 			DefnFile:       entrypoint,
 			EntrypointFile: entrypoint,
 		}
+	}
+
+	if err := runKindSpecificInstallation(kind); err != nil {
+		return err
 	}
 
 	suggestNextSteps(suggestNextStepsRequest{
@@ -804,4 +809,23 @@ func apiTaskToRuntimeTask(task *libapi.Task) *runtime.Task {
 		})
 	}
 	return t
+}
+
+func runKindSpecificInstallation(kind build.TaskKind) error {
+	switch kind {
+	case build.TaskKindNode:
+		cwd, err := os.Getwd()
+		if err != nil {
+			return errors.Wrap(err, "getting working directory")
+		}
+		if err := node.CreatePackageJSON(cwd, node.NodeDependencies{
+			Dependencies: []string{"airplane"},
+		}); err != nil {
+			return err
+		}
+
+		return node.CreateTaskTSConfig()
+	default:
+		return nil
+	}
 }
