@@ -15,6 +15,7 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
@@ -244,6 +245,28 @@ func GetKindAndOptions(taskConfig discover.TaskConfig) (build.TaskKind, build.Ki
 		kindOptions["entrypointFunc"] = entrypointFunc
 	}
 	return kind, kindOptions, nil
+}
+
+func MaterializeEnvVars(taskConfig discover.TaskConfig, config *conf.DevConfig) (map[string]string, error) {
+	envVars := map[string]string{}
+
+	taskEnvVars, err := taskConfig.Def.GetEnv()
+	if err != nil {
+		return nil, err
+	}
+
+	for key, envVar := range taskEnvVars {
+		if envVar.Value != nil {
+			envVars[key] = *envVar.Value
+		} else if envVar.Config != nil {
+			if configVal, ok := config.ConfigVars[*envVar.Config]; !ok {
+				return nil, errors.New(fmt.Sprintf("config %s is not defined in airplane.dev.yaml (referenced by env var %s)", *envVar.Config, key))
+			} else {
+				envVars[key] = configVal
+			}
+		}
+	}
+	return envVars, nil
 }
 
 func scanLogLine(config LocalRunConfig, line string, mu *sync.Mutex, o *ojson.Value, chunks map[string]*strings.Builder) {

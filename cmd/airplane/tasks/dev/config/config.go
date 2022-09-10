@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/delete_env"
+	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/delete_config"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/delete_resource"
-	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/set_env"
+	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/set_config"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/set_resource"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
@@ -71,8 +71,8 @@ func New(c *cli.Config) *cobra.Command {
 		"Path to airplane dev config file",
 	)
 
-	cmd.AddCommand(set_env.New(cfg))
-	cmd.AddCommand(delete_env.New(cfg))
+	cmd.AddCommand(set_config.New(cfg))
+	cmd.AddCommand(delete_config.New(cfg))
 
 	cmd.AddCommand(set_resource.New(cfg))
 	cmd.AddCommand(delete_resource.New(cfg))

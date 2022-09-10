@@ -1,4 +1,4 @@
-package set_env
+package set_config
 
 import (
 	"context"
@@ -21,13 +21,13 @@ type config struct {
 func New(c *cli.DevCLI) *cobra.Command {
 	var cfg = config{devCLI: c}
 	cmd := &cobra.Command{
-		Use:   "set-env",
-		Short: "Sets an environment variable in the dev config file",
+		Use:   "set-configvar",
+		Short: "Sets a config variable in the dev config file",
 		Example: heredoc.Doc(`
-			airplane dev config set-env <key> <value>
-			airplane dev config set-env API_KEY test
-			airplane dev config set-env <key>=<value>
-			airplane dev config set-env API_KEY=test
+			airplane dev config set-configvar <key> <value>
+			airplane dev config set-configvar API_KEY test
+			airplane dev config set-configvar <key>=<value>
+			airplane dev config set-configvar API_KEY=test
 		`),
 		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -52,15 +52,15 @@ func New(c *cli.DevCLI) *cobra.Command {
 
 func run(ctx context.Context, cfg config) error {
 	devConfig := cfg.devCLI.DevConfig
-	if devConfig.EnvVars == nil {
-		devConfig.EnvVars = map[string]string{}
+	if devConfig.ConfigVars == nil {
+		devConfig.ConfigVars = map[string]string{}
 	}
-	devConfig.EnvVars[cfg.key] = cfg.value
+	devConfig.ConfigVars[cfg.key] = cfg.value
 	err := conf.WriteDevConfig(devConfig)
 	if err != nil {
 		return err
 	}
 
-	logger.Log("Successfully wrote environment variable `%s` to dev config file.", cfg.key)
+	logger.Log("Successfully wrote config variable `%s` to dev config file.", cfg.key)
 	return nil
 }

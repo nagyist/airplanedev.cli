@@ -237,6 +237,11 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		return err
 	}
 
+	envVars, err := dev.MaterializeEnvVars(taskConfig, devConfig)
+	if err != nil {
+		return err
+	}
+
 	localRunConfig := dev.LocalRunConfig{
 		ID:          server.GenerateRunID(),
 		Name:        taskConfig.Def.GetName(),
@@ -248,7 +253,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		File:        cfg.fileOrDir,
 		Slug:        taskConfig.Def.GetSlug(),
 		EnvSlug:     cfg.envSlug,
-		Env:         devConfig.EnvVars,
+		Env:         envVars,
 		Resources:   resources,
 	}
 	_, err = localExecutor.Execute(ctx, localRunConfig)
@@ -257,12 +262,12 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	analytics.Track(cfg.root, "Run Executed Locally", map[string]interface{}{
-		"kind":         kind,
-		"task_slug":    taskConfig.Def.GetSlug(),
-		"task_name":    taskConfig.Def.GetName(),
-		"env_slug":     cfg.envSlug,
-		"num_params":   len(paramValues),
-		"num_env_vars": len(devConfig.EnvVars),
+		"kind":            kind,
+		"task_slug":       taskConfig.Def.GetSlug(),
+		"task_name":       taskConfig.Def.GetName(),
+		"env_slug":        cfg.envSlug,
+		"num_params":      len(paramValues),
+		"num_config_vars": len(envVars),
 	}, analytics.TrackOpts{
 		SkipSlack: true,
 	})

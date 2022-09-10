@@ -17,8 +17,9 @@ var DefaultDevConfigFileName = "airplane.dev.yaml"
 
 // DevConfig represents an airplane dev configuration.
 type DevConfig struct {
-	// EnvVars contains all environment variables.
-	EnvVars map[string]string `json:"envVars" yaml:"envVars"`
+	// Configs contains all of the config variables.
+	ConfigVars map[string]string `json:"configVars" yaml:"configVars"`
+
 	// RawResources is a list of resources that represents what the user sees in the dev config file.
 	RawResources []map[string]interface{} `json:"resources" yaml:"resources"`
 
@@ -31,7 +32,7 @@ type DevConfig struct {
 // NewDevConfig returns a default dev config.
 func NewDevConfig() *DevConfig {
 	return &DevConfig{
-		EnvVars:      map[string]string{},
+		ConfigVars:   map[string]string{},
 		RawResources: []map[string]interface{}{},
 		Resources:    map[string]resources.Resource{},
 		Path:         DefaultDevConfigFileName,

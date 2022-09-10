@@ -86,6 +86,7 @@ func TestExecute(t *testing.T) {
 		Port:        1234,
 		File:        "my_task.ts",
 		Slug:        slug,
+		Env:         map[string]string{},
 		EnvSlug:     "stage",
 		Resources:   map[string]resources.Resource{},
 		LogBroker:   logBroker,

@@ -181,6 +181,12 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 			parameters = localTaskConfig.Def.GetParameters()
 			run.TaskID = req.Slug
 			run.TaskName = localTaskConfig.Def.GetName()
+
+			envVars, err := dev.MaterializeEnvVars(localTaskConfig, state.devConfig)
+			if err != nil {
+				return LocalRun{}, err
+			}
+			runConfig.Env = envVars
 		}
 		resources, err := resource.GenerateAliasToResourceMap(
 			resourceAttachments,

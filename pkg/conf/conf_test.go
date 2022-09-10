@@ -100,8 +100,8 @@ func TestDevConfig(t *testing.T) {
 		var dir = tempdir(t)
 		var path = filepath.Join(dir, "dev.yaml")
 
-		env := map[string]string{
-			"ENV_VAR": "value",
+		configs := map[string]string{
+			"CONFIG_VAR": "value",
 		}
 		configResources := []map[string]interface{}{
 			{
@@ -112,15 +112,15 @@ func TestDevConfig(t *testing.T) {
 			},
 		}
 		err := WriteDevConfig(&DevConfig{
+			ConfigVars:   configs,
 			Path:         path,
-			EnvVars:      env,
 			RawResources: configResources,
 		})
 		assert.NoError(err)
 
 		cfg, err := ReadDevConfig(path)
 		assert.NoError(err)
-		assert.Equal(env, cfg.EnvVars)
+		assert.Equal(configs, cfg.ConfigVars)
 		assert.Equal(configResources, cfg.RawResources)
 		assert.Equal(map[string]resources.Resource{
 			"db": &kinds.PostgresResource{

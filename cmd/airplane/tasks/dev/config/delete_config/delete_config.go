@@ -1,4 +1,4 @@
-package delete_env
+package delete_config
 
 import (
 	"context"
@@ -19,11 +19,11 @@ type config struct {
 func New(c *cli.DevCLI) *cobra.Command {
 	var cfg = config{devCLI: c}
 	cmd := &cobra.Command{
-		Use:   "delete-env",
-		Short: "Deletes an environment variable from the dev config file",
+		Use:   "delete-configvar",
+		Short: "Deletes a config variable from the dev config file",
 		Example: heredoc.Doc(`
-			airplane dev config delete-env <key>
-			airplane dev config delete-env <key1> <key2> ...
+			airplane dev config delete-configvar <key>
+			airplane dev config delete-configvar <key1> <key2> ...
 		`),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -38,15 +38,15 @@ func New(c *cli.DevCLI) *cobra.Command {
 // Run runs the open command.
 func run(ctx context.Context, cfg config) error {
 	devConfig := cfg.devCLI.DevConfig
-	if _, ok := devConfig.EnvVars[cfg.key]; !ok {
-		return errors.Errorf("Environment variable `%s` not found in dev config file", cfg.key)
+	if _, ok := devConfig.ConfigVars[cfg.key]; !ok {
+		return errors.Errorf("Config variable `%s` not found in dev config file", cfg.key)
 	}
 
-	delete(devConfig.EnvVars, cfg.key)
+	delete(devConfig.ConfigVars, cfg.key)
 	if err := conf.WriteDevConfig(devConfig); err != nil {
 		return err
 	}
 
-	logger.Log("Deleted environment variable `%s` from dev config file.", cfg.key)
+	logger.Log("Deleted config variable `%s` from dev config file.", cfg.key)
 	return nil
 }
