@@ -30,7 +30,10 @@ func (r *MongoDBResource) Update(other resources.Resource) error {
 		return errors.Errorf("expected *MongoDBResource got %T", other)
 	}
 
-	r.ConnectionString = o.ConnectionString
+	// Only update connection string if it's not empty
+	if o.ConnectionString != "" {
+		r.ConnectionString = o.ConnectionString
+	}
 
 	return nil
 }
