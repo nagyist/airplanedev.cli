@@ -1,4 +1,4 @@
-package server
+package state
 
 import (
 	"os"
@@ -8,49 +8,37 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/version"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/pkg/errors"
 )
 
 type State struct {
-	cliConfig   *cli.Config
-	localClient *api.Client
+	CliConfig   *cli.Config
+	LocalClient *api.Client
 	// Directory from which tasks and views were discovered
-	dir      string
-	envSlug  string
-	executor dev.Executor
-	port     int
-	runs     *runsStore
+	Dir      string
+	EnvSlug  string
+	Executor dev.Executor
+	Port     int
+	Runs     *runsStore
 	// Mapping from task slug to task config
-	taskConfigs map[string]discover.TaskConfig
+	TaskConfigs map[string]discover.TaskConfig
 	// Mapping from view slug to view config
-	viewConfigs map[string]discover.ViewConfig
-	devConfig   *conf.DevConfig
-	viteProcess *os.Process
-	viteMutex   sync.Mutex
-	logger      logger.Logger
+	ViewConfigs map[string]discover.ViewConfig
+	DevConfig   *conf.DevConfig
+	ViteProcess *os.Process
+	ViteMutex   sync.Mutex
+	Logger      logger.Logger
 
-	versionCache VersionCache
-}
-
-// We cache the CLI's version since github rate limits checks
-// When we add hot reload and it's long running, we should expire/periodically refresh this.
-type VersionCache struct {
-	mu      sync.Mutex
-	version *VersionResponse
-}
-
-func (cache *VersionCache) Add(response VersionResponse) {
-	cache.mu.Lock()
-	defer cache.mu.Unlock()
-	cache.version = &response
+	VersionCache version.Cache
 }
 
 // TODO: add limit on max items
 type runsStore struct {
 	// All runs
-	runs map[string]LocalRun
+	runs map[string]dev.LocalRun
 	// A task's previous runs
 	runHistory map[string][]string
 	// A run's descendants
@@ -61,7 +49,7 @@ type runsStore struct {
 
 func NewRunStore() *runsStore {
 	r := &runsStore{
-		runs:           map[string]LocalRun{},
+		runs:           map[string]dev.LocalRun{},
 		runHistory:     map[string][]string{},
 		runDescendants: map[string][]string{},
 	}
@@ -77,7 +65,7 @@ func contains(runID string, history []string) bool {
 	return false
 }
 
-func (store *runsStore) add(taskSlug string, runID string, run LocalRun) {
+func (store *runsStore) Add(taskSlug string, runID string, run dev.LocalRun) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	run.RunID = runID
@@ -95,16 +83,16 @@ func (store *runsStore) add(taskSlug string, runID string, run LocalRun) {
 	}
 }
 
-func (store *runsStore) get(runID string) (LocalRun, bool) {
+func (store *runsStore) Get(runID string) (dev.LocalRun, bool) {
 	res, ok := store.runs[runID]
 	return res, ok
 }
 
-func (store *runsStore) getDescendants(runID string) []LocalRun {
-	descendants := []LocalRun{}
+func (store *runsStore) GetDescendants(runID string) []dev.LocalRun {
+	descendants := []dev.LocalRun{}
 	descIDs, ok := store.runDescendants[runID]
 	if !ok {
-		return []LocalRun{}
+		return []dev.LocalRun{}
 	}
 	for _, descID := range descIDs {
 		descendants = append(descendants, store.runs[descID])
@@ -112,25 +100,25 @@ func (store *runsStore) getDescendants(runID string) []LocalRun {
 	return descendants
 }
 
-func (store *runsStore) update(runID string, f func(run *LocalRun) error) (LocalRun, error) {
+func (store *runsStore) Update(runID string, f func(run *dev.LocalRun) error) (dev.LocalRun, error) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 
 	res, ok := store.runs[runID]
 	if !ok {
-		return LocalRun{}, errors.Errorf("run with id %q not found", runID)
+		return dev.LocalRun{}, errors.Errorf("run with id %q not found", runID)
 	}
 	if err := f(&res); err != nil {
-		return LocalRun{}, err
+		return dev.LocalRun{}, err
 	}
 	store.runs[runID] = res
 
 	return res, nil
 }
 
-func (store *runsStore) getRunHistory(taskID string) []LocalRun {
+func (store *runsStore) GetRunHistory(taskID string) []dev.LocalRun {
 	runIDs := store.runHistory[taskID]
-	res := make([]LocalRun, len(runIDs))
+	res := make([]dev.LocalRun, len(runIDs))
 	for i, runID := range runIDs {
 		res[i] = store.runs[runID]
 	}

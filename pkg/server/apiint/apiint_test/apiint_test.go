@@ -1,4 +1,4 @@
-package server
+package apiint_test
 
 import (
 	"context"
@@ -11,6 +11,13 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
+	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/server"
+	"github.com/airplanedev/cli/pkg/server/apiext"
+	"github.com/airplanedev/cli/pkg/server/apiint"
+	"github.com/airplanedev/cli/pkg/server/state"
+	"github.com/airplanedev/cli/pkg/server/test_utils"
+	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/resources"
@@ -20,11 +27,11 @@ import (
 
 func TestListResources(t *testing.T) {
 	require := require.New(t)
-	h := getHttpExpect(
+	h := test_utils.GetHttpExpect(
 		context.Background(),
 		t,
-		newRouter(&State{
-			devConfig: &conf.DevConfig{
+		server.NewRouter(&state.State{
+			DevConfig: &conf.DevConfig{
 				Resources: map[string]resources.Resource{
 					"db": &kinds.PostgresResource{
 						BaseResource: resources.BaseResource{
@@ -82,7 +89,7 @@ func TestSubmitPrompts(t *testing.T) {
 	taskSlug := "task1"
 	now := time.Now()
 	runID := "run_0"
-	promptID1 := GenerateID("pmt")
+	promptID1 := utils.GenerateID("pmt")
 	prompt1 := libapi.Prompt{
 		ID:    promptID1,
 		RunID: runID,
@@ -105,31 +112,31 @@ func TestSubmitPrompts(t *testing.T) {
 		CreatedAt: now,
 	}
 
-	runstore := NewRunStore()
-	run := LocalRun{
+	runstore := state.NewRunStore()
+	run := dev.LocalRun{
 		RunID:   runID,
 		TaskID:  taskSlug,
 		Outputs: api.Outputs{V: "run0"},
 		Prompts: []libapi.Prompt{prompt1, prompt2},
 	}
-	runstore.add(taskSlug, runID, run)
+	runstore.Add(taskSlug, runID, run)
 
-	h := getHttpExpect(
+	h := test_utils.GetHttpExpect(
 		context.Background(),
 		t,
-		newRouter(&State{
-			runs:        runstore,
-			taskConfigs: map[string]discover.TaskConfig{},
-			devConfig:   &conf.DevConfig{},
-			cliConfig:   &cli.Config{Client: &api.Client{}},
+		server.NewRouter(&state.State{
+			Runs:        runstore,
+			TaskConfigs: map[string]discover.TaskConfig{},
+			DevConfig:   &conf.DevConfig{},
+			CliConfig:   &cli.Config{Client: &api.Client{}},
 		}),
 	)
 
-	var resp PromptReponse
+	var resp apiext.PromptResponse
 	values := map[string]interface{}{"option1": "blah"}
 
 	body := h.POST("/i/prompts/submit").
-		WithJSON(SubmitPromptRequest{
+		WithJSON(apiint.SubmitPromptRequest{
 			RunID:  runID,
 			ID:     promptID1,
 			Values: values,
@@ -146,7 +153,7 @@ func TestSubmitPrompts(t *testing.T) {
 		Expect().
 		Status(http.StatusOK).Body()
 
-	listPrompts := ListPromptsResponse{}
+	listPrompts := apiint.ListPromptsResponse{}
 	err = json.Unmarshal([]byte(body.Raw()), &listPrompts)
 	require.NoError(err)
 	require.Equal(2, len(listPrompts.Prompts))

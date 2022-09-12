@@ -1,8 +1,10 @@
 package server
 
+import "github.com/airplanedev/cli/pkg/server/apidev"
+
 type UnsupportedApp struct {
 	Name   string
-	Kind   AppKind
+	Kind   apidev.AppKind
 	Reason string
 }
 

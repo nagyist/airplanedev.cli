@@ -1,4 +1,4 @@
-package server
+package test_utils
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func getHttpExpect(ctx context.Context, t *testing.T, router *mux.Router) *httpexpect.Expect {
+func GetHttpExpect(ctx context.Context, t *testing.T, router *mux.Router) *httpexpect.Expect {
 	return httpexpect.WithConfig(httpexpect.Config{
 		Reporter: httpexpect.NewAssertReporter(t),
 		Client: &http.Client{

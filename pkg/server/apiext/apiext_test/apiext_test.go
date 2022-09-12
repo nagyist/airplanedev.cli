@@ -1,4 +1,4 @@
-package server
+package apiext_test
 
 import (
 	"context"
@@ -13,6 +13,10 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/logs"
+	"github.com/airplanedev/cli/pkg/server"
+	"github.com/airplanedev/cli/pkg/server/apiext"
+	"github.com/airplanedev/cli/pkg/server/state"
+	"github.com/airplanedev/cli/pkg/server/test_utils"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
@@ -39,23 +43,23 @@ func TestExecute(t *testing.T) {
 
 	runID := "run1234"
 	logBroker := logs.NewDevLogBroker()
-	store := NewRunStore()
-	store.add(slug, runID, LocalRun{
+	store := state.NewRunStore()
+	store.Add(slug, runID, dev.LocalRun{
 		RunID:     runID,
 		LogBroker: logBroker,
 	},
 	)
 	cliConfig := &cli.Config{Client: &api.Client{}}
-	h := getHttpExpect(
+	h := test_utils.GetHttpExpect(
 		context.Background(),
 		t,
-		newRouter(&State{
-			cliConfig: cliConfig,
-			envSlug:   "stage",
-			executor:  mockExecutor,
-			port:      1234,
-			runs:      store,
-			taskConfigs: map[string]discover.TaskConfig{
+		server.NewRouter(&state.State{
+			CliConfig: cliConfig,
+			EnvSlug:   "stage",
+			Executor:  mockExecutor,
+			Port:      1234,
+			Runs:      store,
+			TaskConfigs: map[string]discover.TaskConfig{
 				slug: {
 					TaskID:         "tsk123",
 					TaskRoot:       ".",
@@ -64,7 +68,7 @@ func TestExecute(t *testing.T) {
 					Source:         discover.ConfigSourceDefn,
 				},
 			},
-			devConfig: &conf.DevConfig{},
+			DevConfig: &conf.DevConfig{},
 		}),
 	)
 
@@ -94,7 +98,7 @@ func TestExecute(t *testing.T) {
 	mockExecutor.On("Execute", mock.Anything, runConfig).Return(nil)
 
 	body := h.POST("/v0/tasks/execute").
-		WithJSON(ExecuteTaskRequest{
+		WithJSON(apiext.ExecuteTaskRequest{
 			Slug:        slug,
 			ParamValues: paramValues,
 			RunID:       runID,
@@ -104,7 +108,7 @@ func TestExecute(t *testing.T) {
 
 	mockExecutor.AssertCalled(t, "Execute", mock.Anything, runConfig)
 
-	var resp LocalRun
+	var resp dev.LocalRun
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
 	require.True(strings.HasPrefix(resp.RunID, "run"))
@@ -128,8 +132,8 @@ func TestExecuteBuiltin(t *testing.T) {
 
 	runID := "run1234"
 	logBroker := logs.NewDevLogBroker()
-	store := NewRunStore()
-	store.add(slug, runID, LocalRun{
+	store := state.NewRunStore()
+	store.Add(slug, runID, dev.LocalRun{
 		RunID:     runID,
 		LogBroker: logBroker,
 	},
@@ -145,16 +149,16 @@ func TestExecuteBuiltin(t *testing.T) {
 		Password: "password",
 	}
 
-	h := getHttpExpect(
+	h := test_utils.GetHttpExpect(
 		context.Background(),
 		t,
-		newRouter(&State{
-			cliConfig: cliConfig,
-			envSlug:   "stage",
-			executor:  mockExecutor,
-			port:      1234,
-			runs:      store,
-			taskConfigs: map[string]discover.TaskConfig{
+		server.NewRouter(&state.State{
+			CliConfig: cliConfig,
+			EnvSlug:   "stage",
+			Executor:  mockExecutor,
+			Port:      1234,
+			Runs:      store,
+			TaskConfigs: map[string]discover.TaskConfig{
 				slug: {
 					TaskID:         "tsk123",
 					TaskRoot:       ".",
@@ -163,7 +167,7 @@ func TestExecuteBuiltin(t *testing.T) {
 					Source:         discover.ConfigSourceDefn,
 				},
 			},
-			devConfig: &conf.DevConfig{Resources: map[string]resources.Resource{
+			DevConfig: &conf.DevConfig{Resources: map[string]resources.Resource{
 				"database": &dbResource,
 			}},
 		}),
@@ -190,7 +194,7 @@ func TestExecuteBuiltin(t *testing.T) {
 	mockExecutor.On("Execute", mock.Anything, runConfig).Return(nil)
 
 	body := h.POST("/v0/tasks/execute").
-		WithJSON(ExecuteTaskRequest{
+		WithJSON(apiext.ExecuteTaskRequest{
 			Slug:        slug,
 			ParamValues: paramValues,
 			RunID:       runID,
@@ -201,7 +205,7 @@ func TestExecuteBuiltin(t *testing.T) {
 
 	mockExecutor.AssertCalled(t, "Execute", mock.Anything, runConfig)
 
-	var resp LocalRun
+	var resp dev.LocalRun
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
 	require.True(strings.HasPrefix(resp.RunID, "run"))
@@ -211,14 +215,14 @@ func TestGetRun(t *testing.T) {
 	require := require.New(t)
 
 	runID := "run1234"
-	runstore := NewRunStore()
-	runstore.add("task1", runID, LocalRun{Status: api.RunSucceeded, RunID: runID})
-	h := getHttpExpect(
+	runstore := state.NewRunStore()
+	runstore.Add("task1", runID, dev.LocalRun{Status: api.RunSucceeded, RunID: runID})
+	h := test_utils.GetHttpExpect(
 		context.Background(),
 		t,
-		newRouter(&State{
-			runs:        runstore,
-			taskConfigs: map[string]discover.TaskConfig{},
+		server.NewRouter(&state.State{
+			Runs:        runstore,
+			TaskConfigs: map[string]discover.TaskConfig{},
 		}),
 	)
 	body := h.GET("/v0/runs/get").
@@ -226,7 +230,7 @@ func TestGetRun(t *testing.T) {
 		Expect().
 		Status(http.StatusOK).Body()
 
-	var resp GetRunResponse
+	var resp apiext.GetRunResponse
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
 
@@ -238,14 +242,14 @@ func TestGetOutput(t *testing.T) {
 	require := require.New(t)
 	runID := "run1234"
 
-	runstore := NewRunStore()
-	runstore.add("task1", runID, LocalRun{Outputs: api.Outputs{V: "hello"}})
-	h := getHttpExpect(
+	runstore := state.NewRunStore()
+	runstore.Add("task1", runID, dev.LocalRun{Outputs: api.Outputs{V: "hello"}})
+	h := test_utils.GetHttpExpect(
 		context.Background(),
 		t,
-		newRouter(&State{
-			runs:        runstore,
-			taskConfigs: map[string]discover.TaskConfig{},
+		server.NewRouter(&state.State{
+			Runs:        runstore,
+			TaskConfigs: map[string]discover.TaskConfig{},
 		}),
 	)
 
@@ -254,7 +258,7 @@ func TestGetOutput(t *testing.T) {
 		Expect().
 		Status(http.StatusOK).Body()
 
-	var resp GetOutputsResponse
+	var resp apiext.GetOutputsResponse
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
 	require.Equal(api.Outputs{
@@ -266,25 +270,25 @@ func TestListRuns(t *testing.T) {
 	require := require.New(t)
 	taskSlug := "task1"
 
-	runstore := NewRunStore()
-	testRuns := []LocalRun{
+	runstore := state.NewRunStore()
+	testRuns := []dev.LocalRun{
 		{RunID: "run_0", TaskID: taskSlug, Outputs: api.Outputs{V: "run0"}},
 		{RunID: "run_1", TaskID: taskSlug, Outputs: api.Outputs{V: "run1"}, CreatorID: "user1"},
 		{RunID: "run_2", TaskID: taskSlug, Outputs: api.Outputs{V: "run2"}},
 	}
 	for i, run := range testRuns {
-		runstore.add(taskSlug, fmt.Sprintf("run_%v", i), run)
+		runstore.Add(taskSlug, fmt.Sprintf("run_%v", i), run)
 
 	}
-	h := getHttpExpect(
+	h := test_utils.GetHttpExpect(
 		context.Background(),
 		t,
-		newRouter(&State{
-			runs:        runstore,
-			taskConfigs: map[string]discover.TaskConfig{},
+		server.NewRouter(&state.State{
+			Runs:        runstore,
+			TaskConfigs: map[string]discover.TaskConfig{},
 		}),
 	)
-	var resp ListRunsResponse
+	var resp apiext.ListRunsResponse
 	body := h.GET("/v0/runs/list").
 		WithQuery("taskSlug", taskSlug).
 		Expect().

@@ -1,4 +1,4 @@
-package server
+package handlers
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/pkg/errors"
 )
 
@@ -27,8 +28,8 @@ func Wrap(f func(ctx context.Context, w http.ResponseWriter, r *http.Request) er
 
 // HandlerWithBody is an API handler that reads a JSON-encoded request body, calls a provided handler,
 // and then writes the JSON encoded response. It is used for handling an API request with a body.
-func HandlerWithBody[Req any, Resp any](state *State,
-	f func(ctx context.Context, state *State, r *http.Request, req Req) (Resp, error)) http.HandlerFunc {
+func HandlerWithBody[Req any, Resp any](state *state.State,
+	f func(ctx context.Context, state *state.State, r *http.Request, req Req) (Resp, error)) http.HandlerFunc {
 	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 		var req Req
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -46,8 +47,8 @@ func HandlerWithBody[Req any, Resp any](state *State,
 
 // Handler is an API handler that calls a provided handler and then writes the JSON encoded response.
 // It is used for handling an API request without a body.
-func Handler[Resp any](state *State,
-	f func(ctx context.Context, state *State, r *http.Request) (Resp, error)) http.HandlerFunc {
+func Handler[Resp any](state *state.State,
+	f func(ctx context.Context, state *state.State, r *http.Request) (Resp, error)) http.HandlerFunc {
 	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 		resp, err := f(ctx, state, r)
 		if err != nil {
@@ -58,7 +59,7 @@ func Handler[Resp any](state *State,
 	})
 }
 
-func HandlerSSE[Resp any](state *State, f func(ctx context.Context, state *State, r *http.Request, flush func(resp Resp) error) error) http.HandlerFunc {
+func HandlerSSE[Resp any](state *state.State, f func(ctx context.Context, state *state.State, r *http.Request, flush func(resp Resp) error) error) http.HandlerFunc {
 	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.Header().Set("Cache-Control", "no-cache")

@@ -12,6 +12,10 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/server/apidev"
+	"github.com/airplanedev/cli/pkg/server/apiext"
+	"github.com/airplanedev/cli/pkg/server/apiint"
+	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/runtime"
@@ -24,7 +28,7 @@ const DefaultPort = 4000
 
 type Server struct {
 	srv   *http.Server
-	state *State
+	state *state.State
 }
 
 // address returns the TCP address that the api server listens on
@@ -39,8 +43,8 @@ var corsOrigins = []string{
 	`^http://localhost:`,
 }
 
-// newRouter returns a new router for the local api server
-func newRouter(state *State) *mux.Router {
+// NewRouter returns a new router for the local api server
+func NewRouter(state *state.State) *mux.Router {
 	r := mux.NewRouter()
 	r.Use(handlers.CORS(
 		handlers.AllowCredentials(),
@@ -61,9 +65,9 @@ func newRouter(state *State) *mux.Router {
 		}),
 	))
 
-	AttachExternalAPIRoutes(r.NewRoute().Subrouter(), state)
-	AttachInternalAPIRoutes(r.NewRoute().Subrouter(), state)
-	AttachDevRoutes(r.NewRoute().Subrouter(), state)
+	apiext.AttachExternalAPIRoutes(r.NewRoute().Subrouter(), state)
+	apiint.AttachInternalAPIRoutes(r.NewRoute().Subrouter(), state)
+	apidev.AttachDevRoutes(r.NewRoute().Subrouter(), state)
 	return r
 }
 
@@ -78,9 +82,9 @@ type Options struct {
 }
 
 // newServer returns a new HTTP server with API routes
-func newServer(router *mux.Router, state *State) *Server {
+func newServer(router *mux.Router, state *state.State) *Server {
 	srv := &http.Server{
-		Addr:    address(state.port),
+		Addr:    address(state.Port),
 		Handler: router,
 	}
 	router.Handle("/shutdown", ShutdownHandler(srv))
@@ -92,19 +96,19 @@ func newServer(router *mux.Router, state *State) *Server {
 
 // Start starts and returns a new instance of the Airplane API server.
 func Start(opts Options) (*Server, error) {
-	state := &State{
-		cliConfig:   opts.CLI,
-		envSlug:     opts.EnvSlug,
-		executor:    opts.Executor,
-		port:        opts.Port,
-		runs:        NewRunStore(),
-		localClient: opts.LocalClient,
-		devConfig:   opts.DevConfig,
-		dir:         opts.Dir,
-		logger:      logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
+	state := &state.State{
+		CliConfig:   opts.CLI,
+		EnvSlug:     opts.EnvSlug,
+		Executor:    opts.Executor,
+		Port:        opts.Port,
+		Runs:        state.NewRunStore(),
+		LocalClient: opts.LocalClient,
+		DevConfig:   opts.DevConfig,
+		Dir:         opts.Dir,
+		Logger:      logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
 	}
 
-	r := newRouter(state)
+	r := NewRouter(state)
 	s := newServer(r, state)
 
 	go func() {
@@ -131,7 +135,7 @@ func supportsLocalExecution(name string, entrypoint string, kind build.TaskKind)
 // state. Task registration must occur after the local dev server has started because the task discoverer hits the
 // /v0/tasks/getMetadata endpoint.
 func (s *Server) RegisterTasksAndViews(taskConfigs []discover.TaskConfig, viewConfigs []discover.ViewConfig) (RegistrationWarnings, error) {
-	s.state.taskConfigs = map[string]discover.TaskConfig{}
+	s.state.TaskConfigs = map[string]discover.TaskConfig{}
 	var unsupported []UnsupportedApp
 	var unattachedResources []UnattachedResource
 	for _, cfg := range taskConfigs {
@@ -143,17 +147,17 @@ func (s *Server) RegisterTasksAndViews(taskConfigs []discover.TaskConfig, viewCo
 		if !supported {
 			unsupported = append(unsupported, UnsupportedApp{
 				Name:   cfg.Def.GetName(),
-				Kind:   AppKindTask,
+				Kind:   apidev.AppKindTask,
 				Reason: fmt.Sprintf("%v task does not support local execution", kind)})
 			continue
 		}
 
-		s.state.taskConfigs[cfg.Def.GetSlug()] = cfg
+		s.state.TaskConfigs[cfg.Def.GetSlug()] = cfg
 
 		// Check resource attachments.
 		var missingResources []string
 		for _, resourceSlug := range cfg.Def.GetResourceAttachments() {
-			if _, ok := s.state.devConfig.Resources[resourceSlug]; !ok {
+			if _, ok := s.state.DevConfig.Resources[resourceSlug]; !ok {
 				missingResources = append(missingResources, resourceSlug)
 			}
 		}
@@ -165,9 +169,9 @@ func (s *Server) RegisterTasksAndViews(taskConfigs []discover.TaskConfig, viewCo
 		}
 	}
 
-	s.state.viewConfigs = map[string]discover.ViewConfig{}
+	s.state.ViewConfigs = map[string]discover.ViewConfig{}
 	for _, cfg := range viewConfigs {
-		s.state.viewConfigs[cfg.Def.Slug] = cfg
+		s.state.ViewConfigs[cfg.Def.Slug] = cfg
 	}
 
 	return RegistrationWarnings{
@@ -178,8 +182,8 @@ func (s *Server) RegisterTasksAndViews(taskConfigs []discover.TaskConfig, viewCo
 
 // Stop terminates the local dev API server.
 func (s *Server) Stop(ctx context.Context) error {
-	if s.state.viteProcess != nil {
-		if err := s.state.viteProcess.Kill(); err != nil {
+	if s.state.ViteProcess != nil {
+		if err := s.state.ViteProcess.Kill(); err != nil {
 			return err
 		}
 	}

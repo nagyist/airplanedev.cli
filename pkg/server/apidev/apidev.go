@@ -1,4 +1,4 @@
-package server
+package apidev
 
 import (
 	"context"
@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/server/handlers"
+	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/version"
 	"github.com/airplanedev/cli/pkg/version/latest"
 	"github.com/airplanedev/cli/pkg/views"
@@ -20,37 +22,31 @@ import (
 )
 
 // AttachDevRoutes attaches the endpoints necessary to locally develop a task in the Airplane IDE.
-func AttachDevRoutes(r *mux.Router, state *State) {
+func AttachDevRoutes(r *mux.Router, s *state.State) {
 	const basePath = "/dev/"
 	r = r.NewRoute().PathPrefix(basePath).Subrouter()
 
-	r.Handle("/version", Handler(state, GetVersionHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/version", handlers.Handler(s, GetVersionHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/list", Handler(state, ListEntrypointsHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/tasks/{task_slug}", Handler(state, GetTaskHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/startView/{view_slug}", Handler(state, StartViewHandler)).Methods("POST", "OPTIONS")
-	r.Handle("/logs/{run_id}", HandlerSSE(state, LogsHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/runs/create", HandlerWithBody(state, CreateRunHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/list", handlers.Handler(s, ListEntrypointsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/tasks/{task_slug}", handlers.Handler(s, GetTaskHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/startView/{view_slug}", handlers.Handler(s, StartViewHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/logs/{run_id}", handlers.HandlerSSE(s, LogsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/create", handlers.HandlerWithBody(s, CreateRunHandler)).Methods("POST", "OPTIONS")
 }
 
-type VersionResponse struct {
-	Status   string `json:"status"`
-	Version  string `json:"version"`
-	IsLatest bool   `json:"isLatest"`
-}
-
-func GetVersionHandler(ctx context.Context, state *State, r *http.Request) (VersionResponse, error) {
-	if state.versionCache.version != nil {
-		return *state.versionCache.version, nil
+func GetVersionHandler(ctx context.Context, s *state.State, r *http.Request) (version.Metadata, error) {
+	if s.VersionCache.Version != nil {
+		return *s.VersionCache.Version, nil
 	}
 
 	isLatest := latest.CheckLatest(ctx)
-	v := VersionResponse{
+	v := version.Metadata{
 		Status:   "ok",
 		Version:  version.Get(),
 		IsLatest: isLatest,
 	}
-	state.versionCache.Add(v)
+	s.VersionCache.Add(v)
 	return v, nil
 }
 
@@ -74,12 +70,12 @@ type ListEntrypointsHandlerResponse struct {
 
 // ListEntrypointsHandler handles requests to the /dev/list endpoint. It generates a mapping from entrypoint relative to
 // the dev server root to the list of tasks and views that use that entrypoint.
-func ListEntrypointsHandler(ctx context.Context, state *State, r *http.Request) (ListEntrypointsHandlerResponse, error) {
+func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Request) (ListEntrypointsHandlerResponse, error) {
 	entrypoints := make(map[string][]AppMetadata)
 
-	for slug, taskConfig := range state.taskConfigs {
+	for slug, taskConfig := range state.TaskConfigs {
 		absoluteEntrypoint := taskConfig.TaskEntrypoint
-		ep, err := filepath.Rel(state.dir, absoluteEntrypoint)
+		ep, err := filepath.Rel(state.Dir, absoluteEntrypoint)
 		if err != nil {
 			return ListEntrypointsHandlerResponse{}, errors.Wrap(err, "getting relative path to task")
 		}
@@ -93,10 +89,10 @@ func ListEntrypointsHandler(ctx context.Context, state *State, r *http.Request) 
 		})
 	}
 
-	for slug, viewConfig := range state.viewConfigs {
+	for slug, viewConfig := range state.ViewConfigs {
 		absoluteEntrypoint := viewConfig.Def.Entrypoint
 
-		ep, err := filepath.Rel(state.dir, absoluteEntrypoint)
+		ep, err := filepath.Rel(state.Dir, absoluteEntrypoint)
 		if err != nil {
 			return ListEntrypointsHandlerResponse{}, errors.Wrap(err, "getting relative path to view")
 		}
@@ -123,27 +119,27 @@ type CreateRunRequest struct {
 	TaskSlug string `json:"taskSlug"`
 }
 
-func CreateRunHandler(ctx context.Context, state *State, r *http.Request, req CreateRunRequest) (CreateRunResponse, error) {
+func CreateRunHandler(ctx context.Context, state *state.State, r *http.Request, req CreateRunRequest) (CreateRunResponse, error) {
 	if req.TaskSlug == "" {
 		return CreateRunResponse{}, errors.New("Task slug is required")
 	}
 
-	runID := GenerateRunID()
-	run := *NewLocalRun()
-	run.CreatorID = state.cliConfig.ParseTokenForAnalytics().UserID
-	state.runs.add(req.TaskSlug, runID, run)
+	runID := dev.GenerateRunID()
+	run := *dev.NewLocalRun()
+	run.CreatorID = state.CliConfig.ParseTokenForAnalytics().UserID
+	state.Runs.Add(req.TaskSlug, runID, run)
 	return CreateRunResponse{RunID: runID}, nil
 }
 
 // GetTaskHandler handles requests to the /dev/tasks/<task_slug> endpoint.
-func GetTaskHandler(ctx context.Context, state *State, r *http.Request) (definitions.DefinitionInterface, error) {
+func GetTaskHandler(ctx context.Context, state *state.State, r *http.Request) (definitions.DefinitionInterface, error) {
 	vars := mux.Vars(r)
 	taskSlug, ok := vars["task_slug"]
 	if !ok {
 		return nil, errors.Errorf("Task slug was not supplied, request path must be of the form /dev/tasks/<task_slug>")
 	}
 
-	taskConfig, ok := state.taskConfigs[taskSlug]
+	taskConfig, ok := state.TaskConfigs[taskSlug]
 	if !ok {
 		return nil, errors.Errorf("Task with slug %s not found", taskSlug)
 	}
@@ -156,12 +152,12 @@ type StartViewResponse struct {
 }
 
 // StartViewHandler handles requests to the /dev/tasks/<task_slug> endpoint.
-func StartViewHandler(ctx context.Context, state *State, r *http.Request) (StartViewResponse, error) {
+func StartViewHandler(ctx context.Context, state *state.State, r *http.Request) (StartViewResponse, error) {
 	// TODO: Maintain mapping between view and vite process instead of starting a new vite process on each request.
-	state.viteMutex.Lock()
-	defer state.viteMutex.Unlock()
-	if state.viteProcess != nil {
-		if err := state.viteProcess.Kill(); err != nil {
+	state.ViteMutex.Lock()
+	defer state.ViteMutex.Unlock()
+	if state.ViteProcess != nil {
+		if err := state.ViteProcess.Kill(); err != nil {
 			return StartViewResponse{}, errors.Wrap(err, "killing previous vite process")
 		}
 	}
@@ -172,7 +168,7 @@ func StartViewHandler(ctx context.Context, state *State, r *http.Request) (Start
 		return StartViewResponse{}, errors.Errorf("View slug was not supplied, request path must be of the form /dev/startView/<view_slug>")
 	}
 
-	viewConfig, ok := state.viewConfigs[viewSlug]
+	viewConfig, ok := state.ViewConfigs[viewSlug]
 	if !ok {
 		return StartViewResponse{}, errors.Errorf("View with slug %s not found", viewSlug)
 	}
@@ -182,21 +178,21 @@ func StartViewHandler(ctx context.Context, state *State, r *http.Request) (Start
 		return StartViewResponse{}, err
 	}
 
-	vd, err := viewdir.NewViewDirectory(ctx, state.cliConfig, rootDir, viewConfig.Def.DefnFilePath, state.envSlug)
+	vd, err := viewdir.NewViewDirectory(ctx, state.CliConfig, rootDir, viewConfig.Def.DefnFilePath, state.EnvSlug)
 	if err != nil {
 		return StartViewResponse{}, err
 	}
 
 	cmd, viteServer, err := views.Dev(vd, views.ViteOpts{
-		Client:  state.cliConfig.Client,
-		EnvSlug: state.envSlug,
+		Client:  state.CliConfig.Client,
+		EnvSlug: state.EnvSlug,
 		TTY:     false,
 	})
 	if err != nil {
 		return StartViewResponse{}, errors.Wrap(err, "starting views dev")
 	}
 
-	state.viteProcess = cmd.Process
+	state.ViteProcess = cmd.Process
 
 	u, err := url.Parse(viteServer)
 	if err != nil {
@@ -216,14 +212,14 @@ func StartViewHandler(ctx context.Context, state *State, r *http.Request) (Start
 	return StartViewResponse{ViteServer: viteServer}, nil
 }
 
-func LogsHandler(ctx context.Context, state *State, r *http.Request, flush func(log api.LogItem) error) error {
+func LogsHandler(ctx context.Context, state *state.State, r *http.Request, flush func(log api.LogItem) error) error {
 	vars := mux.Vars(r)
 	runID, ok := vars["run_id"]
 	if !ok {
 		return errors.Errorf("Run id was not supplied, request path must be of the form /dev/logs/<run_id>")
 	}
 
-	run, ok := state.runs.get(runID)
+	run, ok := state.Runs.Get(runID)
 	if !ok {
 		return errors.Errorf("Run with id %s not found", runID)
 	}
@@ -245,12 +241,4 @@ func LogsHandler(ctx context.Context, state *State, r *http.Request, flush func(
 			}
 		}
 	}
-}
-
-func GenerateRunID() string {
-	return GenerateID("run")
-}
-
-func GenerateID(prefix string) string {
-	return prefix + utils.RandomString(10, utils.CharsetLowercaseNumeric)
 }

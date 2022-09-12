@@ -13,6 +13,10 @@ var seededRandMu sync.Mutex
 const CharsetAlphaLowercase = "abcdefghijklmnopqrstuvwxyz"
 const CharsetLowercaseNumeric = "abcdefghijklmnopqrstuvwxyz0123456789"
 
+func GenerateID(prefix string) string {
+	return prefix + RandomString(10, CharsetLowercaseNumeric)
+}
+
 // RandomString returns a random string of given length using the given charset
 func RandomString(length int, charset string) string {
 	b := make([]byte, length)

@@ -1,4 +1,4 @@
-package server
+package apiint
 
 import (
 	"context"
@@ -7,7 +7,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/airplanedev/cli/pkg/dev"
 	res "github.com/airplanedev/cli/pkg/resource"
+	"github.com/airplanedev/cli/pkg/server/handlers"
+	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/resources"
@@ -20,22 +23,22 @@ import (
 
 // AttachInternalAPIRoutes attaches a minimal subset of the internal Airplane API endpoints that are necessary for the
 // previewer
-func AttachInternalAPIRoutes(r *mux.Router, state *State) {
+func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 	const basePath = "/i/"
 	r = r.NewRoute().PathPrefix(basePath).Subrouter()
 
-	r.Handle("/resources/create", HandlerWithBody(state, CreateResourceHandler)).Methods("POST", "OPTIONS")
-	r.Handle("/resources/get", Handler(state, GetResourceHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/resources/list", Handler(state, ListResourcesHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/resources/update", HandlerWithBody(state, UpdateResourceHandler)).Methods("POST", "OPTIONS")
-	r.Handle("/resources/isSlugAvailable", Handler(state, IsResourceSlugAvailableHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/resources/create", handlers.HandlerWithBody(state, CreateResourceHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/resources/get", handlers.Handler(state, GetResourceHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/resources/list", handlers.Handler(state, ListResourcesHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/resources/update", handlers.HandlerWithBody(state, UpdateResourceHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/resources/isSlugAvailable", handlers.Handler(state, IsResourceSlugAvailableHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/prompts/list", Handler(state, ListPromptHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/prompts/submit", HandlerWithBody(state, SubmitPromptHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/prompts/list", handlers.Handler(state, ListPromptHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/prompts/submit", handlers.HandlerWithBody(state, SubmitPromptHandler)).Methods("POST", "OPTIONS")
 
-	r.Handle("/runs/getDescendants", Handler(state, GetDescendantsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/getDescendants", handlers.Handler(state, GetDescendantsHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/users/get", Handler(state, GetUserHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/users/get", handlers.Handler(state, GetUserHandler)).Methods("GET", "OPTIONS")
 }
 
 type CreateResourceRequest struct {
@@ -81,21 +84,21 @@ type CreateResourceResponse struct {
 }
 
 // CreateResourceHandler handles requests to the /i/resources/get endpoint
-func CreateResourceHandler(ctx context.Context, state *State, r *http.Request, req CreateResourceRequest) (CreateResourceResponse, error) {
+func CreateResourceHandler(ctx context.Context, state *state.State, r *http.Request, req CreateResourceRequest) (CreateResourceResponse, error) {
 	resourceSlug := req.Slug
 	var err error
 	if resourceSlug == "" {
 		if resourceSlug, err = utils.GetUniqueSlug(utils.GetUniqueSlugRequest{
 			Slug: slug.Make(req.Name),
 			SlugExists: func(slug string) (bool, error) {
-				_, ok := state.devConfig.Resources[slug]
+				_, ok := state.DevConfig.Resources[slug]
 				return ok, nil
 			},
 		}); err != nil {
 			return CreateResourceResponse{}, errors.New("Could not generate unique resource slug")
 		}
 	} else {
-		if _, ok := state.devConfig.Resources[resourceSlug]; ok {
+		if _, ok := state.DevConfig.Resources[resourceSlug]; ok {
 			return CreateResourceResponse{}, errors.Errorf("Resource with slug %s already exists", resourceSlug)
 		}
 	}
@@ -128,7 +131,7 @@ func CreateResourceHandler(ctx context.Context, state *State, r *http.Request, r
 		}
 	}
 
-	if err := state.devConfig.SetResource(resourceSlug, resource); err != nil {
+	if err := state.DevConfig.SetResource(resourceSlug, resource); err != nil {
 		return CreateResourceResponse{}, errors.Wrap(err, "setting resource")
 	}
 
@@ -140,13 +143,13 @@ type GetResourceResponse struct {
 }
 
 // GetResourceHandler handles requests to the /i/resources/get endpoint
-func GetResourceHandler(ctx context.Context, state *State, r *http.Request) (GetResourceResponse, error) {
+func GetResourceHandler(ctx context.Context, state *state.State, r *http.Request) (GetResourceResponse, error) {
 	slug := r.URL.Query().Get("slug")
 	if slug == "" {
 		return GetResourceResponse{}, errors.Errorf("Resource slug was not supplied")
 	}
 
-	for s, resource := range state.devConfig.Resources {
+	for s, resource := range state.DevConfig.Resources {
 		if s == slug {
 			internalResource, err := conversion.ConvertToInternalResource(resource)
 			if err != nil {
@@ -160,9 +163,9 @@ func GetResourceHandler(ctx context.Context, state *State, r *http.Request) (Get
 }
 
 // ListResourcesHandler handles requests to the /i/resources/list endpoint
-func ListResourcesHandler(ctx context.Context, state *State, r *http.Request) (libapi.ListResourcesResponse, error) {
-	resources := make([]libapi.Resource, 0, len(state.devConfig.RawResources))
-	for slug, resource := range state.devConfig.Resources {
+func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.ListResourcesResponse, error) {
+	resources := make([]libapi.Resource, 0, len(state.DevConfig.RawResources))
+	for slug, resource := range state.DevConfig.Resources {
 		internalResource, err := conversion.ConvertToInternalResource(resource)
 		if err != nil {
 			return libapi.ListResourcesResponse{}, errors.Wrap(err, "converting to internal resource")
@@ -233,12 +236,12 @@ type UpdateResourceResponse struct {
 }
 
 // UpdateResourceHandler handles requests to the /i/resources/get endpoint
-func UpdateResourceHandler(ctx context.Context, state *State, r *http.Request, req UpdateResourceRequest) (UpdateResourceResponse, error) {
+func UpdateResourceHandler(ctx context.Context, state *state.State, r *http.Request, req UpdateResourceRequest) (UpdateResourceResponse, error) {
 	// Check if resource exists in dev config file.
 	var foundResource bool
 	var oldSlug string
 	var resource resources.Resource
-	for configSlug, configResource := range state.devConfig.Resources {
+	for configSlug, configResource := range state.DevConfig.Resources {
 		// We can't rely on the slug for existence since it may have changed.
 		if configResource.ID() == req.ID {
 			foundResource = true
@@ -289,14 +292,14 @@ func UpdateResourceHandler(ctx context.Context, state *State, r *http.Request, r
 		}
 	}
 
-	// Remove the old resource first - we need to do this since devConfig.Resources is a mapping from slug to resource,
+	// Remove the old resource first - we need to do this since DevConfig.Resources is a mapping from slug to resource,
 	// and if the update resource request involves updating the slug, we don't want to leave the old resource (under the
 	// old slug) in the dev config file.
-	if err := state.devConfig.RemoveResource(oldSlug); err != nil {
+	if err := state.DevConfig.RemoveResource(oldSlug); err != nil {
 		return UpdateResourceResponse{}, errors.Wrap(err, "deleting old resource")
 	}
 
-	if err := state.devConfig.SetResource(req.Slug, newResource); err != nil {
+	if err := state.DevConfig.SetResource(req.Slug, newResource); err != nil {
 		return UpdateResourceResponse{}, errors.Wrap(err, "setting resource")
 	}
 
@@ -310,9 +313,9 @@ type IsResourceSlugAvailableResponse struct {
 }
 
 // IsResourceSlugAvailableHandler handles requests to the /i/resources/isSlugAvailable endpoint
-func IsResourceSlugAvailableHandler(ctx context.Context, state *State, r *http.Request) (IsResourceSlugAvailableResponse, error) {
+func IsResourceSlugAvailableHandler(ctx context.Context, state *state.State, r *http.Request) (IsResourceSlugAvailableResponse, error) {
 	slug := r.URL.Query().Get("slug")
-	res, ok := state.devConfig.Resources[slug]
+	res, ok := state.DevConfig.Resources[slug]
 	return IsResourceSlugAvailableResponse{
 		Available: !ok || res.ID() == r.URL.Query().Get("id"),
 	}, nil
@@ -322,13 +325,13 @@ type ListPromptsResponse struct {
 	Prompts []libapi.Prompt `json:"prompts"`
 }
 
-func ListPromptHandler(ctx context.Context, state *State, r *http.Request) (ListPromptsResponse, error) {
+func ListPromptHandler(ctx context.Context, state *state.State, r *http.Request) (ListPromptsResponse, error) {
 	runID := r.URL.Query().Get("runID")
 	if runID == "" {
 		return ListPromptsResponse{}, errors.New("runID is required")
 	}
 
-	run, ok := state.runs.get(runID)
+	run, ok := state.Runs.Get(runID)
 	if !ok {
 		return ListPromptsResponse{}, errors.New("run not found")
 	}
@@ -343,17 +346,21 @@ type SubmitPromptRequest struct {
 	SubmittedBy *string                `json:"-"`
 }
 
-func SubmitPromptHandler(ctx context.Context, state *State, r *http.Request, req SubmitPromptRequest) (PromptReponse, error) {
+type PromptResponse struct {
+	ID string `json:"id"`
+}
+
+func SubmitPromptHandler(ctx context.Context, state *state.State, r *http.Request, req SubmitPromptRequest) (PromptResponse, error) {
 	if req.ID == "" {
-		return PromptReponse{}, errors.New("prompt ID is required")
+		return PromptResponse{}, errors.New("prompt ID is required")
 	}
 	if req.RunID == "" {
-		return PromptReponse{}, errors.New("run ID is required")
+		return PromptResponse{}, errors.New("run ID is required")
 	}
 
-	userID := state.cliConfig.ParseTokenForAnalytics().UserID
+	userID := state.CliConfig.ParseTokenForAnalytics().UserID
 
-	_, err := state.runs.update(req.RunID, func(run *LocalRun) error {
+	_, err := state.Runs.Update(req.RunID, func(run *dev.LocalRun) error {
 		for i := range run.Prompts {
 			if run.Prompts[i].ID == req.ID {
 				now := time.Now()
@@ -366,21 +373,21 @@ func SubmitPromptHandler(ctx context.Context, state *State, r *http.Request, req
 		return errors.New("prompt does not exist")
 	})
 	if err != nil {
-		return PromptReponse{}, err
+		return PromptResponse{}, err
 	}
-	return PromptReponse{ID: req.ID}, nil
+	return PromptResponse{ID: req.ID}, nil
 }
 
 type GetDescendantsResponse struct {
-	Descendants []LocalRun `json:"descendants"`
+	Descendants []dev.LocalRun `json:"descendants"`
 }
 
-func GetDescendantsHandler(ctx context.Context, state *State, r *http.Request) (GetDescendantsResponse, error) {
+func GetDescendantsHandler(ctx context.Context, state *state.State, r *http.Request) (GetDescendantsResponse, error) {
 	runID := r.URL.Query().Get("runID")
 	if runID == "" {
 		return GetDescendantsResponse{}, errors.New("runID cannot be empty")
 	}
-	descendants := state.runs.getDescendants(runID)
+	descendants := state.Runs.GetDescendants(runID)
 
 	return GetDescendantsResponse{
 		Descendants: descendants,
@@ -398,7 +405,7 @@ type GetUserResponse struct {
 	User User `json:"user"`
 }
 
-func GetUserHandler(ctx context.Context, state *State, r *http.Request) (GetUserResponse, error) {
+func GetUserHandler(ctx context.Context, state *state.State, r *http.Request) (GetUserResponse, error) {
 	userID := r.URL.Query().Get("userID")
 	// Set avatar to anonymous silhouette
 	gravatarURL := "https://www.gravatar.com/avatar?d=mp"

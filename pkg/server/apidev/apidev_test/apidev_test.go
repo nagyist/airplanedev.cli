@@ -1,4 +1,4 @@
-package server
+package apidev_test
 
 import (
 	"context"
@@ -6,6 +6,11 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/airplanedev/cli/pkg/server"
+	"github.com/airplanedev/cli/pkg/server/apidev"
+	"github.com/airplanedev/cli/pkg/server/state"
+	"github.com/airplanedev/cli/pkg/server/test_utils"
+	"github.com/airplanedev/cli/pkg/version"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/stretchr/testify/require"
@@ -14,17 +19,17 @@ import (
 func TestVersion(t *testing.T) {
 	require := require.New(t)
 
-	h := getHttpExpect(
+	h := test_utils.GetHttpExpect(
 		context.Background(),
 		t,
-		newRouter(&State{}),
+		server.NewRouter(&state.State{}),
 	)
 
 	body := h.GET("/dev/version").
 		Expect().
 		Status(http.StatusOK).Body()
 
-	var resp VersionResponse
+	var resp version.Metadata
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
 
@@ -54,11 +59,11 @@ func TestListEntrypoints(t *testing.T) {
 		Slug:       viewSlug,
 	}
 
-	h := getHttpExpect(
+	h := test_utils.GetHttpExpect(
 		context.Background(),
 		t,
-		newRouter(&State{
-			taskConfigs: map[string]discover.TaskConfig{
+		server.NewRouter(&state.State{
+			TaskConfigs: map[string]discover.TaskConfig{
 				taskSlug: {
 					TaskID:         "tsk123",
 					TaskRoot:       ".",
@@ -67,7 +72,7 @@ func TestListEntrypoints(t *testing.T) {
 					Source:         discover.ConfigSourceDefn,
 				},
 			},
-			viewConfigs: map[string]discover.ViewConfig{
+			ViewConfigs: map[string]discover.ViewConfig{
 				viewSlug: {
 					Def:    viewDefinition,
 					Source: discover.ConfigSourceDefn,
@@ -80,22 +85,22 @@ func TestListEntrypoints(t *testing.T) {
 		Expect().
 		Status(http.StatusOK).Body()
 
-	var resp ListEntrypointsHandlerResponse
+	var resp apidev.ListEntrypointsHandlerResponse
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
-	require.Equal(map[string][]AppMetadata{
+	require.Equal(map[string][]apidev.AppMetadata{
 		"my_task.ts": {
 			{
 				Name: "My task",
 				Slug: "my_task",
-				Kind: AppKindTask,
+				Kind: apidev.AppKindTask,
 			},
 		},
 		"my_view.ts": {
 			{
 				Name: "My view",
 				Slug: "my_view",
-				Kind: AppKindView,
+				Kind: apidev.AppKindView,
 			},
 		},
 	}, resp.Entrypoints)
@@ -116,11 +121,11 @@ func TestGetTask(t *testing.T) {
 		Timeout:            definitions.NewDefaultTimeoutDefinition(3600),
 	}
 
-	h := getHttpExpect(
+	h := test_utils.GetHttpExpect(
 		context.Background(),
 		t,
-		newRouter(&State{
-			taskConfigs: map[string]discover.TaskConfig{
+		server.NewRouter(&state.State{
+			TaskConfigs: map[string]discover.TaskConfig{
 				taskSlug: {
 					TaskID:         "tsk123",
 					TaskRoot:       ".",
