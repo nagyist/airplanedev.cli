@@ -36,7 +36,7 @@ export default async function(params: Params) {
   // 
   // const foo = "👋 <id> <id> <id>"
   // foo.replaceAll("<id>", params.id) // replaceAll (es2021)
-  // airplane.output(foo)
+  // airplane.appendOutput(foo)
   
   airplane.setOutput(params.id, "output")
 }

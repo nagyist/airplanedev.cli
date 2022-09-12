@@ -15,7 +15,7 @@ import (
 )
 
 const DefaultNodeVersion = "18"
-const defaultSDKVersion = "0.2.0-25"
+const defaultSDKVersion = "0.2.0"
 const workflowRuntimePkg = "@airplane/workflow-runtime"
 
 type templateParams struct {
@@ -303,7 +303,7 @@ func GenShimPackageJSON(packageJSONs []string, isWorkflow bool) ([]byte, error) 
 	} else {
 		pjson = shimPackageJSON{
 			Dependencies: map[string]string{
-				"airplane": "~0.1.2",
+				"airplane": "^0.2.0",
 			},
 		}
 	}

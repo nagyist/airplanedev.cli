@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "airplane": "0.1.2"
+    "airplane": "0.2.0"
   },
   "packageManager": "yarn@3.2.1"
 }

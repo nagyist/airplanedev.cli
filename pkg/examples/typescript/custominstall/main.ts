@@ -12,10 +12,10 @@ type Params = {
 };
 
 export default async function (params: Params) {
-  airplane.output(params.id);
+  airplane.appendOutput(params.id);
 
-  airplane.output(Object.keys(airplane));
-  airplane.output(Object.keys(pg));
-  airplane.output(Object.keys(pgFormat));
-  airplane.output(Object.keys(prettier));
+  airplane.appendOutput(Object.keys(airplane));
+  airplane.appendOutput(Object.keys(pg));
+  airplane.appendOutput(Object.keys(pgFormat));
+  airplane.appendOutput(Object.keys(prettier));
 }

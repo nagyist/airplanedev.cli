@@ -4,6 +4,6 @@
   "private": true,
   "type": "module",
   "optionalDependencies": {
-    "airplane": "0.2.0-32"
+    "airplane": "0.2.0"
   }
 }
