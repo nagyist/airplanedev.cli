@@ -105,6 +105,9 @@ func CopyFromGithubPath(gitPath string) error {
 			}
 			logger.Step("Finished installing dependencies")
 		}
+		if err := CreateDefaultGitignoreFile(filepath.Join(directory, ".gitignore")); err != nil {
+			return err
+		}
 		readmePath := filepath.Join(directory, "README.md")
 		if fsx.Exists(readmePath) {
 			logger.Log(logger.Gray(fmt.Sprintf("\nPreviewing %s:", readmePath)))
@@ -113,9 +116,6 @@ func CopyFromGithubPath(gitPath string) error {
 				return errors.Wrap(err, "reading README")
 			}
 			logger.Log(string(readme))
-		}
-		if err := CreateDefaultGitignoreFile(filepath.Join(directory, ".gitignore")); err != nil {
-			return err
 		}
 	} else {
 		cwd, err := os.Getwd()
