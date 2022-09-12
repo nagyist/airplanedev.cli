@@ -100,6 +100,11 @@ func (r BigQueryResource) ID() string {
 	return r.BaseResource.ID
 }
 
+func (r *BigQueryResource) UpdateBaseResource(br resources.BaseResource) error {
+	r.BaseResource.Update(br)
+	return nil
+}
+
 func (r BigQueryResource) dsn() string {
 	query := url.Values{}
 	query.Set("credentials", r.Credentials)

@@ -46,3 +46,7 @@ func (r SlackResource) String() string {
 func (r SlackResource) ID() string {
 	return r.BaseResource.ID
 }
+
+func (r *SlackResource) UpdateBaseResource(br resources.BaseResource) error {
+	return errors.New("NotImplemented: Slack resource cannot be updated")
+}

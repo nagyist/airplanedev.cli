@@ -62,3 +62,8 @@ func (r MailgunResource) String() string {
 func (r MailgunResource) ID() string {
 	return r.BaseResource.ID
 }
+
+func (r *MailgunResource) UpdateBaseResource(br resources.BaseResource) error {
+	r.BaseResource.Update(br)
+	return nil
+}

@@ -141,6 +141,11 @@ func (r SQLServerResource) ID() string {
 	return r.BaseResource.ID
 }
 
+func (r *SQLServerResource) UpdateBaseResource(br resources.BaseResource) error {
+	r.BaseResource.Update(br)
+	return nil
+}
+
 func (r SQLServerResource) dsn() string {
 	q := url.Values{}
 	q.Set("database", r.Database)

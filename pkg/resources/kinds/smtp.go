@@ -160,6 +160,11 @@ func (r SMTPResource) ID() string {
 	return r.BaseResource.ID
 }
 
+func (r *SMTPResource) UpdateBaseResource(br resources.BaseResource) error {
+	r.BaseResource.Update(br)
+	return nil
+}
+
 func (a *SMTPAuthPlain) scrubSensitiveData() {
 	a.Password = ""
 }

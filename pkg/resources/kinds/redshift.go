@@ -58,3 +58,8 @@ func (r RedshiftResource) GetSQLDriver() SQLDriver {
 func (r RedshiftResource) ID() string {
 	return r.BaseResource.ID
 }
+
+func (r *RedshiftResource) UpdateBaseResource(br resources.BaseResource) error {
+	r.BaseResource.Update(br)
+	return nil
+}

@@ -8,32 +8,39 @@ import (
 )
 
 func ConvertToInternalResource(r resources.Resource) (kind_configs.InternalResource, error) {
+	var internal kind_configs.InternalResource
+	var err error
 	switch resource := r.(type) {
 	case *kinds.BigQueryResource:
-		return ConvertBigQueryResource(resource)
+		internal, err = ConvertBigQueryResource(resource)
 	case *kinds.MailgunResource:
-		return ConvertMailgunResource(resource)
+		internal, err = ConvertMailgunResource(resource)
 	case *kinds.MongoDBResource:
-		return ConvertMongoDBResource(resource)
+		internal, err = ConvertMongoDBResource(resource)
 	case *kinds.MySQLResource:
-		return ConvertMySQLResource(resource)
+		internal, err = ConvertMySQLResource(resource)
 	case *kinds.PostgresResource:
-		return ConvertPostgresResource(resource)
+		internal, err = ConvertPostgresResource(resource)
 	case *kinds.RedshiftResource:
-		return ConvertRedshiftResource(resource)
+		internal, err = ConvertRedshiftResource(resource)
 	case *kinds.RESTResource:
-		return ConvertRESTResource(resource)
+		internal, err = ConvertRESTResource(resource)
 	case *kinds.SendGridResource:
-		return ConvertSendGridResource(resource)
+		internal, err = ConvertSendGridResource(resource)
 	case *kinds.SlackResource:
-		return ConvertSlackResource(resource)
+		internal, err = ConvertSlackResource(resource)
 	case *kinds.SMTPResource:
-		return ConvertSMTPResource(resource)
+		internal, err = ConvertSMTPResource(resource)
 	case *kinds.SnowflakeResource:
-		return ConvertSnowflakeResource(resource)
+		internal, err = ConvertSnowflakeResource(resource)
 	case *kinds.SQLServerResource:
-		return ConvertSQLServerResource(resource)
+		internal, err = ConvertSQLServerResource(resource)
 	default:
 		return kind_configs.InternalResource{}, errors.Errorf("Unkonwn resource type %T", resource)
 	}
+	if err != nil {
+		return kind_configs.InternalResource{}, errors.Wrap(err, "error converting resource")
+	}
+	internal.ExportResource = r
+	return internal, nil
 }

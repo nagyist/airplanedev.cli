@@ -109,6 +109,11 @@ func (r SnowflakeResource) ID() string {
 	return r.BaseResource.ID
 }
 
+func (r *SnowflakeResource) UpdateBaseResource(br resources.BaseResource) error {
+	r.BaseResource.Update(br)
+	return nil
+}
+
 func (r SnowflakeResource) dsn() (string, error) {
 	cfg := gosnowflake.Config{
 		Account:     r.Account,

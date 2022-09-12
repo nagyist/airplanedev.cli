@@ -55,3 +55,8 @@ func (r SendGridResource) String() string {
 func (r SendGridResource) ID() string {
 	return r.BaseResource.ID
 }
+
+func (r *SendGridResource) UpdateBaseResource(br resources.BaseResource) error {
+	r.BaseResource.Update(br)
+	return nil
+}

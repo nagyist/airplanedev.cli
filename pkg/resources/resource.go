@@ -17,6 +17,21 @@ type BaseResource struct {
 	Name string       `json:"name"`
 }
 
+func (r *BaseResource) Update(update BaseResource) {
+	if update.Kind != "" {
+		r.Kind = update.Kind
+	}
+	if update.ID != "" {
+		r.ID = update.ID
+	}
+	if update.Slug != "" {
+		r.Slug = update.Slug
+	}
+	if update.Name != "" {
+		r.Name = update.Name
+	}
+}
+
 type ResourceKind string
 
 type EnvFactory func(ref string) (Resource, error)
@@ -118,6 +133,7 @@ type Resource interface {
 	Kind() ResourceKind
 	String() string
 	ID() string
+	UpdateBaseResource(r BaseResource) error
 }
 
 type EnvLookupFunc func(string) (string, bool)

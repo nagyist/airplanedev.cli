@@ -141,6 +141,11 @@ func (r PostgresResource) ID() string {
 	return r.BaseResource.ID
 }
 
+func (r *PostgresResource) UpdateBaseResource(br resources.BaseResource) error {
+	r.BaseResource.Update(br)
+	return nil
+}
+
 func (r PostgresResource) dsn() string {
 	q := url.Values{}
 	q.Set("sslmode", r.SSLMode)

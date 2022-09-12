@@ -155,6 +155,11 @@ func (r RESTResource) ID() string {
 	return r.BaseResource.ID
 }
 
+func (r *RESTResource) UpdateBaseResource(br resources.BaseResource) error {
+	r.BaseResource.Update(br)
+	return nil
+}
+
 func isSecretHeader(secretHeaders []string, header string) bool {
 	for _, secretHeader := range secretHeaders {
 		if secretHeader == header {

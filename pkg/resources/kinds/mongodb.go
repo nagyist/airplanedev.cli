@@ -57,3 +57,8 @@ func (r MongoDBResource) String() string {
 func (r MongoDBResource) ID() string {
 	return r.BaseResource.ID
 }
+
+func (r *MongoDBResource) UpdateBaseResource(br resources.BaseResource) error {
+	r.BaseResource.Update(br)
+	return nil
+}

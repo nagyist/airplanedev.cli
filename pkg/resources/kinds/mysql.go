@@ -153,6 +153,11 @@ func (r MySQLResource) ID() string {
 	return r.BaseResource.ID
 }
 
+func (r *MySQLResource) UpdateBaseResource(br resources.BaseResource) error {
+	r.BaseResource.Update(br)
+	return nil
+}
+
 func (r MySQLResource) dsn() string {
 	q := url.Values{}
 	q.Set("tls", r.TLS)

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/ojson"
 	"gopkg.in/yaml.v3"
 )
@@ -118,12 +119,13 @@ type ListResourcesResponse struct {
 }
 
 type Resource struct {
-	ID         string                 `json:"id"`
-	Slug       string                 `json:"slug"`
-	TeamID     string                 `json:"teamID"`
-	Name       string                 `json:"name"`
-	Kind       ResourceKind           `json:"kind"`
-	KindConfig map[string]interface{} `json:"kindConfig"`
+	ID             string                 `json:"id"`
+	Slug           string                 `json:"slug"`
+	TeamID         string                 `json:"teamID"`
+	Name           string                 `json:"name"`
+	Kind           ResourceKind           `json:"kind"`
+	KindConfig     map[string]interface{} `json:"kindConfig"`
+	ExportResource resources.Resource     `json:"resource"`
 
 	CreatedAt time.Time `json:"createdAt"`
 	CreatedBy string    `json:"createdBy"`
@@ -134,6 +136,57 @@ type Resource struct {
 
 	CanUseResource    bool `json:"canUseResource"`
 	CanUpdateResource bool `json:"canUpdateResource"`
+}
+
+func (r *Resource) UnmarshalJSON(buf []byte) error {
+	var raw struct {
+		ID             string                 `json:"id"`
+		Slug           string                 `json:"slug"`
+		TeamID         string                 `json:"teamID"`
+		Name           string                 `json:"name"`
+		Kind           ResourceKind           `json:"kind"`
+		KindConfig     map[string]interface{} `json:"kindConfig"`
+		ExportResource map[string]interface{} `json:"resource"`
+
+		CreatedAt time.Time `json:"createdAt"`
+		CreatedBy string    `json:"createdBy"`
+		UpdatedAt time.Time `json:"updatedAt"`
+		UpdatedBy string    `json:"updatedBy"`
+
+		IsPrivate bool `json:"isPrivate"`
+
+		CanUseResource    bool `json:"canUseResource"`
+		CanUpdateResource bool `json:"canUpdateResource"`
+	}
+	if err := json.Unmarshal(buf, &raw); err != nil {
+		return err
+	}
+
+	var export resources.Resource
+	var err error
+	if raw.ExportResource != nil {
+		export, err = resources.GetResource(resources.ResourceKind(raw.Kind), raw.ExportResource)
+		if err != nil {
+			return err
+		}
+	}
+
+	r.ID = raw.ID
+	r.Slug = raw.Slug
+	r.TeamID = raw.TeamID
+	r.Name = raw.Name
+	r.Kind = raw.Kind
+	r.KindConfig = raw.KindConfig
+	r.ExportResource = export
+	r.CreatedAt = raw.CreatedAt
+	r.CreatedBy = raw.CreatedBy
+	r.UpdatedAt = raw.UpdatedAt
+	r.UpdatedBy = raw.UpdatedBy
+	r.IsPrivate = raw.IsPrivate
+	r.CanUseResource = raw.CanUseResource
+	r.CanUpdateResource = raw.CanUpdateResource
+
+	return nil
 }
 
 type ResourceKind string
