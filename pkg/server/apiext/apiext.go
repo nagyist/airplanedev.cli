@@ -164,7 +164,6 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		run.CreatedAt = start
 		run.ParamValues = req.ParamValues
 		run.Parameters = &parameters
-		run.TaskName = req.Slug
 		run.Status = api.RunActive
 		// if the user is authenticated in CLI, use their ID
 		run.CreatorID = state.CliConfig.ParseTokenForAnalytics().UserID
