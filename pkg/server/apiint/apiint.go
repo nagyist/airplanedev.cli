@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/logger"
 	res "github.com/airplanedev/cli/pkg/resource"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/state"
@@ -36,6 +37,7 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/prompts/list", handlers.Handler(state, ListPromptHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/prompts/submit", handlers.HandlerWithBody(state, SubmitPromptHandler)).Methods("POST", "OPTIONS")
 
+	r.Handle("/runs/get", handlers.Handler(state, GetRunHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/getDescendants", handlers.Handler(state, GetDescendantsHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/users/get", handlers.Handler(state, GetUserHandler)).Methods("GET", "OPTIONS")
@@ -417,4 +419,35 @@ func GetUserHandler(ctx context.Context, state *state.State, r *http.Request) (G
 			AvatarURL: &gravatarURL,
 		},
 	}, nil
+}
+
+type GetRunResponse struct {
+	Run  dev.LocalRun `json:"run"`
+	Task *libapi.Task `json:"task"`
+}
+
+func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (GetRunResponse, error) {
+	runID := r.URL.Query().Get("id")
+	run, ok := state.Runs.Get(runID)
+	if !ok {
+		return GetRunResponse{}, errors.Errorf("run with id %s not found", runID)
+	}
+	response := GetRunResponse{Run: run}
+
+	if taskConfig, ok := state.TaskConfigs[run.TaskID]; ok {
+		utr, err := taskConfig.Def.GetUpdateTaskRequest(ctx, state.LocalClient)
+		if err != nil {
+			logger.Error("Encountered error while getting task info: %v", err)
+			return GetRunResponse{}, errors.Errorf("error getting task %s", taskConfig.Def.GetSlug())
+		}
+		response.Task = &libapi.Task{
+			ID:          taskConfig.Def.GetSlug(),
+			Name:        taskConfig.Def.GetName(),
+			Slug:        taskConfig.Def.GetSlug(),
+			Description: taskConfig.Def.GetDescription(),
+			Parameters:  utr.Parameters,
+		}
+	}
+
+	return response, nil
 }

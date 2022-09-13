@@ -193,6 +193,22 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 	return run, nil
 }
 
+type GetRunResponse struct {
+	Run  dev.LocalRun `json:"run"`
+	Task *libapi.Task `json:"task"`
+}
+
+// GetRunHandler handles requests to the /v0/runs/get endpoint
+func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (dev.LocalRun, error) {
+	runID := r.URL.Query().Get("id")
+	run, ok := state.Runs.Get(runID)
+	if !ok {
+		return dev.LocalRun{}, errors.Errorf("run with id %s not found", runID)
+	}
+
+	return run, nil
+}
+
 // GetTaskMetadataHandler handles requests to the /v0/tasks/metadata endpoint. It generates a deterministic task ID for
 // each task found locally, and its primary purpose is to ensure that the task discoverer does not error.
 func GetTaskMetadataHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.TaskMetadata, error) {
@@ -215,38 +231,6 @@ func GetViewHandler(ctx context.Context, state *state.State, r *http.Request) (l
 		ID:   fmt.Sprintf("vew-%s", slug),
 		Slug: r.URL.Query().Get("slug"),
 	}, nil
-}
-
-type GetRunResponse struct {
-	Run  dev.LocalRun `json:"run"`
-	Task *libapi.Task `json:"task"`
-}
-
-// GetRunHandler handles requests to the /v0/runs/get endpoint
-func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (GetRunResponse, error) {
-	runID := r.URL.Query().Get("id")
-	run, ok := state.Runs.Get(runID)
-	if !ok {
-		return GetRunResponse{}, errors.Errorf("run with id %s not found", runID)
-	}
-	response := GetRunResponse{Run: run}
-
-	if taskConfig, ok := state.TaskConfigs[run.TaskID]; ok {
-		utr, err := taskConfig.Def.GetUpdateTaskRequest(ctx, state.LocalClient)
-		if err != nil {
-			logger.Error("Encountered error while getting task info: %v", err)
-			return GetRunResponse{}, errors.Errorf("error getting task %s", taskConfig.Def.GetSlug())
-		}
-		response.Task = &libapi.Task{
-			ID:          taskConfig.Def.GetSlug(),
-			Name:        taskConfig.Def.GetName(),
-			Slug:        taskConfig.Def.GetSlug(),
-			Description: taskConfig.Def.GetDescription(),
-			Parameters:  utr.Parameters,
-		}
-	}
-
-	return response, nil
 }
 
 type ListRunsResponse struct {

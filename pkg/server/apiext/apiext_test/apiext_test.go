@@ -230,12 +230,12 @@ func TestGetRun(t *testing.T) {
 		Expect().
 		Status(http.StatusOK).Body()
 
-	var resp apiext.GetRunResponse
+	var resp dev.LocalRun
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
 
-	require.Equal(runID, resp.Run.RunID)
-	require.Equal(api.RunSucceeded, resp.Run.Status)
+	require.Equal(runID, resp.RunID)
+	require.Equal(api.RunSucceeded, resp.Status)
 }
 
 func TestGetOutput(t *testing.T) {
