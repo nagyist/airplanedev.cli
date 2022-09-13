@@ -28,7 +28,22 @@ func (r *RedshiftResource) Update(other resources.Resource) error {
 		return errors.Errorf("expected *RedshiftResource got %T", other)
 	}
 
-	return r.PostgresResource.Update(&o.PostgresResource)
+	if err := r.PostgresResource.Update(&o.PostgresResource); err != nil {
+		return errors.Wrap(err, "error updating postgres resource")
+	}
+
+	if err := r.Calculate(); err != nil {
+		return errors.Wrap(err, "error computing calculated fields")
+	}
+
+	return nil
+}
+
+func (r *RedshiftResource) Calculate() error {
+	if err := r.PostgresResource.Calculate(); err != nil {
+		return errors.Wrap(err, "error computing calculated fields on postgres resource")
+	}
+	return nil
 }
 
 func (r RedshiftResource) Validate() error {

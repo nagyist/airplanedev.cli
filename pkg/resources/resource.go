@@ -127,12 +127,23 @@ func EnvFactoryFromFunc(rf func(string, EnvLookupFunc) (Resource, error), f EnvL
 }
 
 type Resource interface {
+	// ScrubSensitiveData removes any sensitive data from the resource (e.g., passwords, API keys,
+	// calculated fields involving sensitive data).
 	ScrubSensitiveData()
+	// Update updates the resource, returning an error if the update is problematic. Calculate
+	// should be called at the end of Update.
 	Update(r Resource) error
+	// Calculate computes any precalculated fields on the resource.
+	Calculate() error
+	// Validate returns an error if the resource is invalid.
 	Validate() error
+	// Kind returns the ResourceKind associated with this resource.
 	Kind() ResourceKind
+	// String returns a string representation of this resource.
 	String() string
+	// ID returns the resource's ID.
 	ID() string
+	// UpdateBaseResource updates the BaseResource.
 	UpdateBaseResource(r BaseResource) error
 }
 

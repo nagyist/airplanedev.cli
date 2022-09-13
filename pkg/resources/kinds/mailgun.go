@@ -37,6 +37,14 @@ func (r *MailgunResource) Update(other resources.Resource) error {
 	}
 	r.Domain = o.Domain
 
+	if err := r.Calculate(); err != nil {
+		return errors.Wrap(err, "error computing calculated fields")
+	}
+
+	return nil
+}
+
+func (r *MailgunResource) Calculate() error {
 	return nil
 }
 

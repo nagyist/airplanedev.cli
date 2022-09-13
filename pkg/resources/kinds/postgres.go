@@ -66,8 +66,15 @@ func (r *PostgresResource) Update(other resources.Resource) error {
 		r.SSHPrivateKey = o.SSHPrivateKey
 	}
 
-	r.DSN = r.dsn()
+	if err := r.Calculate(); err != nil {
+		return errors.Wrap(err, "error computing calculated fields")
+	}
 
+	return nil
+}
+
+func (r *PostgresResource) Calculate() error {
+	r.DSN = r.dsn()
 	return nil
 }
 

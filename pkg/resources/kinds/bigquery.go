@@ -51,8 +51,15 @@ func (r *BigQueryResource) Update(other resources.Resource) error {
 		r.Credentials = creds
 	}
 
-	r.DSN = r.dsn()
+	if err := r.Calculate(); err != nil {
+		return errors.Wrap(err, "error computing calculated fields")
+	}
 
+	return nil
+}
+
+func (r *BigQueryResource) Calculate() error {
+	r.DSN = r.dsn()
 	return nil
 }
 

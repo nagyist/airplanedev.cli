@@ -53,12 +53,19 @@ func (r *SnowflakeResource) Update(other resources.Resource) error {
 		r.Password = o.Password
 	}
 
+	if err := r.Calculate(); err != nil {
+		return errors.Wrap(err, "error computing calculated fields")
+	}
+
+	return nil
+}
+
+func (r *SnowflakeResource) Calculate() error {
 	dsn, err := r.dsn()
 	if err != nil {
 		return errors.Wrapf(err, "error calculating DSN")
 	}
 	r.DSN = dsn
-
 	return nil
 }
 

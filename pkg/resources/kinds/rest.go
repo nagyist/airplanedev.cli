@@ -30,6 +30,7 @@ var _ resources.Resource = &RESTResource{}
 type RESTAuth interface {
 	scrubSensitiveData()
 	update(a RESTAuth) error
+	calculate() error
 }
 
 type RESTAuthKind string
@@ -124,6 +125,20 @@ func (r *RESTResource) Update(other resources.Resource) error {
 	} else {
 		r.Auth = o.Auth
 	}
+
+	if err := r.Calculate(); err != nil {
+		return errors.Wrap(err, "error computing calculated fields")
+	}
+
+	return nil
+}
+
+func (r *RESTResource) Calculate() error {
+	if r.Auth != nil {
+		if err := r.Auth.calculate(); err != nil {
+			return errors.Wrap(err, "error calculating fields on REST auth")
+		}
+	}
 	return nil
 }
 
@@ -190,11 +205,18 @@ func (a *RESTAuthBasic) update(other RESTAuth) error {
 		a.Password = o.Password
 	}
 
+	if err := a.calculate(); err != nil {
+		return errors.Wrap(err, "error computing calculated fields on RESTAuthBasic")
+	}
+
+	return nil
+}
+
+func (a *RESTAuthBasic) calculate() error {
 	credentials := fmt.Sprintf("%s:%s", *a.Username, *a.Password)
 	token := base64.StdEncoding.EncodeToString([]byte(credentials))
 	a.Headers = map[string]string{
 		"Authorization": fmt.Sprintf("Basic %s", token),
 	}
-
 	return nil
 }

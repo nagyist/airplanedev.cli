@@ -127,6 +127,14 @@ func (r *SMTPResource) Update(other resources.Resource) error {
 		r.Auth = o.Auth
 	}
 
+	if err := r.Calculate(); err != nil {
+		return errors.Wrap(err, "error computing calculated fields")
+	}
+
+	return nil
+}
+
+func (r *SMTPResource) Calculate() error {
 	return nil
 }
 

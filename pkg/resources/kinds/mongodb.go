@@ -35,6 +35,14 @@ func (r *MongoDBResource) Update(other resources.Resource) error {
 		r.ConnectionString = o.ConnectionString
 	}
 
+	if err := r.Calculate(); err != nil {
+		return errors.Wrap(err, "error computing calculated fields")
+	}
+
+	return nil
+}
+
+func (r *MongoDBResource) Calculate() error {
 	return nil
 }
 

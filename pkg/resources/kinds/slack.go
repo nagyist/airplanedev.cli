@@ -27,6 +27,10 @@ func (r *SlackResource) Update(other resources.Resource) error {
 	return errors.New("NotImplemented: Slack resource cannot be updated")
 }
 
+func (r *SlackResource) Calculate() error {
+	return nil
+}
+
 func (r SlackResource) Validate() error {
 	if r.AccessToken == "" {
 		return resources.NewErrMissingResourceField("accessToken")

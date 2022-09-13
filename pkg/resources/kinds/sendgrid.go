@@ -33,6 +33,14 @@ func (r *SendGridResource) Update(other resources.Resource) error {
 		r.APIKey = o.APIKey
 	}
 
+	if err := r.Calculate(); err != nil {
+		return errors.Wrap(err, "error computing calculated fields")
+	}
+
+	return nil
+}
+
+func (r *SendGridResource) Calculate() error {
 	return nil
 }
 

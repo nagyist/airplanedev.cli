@@ -67,8 +67,15 @@ func (r *MySQLResource) Update(other resources.Resource) error {
 		r.SSHPrivateKey = o.SSHPrivateKey
 	}
 
-	r.DSN = r.dsn()
+	if err := r.Calculate(); err != nil {
+		return errors.Wrap(err, "error computing calculated fields")
+	}
 
+	return nil
+}
+
+func (r *MySQLResource) Calculate() error {
+	r.DSN = r.dsn()
 	return nil
 }
 
