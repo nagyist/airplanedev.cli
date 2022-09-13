@@ -9,7 +9,7 @@ type Params = {
 }
 
 // Pushes the latest versions of all base images to the public Airplane Registry cache.
-// 
+//
 // airplane dev scripts/cache/main.ts -- --gcp_project=airplane-stage
 export default async function(params: Params) {
   if (!params.gcp_project) {

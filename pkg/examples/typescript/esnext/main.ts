@@ -33,10 +33,10 @@ export default async function(params: Params) {
   }
 
   // TODO: polyfill JS functionality so older versions of Node can access
-  // 
+  //
   // const foo = "👋 <id> <id> <id>"
   // foo.replaceAll("<id>", params.id) // replaceAll (es2021)
   // airplane.appendOutput(foo)
-  
+
   airplane.setOutput(params.id, "output")
 }

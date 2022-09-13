@@ -229,7 +229,7 @@ func node(root string, options KindOptions, buildArgs []string) (string, error) 
 		# that lookup. Possibly could fix by building for linux/arm on m1 instead
 		# of always building for linux/amd64.
 		RUN npm install -g esbuild@0.12 --unsafe-perm
-		
+
 		# npm >= 7 will automatically install peer dependencies, even if they're satisfied by the root. This is
 		# problematic because we need the @airplane/workflow-runtime package to register the workflow runtime in the
 		# runtime map that is utilized by the user's code, and so we explicitly request legacy behavior in this

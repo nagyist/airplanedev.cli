@@ -74,10 +74,10 @@ func shell(root string, options KindOptions) (string, error) {
 	dockerfileTemplate = dockerfileTemplate + heredoc.Doc(`
 		WORKDIR {{.Workdir}}
 		RUN mkdir -p .airplane && {{.InlineShim}} > .airplane/shim.sh
-		
+
 		COPY . .
 		RUN chmod +x {{.Entrypoint}}
-		
+
 		ENTRYPOINT ["bash", ".airplane/shim.sh", "./{{.Entrypoint}}"]
 	`)
 	return applyTemplate(dockerfileTemplate, struct {
