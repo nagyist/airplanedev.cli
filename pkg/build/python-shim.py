@@ -5,6 +5,7 @@ try:
 except ModuleNotFoundError:
     pass
 import importlib.util as util
+import inspect
 import json
 import os
 import sys
@@ -31,10 +32,35 @@ def run(args):
     spec.loader.exec_module(mod)
 
     try:
+        arg_dict = json.loads(args[1])
         {{if .EntrypointFunc}}
-        ret = mod.{{.EntrypointFunc}}.base_func(json.loads(args[1]))
+        ret = mod.{{.EntrypointFunc}}.base_func(arg_dict)
         {{else}}
-        ret = mod.main(json.loads(args[1]))
+        main_example = """
+```
+def main(params):
+  print(params)
+```
+"""
+        if not hasattr(mod, "main"):
+            raise Exception(f"""Task is missing a `main` function. Add a main function like so and re-deploy:
+{main_example}""")
+        num_params = len(inspect.signature(mod.main).parameters)
+        # If the task doesn't have any parameters
+        if not arg_dict:
+            if num_params == 0:
+                ret = mod.main()
+            elif num_params == 1:
+                ret = mod.main(arg_dict)
+            else:
+                raise Exception(f"""`main` function must have at most 1 parameter, found {num_params}. Update the main function like so and re-deploy:
+{main_example}""")
+        else:
+            if num_params == 1:
+                ret = mod.main(arg_dict)
+            else:
+                raise Exception(f"""`main` function must have exactly 1 parameter, found {num_params}. Update the main function like so and re-deploy:
+{main_example}""")
         {{end}}
         if ret is not None:
             try:
