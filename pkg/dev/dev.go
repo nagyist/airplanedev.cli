@@ -260,7 +260,7 @@ func MaterializeEnvVars(taskConfig discover.TaskConfig, config *conf.DevConfig) 
 			envVars[key] = *envVar.Value
 		} else if envVar.Config != nil {
 			if configVal, ok := config.ConfigVars[*envVar.Config]; !ok {
-				return nil, errors.New(fmt.Sprintf("config %s is not defined in airplane.dev.yaml (referenced by env var %s)", *envVar.Config, key))
+				logger.Warning("config %s is not defined in airplane.dev.yaml (referenced by env var %s)", *envVar.Config, key)
 			} else {
 				envVars[key] = configVal
 			}
