@@ -124,7 +124,7 @@
               "type": "object",
               "properties": {
                 "resource": {
-                  "description": "The name of a database resource.",
+                  "description": "The slug of a database resource. (Deprecated: This can also be the name of the resource.)",
                   "type": "string"
                 },
                 "entrypoint": {
@@ -164,7 +164,7 @@
               "type": "object",
               "properties": {
                 "resource": {
-                  "description": "The name of a REST resource.",
+                  "description": "The slug of a REST resource. (Deprecated: This can also be the name of the resource.)",
                   "type": "string"
                 },
                 "method": {

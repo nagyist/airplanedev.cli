@@ -39,7 +39,7 @@ name: My Task
 
 # Configuration for a REST task.
 rest:
-  # The name of a REST resource.
+  # The slug of a REST resource.
   resource: ""
 
   # The HTTP method to use. Valid values: GET, POST, PATCH, PUT, DELETE.

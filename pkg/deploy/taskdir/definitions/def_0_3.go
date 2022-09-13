@@ -362,11 +362,15 @@ func (d *SQLDefinition_0_3) GetQuery() (string, error) {
 }
 
 func (d *SQLDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest) error {
-	resourcesByName, err := getResourcesByName(ctx, client)
+	collection, err := getResourcesBySlugAndName(ctx, client)
 	if err != nil {
 		return err
 	}
-	if res, ok := resourcesByName[d.Resource]; ok {
+
+	// Check slugs first.
+	if res, ok := collection.bySlug[d.Resource]; ok {
+		req.Resources["db"] = res.ID
+	} else if res, ok := collection.byName[d.Resource]; ok {
 		req.Resources["db"] = res.ID
 	} else {
 		return errors.Errorf("unknown resource: %s", d.Resource)
@@ -381,7 +385,7 @@ func (d *SQLDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAPI
 			return err
 		}
 		if res, ok := resourcesByID[resID]; ok {
-			d.Resource = res.Name
+			d.Resource = res.Slug
 		}
 	}
 	if v, ok := t.KindOptions["entrypoint"]; ok {
@@ -486,11 +490,15 @@ type RESTDefinition_0_3 struct {
 }
 
 func (d *RESTDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest) error {
-	resourcesByName, err := getResourcesByName(ctx, client)
+	collection, err := getResourcesBySlugAndName(ctx, client)
 	if err != nil {
 		return err
 	}
-	if res, ok := resourcesByName[d.Resource]; ok {
+
+	// Check slugs first.
+	if res, ok := collection.bySlug[d.Resource]; ok {
+		req.Resources["rest"] = res.ID
+	} else if res, ok := collection.byName[d.Resource]; ok {
 		req.Resources["rest"] = res.ID
 	} else {
 		return errors.Errorf("unknown resource: %s", d.Resource)
@@ -505,7 +513,7 @@ func (d *RESTDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAP
 			return err
 		}
 		if res, ok := resourcesByID[resID]; ok {
-			d.Resource = res.Name
+			d.Resource = res.Slug
 		}
 	}
 	if v, ok := t.KindOptions["method"]; ok {
@@ -1086,13 +1094,13 @@ func (d Definition_0_3) addResourcesToUpdateTaskRequest(ctx context.Context, cli
 		return nil
 	}
 
-	resourcesBySlug, err := getResourcesBySlug(ctx, client)
+	collection, err := getResourcesBySlugAndName(ctx, client)
 	if err != nil {
 		return errors.Wrap(err, "fetching resources")
 	}
 
 	for alias, slug := range d.Resources.Attachments {
-		r, ok := resourcesBySlug[slug]
+		r, ok := collection.bySlug[slug]
 		if ok {
 			req.Resources[alias] = r.ID
 		} else {
@@ -1585,28 +1593,26 @@ func (r ResourceDefinition_0_3) IsZero() bool {
 	return len(r.Attachments) == 0
 }
 
-func getResourcesBySlug(ctx context.Context, client api.IAPIClient) (map[string]api.Resource, error) {
-	resp, err := client.ListResources(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "fetching resources")
-	}
-	resourcesBySlug := map[string]api.Resource{}
-	for _, resource := range resp.Resources {
-		resourcesBySlug[resource.Slug] = resource
-	}
-	return resourcesBySlug, nil
+type resourceCollection struct {
+	bySlug map[string]api.Resource
+	byName map[string]api.Resource
 }
 
-func getResourcesByName(ctx context.Context, client api.IAPIClient) (map[string]api.Resource, error) {
+func getResourcesBySlugAndName(ctx context.Context, client api.IAPIClient) (resourceCollection, error) {
+	collection := resourceCollection{
+		bySlug: map[string]api.Resource{},
+		byName: map[string]api.Resource{},
+	}
+
 	resp, err := client.ListResources(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "fetching resources")
+		return resourceCollection{}, errors.Wrap(err, "fetching resources")
 	}
-	resourcesByName := map[string]api.Resource{}
 	for _, resource := range resp.Resources {
-		resourcesByName[resource.Name] = resource
+		collection.bySlug[resource.Slug] = resource
+		collection.byName[resource.Name] = resource
 	}
-	return resourcesByName, nil
+	return collection, nil
 }
 
 func getResourcesByID(ctx context.Context, client api.IAPIClient) (map[string]api.Resource, error) {

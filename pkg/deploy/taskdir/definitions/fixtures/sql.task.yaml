@@ -39,7 +39,7 @@ name: My Task
 
 # Configuration for a SQL task.
 sql:
-  # The name of a database resource.
+  # The slug of a database resource.
   resource: ""
 
   # The path to the .sql file containing the logic for this task. This can be

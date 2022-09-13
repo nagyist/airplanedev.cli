@@ -514,6 +514,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				{
 					ID:   "res20220111foobarx",
 					Name: "httpbin",
+					Slug: "httpbin",
 				},
 			},
 			task: api.Task{
@@ -795,6 +796,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				{
 					ID:   "res20220111foobarx",
 					Name: "httpbin",
+					Slug: "httpbin",
 				},
 			},
 			task: api.Task{

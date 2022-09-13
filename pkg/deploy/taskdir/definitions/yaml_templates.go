@@ -148,7 +148,7 @@ const imageParamsExtraDescription = ` Parameters can be passed into the docker c
 const sqlTemplate = `
 # Configuration for a SQL task.
 sql:
-  # The name of a database resource.
+  # The slug of a database resource.
   resource: ""
 
   # The path to the .sql file containing the logic for this task. This can be
@@ -176,7 +176,7 @@ sql:
 const restTemplate = `
 # Configuration for a REST task.
 rest:
-  # The name of a REST resource.
+  # The slug of a REST resource.
   resource: ""
 
   # The HTTP method to use. Valid values: GET, POST, PATCH, PUT, DELETE.
