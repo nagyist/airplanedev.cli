@@ -132,7 +132,7 @@ func Run(ctx context.Context, cfg config) error {
 
 	if cfg.from == "" {
 		// Prompt for new task information.
-		if err := promptForNewTask(cfg.file, &cfg.newTaskInfo, cfg.inline); err != nil {
+		if err := promptForNewTask(cfg.file, &cfg.newTaskInfo, cfg.inline, cfg.workflow); err != nil {
 			return err
 		}
 	}
@@ -654,17 +654,19 @@ func createFolder(directory string) error {
 	return nil
 }
 
-var namesByKind = map[build.TaskKind]string{
-	build.TaskKindImage:  "Docker",
-	build.TaskKindNode:   "Node",
-	build.TaskKindPython: "Python",
-	build.TaskKindShell:  "Shell",
-
-	build.TaskKindSQL:  "SQL",
-	build.TaskKindREST: "REST",
+var allKindsByName = map[string]build.TaskKind{
+	"Docker":     build.TaskKindImage,
+	"Node":       build.TaskKindNode,
+	"JavaScript": build.TaskKindNode,
+	"Python":     build.TaskKindPython,
+	"Shell":      build.TaskKindShell,
+	"SQL":        build.TaskKindSQL,
+	"REST":       build.TaskKindREST,
 }
 
-var orderedKindNames = []string{
+// Determines the set of kind names that are eligible for use as tasks.
+// The ordering is important as it defines how they are shown in CLI prompts.
+var supportedTaskKindNames = []string{
 	"SQL",
 	"REST",
 	"Node",
@@ -673,7 +675,13 @@ var orderedKindNames = []string{
 	"Docker",
 }
 
-func promptForNewTask(file string, info *newTaskInfo, inline bool) error {
+// Determines the set of kind names that are eligible for use as workflows.
+// The ordering is important as it defines how they are shown in CLI prompts.
+var supportedWorkflowKindNames = []string{
+	"JavaScript",
+}
+
+func promptForNewTask(file string, info *newTaskInfo, inline bool, workflow bool) error {
 	defFormat := definitions.GetTaskDefFormat(file)
 	ext := filepath.Ext(file)
 	base := strings.TrimSuffix(filepath.Base(file), ext)
@@ -696,34 +704,37 @@ func promptForNewTask(file string, info *newTaskInfo, inline bool) error {
 		return err
 	}
 
+	kindNames := supportedTaskKindNames
+	if workflow {
+		kindNames = supportedWorkflowKindNames
+	}
+
 	// Ask for a kind.
-	var defaultKind interface{}
+	defaultName := kindNames[0]
 	guessKind, err := runtime.SuggestKind(ext)
-	if err != nil {
-		defaultKind = orderedKindNames[0]
-	} else {
-		defaultKind = namesByKind[guessKind]
+	if err == nil {
+		for _, name := range kindNames {
+			if kind := allKindsByName[name]; kind == guessKind {
+				defaultName = name
+				break
+			}
+		}
 	}
 
 	var selectedKindName string
 	if err := survey.AskOne(
 		&survey.Select{
 			Message: "What kind of task should this be?",
-			Options: orderedKindNames,
-			Default: defaultKind,
+			Options: kindNames,
+			Default: defaultName,
 		},
 		&selectedKindName,
 	); err != nil {
 		return err
 	}
-	for kind, name := range namesByKind {
-		if name == selectedKindName {
-			info.kind = kind
-			break
-		}
-	}
+	info.kind = allKindsByName[selectedKindName]
 	if info.kind == "" {
-		return errors.Errorf("Unknown kind selected: %s", selectedKindName)
+		return errors.Errorf("Unknown kind selected: %q", selectedKindName)
 	}
 	if inline && !isInlineSupportedKind(info.kind) {
 		return errors.New("Inline config is only supported for Node tasks.")
