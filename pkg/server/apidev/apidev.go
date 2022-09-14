@@ -59,9 +59,10 @@ const (
 
 // AppMetadata represents metadata for a task or view.
 type AppMetadata struct {
-	Name string  `json:"name"`
-	Slug string  `json:"slug"`
-	Kind AppKind `json:"kind"`
+	Name    string  `json:"name"`
+	Slug    string  `json:"slug"`
+	Kind    AppKind `json:"kind"`
+	Runtime string  `json:"runtime"`
 }
 
 type ListEntrypointsHandlerResponse struct {
@@ -83,9 +84,10 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 			entrypoints[ep] = make([]AppMetadata, 0, 1)
 		}
 		entrypoints[ep] = append(entrypoints[ep], AppMetadata{
-			Name: taskConfig.Def.GetName(),
-			Slug: slug,
-			Kind: AppKindTask,
+			Name:    taskConfig.Def.GetName(),
+			Slug:    slug,
+			Kind:    AppKindTask,
+			Runtime: string(taskConfig.Def.GetRuntime()),
 		})
 	}
 
