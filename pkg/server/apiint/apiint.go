@@ -32,6 +32,7 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/resources/get", handlers.Handler(state, GetResourceHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/resources/list", handlers.Handler(state, ListResourcesHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/resources/update", handlers.HandlerWithBody(state, UpdateResourceHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/resources/delete", handlers.HandlerWithBody(state, DeleteResourceHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/resources/isSlugAvailable", handlers.Handler(state, IsResourceSlugAvailableHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/prompts/list", handlers.Handler(state, ListPromptHandler)).Methods("GET", "OPTIONS")
@@ -178,6 +179,7 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 		}
 		resources = append(resources, libapi.Resource{
 			ID:                resource.ID(),
+			Name:              slug, // TODO: Change to actual name of resource once that's exposed from export resource.
 			Slug:              slug,
 			Kind:              libapi.ResourceKind(resource.Kind()),
 			KindConfig:        kindConfig,
@@ -308,6 +310,30 @@ func UpdateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 	return UpdateResourceResponse{
 		ResourceID: newResourceID,
 	}, nil
+}
+
+type DeleteResourceRequest struct {
+	ID string `json:"id"`
+}
+
+// DeleteResourceHandler handles requests to the /i/resources/delete endpoint
+// The web app does utilize the response of the resource deletion handler.
+func DeleteResourceHandler(ctx context.Context, state *state.State, r *http.Request, req DeleteResourceRequest) (struct{}, error) {
+	id := req.ID
+	resourceSlug, err := res.ResourceSlugFromID(id)
+	if err != nil {
+		return struct{}{}, err
+	}
+
+	if _, ok := state.DevConfig.Resources[resourceSlug]; !ok {
+		return struct{}{}, errors.Errorf("resource with id %s does not exist in dev config file", id)
+	}
+
+	if err := state.DevConfig.RemoveResource(resourceSlug); err != nil {
+		return struct{}{}, errors.Wrap(err, "setting resource")
+	}
+
+	return struct{}{}, nil
 }
 
 type IsResourceSlugAvailableResponse struct {

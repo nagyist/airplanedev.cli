@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: Add tests for other resource methods
 func TestListResources(t *testing.T) {
 	require := require.New(t)
 	h := test_utils.GetHttpExpect(

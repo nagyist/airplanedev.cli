@@ -48,3 +48,11 @@ func KindConfigToMap(r kind_configs.InternalResource) (map[string]interface{}, e
 	}
 	return kindConfig, nil
 }
+
+func ResourceSlugFromID(id string) (string, error) {
+	if len(id) <= 4 {
+		return "", errors.New("id must be of the form res-{slug}")
+	}
+
+	return id[4:], nil
+}
