@@ -66,20 +66,32 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 
 	logger.Log("Discovering tasks and views...")
 
+	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{})
 	// Discover local tasks and views in the directory of the file.
 	d := &discover.Discoverer{
 		TaskDiscoverers: []discover.TaskDiscoverer{
 			&discover.DefnDiscoverer{
 				Client: localClient,
+				Logger: l,
 			},
 			&discover.CodeTaskDiscoverer{
 				Client: localClient,
+				Logger: l,
+			},
+		},
+		ViewDiscoverers: []discover.ViewDiscoverer{
+			&discover.ViewDefnDiscoverer{
+				Client: localClient,
+				Logger: l,
+			},
+			&discover.CodeViewDiscoverer{
+				Client: localClient,
+				Logger: l,
 			},
 		},
 		EnvSlug: cfg.envSlug,
 		Client:  localClient,
 	}
-	d.ViewDiscoverers = append(d.ViewDiscoverers, &discover.ViewDefnDiscoverer{Client: localClient})
 
 	taskConfigs, viewConfigs, err := d.Discover(ctx, cfg.fileOrDir)
 	if err != nil {
