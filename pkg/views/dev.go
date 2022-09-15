@@ -220,6 +220,7 @@ func runVite(opts ViteOpts, tmpdir string) (*exec.Cmd, string, error) {
 		// TODO: write integration test to make sure this doesn't break
 		viteServerRegex := regexp.MustCompile(`[>|➜]\s+Local:\s+(http.+)`)
 		for scanner.Scan() {
+			// Wait until Vite prints out the server URL.
 			m := scanner.Text()
 			logger.Debug(m)
 			if submatch := viteServerRegex.FindStringSubmatch(m); submatch != nil {
@@ -233,6 +234,7 @@ func runVite(opts ViteOpts, tmpdir string) (*exec.Cmd, string, error) {
 						logger.Log("Something went wrong. Try running the command with the --debug flag for more details.")
 					}
 				} else {
+					// In non TTY mode the command is backgrounded - we return as soon as Vite tells us what its server URL is.
 					break
 				}
 			}
@@ -242,8 +244,20 @@ func runVite(opts ViteOpts, tmpdir string) (*exec.Cmd, string, error) {
 	if err = cmd.Start(); err != nil {
 		return nil, "", err
 	}
+	logger.Debug("Started vite with process id: %v", cmd.Process.Pid)
 
 	wg.Wait()
+
+	if !opts.TTY {
+		// Debug log in the background in non TTY mode so we always log out Vite logs.
+		// If we don't do this the scanner buffer fills up and Vite crashes.
+		go func() {
+			for scanner.Scan() {
+				m := scanner.Text()
+				logger.Debug(m)
+			}
+		}()
+	}
 
 	return cmd, viteServer, nil
 }
