@@ -109,6 +109,9 @@ func CreateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 	id := fmt.Sprintf("res-%s", resourceSlug)
 	var resource resources.Resource
 	if req.ExportResource != nil {
+		if err := req.ExportResource.Calculate(); err != nil {
+			return CreateResourceResponse{}, errors.Wrap(err, "computing precalculated fields")
+		}
 		resource = req.ExportResource
 		if err := resource.UpdateBaseResource(resources.BaseResource{
 			ID:   id,
