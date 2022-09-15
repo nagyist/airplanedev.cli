@@ -1,64 +1,82 @@
 import dataclasses
-from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Literal, Optional, TypeVar, Union
+import datetime
+import inspect
+import typing
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+)
 
 
 # Inlined partial airplanesdk library so the parser works properly.
-@dataclass
-class ParamConfig:
+@dataclasses.dataclass
+class ParamDef:
+    arg_name: str
     slug: str
     name: str
-    type: str
-    description: Optional[str] = None
-    default: Optional[Any] = None
-    required: Optional[bool] = None
-    options: Optional[List[Any]] = None
-    regex: Optional[str] = None
+    type: Any
+    description: Optional[str]
+    default: Optional[Any]
+    required: Optional[bool]
+    options: Optional[Any]
+    regex: Optional[str]
 
 
-@dataclass
-class TaskConfig:
+@dataclasses.dataclass
+class TaskDef:
+    func: Callable[..., Any]
     slug: str
-    name: Optional[str] = None
-    description: Optional[str] = None
-    parameters: Optional[List[ParamConfig]] = None
-    require_requests: Optional[bool] = None
-    allow_self_approvals: Optional[bool] = None
-    timeout: Optional[int] = None
-    constraints: Optional[Dict[str, str]] = None
-    runtime: Optional[Union[Literal[""], Literal["workflow"]]] = None
+    name: str
+    runtime: Any
+    entrypoint_func: str
+    description: Optional[str]
+    require_requests: Optional[bool]
+    allow_self_approvals: Optional[bool]
+    timeout: Optional[int]
+    constraints: Optional[Dict[str, str]]
+    resources: Optional[List[Any]]
+    schedules: Optional[List[Any]]
+    parameters: Optional[List[ParamDef]]
 
 
-TOutput = TypeVar('TOutput')
-UserFunc = Callable[[Dict[str, Any]], TOutput]
-
-
-@dataclass
-class Task:
-    __airplane: Literal[True] = dataclasses.field(default=True, init=False, repr=False)
-    config: TaskConfig
-    base_func: UserFunc
-
-    def __call__(self, params: Dict[str, Any]) -> TOutput:
-        return self.base_func(params)
-
-
-def task(config: TaskConfig) -> Callable[[UserFunc], UserFunc]:
-    def decorate(func: UserFunc) -> UserFunc:
-        return Task(config, func)
-    return decorate
-
-
-@task(
-    config=TaskConfig(
-        slug="collatz",
-        name="Collatz Conjecture Step",
-        parameters=[ParamConfig(slug="num", name="Num", type="integer")],
-    )
-)
-def collatz(params: Dict[str, Any]) -> int:
-    num: int = params["num"]
+def collatz(num: int) -> int:
     if num % 2 == 0:
-        return num//2
-    else:
-        return num*3+1
+        return num // 2
+    return num * 3 + 1
+
+
+collatz.__airplane = TaskDef(
+    func=collatz,
+    slug="collatz",
+    name="Collatz Conjecture Step",
+    entrypoint_func="collatz",
+    runtime="",
+    description=None,
+    require_requests=False,
+    allow_self_approvals=False,
+    timeout=3600,
+    constraints=None,
+    resources=None,
+    schedules=None,
+    parameters=[
+        ParamDef(
+            arg_name="num",
+            slug="num",
+            name="Num",
+            type="integer",
+            description=None,
+            default=None,
+            required=True,
+            options=None,
+            regex=None,
+        )
+    ],
+)

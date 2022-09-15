@@ -11,6 +11,7 @@ import os
 import sys
 import traceback
 
+
 def run(args):
     sys.path.append("{{.TaskRoot}}")
 
@@ -34,7 +35,7 @@ def run(args):
     try:
         arg_dict = json.loads(args[1])
         {{if .EntrypointFunc}}
-        ret = mod.{{.EntrypointFunc}}.base_func(arg_dict)
+        ret = mod.{{.EntrypointFunc}}.__airplane.run(arg_dict)
         {{else}}
         main_example = """
 ```

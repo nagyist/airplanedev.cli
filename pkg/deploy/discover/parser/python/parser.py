@@ -4,7 +4,14 @@ import importlib.util
 import json
 import os
 import sys
+import traceback
 from typing import Any, Dict, List, Literal, Optional, Union
+
+
+@dataclasses.dataclass
+class Option:
+    label: str
+    value: Any
 
 
 @dataclasses.dataclass
@@ -12,35 +19,47 @@ class Param:
     slug: str
     name: str
     type: str
-    description: Optional[str] = None
-    default: Optional[Any] = None
-    required: Optional[bool] = None
-    options: Optional[List[Any]] = None
-    regex: Optional[str] = None
+    description: Optional[str]
+    default: Optional[Any]
+    required: bool
+    options: Union[List[Option], List[str], None]
+    regex: Optional[str]
+
+
+@dataclasses.dataclass
+class Schedule:
+    name: Optional[str]
+    description: Optional[str]
+    cron: str
+    paramValues: Dict[str, Any]
 
 
 @dataclasses.dataclass
 class Def:
+    entrypointFunc: str
+
+    name: str
     slug: str
-    entrypoint_func: str
-    name: Optional[str] = None
-    description: Optional[str] = None
-    parameters: Optional[List[Param]] = None
-    require_requests: Optional[bool] = None
-    allow_self_approvals: Optional[bool] = None
-    timeout: Optional[int] = None
-    constraints: Optional[Dict[str, str]] = None
-    runtime: Optional[Union[Literal[""], Literal["workflow"]]] = None
+    description: Optional[str]
+    parameters: List[Param]
+    resources: Optional[Dict[str, str]]
 
-    def asdict(self) -> Dict[str, Any]:
-        def to_camel(snake: str) -> str:
-            first, *others = snake.split("_")
-            return "".join([first.lower(), *map(str.title, others)])
+    constraints: Optional[Dict[str, str]]
+    requireRequests: bool
+    allowSelfApprovals: bool
+    timeout: int
+    runtime: Literal["standard", "workflow"]
 
+    schedules: Dict[str, Schedule]
+
+
+def as_def(obj: Any) -> Union[Any, Dict[str, Any]]:
+    if dataclasses.is_dataclass(obj):
         return dataclasses.asdict(
-            self,
-            dict_factory=lambda kv: {to_camel(k): v for (k, v) in kv if v is not None},
+            obj,
+            dict_factory=lambda kv: {k: as_def(v) for (k, v) in kv if v is not None},
         )
+    return obj
 
 
 def extract_task_configs(files: List[str]) -> List[Def]:
@@ -56,31 +75,52 @@ def extract_task_configs(files: List[str]) -> List[Def]:
         assert spec.loader is not None, f"Unable to construct loader for module {file}"
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-
         for item in tree.body:
             if isinstance(item, ast.FunctionDef) and hasattr(module, item.name):
                 func = getattr(module, item.name)
-                if hasattr(func, "_Task__airplane"):
+                if hasattr(func, "__airplane"):
+                    conf = func.__airplane
                     configs.append(
                         Def(
-                            slug=func.config.slug,
-                            entrypoint_func=item.name,
-                            name=func.config.name,
-                            description=func.config.description,
+                            entrypointFunc=item.name,
+                            name=conf.name,
+                            slug=conf.slug,
+                            description=conf.description,
                             parameters=[
                                 Param(
                                     slug=param.slug,
                                     name=param.name,
                                     type=param.type,
+                                    description=param.description,
+                                    default=param.default,
                                     required=param.required,
+                                    options=[
+                                        Option(label=o.label, value=o.value)
+                                        if hasattr(o, "label")
+                                        else o
+                                        for o in param.options or []
+                                    ],
+                                    regex=param.regex,
                                 )
-                                for param in func.config.parameters
+                                for param in conf.parameters
                             ],
-                            require_requests=func.config.require_requests,
-                            allow_self_approvals=func.config.allow_self_approvals,
-                            timeout=func.config.timeout,
-                            constraints=func.config.constraints,
-                            runtime=func.config.runtime,
+                            resources={
+                                r.alias or r.slug: r.slug for r in conf.resources or []
+                            },
+                            constraints=conf.constraints,
+                            requireRequests=conf.require_requests,
+                            allowSelfApprovals=conf.allow_self_approvals,
+                            timeout=conf.timeout,
+                            runtime=conf.runtime,
+                            schedules={
+                                s.slug: Schedule(
+                                    name=s.name,
+                                    description=s.description,
+                                    cron=s.cron,
+                                    paramValues=s.param_values,
+                                )
+                                for s in conf.schedules or []
+                            },
                         )
                     )
 
@@ -90,7 +130,7 @@ def extract_task_configs(files: List[str]) -> List[Def]:
 def main() -> None:
     files = sys.argv[1:]
     task_configs = extract_task_configs(files)
-    print(json.dumps([config.asdict() for config in task_configs]))
+    print(json.dumps([as_def(config) for config in task_configs]))
 
 
 if __name__ == "__main__":
