@@ -106,6 +106,8 @@ type APIClient interface {
 	GetView(ctx context.Context, req libapi.GetViewRequest) (libapi.View, error)
 	CreateView(ctx context.Context, req libapi.CreateViewRequest) (libapi.View, error)
 	CreateDemoDB(ctx context.Context, name string) (string, error)
+
+	GetEnv(ctx context.Context, envSlug string) (libapi.GetEnvResponse, error)
 }
 
 var _ APIClient = Client{}
@@ -472,6 +474,13 @@ func (c Client) GetDeploymentLogs(ctx context.Context, deploymentID string, prev
 
 func (c Client) ListResources(ctx context.Context) (res libapi.ListResourcesResponse, err error) {
 	err = c.do(ctx, "GET", "/resources/list", nil, &res)
+	return
+}
+
+func (c Client) GetEnv(ctx context.Context, envSlug string) (res libapi.GetEnvResponse, err error) {
+	err = c.do(ctx, "GET", encodeQueryString("/envs/get", url.Values{
+		"envSlug": []string{envSlug},
+	}), nil, &res)
 	return
 }
 

@@ -8,9 +8,9 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/version"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
-	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/pkg/errors"
 )
 
@@ -19,7 +19,6 @@ type State struct {
 	LocalClient *api.Client
 	// Directory from which tasks and views were discovered
 	Dir      string
-	EnvSlug  string
 	Executor dev.Executor
 	Port     int
 	Runs     *runsStore
@@ -32,6 +31,10 @@ type State struct {
 	ViteMutex   sync.Mutex
 	Logger      logger.Logger
 
+	EnvID   string
+	EnvSlug string
+
+	AuthInfo     api.AuthInfoResponse
 	VersionCache version.Cache
 }
 

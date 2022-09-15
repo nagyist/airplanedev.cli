@@ -30,9 +30,18 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		TeamID: cfg.root.Client.TeamID,
 	}
 
+	authInfo, err := cfg.root.Client.AuthInfo(ctx)
+	if err != nil {
+		return err
+	}
+
+	env, err := cfg.root.Client.GetEnv(ctx, cfg.envSlug)
+	if err != nil {
+		return err
+	}
+
 	localExecutor := &dev.LocalExecutor{}
 	var devConfig *conf.DevConfig
-	var err error
 	if cfg.devConfigPath == "" {
 		devConfig = conf.NewDevConfig()
 	} else {
@@ -52,10 +61,12 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		CLI:         cfg.root,
 		LocalClient: localClient,
 		DevConfig:   devConfig,
-		EnvSlug:     cfg.envSlug,
+		EnvID:       env.ID,
+		EnvSlug:     env.Slug,
 		Executor:    localExecutor,
 		Port:        cfg.port,
 		Dir:         absoluteDir,
+		AuthInfo:    authInfo,
 	})
 	if err != nil {
 		return errors.Wrap(err, "starting local dev server")

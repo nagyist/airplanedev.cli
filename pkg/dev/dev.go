@@ -53,8 +53,10 @@ type LocalRunConfig struct {
 	Root        *cli.Config
 	File        string
 	Slug        string
+	EnvID       string
 	EnvSlug     string
 	Env         map[string]string
+	AuthInfo    api.AuthInfoResponse
 	// Mapping from alias to resource
 	Resources map[string]resources.Resource
 	IsBuiltin bool
@@ -362,8 +364,37 @@ func entrypointFromDefn(file string) (string, error) {
 
 func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error) {
 	env = append(env, fmt.Sprintf("AIRPLANE_API_HOST=http://127.0.0.1:%d", config.Port))
-	env = append(env, "AIRPLANE_RUNTIME=dev")
 	env = append(env, "AIRPLANE_RESOURCES_VERSION=2")
+
+	var runnerID, runnerEmail string
+	if config.AuthInfo.User != nil {
+		runnerID = config.AuthInfo.User.ID
+		runnerEmail = config.AuthInfo.User.Email
+	}
+
+	var teamID string
+	if config.AuthInfo.Team != nil {
+		teamID = config.AuthInfo.Team.ID
+	}
+
+	// Environment variables documented in https://docs.airplane.dev/tasks/runtime-api-reference#environment-variables
+	// We omit:
+	// - AIRPLANE_REQUESTER_EMAIL
+	// - AIRPLANE_REQUESTER_ID
+	// - AIRPLANE_SESSION_ID
+	// - AIRPLANE_TASK_REVISION_ID
+	// - AIRPLANE_TRIGGER_ID
+	// because there is no requester, session, task revision, or triggers in the context of local dev.
+	env = append(env,
+		fmt.Sprintf("AIRPLANE_ENV_ID=%s", config.EnvID),
+		fmt.Sprintf("AIRPLANE_ENV_SLUG=%s", config.EnvSlug),
+		fmt.Sprintf("AIRPLANE_RUN_ID=%s", config.ID),
+		fmt.Sprintf("AIRPLANE_RUNNER_EMAIL=%s", runnerEmail),
+		fmt.Sprintf("AIRPLANE_RUNNER_ID=%s", runnerID),
+		"AIRPLANE_RUNTIME=dev",
+		fmt.Sprintf("AIRPLANE_TASK_ID=%s", config.Slug), // For local dev, we use the task's slug as its id.
+		fmt.Sprintf("AIRPLANE_TEAM_ID=%s", teamID),
+	)
 
 	token, err := GenerateInsecureAirplaneToken(AirplaneTokenClaims{
 		RunID: config.ID,

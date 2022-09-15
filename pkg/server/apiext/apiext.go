@@ -95,8 +95,10 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			Port:        state.Port,
 			Root:        state.CliConfig,
 			Slug:        req.Slug,
+			EnvID:       state.EnvID,
 			EnvSlug:     state.EnvSlug,
 			IsBuiltin:   isBuiltin,
+			AuthInfo:    state.AuthInfo,
 			LogBroker:   run.LogBroker,
 		}
 		resourceAttachments := map[string]string{}
@@ -144,7 +146,6 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			parameters = localTaskConfig.Def.GetParameters()
 			run.TaskID = req.Slug
 			run.TaskName = localTaskConfig.Def.GetName()
-
 			envVars, err := dev.MaterializeEnvVars(localTaskConfig, state.DevConfig)
 			if err != nil {
 				return dev.LocalRun{}, err
@@ -166,7 +167,9 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		run.Parameters = &parameters
 		run.Status = api.RunActive
 		// if the user is authenticated in CLI, use their ID
-		run.CreatorID = state.CliConfig.ParseTokenForAnalytics().UserID
+		if state.AuthInfo.User != nil {
+			run.CreatorID = state.AuthInfo.User.ID
+		}
 		state.Runs.Add(req.Slug, runID, run)
 
 		// use a new context while executing

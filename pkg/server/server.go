@@ -74,11 +74,15 @@ func NewRouter(state *state.State) *mux.Router {
 type Options struct {
 	CLI         *cli.Config
 	LocalClient *api.Client
-	EnvSlug     string
-	Port        int
-	Executor    dev.Executor
-	DevConfig   *conf.DevConfig
-	Dir         string
+
+	EnvID   string
+	EnvSlug string
+
+	Port      int
+	Executor  dev.Executor
+	DevConfig *conf.DevConfig
+	Dir       string
+	AuthInfo  api.AuthInfoResponse
 }
 
 // newServer returns a new HTTP server with API routes
@@ -98,6 +102,7 @@ func newServer(router *mux.Router, state *state.State) *Server {
 func Start(opts Options) (*Server, error) {
 	state := &state.State{
 		CliConfig:   opts.CLI,
+		EnvID:       opts.EnvID,
 		EnvSlug:     opts.EnvSlug,
 		Executor:    opts.Executor,
 		Port:        opts.Port,
@@ -106,6 +111,7 @@ func Start(opts Options) (*Server, error) {
 		DevConfig:   opts.DevConfig,
 		Dir:         opts.Dir,
 		Logger:      logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
+		AuthInfo:    opts.AuthInfo,
 	}
 
 	r := NewRouter(state)
