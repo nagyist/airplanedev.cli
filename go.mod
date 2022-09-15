@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	cloud.google.com/go/storage v1.26.0
-	github.com/AlecAivazis/survey/v2 v2.3.5
+	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/airplanedev/lib v0.5.65
 	github.com/airplanedev/ojson v0.1.0
@@ -37,7 +37,7 @@ require (
 	golang.org/x/exp v0.0.0-20220907003533-145caa8ea1d0
 	golang.org/x/sync v0.0.0-20220907140024-f12130a52804
 	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035
-	google.golang.org/api v0.94.0
+	google.golang.org/api v0.96.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -150,7 +150,7 @@ require (
 	go.mongodb.org/mongo-driver v1.10.1 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
-	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
+	golang.org/x/net v0.0.0-20220909164309-bea034e7d591 // indirect
 	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094 // indirect
 	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
 	golang.org/x/text v0.3.7 // indirect
