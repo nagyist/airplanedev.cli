@@ -91,7 +91,7 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().BoolVarP(&cfg.assumeNo, "no", "n", false, "True to specify automatic no to prompts.")
 
 	cmd.Flags().BoolVar(&cfg.inline, "inline", false, "Generate inline config for custom tasks")
-	cmd.Flags().BoolVar(&cfg.workflow, "workflow", false, "Generate a workflow inline config for custom tasks")
+	cmd.Flags().BoolVar(&cfg.workflow, "workflow", false, "Generate a workflow instead of a task. Implies --inline.")
 
 	if err := cmd.Flags().MarkHidden("slug"); err != nil {
 		logger.Debug("error: %s", err)
@@ -157,6 +157,11 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		})
 		if err != nil {
 			return err
+		}
+
+		if task.Runtime == build.TaskRuntimeWorkflow {
+			cfg.workflow = true
+			cfg.inline = true
 		}
 
 		if cfg.inline && !isInlineSupportedKind(task.Kind) {
