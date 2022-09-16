@@ -32,12 +32,19 @@ type templateParams struct {
 	NodeVersion                      string
 	ExternalFlags                    string
 	InstallCommand                   string
+	PreInstallCommand                string
 	PostInstallCommand               string
 	Args                             string
+	PreInstallPath                   string
+	PostInstallPath                  string
 }
 
 // node creates a dockerfile for Node (typescript/javascript).
-func node(root string, options KindOptions, buildArgs []string) (string, error) {
+func node(
+	root string,
+	options KindOptions,
+	buildArgs []string,
+) (string, error) {
 	var err error
 
 	// For backwards compatibility, continue to build old Node tasks
@@ -102,6 +109,11 @@ func node(root string, options KindOptions, buildArgs []string) (string, error) 
 	}
 	argsCommand := strings.Join(buildArgs, "\n")
 
+	installHooks, err := GetInstallHooks(entrypoint, root)
+	if err != nil {
+		return "", err
+	}
+
 	cfg := templateParams{
 		Workdir:        workdir,
 		HasPackageJSON: hasPackageJSON,
@@ -109,9 +121,12 @@ func node(root string, options KindOptions, buildArgs []string) (string, error) 
 		// esbuild is relatively generous in the node versions it supports:
 		// https://esbuild.github.io/api/#target
 		NodeVersion:        GetNodeVersion(options),
+		PreInstallCommand:  pkg.Settings.PreInstallCommand,
 		PostInstallCommand: pkg.Settings.PostInstallCommand,
 		Args:               argsCommand,
 		IsWorkflow:         isWorkflow,
+		PreInstallPath:     installHooks.PreInstallFilePath,
+		PostInstallPath:    installHooks.PostInstallFilePath,
 	}
 
 	packageJSONs, usesWorkspaces, err := GetPackageJSONs(rootPackageJSON)
@@ -251,6 +266,13 @@ func node(root string, options KindOptions, buildArgs []string) (string, error) 
 
 		{{.Args}}
 
+		{{if .PreInstallCommand}}
+		RUN {{.PreInstallCommand}}
+		{{else if .PreInstallPath}}
+		COPY {{ .PreInstallPath }} airplane_preinstall.sh
+		RUN chmod +x airplane_preinstall.sh && ./airplane_preinstall.sh
+		{{end}}
+
 		RUN {{.InstallCommand}}
 
 		{{if not .UsesWorkspaces}}
@@ -259,6 +281,9 @@ func node(root string, options KindOptions, buildArgs []string) (string, error) 
 
 		{{if .PostInstallCommand}}
 		RUN {{.PostInstallCommand}}
+		{{else if .PostInstallPath}}
+		COPY {{ .PostInstallPath }} airplane_postinstall.sh
+		RUN chmod +x airplane_postinstall.sh && ./airplane_postinstall.sh
 		{{end}}
 
 		{{if .IsWorkflow}}
@@ -502,6 +527,7 @@ func getBaseNodeImage(version string) (string, error) {
 type Settings struct {
 	Root               string `json:"root"`
 	InstallCommand     string `json:"install"`
+	PreInstallCommand  string `json:"preinstall"`
 	PostInstallCommand string `json:"postinstall"`
 }
 

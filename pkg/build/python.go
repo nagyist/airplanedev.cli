@@ -13,7 +13,11 @@ import (
 )
 
 // Python creates a dockerfile for Python.
-func python(root string, opts KindOptions, buildArgs []string) (string, error) {
+func python(
+	root string,
+	opts KindOptions,
+	buildArgs []string,
+) (string, error) {
 	if opts["shim"] != "true" {
 		return pythonLegacy(root, opts)
 	}
@@ -21,6 +25,11 @@ func python(root string, opts KindOptions, buildArgs []string) (string, error) {
 	// Assert that the entrypoint file exists:
 	entrypoint, _ := opts["entrypoint"].(string)
 	if err := fsx.AssertExistsAll(filepath.Join(root, entrypoint)); err != nil {
+		return "", err
+	}
+
+	installHooks, err := GetInstallHooks(entrypoint, root)
+	if err != nil {
 		return "", err
 	}
 
@@ -59,6 +68,11 @@ func python(root string, opts KindOptions, buildArgs []string) (string, error) {
 
 		{{.Args}}
 
+		{{if .PreInstallPath}}
+		COPY {{ .PreInstallPath }} airplane_preinstall.sh
+		RUN chmod +x airplane_preinstall.sh && ./airplane_preinstall.sh
+		{{end}}
+
 		{{if .HasRequirements}}
 		COPY requirements.txt .
 		{{if .HasPipConf}}
@@ -67,6 +81,12 @@ func python(root string, opts KindOptions, buildArgs []string) (string, error) {
 		{{end}}
 		RUN pip install -r requirements.txt
 		{{end}}
+
+		{{if .PostInstallPath}}
+		COPY {{ .PostInstallPath }} airplane_postinstall.sh
+		RUN chmod +x airplane_postinstall.sh && ./airplane_postinstall.sh
+		{{end}}
+
 		COPY . .
 		ENV PYTHONUNBUFFERED=1
 		ENTRYPOINT ["python", ".airplane/shim.py"]
@@ -78,17 +98,20 @@ func python(root string, opts KindOptions, buildArgs []string) (string, error) {
 		HasRequirements bool
 		HasPipConf      bool
 		Args            string
+		PreInstallPath  string
+		PostInstallPath string
 	}{
 		Base:            v.String(),
 		InlineShim:      inlineString(shim),
 		HasRequirements: fsx.Exists(filepath.Join(root, "requirements.txt")),
 		HasPipConf:      fsx.Exists(filepath.Join(root, "pip.conf")),
 		Args:            argsCommand,
+		PreInstallPath:  installHooks.PreInstallFilePath,
+		PostInstallPath: installHooks.PostInstallFilePath,
 	})
 	if err != nil {
 		return "", errors.Wrapf(err, "rendering dockerfile")
 	}
-
 	return df, nil
 }
 

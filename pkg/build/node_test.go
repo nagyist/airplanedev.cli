@@ -177,12 +177,40 @@ func TestNodeBuilder(t *testing.T) {
 			},
 		},
 		{
-			Root: "typescript/custompostinstall",
+			Root: "typescript/installhooksviapackagejson",
 			Kind: TaskKindNode,
 			Options: KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
+			SearchString: "hello from preinstall",
+		},
+		{
+			Root: "typescript/installhooksviashell",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "main.ts",
+			},
+			SearchString: "hello from preinstall",
+		},
+		{
+			Root: "typescript/installhooksviashellsubdirectory",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "foo/bar/main.ts",
+			},
+			SearchString: "hello from preinstall",
+		},
+		{
+			Root: "typescript/installhooksviapackagejsonoverride",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "main.ts",
+			},
+			SearchString: "hello from preinstall",
 		},
 		{
 			Root: "typescript/prisma",

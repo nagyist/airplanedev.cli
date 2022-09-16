@@ -38,6 +38,24 @@ func TestPythonBuilder(t *testing.T) {
 			},
 			SearchString: "[1]",
 		},
+		{
+			Root: "python/installhooksviashell",
+			Kind: TaskKindPython,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "main.py",
+			},
+			SearchString: "preinstall='hello from preinstall' postinstall='hello from postinstall'",
+		},
+		{
+			Root: "python/installhooksviashellsubdirectory",
+			Kind: TaskKindPython,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "foo/bar/main.py",
+			},
+			SearchString: "preinstall='hello from preinstall' postinstall='hello from postinstall'",
+		},
 	}
 
 	RunTests(t, ctx, tests)

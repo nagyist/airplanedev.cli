@@ -3,6 +3,7 @@
     "airplane": "0.2.0"
   },
   "airplane": {
+    "preinstall": "echo 'hello from preinstall' > preinstall.txt",
     "postinstall": "yarn add prettier"
   }
 }
