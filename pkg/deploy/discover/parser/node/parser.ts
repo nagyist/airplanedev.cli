@@ -1,4 +1,7 @@
-const path = require("path");
+// After changing this file, run `yarn build` to build parser.js.
+
+import path from "path";
+import { JSDOM } from "jsdom";
 
 type TaskParam = {
   slug: string;
@@ -14,7 +17,7 @@ type TaskParam = {
 type NodeDef = {
   nodeVersion: "12" | "14" | "15" | "16" | "18";
   envVars?: Record<string, string | { config: string } | { value: string }>;
-}
+};
 
 type TaskDef = {
   slug: string;
@@ -39,12 +42,12 @@ type ViewDef = {
   slug: string;
   name: string;
   description?: string;
-}
+};
 
 type AirplaneConfigs = {
   taskConfigs: TaskDefWithBuildArgs[];
   viewConfigs: ViewDef[];
-}
+};
 
 const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
   let taskConfigs: TaskDefWithBuildArgs[] = [];
@@ -63,7 +66,7 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
             slug: config.slug,
             name: config.name,
             description: config.description,
-          })
+          });
         } else {
           const params: TaskParam[] = [];
           for (const uParamSlug in config.parameters) {
@@ -105,7 +108,7 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
             node: {
               nodeVersion: config.nodeVersion ?? "18",
               envVars: config.envVars,
-            }
+            },
           });
         }
       }
@@ -114,9 +117,12 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
   return {
     taskConfigs,
     viewConfigs,
-  }
+  };
 };
 
+const dom = new JSDOM(`<!DOCTYPE html><body></div></body>`);
+// Add a document so that if the view contains frontend specific code that references the global document, the parser doesn't fail in a node environment.
+(global as any).document = dom.window.document;
 const files = process.argv.slice(2);
 const taskConfigs = extractTaskConfigs(files);
 console.log(JSON.stringify(taskConfigs));

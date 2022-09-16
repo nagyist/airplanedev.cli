@@ -19,6 +19,7 @@ var esmModules = map[string]bool{
 	// airplane>=0.2.0 depends on node-fetch
 	"airplane":        true,
 	"@airplane/views": true,
+	"lodash-es":       true,
 }
 
 // GetPackageJSONs list all the package.json files that belong to a workspace, or just the root package.json if not

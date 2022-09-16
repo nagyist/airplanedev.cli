@@ -44,12 +44,6 @@ func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 		}
 	}()
 
-	cleanup, err := maybePatchNodeModules(dd.Logger, pm.RootDir)
-	defer cleanup()
-	if err != nil {
-		return nil, err
-	}
-
 	compiledJSPath, err := compiledFilePath(pm.RootDir, file)
 	if err != nil {
 		return nil, err

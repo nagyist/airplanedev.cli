@@ -426,7 +426,7 @@ func TestDiscover(t *testing.T) {
 		},
 		{
 			name:  "node code definition",
-			paths: []string{"./fixtures/codeOnlyTask.airplane.ts"},
+			paths: []string{"./fixtures/taskInline/codeOnlyTask.airplane.ts"},
 			existingTasks: map[string]api.Task{
 				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindPython, InterpolationMode: "jst"},
 			},
@@ -434,7 +434,7 @@ func TestDiscover(t *testing.T) {
 				{
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
-					TaskEntrypoint: fixturesPath + "/codeOnlyTask.airplane.ts",
+					TaskEntrypoint: fixturesPath + "/taskInline/codeOnlyTask.airplane.ts",
 					Def: &definitions.Definition_0_3{
 						Name: "Collatz Conjecture Step",
 						Slug: "collatz",
@@ -446,7 +446,7 @@ func TestDiscover(t *testing.T) {
 							},
 						},
 						Node: &definitions.NodeDefinition_0_3{
-							Entrypoint:  "codeOnlyTask.airplane.ts",
+							Entrypoint:  "taskInline/codeOnlyTask.airplane.ts",
 							NodeVersion: "18",
 						},
 					},
@@ -455,18 +455,58 @@ func TestDiscover(t *testing.T) {
 			},
 			buildConfigs: []build.BuildConfig{
 				{
-					"entrypoint":     "codeOnlyTask.airplane.ts",
+					"entrypoint":     "taskInline/codeOnlyTask.airplane.ts",
 					"entrypointFunc": "collatz",
 					"workdir":        "",
 				},
 			},
 			absEntrypoints: []string{
-				fixturesPath + "/codeOnlyTask.airplane.ts",
+				fixturesPath + "/taskInline/codeOnlyTask.airplane.ts",
+			},
+		},
+		{
+			name:  "node code definition with an esm dep",
+			paths: []string{"./fixtures/taskInlineEsm/codeOnlyTask.airplane.ts"},
+			existingTasks: map[string]api.Task{
+				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+			},
+			expectedTaskConfigs: []TaskConfig{
+				{
+					TaskID:         "tsk123",
+					TaskRoot:       fixturesPath,
+					TaskEntrypoint: fixturesPath + "/taskInlineEsm/codeOnlyTask.airplane.ts",
+					Def: &definitions.Definition_0_3{
+						Name: "Collatz Conjecture Step",
+						Slug: "collatz",
+						Parameters: []definitions.ParameterDefinition_0_3{
+							{
+								Name: "Num",
+								Slug: "num",
+								Type: "integer",
+							},
+						},
+						Node: &definitions.NodeDefinition_0_3{
+							Entrypoint:  "taskInlineEsm/codeOnlyTask.airplane.ts",
+							NodeVersion: "18",
+						},
+					},
+					Source: ConfigSourceCode,
+				},
+			},
+			buildConfigs: []build.BuildConfig{
+				{
+					"entrypoint":     "taskInlineEsm/codeOnlyTask.airplane.ts",
+					"entrypointFunc": "collatz",
+					"workdir":        "",
+				},
+			},
+			absEntrypoints: []string{
+				fixturesPath + "/taskInlineEsm/codeOnlyTask.airplane.ts",
 			},
 		},
 		{
 			name:  "view code definition",
-			paths: []string{"./fixtures/view/codeOnlyView.airplane.tsx"},
+			paths: []string{"./fixtures/viewInline/myView/myView.view.tsx"},
 			existingViews: map[string]api.View{
 				"my_view": {ID: "view123", Slug: "my_view", Name: "My View"},
 			},
@@ -476,8 +516,8 @@ func TestDiscover(t *testing.T) {
 					Def: definitions.ViewDefinition{
 						Name:        "My View",
 						Slug:        "my_view",
-						Description: "Test view yaml file",
-						Entrypoint:  fixturesPath + "/view/codeOnlyView.airplane.tsx",
+						Description: "my description",
+						Entrypoint:  fixturesPath + "/viewInline/myView/myView.view.tsx",
 					},
 					Root:   fixturesPath,
 					Source: ConfigSourceCode,
@@ -485,8 +525,59 @@ func TestDiscover(t *testing.T) {
 			},
 		},
 		{
-			name:  "view code definition legacy",
-			paths: []string{"./fixtures/view/codeOnly.view.tsx"},
+			name:  "view code definition with task definition",
+			paths: []string{"./fixtures/viewInline-with-tasks/myView/myView.view.tsx"},
+			existingViews: map[string]api.View{
+				"my_view": {ID: "view123", Slug: "my_view", Name: "My View"},
+			},
+			existingTasks: map[string]api.Task{
+				"my_task": {ID: "tsk123", Slug: "my_task", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+			},
+			expectedViewConfigs: []ViewConfig{
+				{
+					ID: "view123",
+					Def: definitions.ViewDefinition{
+						Name:        "My View",
+						Slug:        "my_view",
+						Description: "my description",
+						Entrypoint:  fixturesPath + "/viewInline-with-tasks/myView/myView.view.tsx",
+					},
+					Root:   fixturesPath,
+					Source: ConfigSourceCode,
+				},
+			},
+			expectedTaskConfigs: []TaskConfig{
+				{
+					TaskID:         "tsk123",
+					TaskRoot:       fixturesPath,
+					TaskEntrypoint: fixturesPath + "/viewInline-with-tasks/myView/myView.view.tsx",
+					Def: &definitions.Definition_0_3{
+						Name: "My Task",
+						Slug: "my_task",
+						Node: &definitions.NodeDefinition_0_3{
+							Entrypoint:  "viewInline-with-tasks/myView/myView.view.tsx",
+							NodeVersion: "18",
+						},
+						Parameters:  []definitions.ParameterDefinition_0_3{},
+						Description: "my description",
+					},
+					Source: ConfigSourceCode,
+				},
+			},
+			buildConfigs: []build.BuildConfig{
+				{
+					"entrypoint":     "viewInline-with-tasks/myView/myView.view.tsx",
+					"entrypointFunc": "myTask",
+					"workdir":        "",
+				},
+			},
+			absEntrypoints: []string{
+				fixturesPath + "/viewInline-with-tasks/myView/myView.view.tsx",
+			},
+		},
+		{
+			name:  "view code definition - airplane.tsx",
+			paths: []string{"./fixtures/viewInline-airplanetsx/myView/myView.airplane.tsx"},
 			existingViews: map[string]api.View{
 				"my_view": {ID: "view123", Slug: "my_view", Name: "My View"},
 			},
@@ -496,8 +587,8 @@ func TestDiscover(t *testing.T) {
 					Def: definitions.ViewDefinition{
 						Name:        "My View",
 						Slug:        "my_view",
-						Description: "Test view yaml file",
-						Entrypoint:  fixturesPath + "/view/codeOnly.view.tsx",
+						Description: "hi",
+						Entrypoint:  fixturesPath + "/viewInline-airplanetsx/myView/myView.airplane.tsx",
 					},
 					Root:   fixturesPath,
 					Source: ConfigSourceCode,

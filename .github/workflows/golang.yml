@@ -43,6 +43,10 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-
 
+      - name: install fixture dependencies
+        run: |
+          cd pkg/deploy/discover/fixtures
+          yarn
       - name: go test
         run: |
           go test -race -timeout=10m -coverpkg=./... -covermode atomic -coverprofile=coverage.out ./...

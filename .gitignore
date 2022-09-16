@@ -16,7 +16,6 @@ vendor/
 
 node_modules/
 yarn-error.log
-yarn.lock
 __pycache__/
 *.pyc
 

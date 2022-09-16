@@ -17,7 +17,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:embed parser/node/parser.ts
+//go:embed parser/node/parser.js
 var nodeParserScript []byte
 
 //go:embed parser/python/parser.py
@@ -128,12 +128,6 @@ func (c *CodeTaskDiscoverer) parseNodeDefinitions(ctx context.Context, file stri
 			c.Logger.Warning("unable to remove temporary directory: %s")
 		}
 	}()
-
-	cleanup, err := maybePatchNodeModules(c.Logger, pm.RootDir)
-	defer cleanup()
-	if err != nil {
-		return nil, err
-	}
 
 	compiledJSPath, err := compiledFilePath(pm.RootDir, file)
 	if err != nil {
