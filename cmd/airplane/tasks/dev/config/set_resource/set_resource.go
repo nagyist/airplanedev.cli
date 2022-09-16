@@ -11,7 +11,6 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/resources/kinds"
@@ -151,11 +150,6 @@ func run(ctx context.Context, cfg config) error {
 	}
 	if err := devConfig.SetResource(cfg.slug, resource); err != nil {
 		return errors.Wrap(err, "setting resource in dev config file")
-	}
-	devConfig.RawResources = append(devConfig.RawResources, serializedResource)
-
-	if err := conf.WriteDevConfig(devConfig); err != nil {
-		return err
 	}
 
 	encodedResource, err := json.MarshalIndent(serializedResource, "", "  ")

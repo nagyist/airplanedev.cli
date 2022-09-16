@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server"
@@ -41,16 +40,6 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	localExecutor := &dev.LocalExecutor{}
-	var devConfig *conf.DevConfig
-	if cfg.devConfigPath == "" {
-		devConfig = conf.NewDevConfig()
-	} else {
-		devConfig, err = conf.ReadDevConfig(cfg.devConfigPath)
-		if err != nil {
-			return errors.Wrap(err, "loading in dev config file")
-		}
-	}
-
 	// Use absolute path to dev root to allow the local dev server to more easily calculate relative paths.
 	dir := filepath.Dir(cfg.fileOrDir)
 	absoluteDir, err := filepath.Abs(dir)
@@ -60,7 +49,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	apiServer, err := server.Start(server.Options{
 		CLI:         cfg.root,
 		LocalClient: localClient,
-		DevConfig:   devConfig,
+		DevConfig:   cfg.devConfig,
 		EnvID:       env.ID,
 		EnvSlug:     env.Slug,
 		Executor:    localExecutor,

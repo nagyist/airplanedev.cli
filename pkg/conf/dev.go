@@ -5,9 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
@@ -30,12 +28,12 @@ type DevConfig struct {
 }
 
 // NewDevConfig returns a default dev config.
-func NewDevConfig() *DevConfig {
+func NewDevConfig(path string) *DevConfig {
 	return &DevConfig{
 		ConfigVars:   map[string]string{},
 		RawResources: []map[string]interface{}{},
 		Resources:    map[string]resources.Resource{},
-		Path:         DefaultDevConfigFileName,
+		Path:         path,
 	}
 }
 
@@ -154,37 +152,48 @@ func WriteDevConfig(config *DevConfig) error {
 		return err
 	}
 
-	if err := os.WriteFile(config.Path, buf, 0600); err != nil {
+	if _, err := os.Stat(config.Path); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			f, createErr := os.Create(config.Path)
+			if createErr != nil {
+				return errors.Wrap(createErr, "creating dev config file")
+			}
+			f.Close()
+			logger.Log("Created dev config file at %s", config.Path)
+		} else {
+			return errors.Wrap(err, "checking if dev config file exists")
+		}
+	}
+
+	if err := os.WriteFile(config.Path, buf, 0644); err != nil {
 		return errors.Wrap(err, "write config")
 	}
 
 	return nil
 }
 
-func PromptDevConfigFileCreation(defaultPath string) (string, error) {
-	ok, err := utils.Confirm("Dev config file not found - would you like to create one?")
-	if err != nil {
-		return "", err
-	} else if !ok {
-		return "", nil
+// LoadDevConfigFile attempts to load in the dev config file at devConfigPath.
+func LoadDevConfigFile(devConfigPath string) (*DevConfig, error) {
+	var devConfig *DevConfig
+	var devConfigLoaded bool
+	if devConfigPath != "" {
+		var err error
+		devConfig, err = ReadDevConfig(devConfigPath)
+		if err != nil {
+			if !errors.Is(err, ErrMissing) {
+				return nil, errors.Wrap(err, "unable to read dev config")
+			}
+		} else {
+			devConfigLoaded = true
+		}
 	}
 
-	var path string
-	if err := survey.AskOne(
-		&survey.Input{
-			Message: "Where would you like to create the dev config file?",
-			Default: defaultPath,
-		},
-		&path,
-	); err != nil {
-		return "", err
+	if devConfigLoaded {
+		logger.Log("Loaded dev config from %s", devConfigPath)
+	} else {
+		logger.Debug("Using empty dev config")
+		devConfig = NewDevConfig(devConfigPath)
 	}
 
-	f, err := os.Create(path)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	return path, nil
+	return devConfig, nil
 }

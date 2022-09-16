@@ -31,6 +31,7 @@ type taskDevConfig struct {
 	root          *cli.Config
 	port          int
 	devConfigPath string
+	devConfig     *conf.DevConfig
 	envSlug       string
 
 	// Short-lived dev command fields
@@ -72,7 +73,38 @@ func New(c *cli.Config) *cobra.Command {
 				} else if len(args) > 1 {
 					return errors.New("Multiple dev server roots detected, please supply only one directory to discover tasks and views")
 				} else {
+					// Use absolute path to dev root to allow the local dev server to more easily calculate relative paths.
 					cfg.fileOrDir = args[0]
+					if cfg.fileOrDir, err = filepath.Abs(cfg.fileOrDir); err != nil {
+						return errors.Wrap(err, "getting absolute path of editor working directory")
+					}
+				}
+
+				if cfg.devConfigPath == "" {
+					var devDir string
+					// Calling filepath.Dir on a directory path that doesn't end in '/' returns that directory's parent -
+					// we want to return the directory itself in that case, and so we check if cfg.fileOrDir is a directory.
+					if info, err := os.Stat(cfg.fileOrDir); err != nil {
+						return err
+					} else if info.IsDir() {
+						devDir = cfg.fileOrDir
+					} else {
+						devDir = filepath.Dir(cfg.fileOrDir)
+					}
+
+					// Recursively search for dev config file, starting from the dev dir.
+					devConfigDir, ok := fsx.Find(devDir, conf.DefaultDevConfigFileName)
+					if !ok {
+						// If a dev config file is not found, set the dev config dir to the dev root and prompt for creation
+						// of the file below.
+						devConfigDir = devDir
+					}
+					cfg.devConfigPath = filepath.Join(devConfigDir, conf.DefaultDevConfigFileName)
+				} else {
+					cfg.devConfigPath, err = filepath.Abs(cfg.devConfigPath)
+					if err != nil {
+						return errors.Wrap(err, "getting absolute path of dev config file")
+					}
 				}
 			} else if len(args) == 0 || strings.HasPrefix(args[0], "-") {
 				cfg.fileOrDir = wd
@@ -88,11 +120,9 @@ func New(c *cli.Config) *cobra.Command {
 				cfg.entrypointFunc = fileAndFunction[1]
 			}
 
-			if cfg.devConfigPath == "" {
-				// Check if default dev config exists
-				if _, err := os.Stat(conf.DefaultDevConfigFileName); err == nil {
-					cfg.devConfigPath = conf.DefaultDevConfigFileName
-				}
+			cfg.devConfig, err = conf.LoadDevConfigFile(cfg.devConfigPath)
+			if err != nil {
+				return errors.Wrap(err, "loading dev config file")
 			}
 
 			return run(cmd.Root().Context(), cfg)
@@ -106,9 +136,6 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().StringVar(&cfg.devConfigPath, "config-path", "", "The path to the dev config file to load into the local dev server.")
 	// TODO: Make opening the editor the default behavior.
 	cmd.PersistentFlags().BoolVar(&cfg.editor, "editor", false, "Run the local airplane editor")
-	if err := cmd.PersistentFlags().MarkHidden("editor"); err != nil {
-		logger.Debug("error: %s", err)
-	}
 	return cmd
 }
 
@@ -144,43 +171,12 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	// local dev, we send requests to a locally running api server, and so we override the host here.
 	cfg.root.Client.Host = fmt.Sprintf("127.0.0.1:%d", cfg.port)
 
-	var devConfig *conf.DevConfig
-	var devConfigLoaded bool
-	if cfg.devConfigPath != "" {
-		devConfig, err = conf.ReadDevConfig(cfg.devConfigPath)
-		if err != nil {
-			// Attempt to create dev config file
-			if errors.Is(err, conf.ErrMissing) {
-				if path, creationErr := conf.PromptDevConfigFileCreation(cfg.devConfigPath); creationErr != nil {
-					l.Warning("Unable to create dev config file: %v", creationErr)
-				} else {
-					devConfig, err = conf.ReadDevConfig(path)
-					if err != nil {
-						return err
-					} else {
-						devConfigLoaded = true
-					}
-				}
-			} else {
-				l.Warning("Unable to read dev config, using empty config")
-			}
-		} else {
-			devConfigLoaded = true
-		}
-	}
-
-	if devConfigLoaded {
-		l.Log("Loaded dev config file at %s", cfg.devConfigPath)
-	} else {
-		devConfig = &conf.DevConfig{}
-	}
-
 	apiServer, err := server.Start(server.Options{
 		CLI:       cfg.root,
 		EnvSlug:   cfg.envSlug,
 		Executor:  localExecutor,
 		Port:      cfg.port,
-		DevConfig: devConfig,
+		DevConfig: cfg.devConfig,
 	})
 	if err != nil {
 		return errors.Wrap(err, "starting local dev api server")
@@ -227,7 +223,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		return err
 	}
 
-	resources, err := resource.GenerateAliasToResourceMap(taskConfig.Def.GetResourceAttachments(), devConfig.Resources)
+	resources, err := resource.GenerateAliasToResourceMap(taskConfig.Def.GetResourceAttachments(), cfg.devConfig.Resources)
 	if err != nil {
 		return errors.Wrap(err, "generating alias to resource map")
 	}
@@ -237,7 +233,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		return err
 	}
 
-	envVars, err := dev.MaterializeEnvVars(taskConfig, devConfig)
+	envVars, err := dev.MaterializeEnvVars(taskConfig, cfg.devConfig)
 	if err != nil {
 		return err
 	}
