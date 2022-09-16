@@ -42,7 +42,7 @@ func view(root string, options KindOptions) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	indexHtmlStr, err := IndexHtmlString()
+	indexHtmlStr, err := IndexHtmlString("Airplane")
 	if err != nil {
 		return "", err
 	}
@@ -160,8 +160,12 @@ func ViteConfigString() (string, error) {
 //go:embed views/index.html
 var indexHtmlTemplateStr string
 
-func IndexHtmlString() (string, error) {
-	return indexHtmlTemplateStr, nil
+func IndexHtmlString(title string) (string, error) {
+	return applyTemplate(indexHtmlTemplateStr, struct {
+		Title string
+	}{
+		Title: title,
+	})
 }
 
 //go:embed views/main.tsx
