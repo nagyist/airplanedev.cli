@@ -170,6 +170,10 @@ func (mc *MockClient) CreateDemoDB(ctx context.Context, name string) (string, er
 	panic("not implemented")
 }
 
+func (mc *MockClient) GetDemoDBResource(ctx context.Context) (Resource, error) {
+	panic("not implemented")
+}
+
 func (mc *MockClient) GetEnv(ctx context.Context, envSlug string) (libapi.GetEnvResponse, error) {
 	env, ok := mc.Envs[envSlug]
 	if !ok {

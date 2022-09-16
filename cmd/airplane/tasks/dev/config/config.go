@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/create_demo_db"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/delete_config"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/delete_resource"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/set_config"
@@ -76,6 +77,7 @@ func New(c *cli.Config) *cobra.Command {
 
 	cmd.AddCommand(set_resource.New(cfg))
 	cmd.AddCommand(delete_resource.New(cfg))
+	cmd.AddCommand(create_demo_db.New(cfg))
 
 	return cmd
 }

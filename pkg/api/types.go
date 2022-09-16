@@ -350,3 +350,28 @@ type App struct {
 type CreateDemoDBRequest struct {
 	Name string `json:"name"`
 }
+
+type Resource struct {
+	ID         string             `json:"id"`
+	Name       string             `json:"name"`
+	KindConfig ResourceKindConfig `json:"kindConfig"`
+}
+
+type ResourceKindConfig struct {
+	Postgres *SQLKindConfig `json:"postgres"`
+}
+
+type SQLKindConfig struct {
+	Host       string `json:"host"`
+	Port       string `json:"port"`
+	Database   string `json:"database"`
+	Username   string `json:"username"`
+	Password   string `json:"password"`
+	DisableSSL bool   `json:"disableSSL"`
+
+	// Optional SSH tunneling
+	SSHHost       string `json:"sshHost"`
+	SSHPort       string `json:"sshPort"`
+	SSHUsername   string `json:"sshUsername"`
+	SSHPrivateKey string `json:"sshPrivateKey"`
+}

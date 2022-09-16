@@ -106,6 +106,7 @@ type APIClient interface {
 	GetView(ctx context.Context, req libapi.GetViewRequest) (libapi.View, error)
 	CreateView(ctx context.Context, req libapi.CreateViewRequest) (libapi.View, error)
 	CreateDemoDB(ctx context.Context, name string) (string, error)
+	GetDemoDBResource(ctx context.Context) (Resource, error)
 
 	GetEnv(ctx context.Context, envSlug string) (libapi.GetEnvResponse, error)
 }
@@ -398,6 +399,15 @@ func (c Client) ResetDemoDB(ctx context.Context) (string, error) {
 		return "", err
 	}
 	return reply.ResourceID, nil
+}
+
+func (c Client) GetDemoDBResource(ctx context.Context) (Resource, error) {
+	var reply Resource
+	err := c.do(ctx, "GET", "/resources/getDemoDBResource", nil, &reply)
+	if err != nil {
+		return Resource{}, err
+	}
+	return reply, nil
 }
 
 // GetConfig returns a config by name and tag.
