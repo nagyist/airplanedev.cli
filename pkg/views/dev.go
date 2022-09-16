@@ -123,8 +123,8 @@ func createWrapperTemplates(tmpdir string, entrypointFile string) error {
 	entrypointModule := entrypointFile[:len(entrypointFile)-4]
 
 	indexHtmlPath := filepath.Join(tmpdir, "index.html")
-	// TODO(zhan): put the view slug instead of Airplane as the title.
-	indexHtmlStr, err := libbuild.IndexHtmlString()
+	title := strings.Split(filepath.Base(entrypointFile), ".")[0]
+	indexHtmlStr, err := libbuild.IndexHtmlString(title)
 	if err != nil {
 		return errors.Wrap(err, "loading index.html value")
 	}
