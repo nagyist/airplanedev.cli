@@ -48,6 +48,20 @@ func (mc *MockClient) ListResources(ctx context.Context) (res libapi.ListResourc
 	return libapi.ListResourcesResponse{Resources: mc.Resources}, nil
 }
 
+func (mc *MockClient) ListResourceMetadata(ctx context.Context) (res libapi.ListResourceMetadataResponse, err error) {
+	metadata := []libapi.ResourceMetadata{}
+	for i, r := range mc.Resources {
+		metadata = append(metadata, libapi.ResourceMetadata{
+			ID:                 r.ID,
+			Slug:               r.Slug,
+			DefaultEnvResource: &mc.Resources[i],
+		})
+	}
+	return libapi.ListResourceMetadataResponse{
+		Resources: metadata,
+	}, nil
+}
+
 func (mc *MockClient) SetConfig(ctx context.Context, req SetConfigRequest) (err error) {
 	panic("not implemented") // TODO: Implement
 }

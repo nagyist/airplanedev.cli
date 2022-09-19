@@ -90,6 +90,7 @@ type APIClient interface {
 	TaskURL(slug string, envSlug string) string
 
 	ListResources(ctx context.Context) (res libapi.ListResourcesResponse, err error)
+	ListResourceMetadata(ctx context.Context) (res libapi.ListResourceMetadataResponse, err error)
 
 	SetConfig(ctx context.Context, req SetConfigRequest) (err error)
 	GetConfig(ctx context.Context, req GetConfigRequest) (res GetConfigResponse, err error)
@@ -474,6 +475,11 @@ func (c Client) GetDeploymentLogs(ctx context.Context, deploymentID string, prev
 
 func (c Client) ListResources(ctx context.Context) (res libapi.ListResourcesResponse, err error) {
 	err = c.do(ctx, "GET", "/resources/list", nil, &res)
+	return
+}
+
+func (c Client) ListResourceMetadata(ctx context.Context) (res libapi.ListResourceMetadataResponse, err error) {
+	err = c.do(ctx, "GET", "/resources/listMetadata", nil, &res)
 	return
 }
 
