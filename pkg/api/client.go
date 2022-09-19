@@ -18,6 +18,7 @@ type IAPIClient interface {
 	GetTaskMetadata(ctx context.Context, slug string) (res TaskMetadata, err error)
 	GetView(ctx context.Context, req GetViewRequest) (res View, err error)
 	ListResources(ctx context.Context) (res ListResourcesResponse, err error)
+	ListResourceMetadata(ctx context.Context) (res ListResourceMetadataResponse, err error)
 	CreateBuildUpload(ctx context.Context, req CreateBuildUploadRequest) (res CreateBuildUploadResponse, err error)
 }
 
@@ -197,6 +198,16 @@ const (
 	KindMySQL    ResourceKind = "mysql"
 	KindREST     ResourceKind = "rest"
 )
+
+type ListResourceMetadataResponse struct {
+	Resources []ResourceMetadata `json:"resources"`
+}
+
+type ResourceMetadata struct {
+	ID                 string    `json:"id"`
+	Slug               string    `json:"slug"`
+	DefaultEnvResource *Resource `json:"defaultEnvResource"`
+}
 
 type Permissions []Permission
 

@@ -40,6 +40,20 @@ func (mc *MockClient) ListResources(ctx context.Context) (res api.ListResourcesR
 	}, nil
 }
 
+func (mc *MockClient) ListResourceMetadata(ctx context.Context) (res api.ListResourceMetadataResponse, err error) {
+	metadata := []api.ResourceMetadata{}
+	for i, r := range mc.Resources {
+		metadata = append(metadata, api.ResourceMetadata{
+			ID:                 r.ID,
+			Slug:               r.Slug,
+			DefaultEnvResource: &mc.Resources[i],
+		})
+	}
+	return api.ListResourceMetadataResponse{
+		Resources: metadata,
+	}, nil
+}
+
 func (mc *MockClient) CreateBuildUpload(ctx context.Context, req api.CreateBuildUploadRequest) (res api.CreateBuildUploadResponse, err error) {
 	return api.CreateBuildUploadResponse{
 		WriteOnlyURL: "writeOnlyURL",
