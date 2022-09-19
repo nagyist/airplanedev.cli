@@ -37,6 +37,7 @@ func AttachExternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/runs/list", handlers.Handler(state, ListRunsHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/resources/list", handlers.Handler(state, ListResourcesHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/resources/listMetadata", handlers.Handler(state, ListResourceMetadataHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/views/get", handlers.Handler(state, GetViewHandler)).Methods("GET", "OPTIONS")
 
@@ -441,6 +442,35 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 	}
 
 	return libapi.ListResourcesResponse{
+		Resources: resources,
+	}, nil
+}
+
+// ListResourceMetadataHandler handles requests to the /v0/resources/listMetadata endpoint
+func ListResourceMetadataHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.ListResourceMetadataResponse, error) {
+	resources := make([]libapi.ResourceMetadata, 0, len(state.DevConfig.RawResources))
+	for slug, res := range state.DevConfig.Resources {
+		internalResource, err := conversion.ConvertToInternalResource(res)
+		if err != nil {
+			return libapi.ListResourceMetadataResponse{}, errors.Wrap(err, "converting to internal resource")
+		}
+		kindConfig, err := resource.KindConfigToMap(internalResource)
+		if err != nil {
+			return libapi.ListResourceMetadataResponse{}, err
+		}
+		resources = append(resources, libapi.ResourceMetadata{
+			ID:   res.ID(),
+			Slug: slug,
+			DefaultEnvResource: &libapi.Resource{
+				ID:         res.ID(),
+				Slug:       slug,
+				Kind:       libapi.ResourceKind(res.Kind()),
+				KindConfig: kindConfig,
+			},
+		})
+	}
+
+	return libapi.ListResourceMetadataResponse{
 		Resources: resources,
 	}, nil
 }
