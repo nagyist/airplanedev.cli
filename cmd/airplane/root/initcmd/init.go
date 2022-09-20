@@ -26,7 +26,6 @@ type config struct {
 	client      *api.Client
 	template    string
 	resetDemoDB bool
-	dev         bool
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -40,7 +39,6 @@ func New(c *cli.Config) *cobra.Command {
 			$ airplane init --template github.com/airplanedev/templates/getting_started
 		`),
 		PersistentPreRunE: utils.WithParentPersistentPreRunE(func(cmd *cobra.Command, args []string) error {
-			cfg.dev = c.Dev
 			return login.EnsureLoggedIn(cmd.Root().Context(), c)
 		}),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -87,10 +85,6 @@ func run(ctx context.Context, cfg config) error {
 			return err
 		}
 		return initFromTemplate(ctx, templates, cfg.template)
-	}
-
-	if !cfg.dev {
-		return taskinit.Run(ctx, taskinit.GetConfig(cfg.client))
 	}
 
 	var selectedInit string
