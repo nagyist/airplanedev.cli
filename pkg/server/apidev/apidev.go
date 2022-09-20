@@ -185,7 +185,7 @@ func StartViewHandler(ctx context.Context, state *state.State, r *http.Request) 
 		return StartViewResponse{}, err
 	}
 
-	cmd, viteServer, err := views.Dev(vd, views.ViteOpts{
+	cmd, viteServer, err := views.Dev(ctx, vd, views.ViteOpts{
 		Client:  state.CliConfig.Client,
 		EnvSlug: state.EnvSlug,
 		TTY:     false,

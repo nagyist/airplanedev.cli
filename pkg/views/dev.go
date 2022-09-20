@@ -2,6 +2,7 @@ package views
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -27,7 +28,7 @@ const (
 	envSlugEnvKey = "AIRPLANE_ENV_SLUG"
 )
 
-func Dev(v viewdir.ViewDirectory, viteOpts ViteOpts) (*exec.Cmd, string, error) {
+func Dev(ctx context.Context, v viewdir.ViewDirectory, viteOpts ViteOpts) (*exec.Cmd, string, error) {
 	root := v.Root()
 	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{WithLoader: true})
 	defer l.StopLoader()
@@ -107,7 +108,7 @@ func Dev(v viewdir.ViewDirectory, viteOpts ViteOpts) (*exec.Cmd, string, error) 
 	l.StopLoader()
 
 	// Run vite.
-	cmd, viteServer, err := runVite(viteOpts, tmpdir)
+	cmd, viteServer, err := runVite(ctx, viteOpts, tmpdir)
 	if err != nil {
 		return nil, "", errors.Wrap(err, "running vite")
 	}
@@ -198,7 +199,7 @@ type ViteOpts struct {
 	TTY     bool
 }
 
-func runVite(opts ViteOpts, tmpdir string) (*exec.Cmd, string, error) {
+func runVite(ctx context.Context, opts ViteOpts, tmpdir string) (*exec.Cmd, string, error) {
 	cmd := exec.Command("node_modules/.bin/vite", "dev")
 	// TODO - View def might not be in the same location as the view itself. If
 	// we decide to support this, use the entrypoint to determine where to run
@@ -246,7 +247,17 @@ func runVite(opts ViteOpts, tmpdir string) (*exec.Cmd, string, error) {
 	}
 	logger.Debug("Started vite with process id: %v", cmd.Process.Pid)
 
-	wg.Wait()
+	// We wait in a separate goroutine and send back a signal to the original, so that
+	// we can also check ctx.Done(), which will handle signals correct.
+	quitCh := make(chan interface{})
+	go func() {
+		wg.Wait()
+		quitCh <- struct{}{}
+	}()
+	select {
+	case <-quitCh:
+	case <-ctx.Done():
+	}
 
 	if !opts.TTY {
 		// Debug log in the background in non TTY mode so we always log out Vite logs.
