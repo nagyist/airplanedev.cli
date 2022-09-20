@@ -41,6 +41,7 @@ var corsOrigins = []string{
 	`\.airstage\.app$`,
 	`\.airplane\.dev$`,
 	`^http://localhost:`,
+	`^http://127.0.0.1:`,
 }
 
 // NewRouter returns a new router for the local api server
@@ -60,8 +61,14 @@ func NewRouter(state *state.State) *mux.Router {
 		handlers.AllowedHeaders([]string{
 			"content-type",
 			"accept",
-			"x-airplane-env-id",
 			"x-team-id",
+			"x-airplane-env-id",
+			"x-airplane-env-slug",
+			"x-airplane-token",
+			"x-airplane-api-key",
+			"x-airplane-client-kind",
+			"x-airplane-client-version",
+			"x-airplane-client-source",
 		}),
 	))
 

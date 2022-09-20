@@ -44,6 +44,7 @@ type taskDevConfig struct {
 
 	// Airplane dev server-related fields
 	editor bool
+	local  bool
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -106,6 +107,11 @@ func New(c *cli.Config) *cobra.Command {
 						return errors.Wrap(err, "getting absolute path of dev config file")
 					}
 				}
+
+				// If the --env flag isn't explicitly set, assume local references for child tasks and resources.
+				if !cmd.Flags().Changed("env") {
+					cfg.local = true
+				}
 			} else if len(args) == 0 || strings.HasPrefix(args[0], "-") {
 				cfg.fileOrDir = wd
 				cfg.args = args
@@ -135,7 +141,7 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().IntVar(&cfg.port, "port", server.DefaultPort, "The port to start the local airplane api server on - defaults to 4000.")
 	cmd.Flags().StringVar(&cfg.devConfigPath, "config-path", "", "The path to the dev config file to load into the local dev server.")
 	// TODO: Make opening the editor the default behavior.
-	cmd.PersistentFlags().BoolVar(&cfg.editor, "editor", false, "Run the local airplane editor")
+	cmd.Flags().BoolVar(&cfg.editor, "editor", false, "Run the local airplane editor")
 	return cmd
 }
 

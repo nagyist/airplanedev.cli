@@ -185,8 +185,12 @@ func StartViewHandler(ctx context.Context, state *state.State, r *http.Request) 
 		return StartViewResponse{}, err
 	}
 
+	viewsClient := state.CliConfig.Client
+	if state.EnvID == dev.LocalEnvID {
+		viewsClient = state.LocalClient
+	}
 	cmd, viteServer, err := views.Dev(ctx, vd, views.ViteOpts{
-		Client:  state.CliConfig.Client,
+		Client:  viewsClient,
 		EnvSlug: state.EnvSlug,
 		TTY:     false,
 	})

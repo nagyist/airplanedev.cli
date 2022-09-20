@@ -275,10 +275,14 @@ func runVite(ctx context.Context, opts ViteOpts, tmpdir string) (*exec.Cmd, stri
 
 func getAdditionalEnvs(host, apiKey, token, envSlug string) []string {
 	var envs []string
-
 	if _, ok := os.LookupEnv(hostEnvKey); !ok && host != "" {
 		if !strings.HasPrefix(host, "http") {
-			host = "https://" + host
+			// The local dev server currently only supports http.
+			if strings.HasPrefix(host, "127.0.0.1") {
+				host = "http://" + host
+			} else {
+				host = "https://" + host
+			}
 		}
 		envs = append(envs, fmt.Sprintf("%s=%s", hostEnvKey, host))
 	}

@@ -485,7 +485,7 @@ func (c Client) ListResourceMetadata(ctx context.Context) (res libapi.ListResour
 
 func (c Client) GetEnv(ctx context.Context, envSlug string) (res libapi.GetEnvResponse, err error) {
 	err = c.do(ctx, "GET", encodeQueryString("/envs/get", url.Values{
-		"envSlug": []string{envSlug},
+		"slug": []string{envSlug},
 	}), nil, &res)
 	return
 }

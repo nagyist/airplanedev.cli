@@ -18,28 +18,38 @@ import (
 )
 
 func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
+	authInfo, err := cfg.root.Client.AuthInfo(ctx)
+	if err != nil {
+		return err
+	}
+
+	var envID, envSlug string
+	if cfg.local {
+		// Use a special env ID and slug when executing tasks locally and the `--env` flag doesn't apply.
+		envID = dev.LocalEnvID
+		envSlug = dev.LocalEnvID
+	} else {
+		env, err := cfg.root.Client.GetEnv(ctx, cfg.envSlug)
+		if err != nil {
+			return err
+		}
+		envID = env.ID
+		envSlug = env.Slug
+	}
+
+	localExecutor := &dev.LocalExecutor{}
 	// The API client is set in the root command, and defaults to api.airplane.dev as the host for deploys, etc. For
 	// local dev, we send requests to a locally running api server, and so we create an api client that hits localhost
 	// here.
+	devServerHost := fmt.Sprintf("127.0.0.1:%d", cfg.port)
 	localClient := &api.Client{
-		Host:   fmt.Sprintf("127.0.0.1:%d", cfg.port),
+		Host:   devServerHost,
 		Token:  cfg.root.Client.Token,
 		Source: cfg.root.Client.Source,
 		APIKey: cfg.root.Client.APIKey,
 		TeamID: cfg.root.Client.TeamID,
 	}
 
-	authInfo, err := cfg.root.Client.AuthInfo(ctx)
-	if err != nil {
-		return err
-	}
-
-	env, err := cfg.root.Client.GetEnv(ctx, cfg.envSlug)
-	if err != nil {
-		return err
-	}
-
-	localExecutor := &dev.LocalExecutor{}
 	// Use absolute path to dev root to allow the local dev server to more easily calculate relative paths.
 	dir := filepath.Dir(cfg.fileOrDir)
 	absoluteDir, err := filepath.Abs(dir)
@@ -50,8 +60,8 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		CLI:         cfg.root,
 		LocalClient: localClient,
 		DevConfig:   cfg.devConfig,
-		EnvID:       env.ID,
-		EnvSlug:     env.Slug,
+		EnvID:       envID,
+		EnvSlug:     envSlug,
 		Executor:    localExecutor,
 		Port:        cfg.port,
 		Dir:         absoluteDir,
@@ -136,7 +146,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		logger.Log(" ")
 		logger.Log(
 			"The following tasks have resource attachments that are not defined in the dev config file. Please " +
-				"add them through the previewer or run `airplane dev config set-resource`.")
+				"add them through the editor or run `airplane dev config set-resource`.")
 		for _, ur := range warnings.UnattachedResources {
 			logger.Log("- %s: %s", ur.TaskName, ur.ResourceSlugs)
 		}
@@ -144,6 +154,12 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 
 	logger.Log("")
 	logger.Log("Visit %s/editor?host=http://localhost:%d for a development UI.", cfg.root.Client.AppURL(), cfg.port)
+	if envID == dev.LocalEnvID {
+		logger.Log("Your environment is set to %s - any tasks referenced by your views will execute locally. To run tasks in a remote environment, run `airplane dev --editor --env <env>`.", logger.Bold(dev.LocalEnvID))
+	} else {
+		logger.Log("Your environment is set to %s - any tasks referenced by your views will execute remotely in that environment. To run all tasks locally, run `airplane dev --editor` without the `--env` flag.", logger.Bold(envSlug))
+	}
+
 	logger.Log("[Ctrl+C] to shutdown the local dev server.")
 
 	// Wait for termination signal (e.g. Ctrl+C)
