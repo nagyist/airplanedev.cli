@@ -217,9 +217,14 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		}
 
 		for {
-			entrypoint, err = promptForEntrypoint(def.GetSlug(), kind, entrypoint, cfg.inline)
-			if err != nil {
-				return err
+
+			if cfg.assumeYes && cfg.file != "" {
+				entrypoint = cfg.file
+			} else {
+				entrypoint, err = promptForEntrypoint(def.GetSlug(), kind, entrypoint, cfg)
+				if err != nil {
+					return err
+				}
 			}
 
 			if fsx.Exists(entrypoint) {
@@ -395,7 +400,7 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 	}
 
 	if cfg.file == "" {
-		cfg.file, err = promptForEntrypoint(task.Slug, task.Kind, "", false)
+		cfg.file, err = promptForEntrypoint(task.Slug, task.Kind, "", cfg)
 		if err != nil {
 			return err
 		}
@@ -550,7 +555,7 @@ func patch(slug, file string) (ok bool, err error) {
 	return
 }
 
-func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint string, inline bool) (string, error) {
+func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint string, cfg config) (string, error) {
 	exts := runtime.SuggestExts(kind)
 	if defaultEntrypoint == "" {
 		defaultEntrypoint = slug
@@ -569,7 +574,7 @@ func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint str
 		}
 	}
 
-	if inline {
+	if !cfg.codeOnly && cfg.inline {
 		defaultEntrypoint = modifyEntrypointForInline(kind, defaultEntrypoint)
 	}
 
