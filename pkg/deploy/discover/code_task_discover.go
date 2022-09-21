@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path"
 	"strings"
 
@@ -134,7 +133,7 @@ func (c *CodeTaskDiscoverer) parseNodeDefinitions(ctx context.Context, file stri
 		return nil, err
 	}
 
-	parsedConfigs, err := extractConfigs(compiledJSPath)
+	parsedConfigs, err := extractJSConfigs(compiledJSPath)
 	if err != nil {
 		c.Logger.Warning(`Unable to discover inline configured tasks: %s`, err.Error())
 	}
@@ -161,17 +160,9 @@ func (c *CodeTaskDiscoverer) parseNodeDefinitions(ctx context.Context, file stri
 }
 
 func (c *CodeTaskDiscoverer) parsePythonDefinitions(ctx context.Context, file string) ([]ParsedDefinition, error) {
-	out, err := exec.Command("python3", "-c", string(pythonParserScript), file).Output()
+	parsedConfigs, err := extractPythonConfigs(file)
 	if err != nil {
-		return nil, err
-	}
-
-	var parsedTasks []map[string]interface{}
-	if err := json.Unmarshal(out, &parsedTasks); err != nil {
-		return nil, err
-	}
-	if len(parsedTasks) == 0 {
-		return nil, nil
+		c.Logger.Warning(`Unable to discover inline configured tasks: %s`, err.Error())
 	}
 
 	pathMetadata, err := taskPathMetadata(file, build.TaskKindPython)
@@ -180,10 +171,11 @@ func (c *CodeTaskDiscoverer) parsePythonDefinitions(ctx context.Context, file st
 	}
 
 	var parsedDefinitions []ParsedDefinition
-	for _, parsedTask := range parsedTasks {
-		parsedTask["python"] = map[string]interface{}{
-			"entrypoint": pathMetadata.RelEntrypoint,
-		}
+	for _, parsedTask := range parsedConfigs {
+		// Add the entrypoint to the json definition before validation
+		// since it is unknown to the parser.
+		pythonConfig := parsedTask["python"].(map[string]interface{})
+		pythonConfig["entrypoint"] = pathMetadata.RelEntrypoint
 
 		def, err := constructDefinition(parsedTask, pathMetadata)
 		if err != nil {

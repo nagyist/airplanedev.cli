@@ -45,6 +45,7 @@ class TaskDef:
     resources: Optional[List[Any]]
     schedules: Optional[List[Any]]
     parameters: Optional[List[ParamDef]]
+    env_vars: Optional[Any]
 
 
 def collatz(num: int) -> int:
@@ -66,6 +67,7 @@ collatz.__airplane = TaskDef(
     constraints=None,
     resources=None,
     schedules=None,
+    env_vars=None,
     parameters=[
         ParamDef(
             arg_name="num",

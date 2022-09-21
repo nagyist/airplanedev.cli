@@ -35,6 +35,17 @@ class Schedule:
 
 
 @dataclasses.dataclass
+class EnvVar:
+    value: Optional[str]
+    config: Optional[str]
+
+
+@dataclasses.dataclass
+class PythonDef:
+    envVars: Optional[Dict[str, EnvVar]]
+
+
+@dataclasses.dataclass
 class Def:
     entrypointFunc: str
 
@@ -45,6 +56,7 @@ class Def:
     resources: Optional[Dict[str, str]]
 
     constraints: Optional[Dict[str, str]]
+    python: PythonDef
     requireRequests: bool
     allowSelfApprovals: bool
     timeout: int
@@ -121,6 +133,15 @@ def extract_task_configs(files: List[str]) -> List[Def]:
                                 )
                                 for s in conf.schedules or []
                             },
+                            python=PythonDef(
+                                envVars={
+                                    e.name: EnvVar(
+                                        value=e.value,
+                                        config=e.config_var_name,
+                                    )
+                                    for e in conf.env_vars or []
+                                },
+                            ),
                         )
                     )
 

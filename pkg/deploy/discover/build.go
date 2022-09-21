@@ -94,35 +94,50 @@ func compiledFilePath(rootDir, file string) (string, error) {
 	return compiledJSPath, nil
 }
 
-type ParsedConfigs struct {
+type ParsedJSConfigs struct {
 	TaskConfigs []map[string]interface{} `json:"taskConfigs"`
 	ViewConfigs []map[string]interface{} `json:"viewConfigs"`
 }
 
 // Extracts view and code configs from a compiled JS file.
-func extractConfigs(file string) (ParsedConfigs, error) {
+func extractJSConfigs(file string) (ParsedJSConfigs, error) {
 	tempFile, err := os.CreateTemp("", "airplane.parser.node.*.js")
 	if err != nil {
-		return ParsedConfigs{}, errors.Wrap(err, "creating temporary directory")
+		return ParsedJSConfigs{}, errors.Wrap(err, "creating temporary directory")
 	}
 	defer os.Remove(tempFile.Name())
 	_, err = tempFile.Write(nodeParserScript)
 	if err != nil {
-		return ParsedConfigs{}, errors.Wrap(err, "writing parser script")
+		return ParsedJSConfigs{}, errors.Wrap(err, "writing parser script")
 	}
 
 	// Run parser on the file
 	out, err := exec.Command("node", tempFile.Name(), file).Output()
 	if err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
-			return ParsedConfigs{}, errors.Wrapf(err, "parsing file=%q: %s", file, ee.Stderr)
+			return ParsedJSConfigs{}, errors.Wrapf(err, "parsing file=%q: %s", file, ee.Stderr)
 		}
-		return ParsedConfigs{}, errors.Wrapf(err, "parsing file=%q", file)
+		return ParsedJSConfigs{}, errors.Wrapf(err, "parsing file=%q", file)
 	}
 
-	var parsedConfigs ParsedConfigs
+	var parsedConfigs ParsedJSConfigs
 	if err := json.Unmarshal(out, &parsedConfigs); err != nil {
-		return ParsedConfigs{}, errors.Wrap(err, "unmarshalling parser output")
+		return ParsedJSConfigs{}, errors.Wrap(err, "unmarshalling parser output")
 	}
 	return parsedConfigs, nil
+}
+
+func extractPythonConfigs(file string) ([]map[string]interface{}, error) {
+	out, err := exec.Command("python3", "-c", string(pythonParserScript), file).Output()
+	if err != nil {
+		if ee, ok := err.(*exec.ExitError); ok {
+			return []map[string]interface{}{}, errors.Wrapf(err, "parsing file=%q: %s", file, ee.Stderr)
+		}
+		return []map[string]interface{}{}, errors.Wrapf(err, "parsing file=%q", file)
+	}
+	var parsedTasks []map[string]interface{}
+	if err := json.Unmarshal(out, &parsedTasks); err != nil {
+		return nil, errors.Wrap(err, "unmarshalling parser output")
+	}
+	return parsedTasks, nil
 }

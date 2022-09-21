@@ -407,6 +407,7 @@ func TestDiscover(t *testing.T) {
 						Resources:          definitions.ResourceDefinition_0_3{Attachments: map[string]string{}},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
 						Python: &definitions.PythonDefinition_0_3{
+							EnvVars:    api.TaskEnv{},
 							Entrypoint: "code_only_task_airplane.py",
 						},
 						Schedules: map[string]definitions.ScheduleDefinition_0_3{},
