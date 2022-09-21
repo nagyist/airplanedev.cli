@@ -34,7 +34,7 @@ func (mc *MockClient) GetTaskMetadata(ctx context.Context, slug string) (res api
 	}, nil
 }
 
-func (mc *MockClient) ListResources(ctx context.Context) (res api.ListResourcesResponse, err error) {
+func (mc *MockClient) ListResources(ctx context.Context, envSlug string) (res api.ListResourcesResponse, err error) {
 	return api.ListResourcesResponse{
 		Resources: mc.Resources,
 	}, nil
