@@ -19,6 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
@@ -55,6 +56,7 @@ type LocalRunConfig struct {
 	Slug        string
 	EnvID       string
 	EnvSlug     string
+	ParentRunID *string
 	Env         map[string]string
 	AuthInfo    api.AuthInfoResponse
 	// Mapping from alias to resource
@@ -391,6 +393,7 @@ func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error
 		fmt.Sprintf("AIRPLANE_ENV_ID=%s", config.EnvID),
 		fmt.Sprintf("AIRPLANE_ENV_SLUG=%s", config.EnvSlug),
 		fmt.Sprintf("AIRPLANE_RUN_ID=%s", config.ID),
+		fmt.Sprintf("AIRPLANE_PARENT_RUN_ID=%s", pointers.ToString(config.ParentRunID)),
 		fmt.Sprintf("AIRPLANE_RUNNER_EMAIL=%s", runnerEmail),
 		fmt.Sprintf("AIRPLANE_RUNNER_ID=%s", runnerID),
 		"AIRPLANE_RUNTIME=dev",

@@ -14,6 +14,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/builtins"
 	"github.com/airplanedev/lib/pkg/resources/conversion"
@@ -98,6 +99,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			Slug:        req.Slug,
 			EnvID:       state.EnvID,
 			EnvSlug:     state.EnvSlug,
+			ParentRunID: pointers.String(parentID),
 			IsBuiltin:   isBuiltin,
 			AuthInfo:    state.AuthInfo,
 			LogBroker:   run.LogBroker,
