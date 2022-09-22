@@ -36,7 +36,7 @@ require (
 	github.com/stretchr/testify v1.8.0
 	golang.org/x/exp v0.0.0-20220916125017-b168a2c6b86b
 	golang.org/x/sync v0.0.0-20220907140024-f12130a52804
-	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035
+	golang.org/x/term v0.0.0-20220919170432-7a66f970e087
 	google.golang.org/api v0.96.0
 	gopkg.in/yaml.v3 v3.0.1
 )
