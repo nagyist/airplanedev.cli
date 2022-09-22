@@ -72,8 +72,6 @@ type CmdConfig struct {
 	runtime    runtime.Interface
 }
 
-const LocalEnvID = "local"
-
 var LogIDGen IDGenerator
 
 // Cmd returns the command needed to execute the task locally

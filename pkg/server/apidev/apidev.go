@@ -10,6 +10,7 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/version"
@@ -186,7 +187,7 @@ func StartViewHandler(ctx context.Context, state *state.State, r *http.Request) 
 	}
 
 	viewsClient := state.CliConfig.Client
-	if state.EnvID == dev.LocalEnvID {
+	if state.EnvID == env.LocalEnvID {
 		viewsClient = state.LocalClient
 	}
 	cmd, viteServer, err := views.Dev(ctx, vd, views.ViteOpts{

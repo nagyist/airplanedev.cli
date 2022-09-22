@@ -191,3 +191,7 @@ func (mc *MockClient) GetEnv(ctx context.Context, envSlug string) (libapi.GetEnv
 	}
 	return env, nil
 }
+
+func (mc *MockClient) GetResource(ctx context.Context, req GetResourceRequest) (res libapi.GetResourceResponse, err error) {
+	panic("not implemented")
+}

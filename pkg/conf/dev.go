@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/pkg/errors"
@@ -24,7 +25,7 @@ type DevConfig struct {
 	// Path is the location that the dev config file was loaded from and where updates will be written to.
 	Path string `json:"-" yaml:"-"`
 	// Resources is a mapping from slug to external resource.
-	Resources map[string]resources.Resource `json:"-" yaml:"-"`
+	Resources map[string]env.ResourceWithEnv `json:"-" yaml:"-"`
 }
 
 // NewDevConfig returns a default dev config.
@@ -32,7 +33,7 @@ func NewDevConfig(path string) *DevConfig {
 	return &DevConfig{
 		ConfigVars:   map[string]string{},
 		RawResources: []map[string]interface{}{},
-		Resources:    map[string]resources.Resource{},
+		Resources:    map[string]env.ResourceWithEnv{},
 		Path:         path,
 	}
 }
@@ -40,8 +41,8 @@ func NewDevConfig(path string) *DevConfig {
 func (d *DevConfig) updateRawResources() error {
 	resourceList := make([]resources.Resource, 0, len(d.RawResources))
 
-	for _, resource := range d.Resources {
-		resourceList = append(resourceList, resource)
+	for _, r := range d.Resources {
+		resourceList = append(resourceList, r.Resource)
 	}
 
 	// TODO: Use json.Marshal/Unmarshal once we've added yaml struct tags to external resource structs.
@@ -59,8 +60,11 @@ func (d *DevConfig) updateRawResources() error {
 }
 
 // SetResource updates a resource in the dev config file, creating it if necessary.
-func (d *DevConfig) SetResource(slug string, resource resources.Resource) error {
-	d.Resources[slug] = resource
+func (d *DevConfig) SetResource(slug string, r resources.Resource) error {
+	d.Resources[slug] = env.ResourceWithEnv{
+		Resource: r,
+		Remote:   false,
+	}
 
 	if err := d.updateRawResources(); err != nil {
 		return errors.Wrap(err, "updating raw resources")
@@ -109,7 +113,7 @@ func ReadDevConfig(path string) (*DevConfig, error) {
 		return nil, errors.Wrap(err, "unmarshal config")
 	}
 
-	slugToResource := map[string]resources.Resource{}
+	slugToResource := map[string]env.ResourceWithEnv{}
 	for _, r := range cfg.RawResources {
 		kind, ok := r["kind"]
 		if !ok {
@@ -131,8 +135,13 @@ func ReadDevConfig(path string) (*DevConfig, error) {
 			return nil, errors.Errorf("expected slug type to be string, got %T", slug)
 		}
 
-		if slugToResource[slugStr], err = resources.GetResource(resources.ResourceKind(kindStr), r); err != nil {
+		res, err := resources.GetResource(resources.ResourceKind(kindStr), r)
+		if err != nil {
 			return nil, errors.Wrap(err, "getting resource from raw resource")
+		}
+		slugToResource[slugStr] = env.ResourceWithEnv{
+			Resource: res,
+			Remote:   false,
 		}
 	}
 

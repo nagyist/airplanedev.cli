@@ -105,6 +105,10 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			LogBroker:   run.LogBroker,
 		}
 		resourceAttachments := map[string]string{}
+		mergedResources, err := resource.MergeRemoteResources(ctx, state)
+		if err != nil {
+			return dev.LocalRun{}, errors.Wrap(err, "merging local and remote resources")
+		}
 		// Builtins have a specific alias in the form of "rest", "db", etc. that is required by the builtins binary,
 		// and so we need to manually generate resource attachments.
 		if isBuiltin {
@@ -119,15 +123,15 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			}
 
 			var foundResource bool
-			for slug, res := range state.DevConfig.Resources {
-				if res.ID() == resourceID {
+			for slug, res := range mergedResources {
+				if res.Resource.ID() == resourceID {
 					resourceAttachments[builtinAlias] = slug
 					foundResource = true
 				}
 			}
 
 			if !foundResource {
-				return dev.LocalRun{}, errors.Errorf("resource with id %s not found in dev config file", resourceID)
+				return dev.LocalRun{}, errors.Errorf("resource with id %s not found in dev config file or remotely", resourceID)
 			}
 			run.IsStdAPI = true
 			stdapiReq, err := dev.BuiltinRequest(req.Slug, req.ParamValues)
@@ -156,8 +160,10 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			runConfig.Env = envVars
 		}
 		resources, err := resource.GenerateAliasToResourceMap(
+			ctx,
+			state,
 			resourceAttachments,
-			state.DevConfig.Resources,
+			mergedResources,
 		)
 		if err != nil {
 			return dev.LocalRun{}, errors.Wrap(err, "generating alias to resource map")
@@ -424,8 +430,8 @@ func GetPromptHandler(ctx context.Context, state *state.State, r *http.Request) 
 // ListResourcesHandler handles requests to the /i/resources/list endpoint
 func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.ListResourcesResponse, error) {
 	resources := make([]libapi.Resource, 0, len(state.DevConfig.RawResources))
-	for slug, res := range state.DevConfig.Resources {
-		internalResource, err := conversion.ConvertToInternalResource(res)
+	for slug, r := range state.DevConfig.Resources {
+		internalResource, err := conversion.ConvertToInternalResource(r.Resource)
 		if err != nil {
 			return libapi.ListResourcesResponse{}, errors.Wrap(err, "converting to internal resource")
 		}
@@ -434,9 +440,9 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 			return libapi.ListResourcesResponse{}, err
 		}
 		resources = append(resources, libapi.Resource{
-			ID:                res.ID(),
+			ID:                r.Resource.ID(),
 			Slug:              slug,
-			Kind:              libapi.ResourceKind(res.Kind()),
+			Kind:              libapi.ResourceKind(r.Resource.Kind()),
 			KindConfig:        kindConfig,
 			CanUseResource:    true,
 			CanUpdateResource: true,
@@ -450,8 +456,14 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 
 // ListResourceMetadataHandler handles requests to the /v0/resources/listMetadata endpoint
 func ListResourceMetadataHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.ListResourceMetadataResponse, error) {
-	resources := make([]libapi.ResourceMetadata, 0, len(state.DevConfig.RawResources))
-	for slug, res := range state.DevConfig.Resources {
+	mergedResources, err := resource.MergeRemoteResources(ctx, state)
+	if err != nil {
+		return libapi.ListResourceMetadataResponse{}, errors.Wrap(err, "merging local and remote resources")
+	}
+
+	resources := make([]libapi.ResourceMetadata, 0, len(mergedResources))
+	for slug, resourceWithEnv := range mergedResources {
+		res := resourceWithEnv.Resource
 		internalResource, err := conversion.ConvertToInternalResource(res)
 		if err != nil {
 			return libapi.ListResourceMetadataResponse{}, errors.Wrap(err, "converting to internal resource")

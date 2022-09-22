@@ -41,6 +41,7 @@ func NewLocalRun() *LocalRun {
 	return &LocalRun{
 		Status:      api.RunQueued,
 		ParamValues: map[string]interface{}{},
+		Parameters:  &libapi.Parameters{},
 		CreatedAt:   time.Now(),
 		LogBroker:   logs.NewDevLogBroker(),
 		Displays:    []libapi.Display{},

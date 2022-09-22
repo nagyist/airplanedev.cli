@@ -219,7 +219,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	// TODO: Allow users to re-register tasks once we move to a long-running local api server
-	if _, err := apiServer.RegisterTasksAndViews(taskConfigs, viewConfigs); err != nil {
+	if _, err := apiServer.RegisterTasksAndViews(ctx, taskConfigs, viewConfigs); err != nil {
 		return err
 	}
 	paramValues, err := params.CLI(cfg.args, taskConfig.Def.GetName(), taskConfig.Def.GetParameters())
@@ -228,8 +228,12 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	} else if err != nil {
 		return err
 	}
-
-	resources, err := resource.GenerateAliasToResourceMap(taskConfig.Def.GetResourceAttachments(), cfg.devConfig.Resources)
+	resources, err := resource.GenerateAliasToResourceMap(
+		ctx,
+		nil,
+		taskConfig.Def.GetResourceAttachments(),
+		cfg.devConfig.Resources,
+	)
 	if err != nil {
 		return errors.Wrap(err, "generating alias to resource map")
 	}

@@ -350,3 +350,10 @@ type App struct {
 type CreateDemoDBRequest struct {
 	Name string `json:"name"`
 }
+
+type GetResourceRequest struct {
+	ID                   string `json:"id"`
+	Slug                 string `json:"slug"`
+	EnvSlug              string `json:"envSlug"`
+	IncludeSensitiveData bool   `json:"includeSensitiveData"`
+}

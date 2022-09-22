@@ -155,9 +155,9 @@ func GetResourceHandler(ctx context.Context, state *state.State, r *http.Request
 		return GetResourceResponse{}, errors.Errorf("Resource slug was not supplied")
 	}
 
-	for s, resource := range state.DevConfig.Resources {
+	for s, r := range state.DevConfig.Resources {
 		if s == slug {
-			internalResource, err := conversion.ConvertToInternalResource(resource)
+			internalResource, err := conversion.ConvertToInternalResource(r.Resource)
 			if err != nil {
 				return GetResourceResponse{}, errors.Wrap(err, "converting to internal resource")
 			}
@@ -171,8 +171,8 @@ func GetResourceHandler(ctx context.Context, state *state.State, r *http.Request
 // ListResourcesHandler handles requests to the /i/resources/list endpoint
 func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.ListResourcesResponse, error) {
 	resources := make([]libapi.Resource, 0, len(state.DevConfig.RawResources))
-	for slug, resource := range state.DevConfig.Resources {
-		internalResource, err := conversion.ConvertToInternalResource(resource)
+	for slug, r := range state.DevConfig.Resources {
+		internalResource, err := conversion.ConvertToInternalResource(r.Resource)
 		if err != nil {
 			return libapi.ListResourcesResponse{}, errors.Wrap(err, "converting to internal resource")
 		}
@@ -181,12 +181,12 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 			return libapi.ListResourcesResponse{}, err
 		}
 		resources = append(resources, libapi.Resource{
-			ID:                resource.ID(),
+			ID:                r.Resource.ID(),
 			Name:              slug, // TODO: Change to actual name of resource once that's exposed from export resource.
 			Slug:              slug,
-			Kind:              libapi.ResourceKind(resource.Kind()),
+			Kind:              libapi.ResourceKind(r.Resource.Kind()),
 			KindConfig:        kindConfig,
-			ExportResource:    resource,
+			ExportResource:    r.Resource,
 			CanUseResource:    true,
 			CanUpdateResource: true,
 		})
@@ -250,9 +250,9 @@ func UpdateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 	var resource resources.Resource
 	for configSlug, configResource := range state.DevConfig.Resources {
 		// We can't rely on the slug for existence since it may have changed.
-		if configResource.ID() == req.ID {
+		if configResource.Resource.ID() == req.ID {
 			foundResource = true
-			resource = configResource
+			resource = configResource.Resource
 			oldSlug = configSlug
 			break
 		}
@@ -346,9 +346,9 @@ type IsResourceSlugAvailableResponse struct {
 // IsResourceSlugAvailableHandler handles requests to the /i/resources/isSlugAvailable endpoint
 func IsResourceSlugAvailableHandler(ctx context.Context, state *state.State, r *http.Request) (IsResourceSlugAvailableResponse, error) {
 	slug := r.URL.Query().Get("slug")
-	res, ok := state.DevConfig.Resources[slug]
+	configResource, ok := state.DevConfig.Resources[slug]
 	return IsResourceSlugAvailableResponse{
-		Available: !ok || res.ID() == r.URL.Query().Get("id"),
+		Available: !ok || configResource.Resource.ID() == r.URL.Query().Get("id"),
 	}, nil
 }
 

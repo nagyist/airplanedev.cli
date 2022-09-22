@@ -12,6 +12,7 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/apiext"
@@ -55,7 +56,8 @@ func TestExecute(t *testing.T) {
 		t,
 		server.NewRouter(&state.State{
 			CliConfig: cliConfig,
-			EnvSlug:   "stage",
+			EnvID:     env.LocalEnvID,
+			EnvSlug:   env.LocalEnvID,
 			Executor:  mockExecutor,
 			Port:      1234,
 			Runs:      store,
@@ -91,7 +93,8 @@ func TestExecute(t *testing.T) {
 		File:        "my_task.ts",
 		Slug:        slug,
 		Env:         map[string]string{},
-		EnvSlug:     "stage",
+		EnvID:       env.LocalEnvID,
+		EnvSlug:     env.LocalEnvID,
 		Resources:   map[string]resources.Resource{},
 		LogBroker:   logBroker,
 	}
@@ -154,7 +157,8 @@ func TestExecuteBuiltin(t *testing.T) {
 		t,
 		server.NewRouter(&state.State{
 			CliConfig: cliConfig,
-			EnvSlug:   "stage",
+			EnvID:     env.LocalEnvID,
+			EnvSlug:   env.LocalEnvID,
 			Executor:  mockExecutor,
 			Port:      1234,
 			Runs:      store,
@@ -167,8 +171,11 @@ func TestExecuteBuiltin(t *testing.T) {
 					Source:         discover.ConfigSourceDefn,
 				},
 			},
-			DevConfig: &conf.DevConfig{Resources: map[string]resources.Resource{
-				"database": &dbResource,
+			DevConfig: &conf.DevConfig{Resources: map[string]env.ResourceWithEnv{
+				"database": {
+					Resource: &dbResource,
+					Remote:   false,
+				},
 			}},
 		}),
 	)
@@ -184,7 +191,8 @@ func TestExecuteBuiltin(t *testing.T) {
 		ParamValues: paramValues,
 		Port:        1234,
 		Slug:        slug,
-		EnvSlug:     "stage",
+		EnvID:       env.LocalEnvID,
+		EnvSlug:     env.LocalEnvID,
 		Resources: map[string]resources.Resource{
 			"db": &dbResource,
 		},

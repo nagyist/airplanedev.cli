@@ -91,6 +91,7 @@ type APIClient interface {
 
 	ListResources(ctx context.Context, envSlug string) (res libapi.ListResourcesResponse, err error)
 	ListResourceMetadata(ctx context.Context) (res libapi.ListResourceMetadataResponse, err error)
+	GetResource(ctx context.Context, req GetResourceRequest) (res libapi.GetResourceResponse, err error)
 
 	SetConfig(ctx context.Context, req SetConfigRequest) (err error)
 	GetConfig(ctx context.Context, req GetConfigRequest) (res GetConfigResponse, err error)
@@ -474,12 +475,23 @@ func (c Client) GetDeploymentLogs(ctx context.Context, deploymentID string, prev
 }
 
 func (c Client) ListResources(ctx context.Context, envSlug string) (res libapi.ListResourcesResponse, err error) {
-	err = c.do(ctx, "GET", "/resources/list", nil, &res)
+	err = c.do(ctx, "GET", encodeQueryString("/resources/list", url.Values{
+		"envSlug": []string{envSlug},
+	}), nil, &res)
 	return
 }
 
 func (c Client) ListResourceMetadata(ctx context.Context) (res libapi.ListResourceMetadataResponse, err error) {
 	err = c.do(ctx, "GET", "/resources/listMetadata", nil, &res)
+	return
+}
+
+func (c Client) GetResource(ctx context.Context, req GetResourceRequest) (res libapi.GetResourceResponse, err error) {
+	err = c.do(ctx, "GET", encodeQueryString("/resources/get", url.Values{
+		"slug":                 []string{req.Slug},
+		"envSlug":              []string{req.EnvSlug},
+		"includeSensitiveData": []string{strconv.FormatBool(req.IncludeSensitiveData)},
+	}), nil, &res)
 	return
 }
 

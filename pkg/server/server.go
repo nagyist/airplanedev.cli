@@ -12,6 +12,7 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/resource"
 	"github.com/airplanedev/cli/pkg/server/apidev"
 	"github.com/airplanedev/cli/pkg/server/apiext"
 	"github.com/airplanedev/cli/pkg/server/apiint"
@@ -147,10 +148,14 @@ func supportsLocalExecution(name string, entrypoint string, kind build.TaskKind)
 // RegisterTasksAndViews generates a mapping of slug to task and view configs and stores the mappings in the server
 // state. Task registration must occur after the local dev server has started because the task discoverer hits the
 // /v0/tasks/getMetadata endpoint.
-func (s *Server) RegisterTasksAndViews(taskConfigs []discover.TaskConfig, viewConfigs []discover.ViewConfig) (RegistrationWarnings, error) {
+func (s *Server) RegisterTasksAndViews(ctx context.Context, taskConfigs []discover.TaskConfig, viewConfigs []discover.ViewConfig) (RegistrationWarnings, error) {
 	s.state.TaskConfigs = map[string]discover.TaskConfig{}
 	var unsupported []UnsupportedApp
 	var unattachedResources []UnattachedResource
+	mergedResources, err := resource.MergeRemoteResources(ctx, s.state)
+	if err != nil {
+		return RegistrationWarnings{}, errors.Wrap(err, "merging local and remote resources")
+	}
 	for _, cfg := range taskConfigs {
 		kind, _, err := cfg.Def.GetKindAndOptions()
 		if err != nil {
@@ -170,7 +175,7 @@ func (s *Server) RegisterTasksAndViews(taskConfigs []discover.TaskConfig, viewCo
 		// Check resource attachments.
 		var missingResources []string
 		for _, resourceSlug := range cfg.Def.GetResourceAttachments() {
-			if _, ok := s.state.DevConfig.Resources[resourceSlug]; !ok {
+			if _, ok := mergedResources[resourceSlug]; !ok {
 				missingResources = append(missingResources, resourceSlug)
 			}
 		}
