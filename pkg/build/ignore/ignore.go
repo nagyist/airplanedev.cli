@@ -85,6 +85,7 @@ func Patterns(path string) ([]string, error) {
 		"npm-debug.log",
 		// Local build artifacts created by `airplane dev`.
 		".airplane",
+		".airplane-view",
 	}
 
 	// Allow user-specified ignore file. Note that users can re-INCLUDE files using !, so if our
