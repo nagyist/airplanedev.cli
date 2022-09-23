@@ -20,17 +20,19 @@ func init() {
 type BigQueryResource struct {
 	resources.BaseResource `mapstructure:",squash" yaml:",inline"`
 
-	Credentials string `json:"credentials" mapstructure:"credentials"`
-	ProjectID   string `json:"projectId" mapstructure:"projectId"`
-	Location    string `json:"location" mapstructure:"location"`
-	DataSet     string `json:"dataSet" mapstructure:"dataSet"`
-	DSN         string `json:"dsn" mapstructure:"dsn"`
+	Credentials    string `json:"credentials" mapstructure:"credentials"`
+	RawCredentials string `json:"rawCredentials" mapstructure:"rawCredentials"`
+	ProjectID      string `json:"projectId" mapstructure:"projectId"`
+	Location       string `json:"location" mapstructure:"location"`
+	DataSet        string `json:"dataSet" mapstructure:"dataSet"`
+	DSN            string `json:"dsn" mapstructure:"dsn"`
 }
 
 var _ SQLResourceInterface = &BigQueryResource{}
 
 func (r *BigQueryResource) ScrubSensitiveData() {
 	r.Credentials = ""
+	r.RawCredentials = ""
 	r.DSN = ""
 }
 
@@ -44,11 +46,10 @@ func (r *BigQueryResource) Update(other resources.Resource) error {
 	r.Location = o.Location
 	r.DataSet = o.DataSet
 	// Don't clobber over credentials if empty
-	if o.Credentials != "" {
-		// BigQuery creds are in json, but
-		// driver requires creds to be in base64
-		creds := base64.StdEncoding.EncodeToString([]byte(o.Credentials))
-		r.Credentials = creds
+	if o.RawCredentials != "" {
+		r.RawCredentials = o.RawCredentials
+	} else if o.Credentials != "" { // Legacy: handle raw credentials coming in via credentials
+		r.RawCredentials = o.Credentials
 	}
 
 	if err := r.Calculate(); err != nil {
@@ -59,13 +60,23 @@ func (r *BigQueryResource) Update(other resources.Resource) error {
 }
 
 func (r *BigQueryResource) Calculate() error {
+	// Legacy: Handle raw credentials coming in via credentials
+	if r.RawCredentials == "" {
+		r.RawCredentials = r.Credentials
+	}
+	// BigQuery creds are in json, but driver requires creds to be in base64
+	r.Credentials = base64.StdEncoding.EncodeToString([]byte(r.RawCredentials))
+
+	// DSN needs credentials to have been calculated
 	r.DSN = r.dsn()
+
 	return nil
 }
 
 func (r BigQueryResource) Validate() error {
-	if r.Credentials == "" {
-		return resources.NewErrMissingResourceField("credentials")
+	// Legacy: Handle raw credentials coming in via credentials
+	if r.RawCredentials == "" || r.Credentials == "" {
+		return resources.NewErrMissingResourceField("rawCredentials")
 	}
 	if r.Location == "" {
 		return resources.NewErrMissingResourceField("location")
