@@ -17,7 +17,6 @@ import (
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/builtins"
-	"github.com/airplanedev/lib/pkg/resources/conversion"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -431,19 +430,11 @@ func GetPromptHandler(ctx context.Context, state *state.State, r *http.Request) 
 func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.ListResourcesResponse, error) {
 	resources := make([]libapi.Resource, 0, len(state.DevConfig.RawResources))
 	for slug, r := range state.DevConfig.Resources {
-		internalResource, err := conversion.ConvertToInternalResource(r.Resource)
-		if err != nil {
-			return libapi.ListResourcesResponse{}, errors.Wrap(err, "converting to internal resource")
-		}
-		kindConfig, err := resource.KindConfigToMap(internalResource)
-		if err != nil {
-			return libapi.ListResourcesResponse{}, err
-		}
 		resources = append(resources, libapi.Resource{
 			ID:                r.Resource.ID(),
 			Slug:              slug,
 			Kind:              libapi.ResourceKind(r.Resource.Kind()),
-			KindConfig:        kindConfig,
+			ExportResource:    r.Resource,
 			CanUseResource:    true,
 			CanUpdateResource: true,
 		})
@@ -464,22 +455,14 @@ func ListResourceMetadataHandler(ctx context.Context, state *state.State, r *htt
 	resources := make([]libapi.ResourceMetadata, 0, len(mergedResources))
 	for slug, resourceWithEnv := range mergedResources {
 		res := resourceWithEnv.Resource
-		internalResource, err := conversion.ConvertToInternalResource(res)
-		if err != nil {
-			return libapi.ListResourceMetadataResponse{}, errors.Wrap(err, "converting to internal resource")
-		}
-		kindConfig, err := resource.KindConfigToMap(internalResource)
-		if err != nil {
-			return libapi.ListResourceMetadataResponse{}, err
-		}
 		resources = append(resources, libapi.ResourceMetadata{
 			ID:   res.ID(),
 			Slug: slug,
 			DefaultEnvResource: &libapi.Resource{
-				ID:         res.ID(),
-				Slug:       slug,
-				Kind:       libapi.ResourceKind(res.Kind()),
-				KindConfig: kindConfig,
+				ID:             res.ID(),
+				Slug:           slug,
+				Kind:           libapi.ResourceKind(res.Kind()),
+				ExportResource: res,
 			},
 		})
 	}
