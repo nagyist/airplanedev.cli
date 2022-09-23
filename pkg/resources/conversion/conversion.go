@@ -8,39 +8,40 @@ import (
 )
 
 func ConvertToInternalResource(r resources.Resource) (kind_configs.InternalResource, error) {
-	var internal kind_configs.InternalResource
-	var err error
+	var base resources.BaseResource
 	switch resource := r.(type) {
 	case *kinds.BigQueryResource:
-		internal, err = ConvertBigQueryResource(resource)
+		base = resource.BaseResource
 	case *kinds.MailgunResource:
-		internal, err = ConvertMailgunResource(resource)
+		base = resource.BaseResource
 	case *kinds.MongoDBResource:
-		internal, err = ConvertMongoDBResource(resource)
+		base = resource.BaseResource
 	case *kinds.MySQLResource:
-		internal, err = ConvertMySQLResource(resource)
+		base = resource.BaseResource
 	case *kinds.PostgresResource:
-		internal, err = ConvertPostgresResource(resource)
+		base = resource.BaseResource
 	case *kinds.RedshiftResource:
-		internal, err = ConvertRedshiftResource(resource)
+		base = resource.BaseResource
 	case *kinds.RESTResource:
-		internal, err = ConvertRESTResource(resource)
+		base = resource.BaseResource
 	case *kinds.SendGridResource:
-		internal, err = ConvertSendGridResource(resource)
+		base = resource.BaseResource
 	case *kinds.SlackResource:
-		internal, err = ConvertSlackResource(resource)
+		base = resource.BaseResource
 	case *kinds.SMTPResource:
-		internal, err = ConvertSMTPResource(resource)
+		base = resource.BaseResource
 	case *kinds.SnowflakeResource:
-		internal, err = ConvertSnowflakeResource(resource)
+		base = resource.BaseResource
 	case *kinds.SQLServerResource:
-		internal, err = ConvertSQLServerResource(resource)
+		base = resource.BaseResource
 	default:
 		return kind_configs.InternalResource{}, errors.Errorf("Unkonwn resource type %T", resource)
 	}
-	if err != nil {
-		return kind_configs.InternalResource{}, errors.Wrap(err, "error converting resource")
-	}
-	internal.ExportResource = r
-	return internal, nil
+	return kind_configs.InternalResource{
+		ID:             base.ID,
+		Slug:           base.Slug,
+		Name:           base.Name,
+		Kind:           base.Kind,
+		ExportResource: r,
+	}, nil
 }

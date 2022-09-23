@@ -124,13 +124,12 @@ type GetResourceResponse struct {
 }
 
 type Resource struct {
-	ID             string                 `json:"id"`
-	Slug           string                 `json:"slug"`
-	TeamID         string                 `json:"teamID"`
-	Name           string                 `json:"name"`
-	Kind           ResourceKind           `json:"kind"`
-	KindConfig     map[string]interface{} `json:"kindConfig"`
-	ExportResource resources.Resource     `json:"resource"`
+	ID             string             `json:"id"`
+	Slug           string             `json:"slug"`
+	TeamID         string             `json:"teamID"`
+	Name           string             `json:"name"`
+	Kind           ResourceKind       `json:"kind"`
+	ExportResource resources.Resource `json:"resource"`
 
 	CreatedAt time.Time `json:"createdAt"`
 	CreatedBy string    `json:"createdBy"`
@@ -150,7 +149,6 @@ func (r *Resource) UnmarshalJSON(buf []byte) error {
 		TeamID         string                 `json:"teamID"`
 		Name           string                 `json:"name"`
 		Kind           ResourceKind           `json:"kind"`
-		KindConfig     map[string]interface{} `json:"kindConfig"`
 		ExportResource map[string]interface{} `json:"resource"`
 
 		CreatedAt time.Time `json:"createdAt"`
@@ -181,7 +179,6 @@ func (r *Resource) UnmarshalJSON(buf []byte) error {
 	r.TeamID = raw.TeamID
 	r.Name = raw.Name
 	r.Kind = raw.Kind
-	r.KindConfig = raw.KindConfig
 	r.ExportResource = export
 	r.CreatedAt = raw.CreatedAt
 	r.CreatedBy = raw.CreatedBy
