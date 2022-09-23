@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/state"
@@ -33,7 +32,6 @@ func AttachDevRoutes(r *mux.Router, s *state.State) {
 	r.Handle("/tasks/{task_slug}", handlers.Handler(s, GetTaskHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/startView/{view_slug}", handlers.Handler(s, StartViewHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/logs/{run_id}", handlers.HandlerSSE(s, LogsHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/runs/create", handlers.HandlerWithBody(s, CreateRunHandler)).Methods("POST", "OPTIONS")
 }
 
 func GetVersionHandler(ctx context.Context, s *state.State, r *http.Request) (version.Metadata, error) {
@@ -120,18 +118,6 @@ type CreateRunResponse struct {
 
 type CreateRunRequest struct {
 	TaskSlug string `json:"taskSlug"`
-}
-
-func CreateRunHandler(ctx context.Context, state *state.State, r *http.Request, req CreateRunRequest) (CreateRunResponse, error) {
-	if req.TaskSlug == "" {
-		return CreateRunResponse{}, errors.New("Task slug is required")
-	}
-
-	runID := dev.GenerateRunID()
-	run := *dev.NewLocalRun()
-	run.CreatorID = state.CliConfig.ParseTokenForAnalytics().UserID
-	state.Runs.Add(req.TaskSlug, runID, run)
-	return CreateRunResponse{RunID: runID}, nil
 }
 
 // GetTaskHandler handles requests to the /dev/tasks/<task_slug> endpoint.

@@ -13,6 +13,8 @@ type MockExecutor struct {
 }
 
 func (m *MockExecutor) Execute(ctx context.Context, config LocalRunConfig) (api.Outputs, error) {
+	// The run ID is generated inside the `/v0/tasks/execute` handler, and so we don't check equality here.
+	config.ID = ""
 	args := m.Called(ctx, config)
 	return api.Outputs{}, args.Error(0)
 }

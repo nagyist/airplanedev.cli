@@ -49,7 +49,6 @@ func AttachExternalAPIRoutes(r *mux.Router, state *state.State) {
 }
 
 type ExecuteTaskRequest struct {
-	RunID       string            `json:"runID"`
 	Slug        string            `json:"slug"`
 	ParamValues api.Values        `json:"paramValues"`
 	Resources   map[string]string `json:"resources"`
@@ -68,16 +67,8 @@ func getRunIDFromToken(r *http.Request) (string, error) {
 
 // ExecuteTaskHandler handles requests to the /v0/tasks/execute endpoint
 func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request, req ExecuteTaskRequest) (dev.LocalRun, error) {
-	// Allow run IDs to be generated beforehand; this is needed so that the /dev/logs endpoint can start waiting
-	// for logs for a given run before that run's execution has started.
-	runID := req.RunID
-	var run dev.LocalRun
-	if runID != "" {
-		run, _ = state.Runs.Get(runID)
-	} else {
-		runID = dev.GenerateRunID()
-		run = *dev.NewLocalRun()
-	}
+	runID := dev.GenerateRunID()
+	run := *dev.NewLocalRun()
 
 	parentID, err := getRunIDFromToken(r)
 	if err != nil {
@@ -182,20 +173,21 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 
 		// use a new context while executing
 		// so the handler context doesn't cancel task execution
-		outputs, err := state.Executor.Execute(context.Background(), runConfig)
-
-		completedAt := time.Now()
-		run, err = state.Runs.Update(runID, func(run *dev.LocalRun) error {
-			if err != nil {
-				run.Status = api.RunFailed
-				run.FailedAt = &completedAt
-			} else {
-				run.Status = api.RunSucceeded
-				run.SucceededAt = &completedAt
-			}
-			run.Outputs = outputs
-			return nil
-		})
+		go func() {
+			outputs, err := state.Executor.Execute(context.Background(), runConfig)
+			completedAt := time.Now()
+			run, err = state.Runs.Update(runID, func(run *dev.LocalRun) error {
+				if err != nil {
+					run.Status = api.RunFailed
+					run.FailedAt = &completedAt
+				} else {
+					run.Status = api.RunSucceeded
+					run.SucceededAt = &completedAt
+				}
+				run.Outputs = outputs
+				return nil
+			})
+		}()
 	} else {
 		logger.Error("task with slug %s is not registered locally", req.Slug)
 	}
