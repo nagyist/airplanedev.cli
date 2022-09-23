@@ -201,7 +201,6 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 				Text:      line,
 				Level:     "info",
 			})
-
 			logger.Log("[%s %s] %s", logger.Gray(config.Name), logger.Gray("log"), line)
 		}
 		return errors.Wrap(scanner.Err(), "scanning logs")
@@ -219,9 +218,7 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 		return api.Outputs{}, err
 	}
 
-	if err := cmd.Wait(); err != nil {
-		return api.Outputs{}, err
-	}
+	err = cmd.Wait()
 	outputs := api.Outputs(o)
 	logger.Log("")
 	logger.Log("%s for task %s:", logger.Gray("Output"), logger.Gray(config.Slug))
