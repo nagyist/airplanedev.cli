@@ -72,7 +72,8 @@ func (r *BigQueryResource) Calculate() error {
 			r.RawCredentials = r.Credentials
 			r.Credentials = ""
 		}
-	} else {
+	} else if r.RawCredentials == "" {
+		// Legacy: backfill RawCredentials if they're not populated.
 		r.RawCredentials = string(raw)
 	}
 
