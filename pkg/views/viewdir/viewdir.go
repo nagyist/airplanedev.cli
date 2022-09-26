@@ -114,8 +114,10 @@ func NewViewDirectory(ctx context.Context, cfg *cli.Config, root string, searchP
 	if err != nil {
 		return ViewDirectory{}, errors.Wrap(err, "discovering view configs")
 	}
-	if len(viewConfigs) != 1 {
-		return ViewDirectory{}, errors.New("currently can only have one view!")
+	if len(viewConfigs) > 1 {
+		return ViewDirectory{}, errors.New("currently can only have at most one view!")
+	} else if len(viewConfigs) == 0 {
+		return ViewDirectory{}, errors.New("no views found!")
 	}
 	vc := viewConfigs[0]
 
