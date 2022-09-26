@@ -31,7 +31,6 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		// Use a special env ID and slug when executing tasks locally and the `--env` flag doesn't apply.
 		envID = env.LocalEnvID
 		envSlug = env.LocalEnvID
-		cfg.root.Client.Host = devServerHost
 	} else {
 		env, err := cfg.root.Client.GetEnv(ctx, cfg.envSlug)
 		if err != nil {

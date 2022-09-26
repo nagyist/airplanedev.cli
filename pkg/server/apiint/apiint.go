@@ -268,7 +268,7 @@ type DeleteResourceRequest struct {
 // The web app does utilize the response of the resource deletion handler.
 func DeleteResourceHandler(ctx context.Context, state *state.State, r *http.Request, req DeleteResourceRequest) (struct{}, error) {
 	id := req.ID
-	resourceSlug, err := res.ResourceSlugFromID(id)
+	resourceSlug, err := res.SlugFromID(id)
 	if err != nil {
 		return struct{}{}, err
 	}
