@@ -38,10 +38,14 @@ func TestDev(tt *testing.T) {
 			Kind: build.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{Path: "javascript/customroot/main.js"},
 		},
-		{
-			Kind: build.TaskKindNode,
-			Opts: runtime.PrepareRunOptions{Path: "typescript/yarnworkspaces/pkg2/src/index.ts"},
-		},
+		// This test can fail depending on the order in which packages are loaded
+		// since it depends on the typescript runtime being registered.
+		//
+		// TODO: Move it to the typescript package to avoid this problem.
+		//{
+		//	Kind: build.TaskKindNode,
+		//	Opts: runtime.PrepareRunOptions{Path: "typescript/yarnworkspaces/pkg2/src/index.ts"},
+		//},
 	}
 
 	// For the dev workflow, we expect users to run `npm install` themselves before
