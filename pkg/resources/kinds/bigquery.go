@@ -2,6 +2,7 @@ package kinds
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/url"
 
@@ -60,10 +61,21 @@ func (r *BigQueryResource) Update(other resources.Resource) error {
 }
 
 func (r *BigQueryResource) Calculate() error {
-	// Legacy: Handle raw credentials coming in via credentials
-	if r.RawCredentials == "" {
-		r.RawCredentials = r.Credentials
+	// Legacy: Credentials could already be base64-encoded due to a no-op update.
+	if raw, err := base64.StdEncoding.DecodeString(r.Credentials); err != nil {
+		m := map[string]interface{}{}
+		if err := json.Unmarshal([]byte(r.Credentials), &m); err != nil {
+			// Error: Credentials aren't base64'd
+			return errors.New("Credentials are neither base64-encoded nor JSON-encoded")
+		} else {
+			// Legacy: Raw credentials are being sent in Credentials field.
+			r.RawCredentials = r.Credentials
+			r.Credentials = ""
+		}
+	} else {
+		r.RawCredentials = string(raw)
 	}
+
 	// BigQuery creds are in json, but driver requires creds to be in base64
 	r.Credentials = base64.StdEncoding.EncodeToString([]byte(r.RawCredentials))
 
