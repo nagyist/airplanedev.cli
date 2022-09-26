@@ -53,37 +53,42 @@ func Dev(ctx context.Context, v viewdir.ViewDirectory, viteOpts ViteOpts) (*exec
 		return nil, "", err
 	}
 
-	// Read existing package.json file, copy it over with vite stuff.
-	packageJSONFile, err := os.Open(filepath.Join(root, "package.json"))
+	// Create a package.json in the temp directory with mandatory development dependencies.
+
+	// Read in the root package.json
+	rootPackageJSONFile, err := os.Open(filepath.Join(root, "package.json"))
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return nil, "", errors.Wrap(err, "opening package.json")
 		}
 	}
-	var packageJSON interface{}
-	if packageJSONFile != nil {
-		if err := json.NewDecoder(packageJSONFile).Decode(&packageJSON); err != nil {
+	var rootPackageJSON interface{}
+	if rootPackageJSONFile != nil {
+		if err := json.NewDecoder(rootPackageJSONFile).Decode(&rootPackageJSON); err != nil {
 			return nil, "", errors.Wrap(err, "decoding package.json")
 		}
 	} else {
-		packageJSON = map[string]interface{}{}
+		rootPackageJSON = map[string]interface{}{}
 	}
 
-	// Add relevant fields to package.json.
-	packageJSONMap, ok := packageJSON.(map[string]interface{})
+	// Add relevant fields to the development package.json.
+	devPackageJSON := map[string]interface{}{}
+	existingPackageJSON, ok := rootPackageJSON.(map[string]interface{})
 	if !ok {
 		return nil, "", errors.New("expected package.json to be an object")
 	}
-	if err := patchPackageJSON(&packageJSONMap); err != nil {
+	if err := addDevDepsToPackageJSON(existingPackageJSON, &devPackageJSON); err != nil {
 		return nil, "", errors.Wrap(err, "patching package.json")
 	}
 
-	// Write package.json back out.
+	// Write the development package.json.
 	newPackageJSONFile, err := os.Create(filepath.Join(tmpdir, "package.json"))
 	if err != nil {
 		return nil, "", errors.Wrap(err, "creating new package.json")
 	}
-	if err := json.NewEncoder(newPackageJSONFile).Encode(packageJSON); err != nil {
+	enc := json.NewEncoder(newPackageJSONFile)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(devPackageJSON); err != nil {
 		return nil, "", errors.Wrap(err, "writing new package.json")
 	}
 	if err := newPackageJSONFile.Close(); err != nil {
@@ -156,39 +161,52 @@ func createViteConfig(tmpdir string) error {
 	return nil
 }
 
-func addMissingDeps(defaultDeps map[string]string, deps *map[string]interface{}) {
-	for k, v := range defaultDeps {
-		if _, ok := (*deps)[k]; !ok {
+func addMissingDeps(depsToAdd map[string]string, existingDeps map[string]interface{}, deps *map[string]interface{}, alwaysAdd bool) {
+	for k, v := range depsToAdd {
+		_, dependencyExists := existingDeps[k]
+		if !dependencyExists || alwaysAdd {
 			(*deps)[k] = v
 		}
 	}
 }
 
-func patchPackageJSON(packageJSON *map[string]interface{}) error {
-	// TODO(zhan): fill out correct values.
+// addDevDepsToPackageJSON adds mandatory development dependencies to packageJSON. If any dependencies are already installed in existingPackageJSON
+// they are not added.
+func addDevDepsToPackageJSON(existingPackageJSON map[string]interface{}, packageJSON *map[string]interface{}) error {
+	// TODO: move to its own file and add renovate
 	defaultDeps := map[string]string{
 		"react":           "18.0.0",
 		"react-dom":       "18.0.0",
-		"@airplane/views": "*",
+		"@airplane/views": "^1.0.0",
 	}
 	defaultDevDeps := map[string]string{
-		"@vitejs/plugin-react": "^2.0.0",
-		"vite":                 "^3.0.0",
+		"@vitejs/plugin-react": "2.1.0",
+		"vite":                 "3.1.3",
 	}
 
+	existingDeps, ok := existingPackageJSON["dependencies"].(map[string]interface{})
+	if !ok {
+		existingPackageJSON["dependencies"] = map[string]interface{}{}
+		existingDeps = existingPackageJSON["dependencies"].(map[string]interface{})
+	}
 	deps, ok := (*packageJSON)["dependencies"].(map[string]interface{})
 	if !ok {
 		(*packageJSON)["dependencies"] = map[string]interface{}{}
 		deps = (*packageJSON)["dependencies"].(map[string]interface{})
 	}
-	addMissingDeps(defaultDeps, &deps)
+	addMissingDeps(defaultDeps, existingDeps, &deps, false)
 
+	existingDevDeps, ok := existingPackageJSON["devDependencies"].(map[string]interface{})
+	if !ok {
+		existingPackageJSON["devDependencies"] = map[string]interface{}{}
+		existingDevDeps = existingPackageJSON["devDependencies"].(map[string]interface{})
+	}
 	devDeps, ok := (*packageJSON)["devDependencies"].(map[string]interface{})
 	if !ok {
 		(*packageJSON)["devDependencies"] = map[string]interface{}{}
 		devDeps = (*packageJSON)["devDependencies"].(map[string]interface{})
 	}
-	addMissingDeps(defaultDevDeps, &devDeps)
+	addMissingDeps(defaultDevDeps, existingDevDeps, &devDeps, true)
 
 	return nil
 }
