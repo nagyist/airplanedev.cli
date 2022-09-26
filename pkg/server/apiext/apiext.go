@@ -380,6 +380,7 @@ func CreatePromptHandler(ctx context.Context, state *state.State, r *http.Reques
 
 	if _, err := state.Runs.Update(runID, func(run *dev.LocalRun) error {
 		run.Prompts = append(run.Prompts, prompt)
+		run.IsWaitingForUser = true
 		return nil
 	}); err != nil {
 		return PromptResponse{}, err

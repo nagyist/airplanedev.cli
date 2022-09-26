@@ -343,6 +343,13 @@ func SubmitPromptHandler(ctx context.Context, state *state.State, r *http.Reques
 				run.Prompts[i].SubmittedAt = &now
 				run.Prompts[i].Values = req.Values
 				run.Prompts[i].SubmittedBy = &userID
+
+				// Check if the run is still waiting for user input.
+				run.IsWaitingForUser = false
+				for _, prompt := range run.Prompts {
+					run.IsWaitingForUser = run.IsWaitingForUser || prompt.SubmittedAt == nil
+				}
+
 				return nil
 			}
 		}
