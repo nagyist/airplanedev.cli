@@ -24,6 +24,22 @@ func Confirm(question string) (bool, error) {
 	return ok, nil
 }
 
+func ConfirmDefaultFalse(question string) (bool, error) {
+	ok := false
+	if err := survey.AskOne(
+		&survey.Confirm{
+			Message: question,
+			Default: ok,
+		},
+		&ok,
+		survey.WithStdio(os.Stdin, os.Stderr, os.Stderr),
+	); err != nil {
+		return false, errors.Wrap(err, "confirming")
+	}
+
+	return ok, nil
+}
+
 func ConfirmWithAssumptions(question string, assumeYes, assumeNo bool) (bool, error) {
 	if assumeYes {
 		return true, nil
