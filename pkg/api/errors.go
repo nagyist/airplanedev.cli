@@ -39,3 +39,19 @@ func (err ViewMissingError) ExplainError() string {
 		err.AppURL+"/apps/new",
 	)
 }
+
+// ResourceMissingError implements an explainable error.
+type ResourceMissingError struct {
+	AppURL string
+	Slug   string
+}
+
+// Error implementation.
+func (err ResourceMissingError) Error() string {
+	return fmt.Sprintf("resource with slug %q does not exist", err.Slug)
+}
+
+// ExplainError implementation.
+func (err ResourceMissingError) ExplainError() string {
+	return fmt.Sprintf("Follow the URL below to create the resource:\n%s", err.AppURL+"/settings/resources/new")
+}
