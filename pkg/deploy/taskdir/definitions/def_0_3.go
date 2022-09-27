@@ -1574,8 +1574,8 @@ func (r ResourceDefinition_0_3) MarshalJSON() ([]byte, error) {
 // as opposed to the correct YAML:
 //
 // resources:
-//   demo: db
 //
+//	demo: db
 func (r ResourceDefinition_0_3) MarshalYAML() (interface{}, error) {
 	// Return a list if we can.
 	var slugs []string

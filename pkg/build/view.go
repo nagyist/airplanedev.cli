@@ -172,9 +172,7 @@ func IndexHtmlString(title string) (string, error) {
 var mainTsxTemplateStr string
 
 func MainTsxString(entrypoint string) (string, error) {
-	if strings.HasSuffix(entrypoint, ".tsx") {
-		entrypoint = entrypoint[:len(entrypoint)-4]
-	}
+	entrypoint = strings.TrimSuffix(entrypoint, ".tsx")
 	return applyTemplate(mainTsxTemplateStr, struct {
 		Entrypoint string
 	}{

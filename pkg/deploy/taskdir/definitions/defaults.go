@@ -40,7 +40,7 @@ func (d DefaultTrueDefinition) MarshalJSON() ([]byte, error) {
 }
 
 func (d DefaultTrueDefinition) IsZero() bool {
-	return d.Value() == true
+	return d.Value()
 }
 
 type DefaultTimeoutDefinition struct {
