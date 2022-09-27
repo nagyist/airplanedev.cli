@@ -24,7 +24,10 @@ async function main() {
     }
   } catch (err) {
     console.error(err);
-    console.log(`airplane_output_set:error ${JSON.stringify(String(err))}`);
+    // Print the error's message directly when possible. Otherwise, it includes the
+    // error's name (e.g. "RunTerminationError: ...").
+    const message = err instanceof Error ? err.message : String(err)
+    console.log(`airplane_output_set:error ${JSON.stringify(message)}`);
     process.exit(1);
   }
 }

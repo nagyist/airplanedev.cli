@@ -45,6 +45,9 @@ export async function __airplaneEntrypoint(params, workflowArgs) {
     if (err instanceof CancelledFailure) {
       logger.internal('airplane_status:cancelled');
     } else {
+      // Print the error's message directly when possible. Otherwise, it includes the
+      // error's name (e.g. "RunTerminationError: ...").
+      const message = err instanceof Error ? err.message : String(err)
       logger.internal(`airplane_output_set:error ${JSON.stringify(String(err))}`);
       logger.internal('airplane_status:failed');
     }
