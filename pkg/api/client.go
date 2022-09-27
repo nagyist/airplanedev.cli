@@ -98,6 +98,13 @@ type CreateTaskRequest struct {
 	EnvSlug          string             `json:"envSlug"`
 }
 
+// CreateTaskResponse represents a create task response.
+type CreateTaskResponse struct {
+	TaskID         string `json:"taskID"`
+	Slug           string `json:"slug"`
+	TaskRevisionID string `json:"taskRevisionID"`
+}
+
 // UpdateTaskRequest updates a task.
 type UpdateTaskRequest struct {
 	Slug                       string                    `json:"slug"`
