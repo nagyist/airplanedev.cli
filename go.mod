@@ -3,10 +3,9 @@ module github.com/airplanedev/cli
 go 1.19
 
 require (
-	cloud.google.com/go/storage v1.26.0
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/airplanedev/lib v0.5.75
+	github.com/airplanedev/lib v0.5.77
 	github.com/airplanedev/ojson v0.1.0
 	github.com/airplanedev/trap v0.1.0
 	github.com/blang/semver v3.5.1+incompatible
@@ -27,7 +26,6 @@ require (
 	github.com/joho/godotenv v1.4.0
 	github.com/kr/text v0.2.0
 	github.com/mattn/go-isatty v0.0.16
-	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/analytics-go v1.2.1-0.20201110202747-0566e489c7b9
@@ -38,7 +36,6 @@ require (
 	golang.org/x/exp v0.0.0-20220921164117-439092de6870
 	golang.org/x/sync v0.0.0-20220907140024-f12130a52804
 	golang.org/x/term v0.0.0-20220919170432-7a66f970e087
-	google.golang.org/api v0.96.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -46,6 +43,7 @@ require (
 	cloud.google.com/go v0.102.1 // indirect
 	cloud.google.com/go/compute v1.7.0 // indirect
 	cloud.google.com/go/iam v0.3.0 // indirect
+	cloud.google.com/go/storage v1.26.0 // indirect
 	github.com/Azure/azure-pipeline-go v0.2.3 // indirect
 	github.com/Azure/azure-storage-blob-go v0.14.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
@@ -118,6 +116,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
+	github.com/mitchellh/hashstructure/v2 v2.0.2 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/sys/mount v0.3.0 // indirect
 	github.com/moby/sys/mountinfo v0.5.0 // indirect
@@ -156,6 +155,7 @@ require (
 	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
+	google.golang.org/api v0.96.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220810155839-1856144b1d9c // indirect
 	google.golang.org/grpc v1.48.0 // indirect

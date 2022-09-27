@@ -21,6 +21,7 @@ import (
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/builtins"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
@@ -77,12 +78,12 @@ var LogIDGen IDGenerator
 // Cmd returns the command needed to execute the task locally
 func (l *LocalExecutor) Cmd(ctx context.Context, config LocalRunConfig) (CmdConfig, error) {
 	if config.IsBuiltin {
-		builtinClient, err := NewBuiltinClient(goruntime.GOOS, goruntime.GOARCH)
+		builtinClient, err := builtins.NewLocalClient(goruntime.GOOS, goruntime.GOARCH, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}))
 		if err != nil {
 			logger.Error(err.Error())
 			return CmdConfig{}, err
 		}
-		req, err := marshalBuiltinRequest(config.Slug, config.ParamValues)
+		req, err := builtins.MarshalRequest(config.Slug, config.ParamValues)
 		if err != nil {
 			return CmdConfig{}, errors.New("invalid builtin request")
 		}

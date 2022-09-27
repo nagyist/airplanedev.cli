@@ -124,7 +124,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 				return dev.LocalRun{}, errors.Errorf("resource with id %s not found in dev config file or remotely", resourceID)
 			}
 			run.IsStdAPI = true
-			stdapiReq, err := dev.BuiltinRequest(req.Slug, req.ParamValues)
+			stdapiReq, err := builtins.Request(req.Slug, req.ParamValues)
 			if err != nil {
 				return run, err
 			}

@@ -7,6 +7,7 @@ import (
 	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
+	"github.com/airplanedev/lib/pkg/builtins"
 )
 
 type LocalRun struct {
@@ -29,8 +30,8 @@ type LocalRun struct {
 	// Map of a run's attached resources: slug to ID
 	Resources map[string]string `json:"resources"`
 
-	IsStdAPI      bool          `json:"isStdAPI"`
-	StdAPIRequest StdAPIRequest `json:"stdAPIRequest"`
+	IsStdAPI      bool                   `json:"isStdAPI"`
+	StdAPIRequest builtins.StdAPIRequest `json:"stdAPIRequest"`
 
 	// internal fields
 	LogStore  logs.LogBroker `json:"-"`
