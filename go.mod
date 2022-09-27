@@ -9,6 +9,7 @@ require (
 	github.com/airplanedev/lib v0.5.75
 	github.com/airplanedev/ojson v0.1.0
 	github.com/airplanedev/trap v0.1.0
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/briandowns/spinner v1.19.0
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.13.0

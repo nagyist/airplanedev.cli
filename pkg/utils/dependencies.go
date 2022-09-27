@@ -4,11 +4,16 @@ import (
 	"bufio"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
+	"github.com/blang/semver"
+	"github.com/pkg/errors"
 )
+
+const requiredNodeVersion = "14.18.0"
 
 func InstallDependencies(dir string, useYarn bool) error {
 	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{WithLoader: true})
@@ -44,6 +49,29 @@ func InstallDependencies(dir string, useYarn bool) error {
 	}
 
 	return cmd.Wait()
+}
+
+func CheckNodeVersion() error {
+	out, err := exec.Command("node", "-v").Output()
+	if err != nil {
+		return err
+	}
+	if len(out) == 0 || out[0] != 'v' {
+		return errors.New("Invalid nodejs version: " + string(out))
+	}
+
+	version, err := semver.Make(strings.Trim(string(out[1:]), "\n"))
+	if err != nil {
+		return err
+	}
+	reqVersion, err := semver.Make(requiredNodeVersion)
+	if err != nil {
+		return err
+	}
+	if version.Compare(reqVersion) < 0 {
+		return errors.New("Requires nodejs version >= " + requiredNodeVersion)
+	}
+	return nil
 }
 
 func ShouldUseYarn(packageJSONDirPath string) bool {

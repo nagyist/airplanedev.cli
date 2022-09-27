@@ -33,6 +33,11 @@ func Dev(ctx context.Context, v viewdir.ViewDirectory, viteOpts ViteOpts) (*exec
 	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{WithLoader: true})
 	defer l.StopLoader()
 
+	err := utils.CheckNodeVersion()
+	if err != nil {
+		return nil, "", err
+	}
+
 	l.Debug("Root directory: %s", v.Root())
 	l.Debug("Entrypoint: %s", v.EntrypointPath())
 	tmpdir := filepath.Join(root, ".airplane-view")
