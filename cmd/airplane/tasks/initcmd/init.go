@@ -840,7 +840,8 @@ func runKindSpecificInstallation(kind build.TaskKind) error {
 			return errors.Wrap(err, "getting working directory")
 		}
 		if err := node.CreatePackageJSON(cwd, node.NodeDependencies{
-			Dependencies: []string{"airplane"},
+			Dependencies:    []string{"airplane"},
+			DevDependencies: []string{"@types/node"},
 		}); err != nil {
 			return err
 		}
