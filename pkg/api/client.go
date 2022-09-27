@@ -76,6 +76,28 @@ type Upload struct {
 	URL string `json:"url"`
 }
 
+// CreateTaskRequest creates a new task.
+type CreateTaskRequest struct {
+	Slug             string             `json:"slug"`
+	Name             string             `json:"name"`
+	Description      string             `json:"description"`
+	Image            *string            `json:"image"`
+	Command          []string           `json:"command"`
+	Arguments        []string           `json:"arguments"`
+	Parameters       Parameters         `json:"parameters"`
+	Configs          []ConfigAttachment `json:"configs"`
+	Constraints      RunConstraints     `json:"constraints"`
+	EnvVars          TaskEnv            `json:"env"`
+	ResourceRequests map[string]string  `json:"resourceRequests"`
+	Resources        map[string]string  `json:"resources"`
+	Kind             build.TaskKind     `json:"kind"`
+	KindOptions      build.KindOptions  `json:"kindOptions"`
+	Runtime          build.TaskRuntime  `json:"runtime"`
+	Repo             string             `json:"repo"`
+	Timeout          int                `json:"timeout"`
+	EnvSlug          string             `json:"envSlug"`
+}
+
 // UpdateTaskRequest updates a task.
 type UpdateTaskRequest struct {
 	Slug                       string                    `json:"slug"`
