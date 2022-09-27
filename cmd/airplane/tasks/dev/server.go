@@ -14,6 +14,7 @@ import (
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server"
+	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/pkg/errors"
 )
@@ -163,8 +164,18 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	logger.Log("")
-	logger.Log("To start developing, open:")
-	logger.Log(logger.Bold(fmt.Sprintf("%s/editor?host=http://localhost:%d", appURL, cfg.port)))
+	editorURL := fmt.Sprintf("%s/editor?host=http://localhost:%d", appURL, cfg.port)
+	logger.Log("Started editor session at %s (^C to quit)", logger.Blue(editorURL))
+	logger.Log("Press ENTER to open the editor in the browser.")
+
+	// Execute the flow to open the editor in the browser in a separate goroutine so fmt.Scanln doesn't capture
+	// termination signals.
+	go func() {
+		fmt.Scanln()
+		if ok := utils.Open(editorURL); !ok {
+			logger.Log("Something went wrong. Try running the command with the --debug flag for more details.")
+		}
+	}()
 
 	// Wait for termination signal (e.g. Ctrl+C)
 	<-stop
