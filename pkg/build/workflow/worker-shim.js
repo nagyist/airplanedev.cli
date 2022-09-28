@@ -1,3 +1,5 @@
+import os from 'os';
+
 import { NativeConnection, Worker } from '@temporalio/worker';
 
 // Activity code runs in the same node process as the worker, so we import it here directly.
@@ -105,6 +107,9 @@ async function runWorker(params) {
     activities: {
       ...createActivities(),
     },
+    // Explicitly set the identity to include the task revision id to be parsable
+    // by the server.
+    identity: `${process.pid}@${taskQueue}-${os.hostname()}`,
     connection,
     namespace,
     taskQueue,
