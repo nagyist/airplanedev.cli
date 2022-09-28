@@ -32,16 +32,24 @@ var code = template.Must(template.New("py").Parse(`{{with .Comment -}}
 {{.}}
 
 {{end -}}
-# Put the main logic of the task in the main function.
+# This is your task's entrypoint. When your task is executed, this
+# function will be called.
 def main(params):
-    print("parameters:", params)
+	data = [
+		{ "id": 1, "name": "Gabriel Davis", "role": "Dentist" },
+		{ "id": 2, "name": "Carolyn Garcia", "role": "Sales" },
+		{ "id": 3, "name": "Frances Hernandez", "role": "Astronaut" },
+		{ "id": 4, "name": "Melissa Rodriguez", "role": "Engineer" },
+		{ "id": 5, "name": "Jacob Hall", "role": "Engineer" },
+		{ "id": 6, "name": "Andrea Lopez", "role": "Astronaut" },
+	]
 
-    # You can return data to show outputs to users.
-    # Outputs documentation: https://docs.airplane.dev/tasks/outputs
-    return [
-        {"element": "hydrogen", "weight": 1.008},
-        {"element": "helium", "weight": 4.0026}
-    ]
+	# Sort the data in ascending order by name.
+	data = sorted(data, key=lambda u: u["name"])
+
+	# You can return data to show output to users.
+	# Output documentation: https://docs.airplane.dev/tasks/output
+	return data
 `))
 
 // Data represents the data template.
