@@ -88,7 +88,7 @@ func (r *BigQueryResource) Calculate() error {
 
 func (r BigQueryResource) Validate() error {
 	// Legacy: Handle raw credentials coming in via credentials
-	if r.RawCredentials == "" || r.Credentials == "" {
+	if r.RawCredentials == "" && r.Credentials == "" {
 		return resources.NewErrMissingResourceField("rawCredentials")
 	}
 	if r.Location == "" {
