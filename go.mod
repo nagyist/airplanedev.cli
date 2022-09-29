@@ -33,7 +33,7 @@ require (
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.0
-	golang.org/x/exp v0.0.0-20220921164117-439092de6870
+	golang.org/x/exp v0.0.0-20220927162542-c76eaa363f9d
 	golang.org/x/sync v0.0.0-20220907140024-f12130a52804
 	golang.org/x/term v0.0.0-20220919170432-7a66f970e087
 	gopkg.in/yaml.v3 v3.0.1
