@@ -59,6 +59,7 @@ type LocalRunConfig struct {
 	EnvSlug     string
 	ParentRunID *string
 	Env         map[string]string
+	ConfigVars  map[string]string
 	AuthInfo    api.AuthInfoResponse
 	// Mapping from alias to resource
 	Resources map[string]resources.Resource
@@ -76,14 +77,14 @@ type CmdConfig struct {
 var LogIDGen IDGenerator
 
 // Cmd returns the command needed to execute the task locally
-func (l *LocalExecutor) Cmd(ctx context.Context, config LocalRunConfig) (CmdConfig, error) {
-	if config.IsBuiltin {
+func (l *LocalExecutor) Cmd(ctx context.Context, runConfig LocalRunConfig) (CmdConfig, error) {
+	if runConfig.IsBuiltin {
 		builtinClient, err := builtins.NewLocalClient(goruntime.GOOS, goruntime.GOARCH, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}))
 		if err != nil {
 			logger.Error(err.Error())
 			return CmdConfig{}, err
 		}
-		req, err := builtins.MarshalRequest(config.Slug, config.ParamValues)
+		req, err := builtins.MarshalRequest(runConfig.Slug, runConfig.ParamValues)
 		if err != nil {
 			return CmdConfig{}, errors.New("invalid builtin request")
 		}
@@ -93,28 +94,31 @@ func (l *LocalExecutor) Cmd(ctx context.Context, config LocalRunConfig) (CmdConf
 		}
 		return CmdConfig{cmd: cmd}, nil
 	}
-	entrypoint, err := entrypointFrom(config.File)
-	if err == definitions.ErrNoEntrypoint {
-		logger.Warning("Local execution is not supported for this task (kind=%s)", config.Kind)
-		return CmdConfig{}, nil
-	} else if err != nil {
+	entrypoint, err := entrypointFrom(runConfig.File)
+	if err != nil && err != definitions.ErrNoEntrypoint {
+		// REST tasks don't have an entrypoint, and it's not needed
 		return CmdConfig{}, err
 	}
-
-	r, err := runtime.Lookup(entrypoint, config.Kind)
+	r, err := runtime.Lookup(entrypoint, runConfig.Kind)
 	if err != nil {
 		return CmdConfig{}, errors.Wrapf(err, "unsupported file type: %s", filepath.Base(entrypoint))
 	}
 
 	if !r.SupportsLocalExecution() {
-		logger.Warning("Local execution is not supported for this task (kind=%s)", config.Kind)
+		logger.Warning("Local execution is not supported for this task (kind=%s)", runConfig.Kind)
 		return CmdConfig{}, nil
+	}
+
+	configVars := map[string]interface{}{}
+	for k, v := range runConfig.ConfigVars {
+		configVars[k] = v
 	}
 
 	cmds, closer, err := r.PrepareRun(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), runtime.PrepareRunOptions{
 		Path:        entrypoint,
-		ParamValues: config.ParamValues,
-		KindOptions: config.KindOptions,
+		ParamValues: runConfig.ParamValues,
+		KindOptions: runConfig.KindOptions,
+		ConfigVars:  configVars,
 	})
 	if err != nil {
 		return CmdConfig{}, err

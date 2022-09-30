@@ -16,6 +16,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
+	"github.com/airplanedev/cli/pkg/configs"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -255,6 +256,11 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	if err != nil {
 		return err
 	}
+	attachedConfigs, err := taskConfig.Def.GetConfigAttachments()
+	if err != nil {
+		return errors.Wrap(err, "getting attached configs")
+	}
+	configVars := configs.MaterializeConfigs(attachedConfigs, cfg.devConfig.ConfigVars)
 
 	localRunConfig := dev.LocalRunConfig{
 		ID:          dev.GenerateRunID(),
@@ -269,6 +275,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		EnvSlug:     cfg.envSlug,
 		Env:         envVars,
 		Resources:   resources,
+		ConfigVars:  configVars,
 	}
 	_, err = localExecutor.Execute(ctx, localRunConfig)
 	if err != nil {

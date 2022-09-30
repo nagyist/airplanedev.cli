@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/configs"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -153,6 +154,11 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 				return dev.LocalRun{}, err
 			}
 			runConfig.Env = envVars
+			attachedConfigs, err := localTaskConfig.Def.GetConfigAttachments()
+			if err != nil {
+				return dev.LocalRun{}, errors.Wrap(err, "getting attached configs")
+			}
+			runConfig.ConfigVars = configs.MaterializeConfigs(attachedConfigs, state.DevConfig.ConfigVars)
 		}
 		resources, err := resource.GenerateAliasToResourceMap(
 			ctx,
