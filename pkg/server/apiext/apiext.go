@@ -7,16 +7,18 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/configs"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/resource"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/builtins"
-	"github.com/airplanedev/lib/pkg/resources/conversion"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -37,6 +39,7 @@ func AttachExternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/runs/list", handlers.Handler(state, ListRunsHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/resources/list", handlers.Handler(state, ListResourcesHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/resources/listMetadata", handlers.Handler(state, ListResourceMetadataHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/views/get", handlers.Handler(state, GetViewHandler)).Methods("GET", "OPTIONS")
 
@@ -48,7 +51,6 @@ func AttachExternalAPIRoutes(r *mux.Router, state *state.State) {
 }
 
 type ExecuteTaskRequest struct {
-	RunID       string            `json:"runID"`
 	Slug        string            `json:"slug"`
 	ParamValues api.Values        `json:"paramValues"`
 	Resources   map[string]string `json:"resources"`
@@ -67,22 +69,15 @@ func getRunIDFromToken(r *http.Request) (string, error) {
 
 // ExecuteTaskHandler handles requests to the /v0/tasks/execute endpoint
 func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request, req ExecuteTaskRequest) (dev.LocalRun, error) {
-	// Allow run IDs to be generated beforehand; this is needed so that the /dev/logs endpoint can start waiting
-	// for logs for a given run before that run's execution has started.
-	runID := req.RunID
-	var run dev.LocalRun
-	if runID != "" {
-		run, _ = state.Runs.Get(runID)
-	} else {
-		runID = dev.GenerateRunID()
-		run = *dev.NewLocalRun()
-	}
-
+	run := *dev.NewLocalRun()
 	parentID, err := getRunIDFromToken(r)
 	if err != nil {
 		return run, err
 	}
 	run.ParentID = parentID
+
+	runID := dev.GenerateRunID()
+	run.RunID = runID
 
 	localTaskConfig, ok := state.TaskConfigs[req.Slug]
 	isBuiltin := builtins.IsBuiltinTaskSlug(req.Slug)
@@ -97,11 +92,16 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			Slug:        req.Slug,
 			EnvID:       state.EnvID,
 			EnvSlug:     state.EnvSlug,
+			ParentRunID: pointers.String(parentID),
 			IsBuiltin:   isBuiltin,
 			AuthInfo:    state.AuthInfo,
 			LogBroker:   run.LogBroker,
 		}
 		resourceAttachments := map[string]string{}
+		mergedResources, err := resource.MergeRemoteResources(ctx, state)
+		if err != nil {
+			return dev.LocalRun{}, errors.Wrap(err, "merging local and remote resources")
+		}
 		// Builtins have a specific alias in the form of "rest", "db", etc. that is required by the builtins binary,
 		// and so we need to manually generate resource attachments.
 		if isBuiltin {
@@ -116,18 +116,21 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			}
 
 			var foundResource bool
-			for slug, res := range state.DevConfig.Resources {
-				if res.ID() == resourceID {
+			for slug, res := range mergedResources {
+				if res.Resource.ID() == resourceID {
 					resourceAttachments[builtinAlias] = slug
 					foundResource = true
 				}
 			}
 
 			if !foundResource {
-				return dev.LocalRun{}, errors.Errorf("resource with id %s not found in dev config file", resourceID)
+				if resourceID == resource.SlackID {
+					return dev.LocalRun{}, errors.New("Your team has not configured Slack. Please visit https://docs.airplane.dev/platform/slack-integration#connect-to-slack to authorize Slack to perform actions in your workspace.")
+				}
+				return dev.LocalRun{}, errors.Errorf("Resource with id %s not found in dev config file or remotely.", resourceID)
 			}
 			run.IsStdAPI = true
-			stdapiReq, err := dev.BuiltinRequest(req.Slug, req.ParamValues)
+			stdapiReq, err := builtins.Request(req.Slug, req.ParamValues)
 			if err != nil {
 				return run, err
 			}
@@ -151,17 +154,23 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 				return dev.LocalRun{}, err
 			}
 			runConfig.Env = envVars
+			attachedConfigs, err := localTaskConfig.Def.GetConfigAttachments()
+			if err != nil {
+				return dev.LocalRun{}, errors.Wrap(err, "getting attached configs")
+			}
+			runConfig.ConfigVars = configs.MaterializeConfigs(attachedConfigs, state.DevConfig.ConfigVars)
 		}
 		resources, err := resource.GenerateAliasToResourceMap(
+			ctx,
+			state,
 			resourceAttachments,
-			state.DevConfig.Resources,
+			mergedResources,
 		)
 		if err != nil {
 			return dev.LocalRun{}, errors.Wrap(err, "generating alias to resource map")
 		}
 		runConfig.Resources = resources
 		run.Resources = resource.GenerateResourceAliasToID(resources)
-		run.RunID = runID
 		run.CreatedAt = start
 		run.ParamValues = req.ParamValues
 		run.Parameters = &parameters
@@ -174,22 +183,44 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 
 		// use a new context while executing
 		// so the handler context doesn't cancel task execution
-		outputs, err := state.Executor.Execute(context.Background(), runConfig)
-
-		completedAt := time.Now()
-		run, err = state.Runs.Update(runID, func(run *dev.LocalRun) error {
-			if err != nil {
-				run.Status = api.RunFailed
-				run.FailedAt = &completedAt
-			} else {
-				run.Status = api.RunSucceeded
-				run.SucceededAt = &completedAt
-			}
-			run.Outputs = outputs
-			return nil
-		})
+		go func() {
+			outputs, err := state.Executor.Execute(context.Background(), runConfig)
+			completedAt := time.Now()
+			run, err = state.Runs.Update(runID, func(run *dev.LocalRun) error {
+				if err != nil {
+					run.Status = api.RunFailed
+					run.FailedAt = &completedAt
+				} else {
+					run.Status = api.RunSucceeded
+					run.SucceededAt = &completedAt
+				}
+				run.Outputs = outputs
+				return nil
+			})
+		}()
 	} else {
-		logger.Error("task with slug %s is not registered locally", req.Slug)
+		if state.EnvID == env.LocalEnvID {
+			return dev.LocalRun{}, errors.Errorf("task with slug %s is not registered locally", req.Slug)
+		}
+
+		resp, err := state.CliConfig.Client.RunTask(ctx, api.RunTaskRequest{
+			TaskSlug:    &req.Slug,
+			ParamValues: req.ParamValues,
+			EnvSlug:     state.EnvSlug,
+		})
+		if err != nil {
+			if _, ok := err.(*libapi.TaskMissingError); ok {
+				return dev.LocalRun{}, errors.Errorf("task with slug %s is not registered locally or remotely", req.Slug)
+			} else {
+				return dev.LocalRun{}, err
+			}
+		}
+
+		run.Remote = true
+		run.RunID = resp.RunID
+		run.ParentID = "" // TODO: Support linking to remote run as well
+		state.Runs.Add(req.Slug, resp.RunID, run)
+		return run, nil
 	}
 
 	return run, nil
@@ -206,6 +237,27 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (de
 	run, ok := state.Runs.Get(runID)
 	if !ok {
 		return dev.LocalRun{}, errors.Errorf("run with id %s not found", runID)
+	}
+
+	if run.Remote {
+		resp, err := state.CliConfig.Client.GetRun(ctx, runID)
+		if err != nil {
+			return dev.LocalRun{}, errors.Wrap(err, "getting remote run")
+		}
+		remoteRun := resp.Run
+
+		return dev.LocalRun{
+			RunID:       runID,
+			Status:      remoteRun.Status,
+			CreatedAt:   remoteRun.CreatedAt,
+			CreatorID:   remoteRun.CreatorID,
+			SucceededAt: remoteRun.SucceededAt,
+			FailedAt:    remoteRun.FailedAt,
+			ParamValues: remoteRun.ParamValues,
+			TaskID:      remoteRun.TaskID,
+			TaskName:    remoteRun.TaskName,
+			Remote:      true,
+		}, nil
 	}
 
 	return run, nil
@@ -259,9 +311,19 @@ func GetOutputsHandler(ctx context.Context, state *state.State, r *http.Request)
 	if !ok {
 		return GetOutputsResponse{}, errors.Errorf("run with id %s not found", runID)
 	}
+	outputs := run.Outputs
+
+	if run.Remote {
+		resp, err := state.CliConfig.Client.GetOutputs(ctx, runID)
+		if err != nil {
+			return GetOutputsResponse{}, errors.Wrap(err, "getting remote run")
+		}
+
+		outputs = resp.Outputs
+	}
 
 	return GetOutputsResponse{
-		Output: run.Outputs,
+		Output: outputs,
 	}, nil
 }
 
@@ -380,6 +442,7 @@ func CreatePromptHandler(ctx context.Context, state *state.State, r *http.Reques
 
 	if _, err := state.Runs.Update(runID, func(run *dev.LocalRun) error {
 		run.Prompts = append(run.Prompts, prompt)
+		run.IsWaitingForUser = true
 		return nil
 	}); err != nil {
 		return PromptResponse{}, err
@@ -421,26 +484,45 @@ func GetPromptHandler(ctx context.Context, state *state.State, r *http.Request) 
 // ListResourcesHandler handles requests to the /i/resources/list endpoint
 func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.ListResourcesResponse, error) {
 	resources := make([]libapi.Resource, 0, len(state.DevConfig.RawResources))
-	for slug, res := range state.DevConfig.Resources {
-		internalResource, err := conversion.ConvertToInternalResource(res)
-		if err != nil {
-			return libapi.ListResourcesResponse{}, errors.Wrap(err, "converting to internal resource")
-		}
-		kindConfig, err := resource.KindConfigToMap(internalResource)
-		if err != nil {
-			return libapi.ListResourcesResponse{}, err
-		}
+	for slug, r := range state.DevConfig.Resources {
 		resources = append(resources, libapi.Resource{
-			ID:                res.ID(),
+			ID:                r.Resource.ID(),
 			Slug:              slug,
-			Kind:              libapi.ResourceKind(res.Kind()),
-			KindConfig:        kindConfig,
+			Kind:              libapi.ResourceKind(r.Resource.Kind()),
+			ExportResource:    r.Resource,
 			CanUseResource:    true,
 			CanUpdateResource: true,
 		})
 	}
 
 	return libapi.ListResourcesResponse{
+		Resources: resources,
+	}, nil
+}
+
+// ListResourceMetadataHandler handles requests to the /v0/resources/listMetadata endpoint
+func ListResourceMetadataHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.ListResourceMetadataResponse, error) {
+	mergedResources, err := resource.MergeRemoteResources(ctx, state)
+	if err != nil {
+		return libapi.ListResourceMetadataResponse{}, errors.Wrap(err, "merging local and remote resources")
+	}
+
+	resources := make([]libapi.ResourceMetadata, 0, len(mergedResources))
+	for slug, resourceWithEnv := range mergedResources {
+		res := resourceWithEnv.Resource
+		resources = append(resources, libapi.ResourceMetadata{
+			ID:   res.ID(),
+			Slug: slug,
+			DefaultEnvResource: &libapi.Resource{
+				ID:             res.ID(),
+				Slug:           slug,
+				Kind:           libapi.ResourceKind(res.Kind()),
+				ExportResource: res,
+			},
+		})
+	}
+
+	return libapi.ListResourceMetadataResponse{
 		Resources: resources,
 	}, nil
 }

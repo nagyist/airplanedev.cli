@@ -16,26 +16,41 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type config struct {
+	root  *cli.Config
+	token string
+}
+
 // New returns a new login command.
 func New(c *cli.Config) *cobra.Command {
+	var cfg = config{
+		root: c,
+	}
+
 	cmd := &cobra.Command{
 		Use:   "login",
 		Short: "Login to Airplane",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return run(cmd.Root().Context(), c)
+			return run(cmd.Root().Context(), cfg)
 		},
 	}
+
+	cmd.Flags().StringVar(&cfg.token, "token", "", "pass the cli token directly instead of via prompt")
+	if err := cmd.Flags().MarkHidden("token"); err != nil {
+		logger.Debug("error: %s", err)
+	}
+
 	return cmd
 }
 
 // Run runs the login command.
-func run(ctx context.Context, c *cli.Config) error {
-	if err := login(ctx, c); err != nil {
+func run(ctx context.Context, cfg config) error {
+	if err := login(ctx, cfg); err != nil {
 		return err
 	}
 
 	logger.Log("You're all set!\n\nTo see what tasks you can run, try:\n    airplane tasks list")
-	analytics.Track(c, "User Logged In", nil)
+	analytics.Track(cfg.root, "User Logged In", nil)
 	return nil
 }
 
@@ -88,31 +103,38 @@ func EnsureLoggedIn(ctx context.Context, c *cli.Config) error {
 
 	logger.Log("\n  Logging in...\n")
 
-	if err := login(ctx, c); err != nil {
+	if err := login(ctx, config{
+		root: c,
+	}); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func login(ctx context.Context, c *cli.Config) error {
+func login(ctx context.Context, cfg config) error {
 	writeToken := func(token string) error {
-		c.Client.Token = token
-		cfg, err := conf.ReadDefaultUserConfig()
+		cfg.root.Client.Token = token
+		userConf, err := conf.ReadDefaultUserConfig()
 		if err != nil && !errors.Is(err, conf.ErrMissing) {
 			return err
 		}
-		if cfg.Tokens == nil {
-			cfg.Tokens = map[string]string{}
+		if userConf.Tokens == nil {
+			userConf.Tokens = map[string]string{}
 		}
-		cfg.Tokens[c.Client.Host] = token
-		if err := conf.WriteDefaultUserConfig(cfg); err != nil {
+		userConf.Tokens[cfg.root.Client.Host] = token
+		if err := conf.WriteDefaultUserConfig(userConf); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	logger.Log("Enter your %s from %s\nor hit ENTER to log in with your browser.", logger.Bold("token"), logger.Blue(c.Client.TokenURL()))
+	if cfg.token != "" {
+		// If token was provided on cmdline, exit early.
+		return writeToken(cfg.token)
+	}
+
+	logger.Log("Enter your %s from %s\nor hit ENTER to log in with your browser.", logger.Bold("token"), logger.Blue(cfg.root.Client.TokenURL()))
 	var tkn string
 	if err := survey.AskOne(
 		&survey.Password{
@@ -130,13 +152,13 @@ func login(ctx context.Context, c *cli.Config) error {
 	}
 
 	// Otherwise, open the login URL and use an HTTP server to listen for the response.
-	srv, err := token.NewServer(ctx, c.Client.LoginSuccessURL())
+	srv, err := token.NewServer(ctx, cfg.root.Client.LoginSuccessURL())
 	if err != nil {
 		return err
 	}
 	defer srv.Close()
 
-	url := c.Client.LoginURL(srv.URL())
+	url := cfg.root.Client.LoginURL(srv.URL())
 	if ok := utils.Open(url); !ok {
 		logger.Log("Visit %s to finish logging in", logger.Blue("%s", url))
 	} else {

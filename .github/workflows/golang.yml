@@ -53,9 +53,4 @@ jobs:
 
       - name: go test
         run: |
-          go test -race -timeout=10m -coverpkg=./... -covermode atomic -coverprofile=coverage.out ./...
-
-      - name: Upload coverage to Codecov
-        # this line will prevent forks of this repo from attempting to upload coverage
-        if: github.repository == 'airplanedev/cli'
-        run: bash <(curl -s https://codecov.io/bash)
+          go test -race -timeout=10m ./...

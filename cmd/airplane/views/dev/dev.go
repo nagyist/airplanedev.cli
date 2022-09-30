@@ -65,7 +65,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return errors.Errorf("Unable to open: %s", cfg.FileOrDir)
 	}
 
-	return StartView(cfg)
+	return StartView(ctx, cfg)
 }
 
 func IsView(dir string) error {
@@ -84,8 +84,7 @@ func IsView(dir string) error {
 }
 
 // StartView starts a view development server.
-func StartView(cfg Config) error {
-	ctx := context.Background()
+func StartView(ctx context.Context, cfg Config) error {
 	rootDir, err := viewdir.FindRoot(cfg.FileOrDir)
 	if err != nil {
 		return err
@@ -95,7 +94,7 @@ func StartView(cfg Config) error {
 		return err
 	}
 
-	cmd, _, err := views.Dev(v, views.ViteOpts{
+	cmd, _, err := views.Dev(ctx, v, views.ViteOpts{
 		Client:  cfg.Root.Client,
 		EnvSlug: cfg.EnvSlug,
 		TTY:     true,

@@ -12,6 +12,7 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/apiext"
 	"github.com/airplanedev/cli/pkg/server/apiint"
@@ -33,20 +34,26 @@ func TestListResources(t *testing.T) {
 		t,
 		server.NewRouter(&state.State{
 			DevConfig: &conf.DevConfig{
-				Resources: map[string]resources.Resource{
-					"db": &kinds.PostgresResource{
-						BaseResource: resources.BaseResource{
-							ID:   "r-1",
-							Slug: "db",
-							Kind: kinds.ResourceKindPostgres,
+				Resources: map[string]env.ResourceWithEnv{
+					"db": {
+						Resource: &kinds.PostgresResource{
+							BaseResource: resources.BaseResource{
+								ID:   "r-1",
+								Slug: "db",
+								Kind: kinds.ResourceKindPostgres,
+							},
 						},
+						Remote: false,
 					},
-					"slack": &kinds.SlackResource{
-						BaseResource: resources.BaseResource{
-							ID:   "r-2",
-							Slug: "slack",
-							Kind: kinds.ResourceKindSlack,
+					"slack": {
+						Resource: &kinds.SlackResource{
+							BaseResource: resources.BaseResource{
+								ID:   "r-2",
+								Slug: "slack",
+								Kind: kinds.ResourceKindSlack,
+							},
 						},
+						Remote: false,
 					},
 				},
 			},

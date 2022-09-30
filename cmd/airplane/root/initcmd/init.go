@@ -14,6 +14,7 @@ import (
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	taskinit "github.com/airplanedev/cli/cmd/airplane/tasks/initcmd"
 	viewinit "github.com/airplanedev/cli/cmd/airplane/views/initcmd"
+	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -23,14 +24,14 @@ import (
 )
 
 type config struct {
+	root        *cli.Config
 	client      *api.Client
 	template    string
 	resetDemoDB bool
-	dev         bool
 }
 
 func New(c *cli.Config) *cobra.Command {
-	var cfg = config{client: c.Client}
+	var cfg = config{client: c.Client, root: c}
 
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -40,7 +41,6 @@ func New(c *cli.Config) *cobra.Command {
 			$ airplane init --template github.com/airplanedev/templates/getting_started
 		`),
 		PersistentPreRunE: utils.WithParentPersistentPreRunE(func(cmd *cobra.Command, args []string) error {
-			cfg.dev = c.Dev
 			return login.EnsureLoggedIn(cmd.Root().Context(), c)
 		}),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -79,6 +79,9 @@ func run(ctx context.Context, cfg config) error {
 
 	if cfg.template != "" {
 		if strings.HasPrefix(cfg.template, "github.com/") || strings.HasPrefix(cfg.template, "https://github.com/") {
+			analytics.Track(cfg.root, "Template Cloned", map[string]interface{}{
+				"template_path": cfg.template,
+			})
 			return utils.CopyFromGithubPath(cfg.template)
 		}
 
@@ -86,11 +89,7 @@ func run(ctx context.Context, cfg config) error {
 		if err != nil {
 			return err
 		}
-		return initFromTemplate(ctx, templates, cfg.template)
-	}
-
-	if !cfg.dev {
-		return taskinit.Run(ctx, taskinit.GetConfig(cfg.client))
+		return initFromTemplate(ctx, cfg, templates, cfg.template)
 	}
 
 	var selectedInit string
@@ -118,7 +117,7 @@ func run(ctx context.Context, cfg config) error {
 			return err
 		}
 
-		return initFromTemplate(ctx, templates, selectedTemplate)
+		return initFromTemplate(ctx, cfg, templates, selectedTemplate)
 	}
 
 	return nil
@@ -166,7 +165,10 @@ func selectTemplate(ctx context.Context, templates []Template) (string, error) {
 	return optionToPath[selectedTemplate], nil
 }
 
-func initFromTemplate(ctx context.Context, templates []Template, gitPath string) error {
+func initFromTemplate(ctx context.Context, cfg config, templates []Template, gitPath string) error {
+	analytics.Track(cfg.root, "Template Cloned", map[string]interface{}{
+		"template_path": gitPath,
+	})
 	template, err := FindTemplate(templates, gitPath)
 	if err != nil {
 		return err

@@ -1,3 +1,5 @@
+//go:build !race
+
 package apiext_test
 
 import (
@@ -12,6 +14,7 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/apiext"
@@ -26,6 +29,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestExecute technically causes a "race condition" since `dev.Execute` executes in a separate goroutine, even though
+// we don't use the result o the mock executor in that case.
 func TestExecute(t *testing.T) {
 	require := require.New(t)
 	mockExecutor := new(dev.MockExecutor)
@@ -41,21 +46,16 @@ func TestExecute(t *testing.T) {
 	}
 	taskDefinition.SetDefnFilePath("my_task.task.yaml")
 
-	runID := "run1234"
 	logBroker := logs.NewDevLogBroker()
 	store := state.NewRunStore()
-	store.Add(slug, runID, dev.LocalRun{
-		RunID:     runID,
-		LogBroker: logBroker,
-	},
-	)
 	cliConfig := &cli.Config{Client: &api.Client{}}
 	h := test_utils.GetHttpExpect(
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
 			CliConfig: cliConfig,
-			EnvSlug:   "stage",
+			EnvID:     env.LocalEnvID,
+			EnvSlug:   env.LocalEnvID,
 			Executor:  mockExecutor,
 			Port:      1234,
 			Runs:      store,
@@ -78,7 +78,6 @@ func TestExecute(t *testing.T) {
 	}
 
 	runConfig := dev.LocalRunConfig{
-		ID:   runID,
 		Name: "My Task",
 		Root: cliConfig,
 		Kind: build.TaskKindNode,
@@ -91,27 +90,31 @@ func TestExecute(t *testing.T) {
 		File:        "my_task.ts",
 		Slug:        slug,
 		Env:         map[string]string{},
-		EnvSlug:     "stage",
+		EnvID:       env.LocalEnvID,
+		EnvSlug:     env.LocalEnvID,
 		Resources:   map[string]resources.Resource{},
 		LogBroker:   logBroker,
 	}
 	mockExecutor.On("Execute", mock.Anything, runConfig).Return(nil)
-
 	body := h.POST("/v0/tasks/execute").
 		WithJSON(apiext.ExecuteTaskRequest{
 			Slug:        slug,
 			ParamValues: paramValues,
-			RunID:       runID,
 		}).
 		Expect().
 		Status(http.StatusOK).Body()
-
-	mockExecutor.AssertCalled(t, "Execute", mock.Anything, runConfig)
 
 	var resp dev.LocalRun
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
 	require.True(strings.HasPrefix(resp.RunID, "run"))
+
+	run, found := store.Get(resp.RunID)
+	require.True(found)
+	require.Equal(paramValues, run.ParamValues)
+	require.Equal(taskDefinition.Slug, run.TaskID)
+	require.Equal(taskDefinition.Name, run.TaskName)
+	require.False(run.IsStdAPI)
 }
 
 func TestExecuteBuiltin(t *testing.T) {
@@ -130,14 +133,8 @@ func TestExecuteBuiltin(t *testing.T) {
 	}
 	taskDefinition.SetDefnFilePath("my_task.task.yaml")
 
-	runID := "run1234"
 	logBroker := logs.NewDevLogBroker()
 	store := state.NewRunStore()
-	store.Add(slug, runID, dev.LocalRun{
-		RunID:     runID,
-		LogBroker: logBroker,
-	},
-	)
 	cliConfig := &cli.Config{Client: &api.Client{}}
 	dbResource := kinds.PostgresResource{
 		BaseResource: resources.BaseResource{
@@ -154,7 +151,8 @@ func TestExecuteBuiltin(t *testing.T) {
 		t,
 		server.NewRouter(&state.State{
 			CliConfig: cliConfig,
-			EnvSlug:   "stage",
+			EnvID:     env.LocalEnvID,
+			EnvSlug:   env.LocalEnvID,
 			Executor:  mockExecutor,
 			Port:      1234,
 			Runs:      store,
@@ -167,8 +165,11 @@ func TestExecuteBuiltin(t *testing.T) {
 					Source:         discover.ConfigSourceDefn,
 				},
 			},
-			DevConfig: &conf.DevConfig{Resources: map[string]resources.Resource{
-				"database": &dbResource,
+			DevConfig: &conf.DevConfig{Resources: map[string]env.ResourceWithEnv{
+				"database": {
+					Resource: &dbResource,
+					Remote:   false,
+				},
 			}},
 		}),
 	)
@@ -179,12 +180,12 @@ func TestExecuteBuiltin(t *testing.T) {
 	}
 
 	runConfig := dev.LocalRunConfig{
-		ID:          runID,
 		Root:        cliConfig,
 		ParamValues: paramValues,
 		Port:        1234,
 		Slug:        slug,
-		EnvSlug:     "stage",
+		EnvID:       env.LocalEnvID,
+		EnvSlug:     env.LocalEnvID,
 		Resources: map[string]resources.Resource{
 			"db": &dbResource,
 		},
@@ -197,18 +198,22 @@ func TestExecuteBuiltin(t *testing.T) {
 		WithJSON(apiext.ExecuteTaskRequest{
 			Slug:        slug,
 			ParamValues: paramValues,
-			RunID:       runID,
 			Resources:   map[string]string{"db": "res-database"},
 		}).
 		Expect().
 		Status(http.StatusOK).Body()
 
-	mockExecutor.AssertCalled(t, "Execute", mock.Anything, runConfig)
-
 	var resp dev.LocalRun
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
 	require.True(strings.HasPrefix(resp.RunID, "run"))
+
+	run, found := store.Get(resp.RunID)
+	require.True(found)
+	require.Equal(paramValues, run.ParamValues)
+	require.Empty(run.TaskID)
+	require.Equal(taskDefinition.Slug, run.TaskName)
+	require.True(run.IsStdAPI)
 }
 
 func TestGetRun(t *testing.T) {

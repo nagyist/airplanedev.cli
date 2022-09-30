@@ -149,9 +149,10 @@ type Values = map[string]interface{}
 
 // RunTaskRequest represents a run task request.
 type RunTaskRequest struct {
-	TaskID      string `json:"taskID"`
-	ParamValues Values `json:"paramValues"`
-	EnvSlug     string `json:"envSlug"`
+	TaskID      *string `json:"taskID"`
+	TaskSlug    *string `json:"slug"`
+	ParamValues Values  `json:"paramValues"`
+	EnvSlug     string  `json:"envSlug"`
 }
 
 // RunTaskResponse represents a run task response.
@@ -374,4 +375,11 @@ type SQLKindConfig struct {
 	SSHPort       string `json:"sshPort"`
 	SSHUsername   string `json:"sshUsername"`
 	SSHPrivateKey string `json:"sshPrivateKey"`
+}
+
+type GetResourceRequest struct {
+	ID                   string `json:"id"`
+	Slug                 string `json:"slug"`
+	EnvSlug              string `json:"envSlug"`
+	IncludeSensitiveData bool   `json:"includeSensitiveData"`
 }

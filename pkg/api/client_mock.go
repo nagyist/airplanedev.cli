@@ -44,8 +44,22 @@ func (mc *MockClient) ListTasks(ctx context.Context, envSlug string) (res ListTa
 	panic("not implemented") // TODO: Implement
 }
 
-func (mc *MockClient) ListResources(ctx context.Context) (res libapi.ListResourcesResponse, err error) {
+func (mc *MockClient) ListResources(ctx context.Context, envSlug string) (res libapi.ListResourcesResponse, err error) {
 	return libapi.ListResourcesResponse{Resources: mc.Resources}, nil
+}
+
+func (mc *MockClient) ListResourceMetadata(ctx context.Context) (res libapi.ListResourceMetadataResponse, err error) {
+	metadata := []libapi.ResourceMetadata{}
+	for i, r := range mc.Resources {
+		metadata = append(metadata, libapi.ResourceMetadata{
+			ID:                 r.ID,
+			Slug:               r.Slug,
+			DefaultEnvResource: &mc.Resources[i],
+		})
+	}
+	return libapi.ListResourceMetadataResponse{
+		Resources: metadata,
+	}, nil
 }
 
 func (mc *MockClient) SetConfig(ctx context.Context, req SetConfigRequest) (err error) {
@@ -180,4 +194,8 @@ func (mc *MockClient) GetEnv(ctx context.Context, envSlug string) (libapi.GetEnv
 		return libapi.GetEnvResponse{}, errors.Errorf("environment with slug %s does not exist", envSlug)
 	}
 	return env, nil
+}
+
+func (mc *MockClient) GetResource(ctx context.Context, req GetResourceRequest) (res libapi.GetResourceResponse, err error) {
+	panic("not implemented")
 }

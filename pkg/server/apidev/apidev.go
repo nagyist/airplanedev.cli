@@ -9,14 +9,13 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/version"
 	"github.com/airplanedev/cli/pkg/version/latest"
 	"github.com/airplanedev/cli/pkg/views"
 	"github.com/airplanedev/cli/pkg/views/viewdir"
-	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -29,10 +28,8 @@ func AttachDevRoutes(r *mux.Router, s *state.State) {
 	r.Handle("/version", handlers.Handler(s, GetVersionHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/list", handlers.Handler(s, ListEntrypointsHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/tasks/{task_slug}", handlers.Handler(s, GetTaskHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/startView/{view_slug}", handlers.Handler(s, StartViewHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/logs/{run_id}", handlers.HandlerSSE(s, LogsHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/runs/create", handlers.HandlerWithBody(s, CreateRunHandler)).Methods("POST", "OPTIONS")
 }
 
 func GetVersionHandler(ctx context.Context, s *state.State, r *http.Request) (version.Metadata, error) {
@@ -76,6 +73,11 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 
 	for slug, taskConfig := range state.TaskConfigs {
 		absoluteEntrypoint := taskConfig.TaskEntrypoint
+		if absoluteEntrypoint == "" {
+			// for YAML-only tasks like REST that don't have entrypoints
+			// display the yaml path instead
+			absoluteEntrypoint = taskConfig.Def.GetDefnFilePath()
+		}
 		ep, err := filepath.Rel(state.Dir, absoluteEntrypoint)
 		if err != nil {
 			return ListEntrypointsHandlerResponse{}, errors.Wrap(err, "getting relative path to task")
@@ -121,34 +123,6 @@ type CreateRunRequest struct {
 	TaskSlug string `json:"taskSlug"`
 }
 
-func CreateRunHandler(ctx context.Context, state *state.State, r *http.Request, req CreateRunRequest) (CreateRunResponse, error) {
-	if req.TaskSlug == "" {
-		return CreateRunResponse{}, errors.New("Task slug is required")
-	}
-
-	runID := dev.GenerateRunID()
-	run := *dev.NewLocalRun()
-	run.CreatorID = state.CliConfig.ParseTokenForAnalytics().UserID
-	state.Runs.Add(req.TaskSlug, runID, run)
-	return CreateRunResponse{RunID: runID}, nil
-}
-
-// GetTaskHandler handles requests to the /dev/tasks/<task_slug> endpoint.
-func GetTaskHandler(ctx context.Context, state *state.State, r *http.Request) (definitions.DefinitionInterface, error) {
-	vars := mux.Vars(r)
-	taskSlug, ok := vars["task_slug"]
-	if !ok {
-		return nil, errors.Errorf("Task slug was not supplied, request path must be of the form /dev/tasks/<task_slug>")
-	}
-
-	taskConfig, ok := state.TaskConfigs[taskSlug]
-	if !ok {
-		return nil, errors.Errorf("Task with slug %s not found", taskSlug)
-	}
-
-	return taskConfig.Def, nil
-}
-
 type StartViewResponse struct {
 	ViteServer string `json:"viteServer"`
 }
@@ -185,8 +159,12 @@ func StartViewHandler(ctx context.Context, state *state.State, r *http.Request) 
 		return StartViewResponse{}, err
 	}
 
-	cmd, viteServer, err := views.Dev(vd, views.ViteOpts{
-		Client:  state.CliConfig.Client,
+	viewsClient := state.CliConfig.Client
+	if state.EnvID == env.LocalEnvID {
+		viewsClient = state.LocalClient
+	}
+	cmd, viteServer, err := views.Dev(ctx, vd, views.ViteOpts{
+		Client:  viewsClient,
 		EnvSlug: state.EnvSlug,
 		TTY:     false,
 	})

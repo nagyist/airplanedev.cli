@@ -28,7 +28,9 @@ import (
 	"github.com/airplanedev/lib/pkg/runtime"
 	_ "github.com/airplanedev/lib/pkg/runtime/javascript"
 	_ "github.com/airplanedev/lib/pkg/runtime/python"
+	_ "github.com/airplanedev/lib/pkg/runtime/rest"
 	_ "github.com/airplanedev/lib/pkg/runtime/shell"
+	_ "github.com/airplanedev/lib/pkg/runtime/sql"
 	_ "github.com/airplanedev/lib/pkg/runtime/typescript"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
@@ -217,9 +219,14 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		}
 
 		for {
-			entrypoint, err = promptForEntrypoint(def.GetSlug(), kind, entrypoint, cfg.inline)
-			if err != nil {
-				return err
+
+			if cfg.assumeYes && cfg.file != "" {
+				entrypoint = cfg.file
+			} else {
+				entrypoint, err = promptForEntrypoint(def.GetSlug(), kind, entrypoint, cfg)
+				if err != nil {
+					return err
+				}
 			}
 
 			if fsx.Exists(entrypoint) {
@@ -395,7 +402,7 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 	}
 
 	if cfg.file == "" {
-		cfg.file, err = promptForEntrypoint(task.Slug, task.Kind, "", false)
+		cfg.file, err = promptForEntrypoint(task.Slug, task.Kind, "", cfg)
 		if err != nil {
 			return err
 		}
@@ -550,7 +557,7 @@ func patch(slug, file string) (ok bool, err error) {
 	return
 }
 
-func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint string, inline bool) (string, error) {
+func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint string, cfg config) (string, error) {
 	exts := runtime.SuggestExts(kind)
 	if defaultEntrypoint == "" {
 		defaultEntrypoint = slug
@@ -569,7 +576,7 @@ func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint str
 		}
 	}
 
-	if inline {
+	if !cfg.codeOnly && cfg.inline {
 		defaultEntrypoint = modifyEntrypointForInline(kind, defaultEntrypoint)
 	}
 
@@ -835,7 +842,8 @@ func runKindSpecificInstallation(kind build.TaskKind) error {
 			return errors.Wrap(err, "getting working directory")
 		}
 		if err := node.CreatePackageJSON(cwd, node.NodeDependencies{
-			Dependencies: []string{"airplane"},
+			Dependencies:    []string{"airplane"},
+			DevDependencies: []string{"@types/node"},
 		}); err != nil {
 			return err
 		}

@@ -89,7 +89,9 @@ type APIClient interface {
 	UpdateTask(ctx context.Context, req libapi.UpdateTaskRequest) (res UpdateTaskResponse, err error)
 	TaskURL(slug string, envSlug string) string
 
-	ListResources(ctx context.Context) (res libapi.ListResourcesResponse, err error)
+	ListResources(ctx context.Context, envSlug string) (res libapi.ListResourcesResponse, err error)
+	ListResourceMetadata(ctx context.Context) (res libapi.ListResourceMetadataResponse, err error)
+	GetResource(ctx context.Context, req GetResourceRequest) (res libapi.GetResourceResponse, err error)
 
 	SetConfig(ctx context.Context, req SetConfigRequest) (err error)
 	GetConfig(ctx context.Context, req GetConfigRequest) (res GetConfigResponse, err error)
@@ -121,6 +123,11 @@ func (c Client) AppURL() *url.URL {
 	apphost = strings.ReplaceAll(apphost, "api", "app")
 	u, _ := url.Parse(c.scheme() + apphost)
 	return u
+}
+
+// HostURL returns the api URL, e.g. api.airstage.app
+func (c Client) HostURL() string {
+	return c.scheme() + c.host()
 }
 
 func (c Client) TokenURL() string {
@@ -275,11 +282,24 @@ func (c Client) ListRuns(ctx context.Context, req ListRunsRequest) (ListRunsResp
 }
 
 // RunTask runs a task.
-func (c Client) RunTask(ctx context.Context, req RunTaskRequest) (res RunTaskResponse, err error) {
-	err = c.do(ctx, "POST", encodeQueryString("/tasks/execute", url.Values{
+func (c Client) RunTask(ctx context.Context, req RunTaskRequest) (RunTaskResponse, error) {
+	var res RunTaskResponse
+	if err := c.do(ctx, "POST", encodeQueryString("/tasks/execute", url.Values{
 		"envSlug": []string{req.EnvSlug},
-	}), req, &res)
-	return
+	}), req, &res); err != nil {
+		if err, ok := err.(Error); ok && err.Code == 404 {
+			if req.TaskSlug != nil {
+				return res, &libapi.TaskMissingError{
+					AppURL: c.AppURL().String(),
+					Slug:   *req.TaskSlug,
+				}
+			}
+		} else {
+			return RunTaskResponse{}, err
+		}
+	}
+
+	return res, nil
 }
 
 // Watcher runs a task with the given arguments and returns a run watcher.
@@ -482,14 +502,36 @@ func (c Client) GetDeploymentLogs(ctx context.Context, deploymentID string, prev
 	return
 }
 
-func (c Client) ListResources(ctx context.Context) (res libapi.ListResourcesResponse, err error) {
-	err = c.do(ctx, "GET", "/resources/list", nil, &res)
+func (c Client) ListResources(ctx context.Context, envSlug string) (res libapi.ListResourcesResponse, err error) {
+	err = c.do(ctx, "GET", encodeQueryString("/resources/list", url.Values{
+		"envSlug": []string{envSlug},
+	}), nil, &res)
+	return
+}
+
+func (c Client) ListResourceMetadata(ctx context.Context) (res libapi.ListResourceMetadataResponse, err error) {
+	err = c.do(ctx, "GET", "/resources/listMetadata", nil, &res)
+	return
+}
+
+func (c Client) GetResource(ctx context.Context, req GetResourceRequest) (res libapi.GetResourceResponse, err error) {
+	err = c.do(ctx, "GET", encodeQueryString("/resources/get", url.Values{
+		"slug":                 []string{req.Slug},
+		"envSlug":              []string{req.EnvSlug},
+		"includeSensitiveData": []string{strconv.FormatBool(req.IncludeSensitiveData)},
+	}), nil, &res)
+	if err, ok := err.(Error); ok && err.Code == 404 {
+		return res, libapi.ResourceMissingError{
+			AppURL: c.AppURL().String(),
+			Slug:   req.Slug,
+		}
+	}
 	return
 }
 
 func (c Client) GetEnv(ctx context.Context, envSlug string) (res libapi.GetEnvResponse, err error) {
 	err = c.do(ctx, "GET", encodeQueryString("/envs/get", url.Values{
-		"envSlug": []string{envSlug},
+		"slug": []string{envSlug},
 	}), nil, &res)
 	return
 }

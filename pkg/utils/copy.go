@@ -54,7 +54,7 @@ func CreateDirectory(directoryName string) error {
 	if fsx.Exists(directoryName) {
 		question := fmt.Sprintf("Directory %s already exists. Do you want to remove its existing files and continue?", directoryName)
 
-		if ok, err := Confirm(question); err != nil {
+		if ok, err := ConfirmDefaultFalse(question); err != nil {
 			return err
 		} else if !ok {
 			return errors.New(fmt.Sprintf("canceled creating directory %s", directoryName))
@@ -127,7 +127,7 @@ func CopyFromGithubPath(gitPath string) error {
 		if fsx.Exists(fileName) {
 			question := fmt.Sprintf("File %s already exists. Do you want to overwrite it?", fileName)
 
-			if ok, err := Confirm(question); err != nil {
+			if ok, err := ConfirmDefaultFalse(question); err != nil {
 				return err
 			} else if !ok {
 				return errors.New("canceled airplane views init")

@@ -2,6 +2,7 @@ package views
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -27,10 +28,15 @@ const (
 	envSlugEnvKey = "AIRPLANE_ENV_SLUG"
 )
 
-func Dev(v viewdir.ViewDirectory, viteOpts ViteOpts) (*exec.Cmd, string, error) {
+func Dev(ctx context.Context, v viewdir.ViewDirectory, viteOpts ViteOpts) (*exec.Cmd, string, error) {
 	root := v.Root()
 	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{WithLoader: true})
 	defer l.StopLoader()
+
+	err := utils.CheckNodeVersion()
+	if err != nil {
+		return nil, "", err
+	}
 
 	l.Debug("Root directory: %s", v.Root())
 	l.Debug("Entrypoint: %s", v.EntrypointPath())
@@ -52,37 +58,42 @@ func Dev(v viewdir.ViewDirectory, viteOpts ViteOpts) (*exec.Cmd, string, error) 
 		return nil, "", err
 	}
 
-	// Read existing package.json file, copy it over with vite stuff.
-	packageJSONFile, err := os.Open(filepath.Join(root, "package.json"))
+	// Create a package.json in the temp directory with mandatory development dependencies.
+
+	// Read in the root package.json
+	rootPackageJSONFile, err := os.Open(filepath.Join(root, "package.json"))
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return nil, "", errors.Wrap(err, "opening package.json")
 		}
 	}
-	var packageJSON interface{}
-	if packageJSONFile != nil {
-		if err := json.NewDecoder(packageJSONFile).Decode(&packageJSON); err != nil {
+	var rootPackageJSON interface{}
+	if rootPackageJSONFile != nil {
+		if err := json.NewDecoder(rootPackageJSONFile).Decode(&rootPackageJSON); err != nil {
 			return nil, "", errors.Wrap(err, "decoding package.json")
 		}
 	} else {
-		packageJSON = map[string]interface{}{}
+		rootPackageJSON = map[string]interface{}{}
 	}
 
-	// Add relevant fields to package.json.
-	packageJSONMap, ok := packageJSON.(map[string]interface{})
+	// Add relevant fields to the development package.json.
+	devPackageJSON := map[string]interface{}{}
+	existingPackageJSON, ok := rootPackageJSON.(map[string]interface{})
 	if !ok {
 		return nil, "", errors.New("expected package.json to be an object")
 	}
-	if err := patchPackageJSON(&packageJSONMap); err != nil {
+	if err := addDevDepsToPackageJSON(existingPackageJSON, &devPackageJSON); err != nil {
 		return nil, "", errors.Wrap(err, "patching package.json")
 	}
 
-	// Write package.json back out.
+	// Write the development package.json.
 	newPackageJSONFile, err := os.Create(filepath.Join(tmpdir, "package.json"))
 	if err != nil {
 		return nil, "", errors.Wrap(err, "creating new package.json")
 	}
-	if err := json.NewEncoder(newPackageJSONFile).Encode(packageJSON); err != nil {
+	enc := json.NewEncoder(newPackageJSONFile)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(devPackageJSON); err != nil {
 		return nil, "", errors.Wrap(err, "writing new package.json")
 	}
 	if err := newPackageJSONFile.Close(); err != nil {
@@ -107,7 +118,7 @@ func Dev(v viewdir.ViewDirectory, viteOpts ViteOpts) (*exec.Cmd, string, error) 
 	l.StopLoader()
 
 	// Run vite.
-	cmd, viteServer, err := runVite(viteOpts, tmpdir)
+	cmd, viteServer, err := runVite(ctx, viteOpts, tmpdir)
 	if err != nil {
 		return nil, "", errors.Wrap(err, "running vite")
 	}
@@ -123,8 +134,8 @@ func createWrapperTemplates(tmpdir string, entrypointFile string) error {
 	entrypointModule := entrypointFile[:len(entrypointFile)-4]
 
 	indexHtmlPath := filepath.Join(tmpdir, "index.html")
-	// TODO(zhan): put the view slug instead of Airplane as the title.
-	indexHtmlStr, err := libbuild.IndexHtmlString()
+	title := strings.Split(filepath.Base(entrypointFile), ".")[0]
+	indexHtmlStr, err := libbuild.IndexHtmlString(title)
 	if err != nil {
 		return errors.Wrap(err, "loading index.html value")
 	}
@@ -155,39 +166,52 @@ func createViteConfig(tmpdir string) error {
 	return nil
 }
 
-func addMissingDeps(defaultDeps map[string]string, deps *map[string]interface{}) {
-	for k, v := range defaultDeps {
-		if _, ok := (*deps)[k]; !ok {
+func addMissingDeps(depsToAdd map[string]string, existingDeps map[string]interface{}, deps *map[string]interface{}, alwaysAdd bool) {
+	for k, v := range depsToAdd {
+		_, dependencyExists := existingDeps[k]
+		if !dependencyExists || alwaysAdd {
 			(*deps)[k] = v
 		}
 	}
 }
 
-func patchPackageJSON(packageJSON *map[string]interface{}) error {
-	// TODO(zhan): fill out correct values.
+// addDevDepsToPackageJSON adds mandatory development dependencies to packageJSON. If any dependencies are already installed in existingPackageJSON
+// they are not added.
+func addDevDepsToPackageJSON(existingPackageJSON map[string]interface{}, packageJSON *map[string]interface{}) error {
+	// TODO: move to its own file and add renovate
 	defaultDeps := map[string]string{
 		"react":           "18.0.0",
 		"react-dom":       "18.0.0",
-		"@airplane/views": "*",
+		"@airplane/views": "^1.0.0",
 	}
 	defaultDevDeps := map[string]string{
-		"@vitejs/plugin-react": "^2.0.0",
-		"vite":                 "^3.0.0",
+		"@vitejs/plugin-react": "2.1.0",
+		"vite":                 "3.1.3",
 	}
 
+	existingDeps, ok := existingPackageJSON["dependencies"].(map[string]interface{})
+	if !ok {
+		existingPackageJSON["dependencies"] = map[string]interface{}{}
+		existingDeps = existingPackageJSON["dependencies"].(map[string]interface{})
+	}
 	deps, ok := (*packageJSON)["dependencies"].(map[string]interface{})
 	if !ok {
 		(*packageJSON)["dependencies"] = map[string]interface{}{}
 		deps = (*packageJSON)["dependencies"].(map[string]interface{})
 	}
-	addMissingDeps(defaultDeps, &deps)
+	addMissingDeps(defaultDeps, existingDeps, &deps, false)
 
+	existingDevDeps, ok := existingPackageJSON["devDependencies"].(map[string]interface{})
+	if !ok {
+		existingPackageJSON["devDependencies"] = map[string]interface{}{}
+		existingDevDeps = existingPackageJSON["devDependencies"].(map[string]interface{})
+	}
 	devDeps, ok := (*packageJSON)["devDependencies"].(map[string]interface{})
 	if !ok {
 		(*packageJSON)["devDependencies"] = map[string]interface{}{}
 		devDeps = (*packageJSON)["devDependencies"].(map[string]interface{})
 	}
-	addMissingDeps(defaultDevDeps, &devDeps)
+	addMissingDeps(defaultDevDeps, existingDevDeps, &devDeps, true)
 
 	return nil
 }
@@ -198,7 +222,7 @@ type ViteOpts struct {
 	TTY     bool
 }
 
-func runVite(opts ViteOpts, tmpdir string) (*exec.Cmd, string, error) {
+func runVite(ctx context.Context, opts ViteOpts, tmpdir string) (*exec.Cmd, string, error) {
 	cmd := exec.Command("node_modules/.bin/vite", "dev")
 	// TODO - View def might not be in the same location as the view itself. If
 	// we decide to support this, use the entrypoint to determine where to run
@@ -246,7 +270,17 @@ func runVite(opts ViteOpts, tmpdir string) (*exec.Cmd, string, error) {
 	}
 	logger.Debug("Started vite with process id: %v", cmd.Process.Pid)
 
-	wg.Wait()
+	// We wait in a separate goroutine and send back a signal to the original, so that
+	// we can also check ctx.Done(), which will handle signals correct.
+	quitCh := make(chan interface{})
+	go func() {
+		wg.Wait()
+		quitCh <- struct{}{}
+	}()
+	select {
+	case <-quitCh:
+	case <-ctx.Done():
+	}
 
 	if !opts.TTY {
 		// Debug log in the background in non TTY mode so we always log out Vite logs.
@@ -264,10 +298,14 @@ func runVite(opts ViteOpts, tmpdir string) (*exec.Cmd, string, error) {
 
 func getAdditionalEnvs(host, apiKey, token, envSlug string) []string {
 	var envs []string
-
 	if _, ok := os.LookupEnv(hostEnvKey); !ok && host != "" {
 		if !strings.HasPrefix(host, "http") {
-			host = "https://" + host
+			// The local dev server currently only supports http.
+			if strings.HasPrefix(host, "127.0.0.1") {
+				host = "http://" + host
+			} else {
+				host = "https://" + host
+			}
 		}
 		envs = append(envs, fmt.Sprintf("%s=%s", hostEnvKey, host))
 	}

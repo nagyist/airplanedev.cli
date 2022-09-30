@@ -3,6 +3,8 @@ package configs
 import (
 	"errors"
 	"strings"
+
+	"github.com/airplanedev/lib/pkg/api"
 )
 
 var ErrInvalidConfigName = errors.New("invalid config name")
@@ -31,4 +33,13 @@ func JoinName(nameTag NameTag) string {
 		tagStr = ":" + nameTag.Tag
 	}
 	return nameTag.Name + tagStr
+}
+
+// MaterializeConfigs returns the configs that are attached to a task
+func MaterializeConfigs(attached []api.ConfigAttachment, allConfigs map[string]string) map[string]string {
+	configAttachments := map[string]string{}
+	for _, a := range attached {
+		configAttachments[a.NameTag] = allConfigs[a.NameTag]
+	}
+	return configAttachments
 }

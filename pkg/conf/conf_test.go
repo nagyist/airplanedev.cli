@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/resources/kinds"
 	"github.com/pkg/errors"
@@ -122,14 +123,17 @@ func TestDevConfig(t *testing.T) {
 		assert.NoError(err)
 		assert.Equal(configs, cfg.ConfigVars)
 		assert.Equal(configResources, cfg.RawResources)
-		assert.Equal(map[string]resources.Resource{
-			"db": &kinds.PostgresResource{
-				BaseResource: resources.BaseResource{
-					Kind: kinds.ResourceKindPostgres,
-					Slug: "db",
+		assert.Equal(map[string]env.ResourceWithEnv{
+			"db": {
+				Resource: &kinds.PostgresResource{
+					BaseResource: resources.BaseResource{
+						Kind: kinds.ResourceKindPostgres,
+						Slug: "db",
+					},
+					Username: "postgres",
+					Password: "password",
 				},
-				Username: "postgres",
-				Password: "password",
+				Remote: false,
 			},
 		}, cfg.Resources)
 	})

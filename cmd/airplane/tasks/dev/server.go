@@ -10,45 +10,45 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server"
+	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/pkg/errors"
 )
 
 func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
-	// The API client is set in the root command, and defaults to api.airplane.dev as the host for deploys, etc. For
-	// local dev, we send requests to a locally running api server, and so we create an api client that hits localhost
-	// here.
-	localClient := &api.Client{
-		Host:   fmt.Sprintf("127.0.0.1:%d", cfg.port),
-		Token:  cfg.root.Client.Token,
-		Source: cfg.root.Client.Source,
-		APIKey: cfg.root.Client.APIKey,
-		TeamID: cfg.root.Client.TeamID,
-	}
-
 	authInfo, err := cfg.root.Client.AuthInfo(ctx)
 	if err != nil {
 		return err
 	}
+	appURL := cfg.root.Client.AppURL()
 
-	env, err := cfg.root.Client.GetEnv(ctx, cfg.envSlug)
-	if err != nil {
-		return err
+	var envID, envSlug string
+	devServerHost := fmt.Sprintf("127.0.0.1:%d", cfg.port)
+	if cfg.local {
+		// Use a special env ID and slug when executing tasks locally and the `--env` flag doesn't apply.
+		envID = env.LocalEnvID
+		envSlug = env.LocalEnvID
+	} else {
+		env, err := cfg.root.Client.GetEnv(ctx, cfg.envSlug)
+		if err != nil {
+			return err
+		}
+		envID = env.ID
+		envSlug = env.Slug
 	}
 
 	localExecutor := &dev.LocalExecutor{}
-	var devConfig *conf.DevConfig
-	if cfg.devConfigPath == "" {
-		devConfig = conf.NewDevConfig()
-	} else {
-		devConfig, err = conf.ReadDevConfig(cfg.devConfigPath)
-		if err != nil {
-			return errors.Wrap(err, "loading in dev config file")
-		}
+
+	localClient := &api.Client{
+		Host:   devServerHost,
+		Token:  cfg.root.Client.Token,
+		Source: cfg.root.Client.Source,
+		APIKey: cfg.root.Client.APIKey,
+		TeamID: cfg.root.Client.TeamID,
 	}
 
 	// Use absolute path to dev root to allow the local dev server to more easily calculate relative paths.
@@ -60,9 +60,9 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	apiServer, err := server.Start(server.Options{
 		CLI:         cfg.root,
 		LocalClient: localClient,
-		DevConfig:   devConfig,
-		EnvID:       env.ID,
-		EnvSlug:     env.Slug,
+		DevConfig:   cfg.devConfig,
+		EnvID:       envID,
+		EnvSlug:     envSlug,
 		Executor:    localExecutor,
 		Port:        cfg.port,
 		Dir:         absoluteDir,
@@ -131,7 +131,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	// Register discovered tasks with local dev server
-	warnings, err := apiServer.RegisterTasksAndViews(taskConfigs, viewConfigs)
+	warnings, err := apiServer.RegisterTasksAndViews(ctx, taskConfigs, viewConfigs)
 	if err != nil {
 		return err
 	}
@@ -145,17 +145,42 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 
 	if len(warnings.UnattachedResources) > 0 {
 		logger.Log(" ")
-		logger.Log(
-			"The following tasks have resource attachments that are not defined in the dev config file. Please " +
-				"add them through the previewer or run `airplane dev config set-resource`.")
+		unattachedResourcesMsg := "The following tasks have resource attachments that are not defined in the dev config file"
+		if envID == env.LocalEnvID {
+			unattachedResourcesMsg += "."
+		} else {
+			unattachedResourcesMsg += fmt.Sprintf(" or remotely in %s.", logger.Bold(envSlug))
+		}
+		unattachedResourcesMsg += " Please add them through the editor or run `airplane dev config set-resource`."
+		logger.Log(unattachedResourcesMsg)
 		for _, ur := range warnings.UnattachedResources {
 			logger.Log("- %s: %s", ur.TaskName, ur.ResourceSlugs)
 		}
 	}
 
 	logger.Log("")
-	logger.Log("Visit %s/editor?host=http://localhost:%d for a development UI.", cfg.root.Client.AppURL(), cfg.port)
-	logger.Log("[Ctrl+C] to shutdown the local dev server.")
+	if envID == env.LocalEnvID {
+		logger.Log("You have not set a fallback environment. All tasks and resources must be available locally. " +
+			"You can configure a fallback environment via `--env`.")
+	} else {
+		logger.Log("Your environment is set to %s.", logger.Bold(envSlug))
+		logger.Log("- Any task that is not available locally will execute in your %s environment.", logger.Bold(envSlug))
+		logger.Log("- Any resources not declared in your dev config will be loaded from your %s environment.", logger.Bold(envSlug))
+	}
+
+	logger.Log("")
+	editorURL := fmt.Sprintf("%s/editor?host=http://localhost:%d", appURL, cfg.port)
+	logger.Log("Started editor session at %s (^C to quit)", logger.Blue(editorURL))
+	logger.Log("Press ENTER to open the editor in the browser.")
+
+	// Execute the flow to open the editor in the browser in a separate goroutine so fmt.Scanln doesn't capture
+	// termination signals.
+	go func() {
+		fmt.Scanln()
+		if ok := utils.Open(editorURL); !ok {
+			logger.Log("Something went wrong. Try running the command with the --debug flag for more details.")
+		}
+	}()
 
 	// Wait for termination signal (e.g. Ctrl+C)
 	<-stop

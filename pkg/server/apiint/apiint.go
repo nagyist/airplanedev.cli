@@ -45,20 +45,18 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 }
 
 type CreateResourceRequest struct {
-	Name           string                          `json:"name"`
-	Slug           string                          `json:"slug"`
-	Kind           resources.ResourceKind          `json:"kind"`
-	KindConfig     kind_configs.ResourceKindConfig `json:"kindConfig"`
-	ExportResource resources.Resource              `json:"resource"`
+	Name           string                 `json:"name"`
+	Slug           string                 `json:"slug"`
+	Kind           resources.ResourceKind `json:"kind"`
+	ExportResource resources.Resource     `json:"resource"`
 }
 
 func (r *CreateResourceRequest) UnmarshalJSON(buf []byte) error {
 	var raw struct {
-		Name           string                          `json:"name"`
-		Slug           string                          `json:"slug"`
-		Kind           resources.ResourceKind          `json:"kind"`
-		KindConfig     kind_configs.ResourceKindConfig `json:"kindConfig"`
-		ExportResource map[string]interface{}          `json:"resource"`
+		Name           string                 `json:"name"`
+		Slug           string                 `json:"slug"`
+		Kind           resources.ResourceKind `json:"kind"`
+		ExportResource map[string]interface{} `json:"resource"`
 	}
 	if err := json.Unmarshal(buf, &raw); err != nil {
 		return err
@@ -76,7 +74,6 @@ func (r *CreateResourceRequest) UnmarshalJSON(buf []byte) error {
 	r.Name = raw.Name
 	r.Slug = raw.Slug
 	r.Kind = raw.Kind
-	r.KindConfig = raw.KindConfig
 	r.ExportResource = export
 
 	return nil
@@ -106,35 +103,19 @@ func CreateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 		}
 	}
 
-	id := fmt.Sprintf("res-%s", resourceSlug)
-	var resource resources.Resource
-	if req.ExportResource != nil {
-		if err := req.ExportResource.Calculate(); err != nil {
-			return CreateResourceResponse{}, errors.Wrap(err, "computing precalculated fields")
-		}
-		resource = req.ExportResource
-		if err := resource.UpdateBaseResource(resources.BaseResource{
-			ID:   id,
-			Slug: resourceSlug,
-			Kind: req.Kind,
-			Name: req.Name,
-		}); err != nil {
-			return CreateResourceResponse{}, errors.Wrap(err, "updating base resoruce")
-		}
-	} else {
-		internalResource := kind_configs.InternalResource{
-			ID:             id,
-			Slug:           resourceSlug,
-			Kind:           req.Kind,
-			Name:           req.Name,
-			KindConfig:     req.KindConfig,
-			ExportResource: req.ExportResource,
-		}
+	if err := req.ExportResource.Calculate(); err != nil {
+		return CreateResourceResponse{}, errors.Wrap(err, "computing precalculated fields")
+	}
 
-		resource, err = internalResource.ToExternalResource()
-		if err != nil {
-			return CreateResourceResponse{}, errors.Wrap(err, "converting to external resource")
-		}
+	id := fmt.Sprintf("res-%s", resourceSlug)
+	resource := req.ExportResource
+	if err := resource.UpdateBaseResource(resources.BaseResource{
+		ID:   id,
+		Slug: resourceSlug,
+		Kind: req.Kind,
+		Name: req.Name,
+	}); err != nil {
+		return CreateResourceResponse{}, errors.Wrap(err, "updating base resoruce")
 	}
 
 	if err := state.DevConfig.SetResource(resourceSlug, resource); err != nil {
@@ -155,9 +136,9 @@ func GetResourceHandler(ctx context.Context, state *state.State, r *http.Request
 		return GetResourceResponse{}, errors.Errorf("Resource slug was not supplied")
 	}
 
-	for s, resource := range state.DevConfig.Resources {
+	for s, r := range state.DevConfig.Resources {
 		if s == slug {
-			internalResource, err := conversion.ConvertToInternalResource(resource)
+			internalResource, err := conversion.ConvertToInternalResource(r.Resource)
 			if err != nil {
 				return GetResourceResponse{}, errors.Wrap(err, "converting to internal resource")
 			}
@@ -171,22 +152,13 @@ func GetResourceHandler(ctx context.Context, state *state.State, r *http.Request
 // ListResourcesHandler handles requests to the /i/resources/list endpoint
 func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.ListResourcesResponse, error) {
 	resources := make([]libapi.Resource, 0, len(state.DevConfig.RawResources))
-	for slug, resource := range state.DevConfig.Resources {
-		internalResource, err := conversion.ConvertToInternalResource(resource)
-		if err != nil {
-			return libapi.ListResourcesResponse{}, errors.Wrap(err, "converting to internal resource")
-		}
-		kindConfig, err := res.KindConfigToMap(internalResource)
-		if err != nil {
-			return libapi.ListResourcesResponse{}, err
-		}
+	for slug, r := range state.DevConfig.Resources {
 		resources = append(resources, libapi.Resource{
-			ID:                resource.ID(),
+			ID:                r.Resource.ID(),
 			Name:              slug, // TODO: Change to actual name of resource once that's exposed from export resource.
 			Slug:              slug,
-			Kind:              libapi.ResourceKind(resource.Kind()),
-			KindConfig:        kindConfig,
-			ExportResource:    resource,
+			Kind:              libapi.ResourceKind(r.Resource.Kind()),
+			ExportResource:    r.Resource,
 			CanUseResource:    true,
 			CanUpdateResource: true,
 		})
@@ -198,22 +170,20 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 }
 
 type UpdateResourceRequest struct {
-	ID             string                          `json:"id"`
-	Slug           string                          `json:"slug"`
-	Name           string                          `json:"name"`
-	Kind           resources.ResourceKind          `json:"kind"`
-	KindConfig     kind_configs.ResourceKindConfig `json:"kindConfig"`
-	ExportResource resources.Resource              `json:"resource"`
+	ID             string                 `json:"id"`
+	Slug           string                 `json:"slug"`
+	Name           string                 `json:"name"`
+	Kind           resources.ResourceKind `json:"kind"`
+	ExportResource resources.Resource     `json:"resource"`
 }
 
 func (r *UpdateResourceRequest) UnmarshalJSON(buf []byte) error {
 	var raw struct {
-		ID             string                          `json:"id"`
-		Slug           string                          `json:"slug"`
-		Name           string                          `json:"name"`
-		Kind           resources.ResourceKind          `json:"kind"`
-		KindConfig     kind_configs.ResourceKindConfig `json:"kindConfig"`
-		ExportResource map[string]interface{}          `json:"resource"`
+		ID             string                 `json:"id"`
+		Slug           string                 `json:"slug"`
+		Name           string                 `json:"name"`
+		Kind           resources.ResourceKind `json:"kind"`
+		ExportResource map[string]interface{} `json:"resource"`
 	}
 	if err := json.Unmarshal(buf, &raw); err != nil {
 		return err
@@ -232,7 +202,6 @@ func (r *UpdateResourceRequest) UnmarshalJSON(buf []byte) error {
 	r.Slug = raw.Slug
 	r.Name = raw.Name
 	r.Kind = raw.Kind
-	r.KindConfig = raw.KindConfig
 	r.ExportResource = export
 
 	return nil
@@ -250,9 +219,9 @@ func UpdateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 	var resource resources.Resource
 	for configSlug, configResource := range state.DevConfig.Resources {
 		// We can't rely on the slug for existence since it may have changed.
-		if configResource.ID() == req.ID {
+		if configResource.Resource.ID() == req.ID {
 			foundResource = true
-			resource = configResource
+			resource = configResource.Resource
 			oldSlug = configSlug
 			break
 		}
@@ -264,39 +233,15 @@ func UpdateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 	// Set a new resource ID based on the new slug.
 	newResourceID := fmt.Sprintf("res-%s", req.Slug)
 
-	var newResource resources.Resource
-	if req.ExportResource != nil {
-		if err := resource.Update(req.ExportResource); err != nil {
-			return UpdateResourceResponse{}, errors.Wrap(err, "updating resource")
-		}
-		if err := resource.UpdateBaseResource(resources.BaseResource{
-			ID:   newResourceID,
-			Slug: req.Slug,
-			Name: req.Name,
-		}); err != nil {
-			return UpdateResourceResponse{}, errors.Wrap(err, "updating base resoruce")
-		}
-		newResource = resource
-	} else {
-		// Convert to internal representation of resource for updating.
-		internalResource, err := conversion.ConvertToInternalResource(resource)
-		if err != nil {
-			return UpdateResourceResponse{}, errors.Wrap(err, "converting to external resource")
-		}
-
-		// Update internal resource - utilize KindConfig.Update to not overwrite sensitive fields.
-		internalResource.Slug = req.Slug
-		internalResource.Name = req.Name
-		internalResource.ID = newResourceID
-		if err := internalResource.KindConfig.Update(req.KindConfig); err != nil {
-			return UpdateResourceResponse{}, errors.Wrap(err, "updating kind config of internal resource")
-		}
-
-		// Convert back to external representation of resource.
-		newResource, err = internalResource.ToExternalResource()
-		if err != nil {
-			return UpdateResourceResponse{}, errors.Wrap(err, "converting to external resource")
-		}
+	if err := resource.Update(req.ExportResource); err != nil {
+		return UpdateResourceResponse{}, errors.Wrap(err, "updating resource")
+	}
+	if err := resource.UpdateBaseResource(resources.BaseResource{
+		ID:   newResourceID,
+		Slug: req.Slug,
+		Name: req.Name,
+	}); err != nil {
+		return UpdateResourceResponse{}, errors.Wrap(err, "updating base resoruce")
 	}
 
 	// Remove the old resource first - we need to do this since DevConfig.Resources is a mapping from slug to resource,
@@ -306,7 +251,7 @@ func UpdateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 		return UpdateResourceResponse{}, errors.Wrap(err, "deleting old resource")
 	}
 
-	if err := state.DevConfig.SetResource(req.Slug, newResource); err != nil {
+	if err := state.DevConfig.SetResource(req.Slug, resource); err != nil {
 		return UpdateResourceResponse{}, errors.Wrap(err, "setting resource")
 	}
 
@@ -323,7 +268,7 @@ type DeleteResourceRequest struct {
 // The web app does utilize the response of the resource deletion handler.
 func DeleteResourceHandler(ctx context.Context, state *state.State, r *http.Request, req DeleteResourceRequest) (struct{}, error) {
 	id := req.ID
-	resourceSlug, err := res.ResourceSlugFromID(id)
+	resourceSlug, err := res.SlugFromID(id)
 	if err != nil {
 		return struct{}{}, err
 	}
@@ -346,9 +291,9 @@ type IsResourceSlugAvailableResponse struct {
 // IsResourceSlugAvailableHandler handles requests to the /i/resources/isSlugAvailable endpoint
 func IsResourceSlugAvailableHandler(ctx context.Context, state *state.State, r *http.Request) (IsResourceSlugAvailableResponse, error) {
 	slug := r.URL.Query().Get("slug")
-	res, ok := state.DevConfig.Resources[slug]
+	configResource, ok := state.DevConfig.Resources[slug]
 	return IsResourceSlugAvailableResponse{
-		Available: !ok || res.ID() == r.URL.Query().Get("id"),
+		Available: !ok || configResource.Resource.ID() == r.URL.Query().Get("id"),
 	}, nil
 }
 
@@ -398,6 +343,13 @@ func SubmitPromptHandler(ctx context.Context, state *state.State, r *http.Reques
 				run.Prompts[i].SubmittedAt = &now
 				run.Prompts[i].Values = req.Values
 				run.Prompts[i].SubmittedBy = &userID
+
+				// Check if the run is still waiting for user input.
+				run.IsWaitingForUser = false
+				for _, prompt := range run.Prompts {
+					run.IsWaitingForUser = run.IsWaitingForUser || prompt.SubmittedAt == nil
+				}
+
 				return nil
 			}
 		}
