@@ -1,4 +1,4 @@
-package sql
+package rest
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	goruntime "runtime"
-	"strings"
 
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/builtins"
@@ -19,14 +18,9 @@ import (
 
 // Init register the runtime.
 func init() {
-	runtime.Register(".sql", Runtime{})
+	// will fallback to the task kind
+	runtime.Register(".rest", Runtime{})
 }
-
-// Code.
-var code = []byte(`-- Add your SQL queries here.
--- See SQL documentation: https://docs.airplane.dev/creating-tasks/sql
-SELECT 1;
-`)
 
 // Runtime implementation.
 type Runtime struct{}
@@ -37,16 +31,16 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 	if err != nil {
 		return nil, nil, err
 	}
-	builtinClient, err := builtins.NewLocalClient(goruntime.GOOS, goruntime.GOARCH, logger)
+	client, err := builtins.NewLocalClient(goruntime.GOOS, goruntime.GOARCH, logger)
 	if err != nil {
 		logger.Warning(err.Error())
 		return nil, nil, err
 	}
-	req, err := builtins.MarshalRequest("airplane:sql_query", kindOptions)
+	req, err := builtins.MarshalRequest("airplane:rest_request", kindOptions)
 	if err != nil {
 		return nil, nil, errors.New("invalid builtin request")
 	}
-	cmd, err := builtinClient.CmdString(ctx, req)
+	cmd, err := client.CmdString(ctx, req)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -55,12 +49,12 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 
 // Generate implementation.
 func (r Runtime) Generate(t *runtime.Task) ([]byte, os.FileMode, error) {
-	return code, 0644, nil
+	return nil, 0644, nil
 }
 
 // GenerateInline implementation.
 func (r Runtime) GenerateInline(def *definitions.Definition_0_3) ([]byte, fs.FileMode, error) {
-	return nil, 0, errors.New("cannot generate inline sql task configuration")
+	return nil, 0, errors.New("cannot generate inline rest task configuration")
 }
 
 // Workdir implementation.
@@ -75,18 +69,13 @@ func (r Runtime) Root(path string) (string, error) {
 
 // Kind implementation.
 func (r Runtime) Kind() build.TaskKind {
-	return build.TaskKindSQL
+	return build.TaskKindREST
 }
 
 // FormatComment implementation.
+// REST does not have a file, so FormatComment does not apply
 func (r Runtime) FormatComment(s string) string {
-	var lines []string
-
-	for _, line := range strings.Split(s, "\n") {
-		lines = append(lines, "-- "+line)
-	}
-
-	return strings.Join(lines, "\n")
+	return s
 }
 
 // SupportsLocalExecution implementation.

@@ -103,6 +103,9 @@ type PrepareRunOptions struct {
 	// execute this run with.
 	ParamValues Values
 
+	// ConfigVars specifies the user-provided config variables to execute this run with
+	ConfigVars Values
+
 	// KindOptions specifies any runtime-specific task configuration.
 	KindOptions build.KindOptions
 }

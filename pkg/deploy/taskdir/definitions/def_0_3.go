@@ -1216,6 +1216,14 @@ func (d *Definition_0_3) GetConfigAttachments() ([]api.ConfigAttachment, error) 
 }
 
 func (d *Definition_0_3) GetResourceAttachments() map[string]string {
+	// SQL and REST store resource attachments on a different field
+	// and don't have aliases - both have a hardcoded value.
+	if d.SQL != nil {
+		d.Resources.Attachments = map[string]string{"db": d.SQL.Resource}
+	}
+	if d.REST != nil {
+		d.Resources.Attachments = map[string]string{"rest": d.REST.Resource}
+	}
 	return d.Resources.Attachments
 }
 

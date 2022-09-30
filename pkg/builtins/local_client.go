@@ -126,6 +126,12 @@ func (b *LocalBuiltinClient) Cmd(ctx context.Context, req string) (*exec.Cmd, er
 	return exec.CommandContext(ctx, b.binaryPath, req), nil
 }
 
+// Returns the Cmd in string form needed to call the builtin:
+// The path to the binary file, followed by the stdApi request string
+func (b *LocalBuiltinClient) CmdString(ctx context.Context, req string) ([]string, error) {
+	return []string{b.binaryPath, req}, nil
+}
+
 // Downloads the latest version of builtins if it doesn't exist
 // otherwise uses version installed in tmp directory
 func (b *LocalBuiltinClient) install() (string, error) {

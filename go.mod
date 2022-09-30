@@ -5,6 +5,7 @@ go 1.19
 require (
 	cloud.google.com/go/storage v1.6.0
 	github.com/AlecAivazis/survey/v2 v2.3.5
+	github.com/MakeNowJust/heredoc/v2 v2.0.1
 	github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021
 	github.com/airplanedev/ojson v0.1.0
 	github.com/airplanedev/path v0.0.1
