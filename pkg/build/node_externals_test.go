@@ -79,26 +79,3 @@ func TestExternalPackages(t *testing.T) {
 		})
 	}
 }
-
-func TestGetPackageCopyCmds(t *testing.T) {
-	result, err := GetPackageCopyCmds(
-		"/home/base",
-		[]string{
-			"/home/base/test1/package.json",
-			"/home/base/package.json",
-			"/home/base/test1/package-lock.json",
-			"/home/base/_test2/test3/package.json",
-		},
-	)
-	require.NoError(t, err)
-
-	require.Equal(
-		t,
-		[]string{
-			"COPY package*.json yarn.* /airplane/",
-			"COPY test1/package*.json test1/yarn.* /airplane/test1/",
-			"COPY _test2/test3/package*.json _test2/test3/yarn.* /airplane/_test2/test3/",
-		},
-		result,
-	)
-}

@@ -37,7 +37,6 @@ type templateParams struct {
 	Args                             string
 	PreInstallPath                   string
 	PostInstallPath                  string
-	PackageCopyCmds                  []string
 }
 
 // node creates a dockerfile for Node (typescript/javascript).
@@ -133,16 +132,6 @@ func node(
 	packageJSONs, usesWorkspaces, err := GetPackageJSONs(rootPackageJSON)
 	if err != nil {
 		return "", err
-	}
-
-	if cfg.HasPackageJSON {
-		cfg.PackageCopyCmds, err = GetPackageCopyCmds(root, packageJSONs)
-		if err != nil {
-			return "", err
-		}
-	} else {
-		// Just create an empty package.json in the root
-		cfg.PackageCopyCmds = []string{"RUN echo '{}' > /airplane/package.json"}
 	}
 
 	if cfg.HasPackageJSON {
@@ -265,8 +254,14 @@ func node(
 			{{.InlineShimPackageJSON}} > package.json && \
 			npm install --legacy-peer-deps
 
-		{{range .PackageCopyCmds}}
-		{{.}}
+		{{if .HasPackageJSON}}
+		COPY package*.json yarn.* /airplane/
+		{{else}}
+		RUN echo '{}' > /airplane/package.json
+		{{end}}
+
+		{{if .UsesWorkspaces}}
+		COPY . /airplane
 		{{end}}
 
 		{{.Args}}
@@ -280,7 +275,9 @@ func node(
 
 		RUN {{.InstallCommand}}
 
+		{{if not .UsesWorkspaces}}
 		COPY . /airplane
+		{{end}}
 
 		{{if .PostInstallCommand}}
 		RUN {{.PostInstallCommand}}
