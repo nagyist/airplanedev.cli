@@ -10,6 +10,7 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev/env"
+	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/version"
@@ -128,23 +129,28 @@ type StartViewResponse struct {
 }
 
 // StartViewHandler handles requests to the /dev/tasks/<task_slug> endpoint.
-func StartViewHandler(ctx context.Context, state *state.State, r *http.Request) (StartViewResponse, error) {
+func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (StartViewResponse, error) {
 	// TODO: Maintain mapping between view and vite process instead of starting a new vite process on each request.
-	state.ViteMutex.Lock()
-	defer state.ViteMutex.Unlock()
-	if state.ViteProcess != nil {
-		if err := state.ViteProcess.Kill(); err != nil {
-			return StartViewResponse{}, errors.Wrap(err, "killing previous vite process")
-		}
-	}
-
 	vars := mux.Vars(r)
 	viewSlug, ok := vars["view_slug"]
 	if !ok {
 		return StartViewResponse{}, errors.Errorf("View slug was not supplied, request path must be of the form /dev/startView/<view_slug>")
 	}
 
-	viewConfig, ok := state.ViewConfigs[viewSlug]
+	s.ViteMutex.Lock()
+	defer s.ViteMutex.Unlock()
+
+	viteContext, ok := s.ViteContexts.Get(viewSlug)
+	if ok {
+		contextObj, ok := viteContext.(state.ViteContext)
+		if !ok {
+			logger.Error("expected vite context from context cache")
+			return StartViewResponse{}, errors.New("Could not obtain vite process")
+		}
+		return StartViewResponse{ViteServer: contextObj.ServerURL}, nil
+	}
+
+	viewConfig, ok := s.ViewConfigs[viewSlug]
 	if !ok {
 		return StartViewResponse{}, errors.Errorf("View with slug %s not found", viewSlug)
 	}
@@ -154,25 +160,23 @@ func StartViewHandler(ctx context.Context, state *state.State, r *http.Request) 
 		return StartViewResponse{}, err
 	}
 
-	vd, err := viewdir.NewViewDirectory(ctx, state.CliConfig, rootDir, viewConfig.Def.DefnFilePath, state.EnvSlug)
+	vd, err := viewdir.NewViewDirectory(ctx, s.CliConfig, rootDir, viewConfig.Def.DefnFilePath, s.EnvSlug)
 	if err != nil {
 		return StartViewResponse{}, err
 	}
 
-	viewsClient := state.CliConfig.Client
-	if state.EnvID == env.LocalEnvID {
-		viewsClient = state.LocalClient
+	viewsClient := s.CliConfig.Client
+	if s.EnvID == env.LocalEnvID {
+		viewsClient = s.LocalClient
 	}
 	cmd, viteServer, err := views.Dev(ctx, vd, views.ViteOpts{
 		Client:  viewsClient,
-		EnvSlug: state.EnvSlug,
+		EnvSlug: s.EnvSlug,
 		TTY:     false,
 	})
 	if err != nil {
 		return StartViewResponse{}, errors.Wrap(err, "starting views dev")
 	}
-
-	state.ViteProcess = cmd.Process
 
 	u, err := url.Parse(viteServer)
 	if err != nil {
@@ -188,6 +192,11 @@ func StartViewHandler(ctx context.Context, state *state.State, r *http.Request) 
 		}
 		time.Sleep(300 * time.Millisecond)
 	}
+
+	s.ViteContexts.Add(viewSlug, state.ViteContext{
+		Process:   cmd.Process,
+		ServerURL: viteServer,
+	})
 
 	return StartViewResponse{ViteServer: viteServer}, nil
 }

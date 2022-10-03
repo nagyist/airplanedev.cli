@@ -22,6 +22,7 @@ import (
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	lrucache "github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
 )
 
@@ -108,18 +109,35 @@ func newServer(router *mux.Router, state *state.State) *Server {
 
 // Start starts and returns a new instance of the Airplane API server.
 func Start(opts Options) (*Server, error) {
+	onEvict := func(key interface{}, value interface{}) {
+		viteContext, ok := value.(state.ViteContext)
+		if !ok {
+			logger.Error("expected vite context from context cache")
+		}
+
+		if err := viteContext.Process.Kill(); err != nil {
+			logger.Error(fmt.Sprintf("could not shutdown existing vite process: %v", err))
+		}
+	}
+
+	viteContextCache, err := lrucache.NewWithEvict(5, onEvict)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create vite context cache")
+	}
+
 	state := &state.State{
-		CliConfig:   opts.CLI,
-		EnvID:       opts.EnvID,
-		EnvSlug:     opts.EnvSlug,
-		Executor:    opts.Executor,
-		Port:        opts.Port,
-		Runs:        state.NewRunStore(),
-		LocalClient: opts.LocalClient,
-		DevConfig:   opts.DevConfig,
-		Dir:         opts.Dir,
-		Logger:      logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
-		AuthInfo:    opts.AuthInfo,
+		CliConfig:    opts.CLI,
+		EnvID:        opts.EnvID,
+		EnvSlug:      opts.EnvSlug,
+		Executor:     opts.Executor,
+		Port:         opts.Port,
+		Runs:         state.NewRunStore(),
+		LocalClient:  opts.LocalClient,
+		DevConfig:    opts.DevConfig,
+		ViteContexts: viteContextCache,
+		Dir:          opts.Dir,
+		Logger:       logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
+		AuthInfo:     opts.AuthInfo,
 	}
 
 	r := NewRouter(state)
@@ -200,16 +218,8 @@ func (s *Server) RegisterTasksAndViews(ctx context.Context, taskConfigs []discov
 
 // Stop terminates the local dev API server.
 func (s *Server) Stop(ctx context.Context) error {
-	if s.state.ViteProcess != nil {
-		if err := s.state.ViteProcess.Kill(); err != nil {
-			return err
-		}
-	}
-
-	if err := s.srv.Shutdown(ctx); err != nil {
-		return err
-	}
-	return nil
+	s.state.ViteContexts.Purge()
+	return s.srv.Shutdown(ctx)
 }
 
 // ShutdownHandler manages shutdown requests. Shutdowns currently happen whenever the airplane dev logic has finished

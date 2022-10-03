@@ -11,8 +11,14 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/version"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
+	lrucache "github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
 )
+
+type ViteContext struct {
+	ServerURL string
+	Process   *os.Process
+}
 
 type State struct {
 	CliConfig   *cli.Config
@@ -25,11 +31,11 @@ type State struct {
 	// Mapping from task slug to task config
 	TaskConfigs map[string]discover.TaskConfig
 	// Mapping from view slug to view config
-	ViewConfigs map[string]discover.ViewConfig
-	DevConfig   *conf.DevConfig
-	ViteProcess *os.Process
-	ViteMutex   sync.Mutex
-	Logger      logger.Logger
+	ViewConfigs  map[string]discover.ViewConfig
+	DevConfig    *conf.DevConfig
+	ViteContexts *lrucache.Cache
+	ViteMutex    sync.Mutex
+	Logger       logger.Logger
 
 	EnvID   string
 	EnvSlug string
