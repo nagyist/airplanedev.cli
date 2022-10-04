@@ -98,11 +98,8 @@ async function runWorker(params) {
   };
 
   const worker = await Worker.create({
-    // Path to bundle created by bundle-workflow.js script; this should be relative
-    // to the shim.
     workflowBundle: {
       codePath: '/airplane/.airplane/workflow-bundle.js',
-      sourceMapPath: '/airplane/.airplane/workflow-bundle.map.js',
     },
     activities: {
       ...createActivities(),
