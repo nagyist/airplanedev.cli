@@ -35,11 +35,16 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/resources/delete", handlers.HandlerWithBody(state, DeleteResourceHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/resources/isSlugAvailable", handlers.Handler(state, IsResourceSlugAvailableHandler)).Methods("GET", "OPTIONS")
 
+	r.Handle("/displays/list", handlers.Handler(state, ListDisplaysHandler)).Methods("GET", "OPTIONS")
+
 	r.Handle("/prompts/list", handlers.Handler(state, ListPromptHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/prompts/submit", handlers.HandlerWithBody(state, SubmitPromptHandler)).Methods("POST", "OPTIONS")
 
 	r.Handle("/runs/get", handlers.Handler(state, GetRunHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/getDescendants", handlers.Handler(state, GetDescendantsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/list", handlers.Handler(state, ListRunsHandler)).Methods("GET", "OPTIONS")
+
+	r.Handle("/tasks/get", handlers.Handler(state, GetTaskInfoHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/users/get", handlers.Handler(state, GetUserHandler)).Methods("GET", "OPTIONS")
 }
@@ -297,6 +302,22 @@ func IsResourceSlugAvailableHandler(ctx context.Context, state *state.State, r *
 	}, nil
 }
 
+type ListDisplaysResponse struct {
+	Displays []libapi.Display `json:"displays"`
+}
+
+func ListDisplaysHandler(ctx context.Context, state *state.State, r *http.Request) (ListDisplaysResponse, error) {
+	runID := r.URL.Query().Get("runID")
+	run, ok := state.Runs.Get(runID)
+	if !ok {
+		return ListDisplaysResponse{}, errors.Errorf("run with id %q not found", runID)
+	}
+
+	return ListDisplaysResponse{
+		Displays: append([]libapi.Display{}, run.Displays...),
+	}, nil
+}
+
 type ListPromptsResponse struct {
 	Prompts []libapi.Prompt `json:"prompts"`
 }
@@ -431,4 +452,34 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (Ge
 	}
 
 	return response, nil
+}
+
+type ListRunsResponse struct {
+	Runs []dev.LocalRun `json:"runs"`
+}
+
+func ListRunsHandler(ctx context.Context, state *state.State, r *http.Request) (ListRunsResponse, error) {
+	taskSlug := r.URL.Query().Get("taskSlug")
+	runs := state.Runs.GetRunHistory(taskSlug)
+	return ListRunsResponse{
+		Runs: runs,
+	}, nil
+}
+
+// GetTaskInfoHandler handles requests to the /v0/tasks?slug=<task_slug> endpoint.
+func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.UpdateTaskRequest, error) {
+	taskSlug := r.URL.Query().Get("slug")
+	if taskSlug == "" {
+		return libapi.UpdateTaskRequest{}, errors.New("Task slug was not supplied, request path must be of the form /v0/tasks?slug=<task_slug>")
+	}
+	taskConfig, ok := state.TaskConfigs[taskSlug]
+	if !ok {
+		return libapi.UpdateTaskRequest{}, errors.Errorf("Task with slug %s not found", taskSlug)
+	}
+	req, err := taskConfig.Def.GetUpdateTaskRequest(ctx, state.LocalClient)
+	if err != nil {
+		logger.Error("Encountered error while getting task info: %v", err)
+		return libapi.UpdateTaskRequest{}, errors.Errorf("error getting task %s", taskSlug)
+	}
+	return req, nil
 }
