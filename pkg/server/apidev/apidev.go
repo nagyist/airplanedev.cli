@@ -11,6 +11,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/version"
@@ -31,6 +32,7 @@ func AttachDevRoutes(r *mux.Router, s *state.State) {
 	r.Handle("/list", handlers.Handler(s, ListEntrypointsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/startView/{view_slug}", handlers.Handler(s, StartViewHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/logs/{run_id}", handlers.HandlerSSE(s, LogsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/tasks/errors", handlers.Handler(s, GetTaskErrorsHandler)).Methods("GET", "OPTIONS")
 }
 
 func GetVersionHandler(ctx context.Context, s *state.State, r *http.Request) (version.Metadata, error) {
@@ -230,4 +232,36 @@ func LogsHandler(ctx context.Context, state *state.State, r *http.Request, flush
 			}
 		}
 	}
+}
+
+type GetTaskErrorResponse struct {
+	Errors   []dev_errors.AppError `json:"errors"`
+	Warnings []dev_errors.AppError `json:"warnings"`
+	Info     []dev_errors.AppError `json:"info"`
+}
+
+// GetTaskErrorsHandler returns any errors found for the task, grouped by level
+func GetTaskErrorsHandler(ctx context.Context, state *state.State, r *http.Request) (GetTaskErrorResponse, error) {
+	taskSlug := r.URL.Query().Get("slug")
+	if taskSlug == "" {
+		return GetTaskErrorResponse{}, errors.New("Task slug was not supplied, request path must be of the form /v0/tasks/warnings?slug=<task_slug>")
+	}
+	allErrors, ok := state.TaskErrors[taskSlug]
+	if !ok {
+		return GetTaskErrorResponse{}, nil
+	}
+	warnings := []dev_errors.AppError{}
+	errors := []dev_errors.AppError{}
+	info := []dev_errors.AppError{}
+
+	for _, e := range allErrors {
+		if e.Level == dev_errors.LevelWarning {
+			warnings = append(warnings, e)
+		} else if e.Level == dev_errors.LevelError {
+			errors = append(errors, e)
+		} else if e.Level == dev_errors.LevelInfo {
+			info = append(info, e)
+		}
+	}
+	return GetTaskErrorResponse{Info: info, Errors: errors, Warnings: warnings}, nil
 }

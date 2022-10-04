@@ -138,8 +138,8 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	if len(warnings.UnsupportedApps) > 0 {
 		logger.Log(" ")
 		logger.Log("Skipping %v unsupported tasks or views:", len(warnings.UnsupportedApps))
-		for _, app := range warnings.UnsupportedApps {
-			logger.Log("- %s: %s", app.Name, app.Reason)
+		for _, w := range warnings.UnsupportedApps {
+			logger.Log("- %s: %s", w.AppName, w.Reason)
 		}
 	}
 

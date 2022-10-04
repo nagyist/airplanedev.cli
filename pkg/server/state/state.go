@@ -9,6 +9,7 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/version"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	lrucache "github.com/hashicorp/golang-lru"
@@ -30,6 +31,10 @@ type State struct {
 	Runs     *runsStore
 	// Mapping from task slug to task config
 	TaskConfigs map[string]discover.TaskConfig
+
+	// Warnings to display on the task page
+	TaskErrors map[string][]dev_errors.AppError
+
 	// Mapping from view slug to view config
 	ViewConfigs  map[string]discover.ViewConfig
 	DevConfig    *conf.DevConfig
