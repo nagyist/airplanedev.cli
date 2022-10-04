@@ -89,7 +89,7 @@ func StartView(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return err
 	}
-	v, err := viewdir.NewViewDirectory(ctx, cfg.Root, rootDir, cfg.FileOrDir, cfg.EnvSlug)
+	v, err := viewdir.NewViewDirectory(ctx, cfg.Root.Client, rootDir, cfg.FileOrDir, cfg.EnvSlug)
 	if err != nil {
 		return err
 	}

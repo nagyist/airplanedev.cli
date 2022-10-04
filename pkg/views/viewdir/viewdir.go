@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/lib/pkg/api"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
@@ -34,9 +34,9 @@ func (this *ViewDirectory) EntrypointPath() string {
 	return this.entrypointPath
 }
 
-func missingViewHandler(ctx context.Context, defn definitions.ViewDefinition) (*api.View, error) {
+func missingViewHandler(ctx context.Context, defn definitions.ViewDefinition) (*libapi.View, error) {
 	// TODO(zhan): generate view?
-	return &api.View{
+	return &libapi.View{
 		ID:   "temp",
 		Slug: defn.Slug,
 	}, nil
@@ -62,7 +62,7 @@ func FindRoot(fileOrDir string) (string, error) {
 	return filepath.Dir(fileOrDir), nil
 }
 
-func NewViewDirectory(ctx context.Context, cfg *cli.Config, root string, searchPath string, envSlug string) (ViewDirectory, error) {
+func NewViewDirectory(ctx context.Context, client *api.Client, root string, searchPath string, envSlug string) (ViewDirectory, error) {
 	absRoot, err := filepath.Abs(root)
 	if err != nil {
 		return ViewDirectory{}, errors.Wrap(err, "getting absolute root filepath")
@@ -71,18 +71,18 @@ func NewViewDirectory(ctx context.Context, cfg *cli.Config, root string, searchP
 	d := &discover.Discoverer{
 		ViewDiscoverers: []discover.ViewDiscoverer{
 			&discover.ViewDefnDiscoverer{
-				Client:             cfg.Client,
+				Client:             client,
 				Logger:             logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
 				MissingViewHandler: missingViewHandler,
 			},
 			&discover.CodeViewDiscoverer{
-				Client:             cfg.Client,
+				Client:             client,
 				Logger:             logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
 				MissingViewHandler: missingViewHandler,
 			},
 		},
 		EnvSlug: envSlug,
-		Client:  cfg.Client,
+		Client:  client,
 	}
 
 	// If pointing towards a view definition file, we just use that file as the view to run.
