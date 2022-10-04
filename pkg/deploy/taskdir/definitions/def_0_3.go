@@ -475,6 +475,30 @@ func (d *SQLDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
 	return configAttachments
 }
 
+// Rewrites Resource to be a slug if it's a name.
+func (d *SQLDefinition_0_3) normalize(ctx context.Context, client api.IAPIClient) error {
+	collection, err := getResourceIDsBySlugAndName(ctx, client)
+	if err != nil {
+		return err
+	}
+	slugsByID, err := getResourceSlugsByID(ctx, client)
+	if err != nil {
+		return err
+	}
+
+	// Check slugs first.
+	if _, ok := collection.bySlug[d.Resource]; ok {
+		return nil
+	} else if id, ok := collection.byName[d.Resource]; ok {
+		if d.Resource, ok = slugsByID[id]; !ok {
+			return errors.Errorf("could not find slug for resource with name: %s (id=%s)", d.Resource, id)
+		}
+	} else {
+		return api.ResourceMissingError{Slug: d.Resource}
+	}
+	return nil
+}
+
 var _ taskKind_0_3 = &RESTDefinition_0_3{}
 
 type RESTDefinition_0_3 struct {
@@ -618,6 +642,30 @@ func (d *RESTDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
 	}
 
 	return configAttachments
+}
+
+// Rewrites Resource to be a slug if it's a name.
+func (d *RESTDefinition_0_3) normalize(ctx context.Context, client api.IAPIClient) error {
+	collection, err := getResourceIDsBySlugAndName(ctx, client)
+	if err != nil {
+		return err
+	}
+	slugsByID, err := getResourceSlugsByID(ctx, client)
+	if err != nil {
+		return err
+	}
+
+	// Check slugs first.
+	if _, ok := collection.bySlug[d.Resource]; ok {
+		return nil
+	} else if id, ok := collection.byName[d.Resource]; ok {
+		if d.Resource, ok = slugsByID[id]; !ok {
+			return errors.Errorf("could not find slug for resource with name: %s (id=%s)", d.Resource, id)
+		}
+	} else {
+		return api.ResourceMissingError{Slug: d.Resource}
+	}
+	return nil
 }
 
 type ParameterDefinition_0_3 struct {
@@ -897,6 +945,16 @@ func (d *Definition_0_3) Unmarshal(format DefFormat, buf []byte) error {
 
 	if err = json.Unmarshal(buf, &d); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (d *Definition_0_3) Normalize(ctx context.Context, client api.IAPIClient) error {
+	// Rewrites Resource to be a slug rather than a name.
+	if d.SQL != nil {
+		return d.SQL.normalize(ctx, client)
+	} else if d.REST != nil {
+		return d.REST.normalize(ctx, client)
 	}
 	return nil
 }

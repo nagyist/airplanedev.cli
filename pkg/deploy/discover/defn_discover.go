@@ -69,6 +69,10 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 		return nil, err
 	}
 
+	if err := def.Normalize(ctx, dd.Client); err != nil {
+		return nil, err
+	}
+
 	tc := TaskConfig{
 		Def:    def,
 		Source: dd.ConfigSource(),

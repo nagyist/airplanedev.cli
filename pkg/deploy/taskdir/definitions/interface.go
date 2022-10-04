@@ -28,6 +28,11 @@ type DefinitionInterface interface {
 	// has not been set, returns ErrNoAbsoluteEntrypoint.
 	GetAbsoluteEntrypoint() (string, error)
 
+	// Normalize is a chance to rewrite the definition to account for changes in formatting after
+	// being unmarshalled. This can result in multiple API calls & is not always needed & so is not
+	// lumped in with Unmarshal.
+	Normalize(ctx context.Context, client api.IAPIClient) error
+
 	GetKindAndOptions() (build.TaskKind, build.KindOptions, error)
 	GetEnv() (api.TaskEnv, error)
 	GetConfigAttachments() ([]api.ConfigAttachment, error)
