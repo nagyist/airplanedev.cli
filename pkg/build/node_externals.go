@@ -8,19 +8,30 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 )
 
-var esmModules = map[string]bool{
-	"node-fetch": true,
-	// airplane>=0.2.0 depends on node-fetch
-	"airplane":        true,
-	"@airplane/views": true,
-	"lodash-es":       true,
-}
+var (
+	esmModules = map[string]bool{
+		"node-fetch": true,
+		// airplane>=0.2.0 depends on node-fetch
+		"airplane":        true,
+		"@airplane/views": true,
+		"lodash-es":       true,
+	}
+
+	installHookScripts = []string{
+		"dependencies",
+		"preinstall",
+		"prepare",
+		"prepublish",
+		"postinstall",
+	}
+)
 
 // GetPackageJSONs list all the package.json files that belong to a workspace, or just the root package.json if not
 // using workspaces. Also returns a boolean indicating whether workspaces are used.
@@ -43,6 +54,57 @@ func GetPackageJSONs(rootPackageJSON string) (pathPackageJSONs []string, usesWor
 	}
 
 	return pathPackageJSONs, usesWorkspaces, nil
+}
+
+// GetPackageCopyCmds gets a set of COPY commands that can be used
+// to copy just the package json and yarn files needed for a workspace. This allows
+// us to do a yarn or npm install on top of just these, allowing us to cache
+// the dependencies across builds.
+func GetPackageCopyCmds(baseDir string, pathPackageJSONs []string) ([]string, error) {
+	srcPaths := map[string]struct{}{}
+	copyCommands := []string{}
+
+	for _, pathPackageJSON := range pathPackageJSONs {
+		packageDir := filepath.Dir(pathPackageJSON)
+
+		relPackageDir, err := filepath.Rel(baseDir, packageDir)
+		if err != nil {
+			return nil, errors.Wrap(err, "generating relative path")
+		}
+		srcPaths[relPackageDir] = struct{}{}
+	}
+
+	for srcPath := range srcPaths {
+		destPath := filepath.Join("/airplane", srcPath)
+		// Docker requires that the destination ends with a slash
+		if !strings.HasSuffix(destPath, "/") {
+			destPath = destPath + "/"
+		}
+
+		copyCommands = append(
+			copyCommands,
+			fmt.Sprintf(
+				"COPY %s %s %s",
+				filepath.Join(srcPath, "package*.json"),
+				// As long as there's a match for the previous glob,
+				// Docker won't complain if there aren't any matches for this one.
+				filepath.Join(srcPath, "yarn.*"),
+				destPath,
+			),
+		)
+	}
+
+	// Sort the results so they're returned in a consistent order (which map
+	// iteration doesn't guarantee).
+	sort.Slice(copyCommands, func(a, b int) bool {
+		numComponentsA := strings.Count(copyCommands[a], "/")
+		numComponentsB := strings.Count(copyCommands[b], "/")
+
+		return (numComponentsA < numComponentsB) ||
+			(numComponentsA == numComponentsB && copyCommands[a] < copyCommands[b])
+	})
+
+	return copyCommands, nil
 }
 
 // ExternalPackages reads a list of package.json files and returns all dependencies and dev dependencies. This is used
@@ -156,12 +218,11 @@ func findWorkspacePackageJSONs(rootPackageJSON string) ([]string, error) {
 }
 
 func hasWorkspaces(pathPackageJSON string) (bool, error) {
-	if _, err := os.Stat(pathPackageJSON); errors.Is(err, os.ErrNotExist) {
-		return false, nil
-	}
 	var pkg pkgJSON
 	buf, err := os.ReadFile(pathPackageJSON)
-	if err != nil {
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	} else if err != nil {
 		return false, errors.Wrapf(err, "node: reading %s", pathPackageJSON)
 	}
 
@@ -169,6 +230,28 @@ func hasWorkspaces(pathPackageJSON string) (bool, error) {
 		return false, errors.Wrapf(err, "parsing %s", pathPackageJSON)
 	}
 	return len(pkg.Workspaces.workspaces) > 0, nil
+}
+
+func hasInstallHooks(pathPackageJSON string) (bool, error) {
+	var pkg pkgJSON
+	buf, err := os.ReadFile(pathPackageJSON)
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	} else if err != nil {
+		return false, errors.Wrapf(err, "node: reading %s", pathPackageJSON)
+	}
+
+	if err := json.Unmarshal(buf, &pkg); err != nil {
+		return false, errors.Wrapf(err, "parsing %s", pathPackageJSON)
+	}
+
+	for _, script := range installHookScripts {
+		if _, ok := pkg.Scripts[script]; ok {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func isYarnBerry(pathPackageJSON string) (bool, error) {

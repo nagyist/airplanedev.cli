@@ -32,11 +32,13 @@ type templateParams struct {
 	NodeVersion                      string
 	ExternalFlags                    string
 	InstallCommand                   string
+	InstallRequiresCode              bool
 	PreInstallCommand                string
 	PostInstallCommand               string
 	Args                             string
 	PreInstallPath                   string
 	PostInstallPath                  string
+	PackageCopyCmds                  []string
 }
 
 // node creates a dockerfile for Node (typescript/javascript).
@@ -134,6 +136,32 @@ func node(
 		return "", err
 	}
 
+	var hasPackageInstallHooks bool
+
+	if cfg.HasPackageJSON {
+		cfg.PackageCopyCmds, err = GetPackageCopyCmds(root, packageJSONs)
+		if err != nil {
+			return "", err
+		}
+
+		// Check all files for pre- or post-install scripts. If there are any found, then
+		// we to run the install with the entire codebase to be safe as opposed to
+		// just the package.json and yarn files (since the postinstall scripts might assume
+		// that all code is present).
+		for _, packageJSONPath := range packageJSONs {
+			hasPackageInstallHooks, err = hasInstallHooks(packageJSONPath)
+			if err != nil {
+				return "", err
+			}
+			if hasPackageInstallHooks {
+				break
+			}
+		}
+	} else {
+		// Just create an empty package.json in the root
+		cfg.PackageCopyCmds = []string{"RUN echo '{}' > /airplane/package.json"}
+	}
+
 	if cfg.HasPackageJSON {
 		// Workaround to get esbuild to not bundle dependencies.
 		// See build.ExternalPackages for details.
@@ -217,6 +245,17 @@ func node(
 	}
 	cfg.InstallCommand = strings.ReplaceAll(installCommand, "\n", "\\n")
 
+	// For safety purposes, we need to install from the full code if either (1) there are any
+	// hook scripts in the package.json files or (2) there's an airplane preinstall
+	// command; any of these could be assuming that the full code is present. This prevents us
+	// from caching the user's dependencies separately from their code.
+	//
+	// TODO: Investigate whether we can get around this by doing an npm or yarn install with
+	// an '--ignore-scripts' flag, then run it again without this flag.
+	cfg.InstallRequiresCode = hasPackageInstallHooks ||
+		cfg.PreInstallCommand != "" ||
+		cfg.PreInstallPath != ""
+
 	// The following Dockerfile can build both JS and TS tasks. In general, we're
 	// aiming for recent EC202x support and for support for import/export syntax.
 	// The former is easier, since recent versions of Node have excellent coverage
@@ -254,13 +293,11 @@ func node(
 			{{.InlineShimPackageJSON}} > package.json && \
 			npm install --legacy-peer-deps
 
-		{{if .HasPackageJSON}}
-		COPY package*.json yarn.* /airplane/
-		{{else}}
-		RUN echo '{}' > /airplane/package.json
+		{{range .PackageCopyCmds}}
+		{{.}}
 		{{end}}
 
-		{{if .UsesWorkspaces}}
+		{{if .InstallRequiresCode}}
 		COPY . /airplane
 		{{end}}
 
@@ -275,7 +312,7 @@ func node(
 
 		RUN {{.InstallCommand}}
 
-		{{if not .UsesWorkspaces}}
+		{{if not .InstallRequiresCode}}
 		COPY . /airplane
 		{{end}}
 
@@ -532,8 +569,9 @@ type Settings struct {
 }
 
 type pkgJSON struct {
-	Settings   Settings          `json:"airplane"`
-	Workspaces pkgJSONWorkspaces `json:"workspaces"`
+	Settings   Settings               `json:"airplane"`
+	Workspaces pkgJSONWorkspaces      `json:"workspaces"`
+	Scripts    map[string]interface{} `json:"scripts"`
 }
 
 type pkgJSONWorkspaces struct {

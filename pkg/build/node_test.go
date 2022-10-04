@@ -149,6 +149,16 @@ func TestNodeBuilder(t *testing.T) {
 			},
 		},
 		{
+			Root: "typescript/yarnworkspacespostinstall",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "pkg2/src/index.ts",
+				"workdir":    examples.Path(t, "typescript/yarnworkspaces/pkg2"),
+			},
+			SearchString: "I love airplanes",
+		},
+		{
 			Root: "typescript/npmworkspaces",
 			Kind: TaskKindNode,
 			Options: KindOptions{

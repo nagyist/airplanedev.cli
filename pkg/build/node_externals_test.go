@@ -79,3 +79,52 @@ func TestExternalPackages(t *testing.T) {
 		})
 	}
 }
+
+func TestHasInstallHooks(t *testing.T) {
+	result, err := hasInstallHooks(
+		fixtures.Path(t, "node_externals/postinstall/package.json"),
+	)
+	require.NoError(t, err)
+	require.True(t, result)
+
+	result, err = hasInstallHooks(
+		fixtures.Path(t, "node_externals/preinstall/package.json"),
+	)
+	require.NoError(t, err)
+	require.True(t, result)
+
+	result, err = hasInstallHooks(
+		fixtures.Path(t, "node_externals/esm/package.json"),
+	)
+	require.NoError(t, err)
+	require.False(t, result)
+
+	result, err = hasInstallHooks(
+		fixtures.Path(t, "node_externals/non_existent_path/package.json"),
+	)
+	require.NoError(t, err)
+	require.False(t, result)
+}
+
+func TestGetPackageCopyCmds(t *testing.T) {
+	result, err := GetPackageCopyCmds(
+		"/home/base",
+		[]string{
+			"/home/base/test1/package.json",
+			"/home/base/package.json",
+			"/home/base/test1/package-lock.json",
+			"/home/base/_test2/test3/package.json",
+		},
+	)
+	require.NoError(t, err)
+
+	require.Equal(
+		t,
+		[]string{
+			"COPY package*.json yarn.* /airplane/",
+			"COPY test1/package*.json test1/yarn.* /airplane/test1/",
+			"COPY _test2/test3/package*.json _test2/test3/yarn.* /airplane/_test2/test3/",
+		},
+		result,
+	)
+}
