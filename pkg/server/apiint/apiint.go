@@ -188,21 +188,21 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 
 	if state.EnvID != env.LocalEnvID {
 		remoteResources, err := res.ListRemoteResources(ctx, state)
-		if err != nil {
-			return ListResourcesResponse{}, errors.Wrap(err, "fetching remote resources")
-		}
-
-		for _, r := range remoteResources {
-			// This is purely so we can display remote resource information in the local dev editor. The remote list
-			// resources endpoint doesn't return CanUseResource or CanUpdateResource, and so we set them to true here.
-			r.CanUseResource = true
-			r.CanUpdateResource = true
-			resources = append(resources, APIResourceWithEnv{
-				Resource: r,
-				Remote:   true,
-				EnvID:    state.EnvID,
-				EnvSlug:  state.EnvSlug,
-			})
+		if err == nil {
+			for _, r := range remoteResources {
+				// This is purely so we can display remote resource information in the local dev editor. The remote list
+				// resources endpoint doesn't return CanUseResource or CanUpdateResource, and so we set them to true here.
+				r.CanUseResource = true
+				r.CanUpdateResource = true
+				resources = append(resources, APIResourceWithEnv{
+					Resource: r,
+					Remote:   true,
+					EnvID:    state.EnvID,
+					EnvSlug:  state.EnvSlug,
+				})
+			}
+		} else {
+			logger.Error("error fetching remote resources: %v", err)
 		}
 	}
 
