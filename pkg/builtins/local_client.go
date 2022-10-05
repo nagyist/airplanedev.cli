@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -182,7 +182,7 @@ func (b *LocalBuiltinClient) download() (string, error) {
 		return "", err
 	}
 	defer rc.Close()
-	body, err := ioutil.ReadAll(rc)
+	body, err := io.ReadAll(rc)
 	if err != nil {
 		return "", err
 	}

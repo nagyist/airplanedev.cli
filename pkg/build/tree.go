@@ -2,7 +2,6 @@ package build
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -27,7 +26,7 @@ type TreeOptions struct {
 
 // NewTree returns a new tree in a temporary directory.
 func NewTree(opts TreeOptions) (*Tree, error) {
-	tmpdir, err := ioutil.TempDir("", "airplane_context_*")
+	tmpdir, err := os.MkdirTemp("", "airplane_context_*")
 	if err != nil {
 		return nil, errors.Wrap(err, "tempdir")
 	}
@@ -61,12 +60,12 @@ func (t *Tree) MkdirAll(dir string) error {
 
 // Write writes the given r into dst.
 func (t *Tree) Write(dst string, r io.Reader) error {
-	buf, err := ioutil.ReadAll(r)
+	buf, err := io.ReadAll(r)
 	if err != nil {
 		return errors.Wrap(err, "write")
 	}
 
-	return ioutil.WriteFile(filepath.Join(t.root, dst), buf, 0600)
+	return os.WriteFile(filepath.Join(t.root, dst), buf, 0600)
 }
 
 // Archive archives the tree and returns a tarball.

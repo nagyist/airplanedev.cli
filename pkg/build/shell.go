@@ -2,7 +2,7 @@ package build
 
 import (
 	_ "embed"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -25,7 +25,7 @@ func shell(root string, options KindOptions) (string, error) {
 	var dockerfileTemplate string
 	var workDir string
 	if dockerfilePath := FindDockerfile(root); dockerfilePath != "" {
-		contents, err := ioutil.ReadFile(dockerfilePath)
+		contents, err := os.ReadFile(dockerfilePath)
 		if err != nil {
 			return "", errors.Wrap(err, "opening dockerfile")
 		}

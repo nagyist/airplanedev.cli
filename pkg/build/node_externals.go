@@ -3,7 +3,7 @@ package build
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -174,7 +174,7 @@ func ListDependencies(pathPackageJSON string) (map[string]string, error) {
 		return map[string]string{}, nil
 	}
 	defer f.Close()
-	b, err := ioutil.ReadAll(f)
+	b, err := io.ReadAll(f)
 	if err != nil {
 		return nil, errors.Wrap(err, "reading package.json")
 	}

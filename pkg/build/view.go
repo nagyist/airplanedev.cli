@@ -3,7 +3,7 @@ package build
 import (
 	_ "embed"
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -54,7 +54,7 @@ func view(root string, options KindOptions) (string, error) {
 	packageJSONPath := filepath.Join(root, "package.json")
 	var packageJSON interface{}
 	if fsx.Exists(packageJSONPath) {
-		packageJSONFile, err := ioutil.ReadFile(packageJSONPath)
+		packageJSONFile, err := os.ReadFile(packageJSONPath)
 		if err != nil {
 			return "", errors.Wrap(err, "reading package JSON")
 		}

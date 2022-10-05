@@ -3,7 +3,6 @@ package github
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"regexp"
@@ -59,7 +58,7 @@ func OpenGitHubDirectory(githubPath string) (string, io.Closer, error) {
 		return "", nil, err
 	}
 
-	tmpDir, err := ioutil.TempDir("", "airplane-*")
+	tmpDir, err := os.MkdirTemp("", "airplane-*")
 	if err != nil {
 		return "", nil, errors.Wrap(err, "creating temporary directory")
 	}

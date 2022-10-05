@@ -2,7 +2,6 @@ package discover
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -106,7 +105,7 @@ func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]TaskConfi
 
 		if fileInfo.IsDir() {
 			// We found a directory. Recursively explore all of the files and directories in it.
-			nestedFiles, err := ioutil.ReadDir(p)
+			nestedFiles, err := os.ReadDir(p)
 			if err != nil {
 				return nil, nil, errors.Wrapf(err, "reading directory %s", p)
 			}

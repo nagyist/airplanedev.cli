@@ -2,7 +2,6 @@ package archive
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path"
 
@@ -39,7 +38,7 @@ func NewAPIArchiver(logger logger.Logger, client api.IAPIClient, uploader Upload
 }
 
 func (d *apiArchiver) Archive(ctx context.Context, root string) (string, int, error) {
-	tmpdir, err := ioutil.TempDir("", "airplane-builds-")
+	tmpdir, err := os.MkdirTemp("", "airplane-builds-")
 	if err != nil {
 		return "", 0, errors.Wrap(err, "creating temporary directory for remote build")
 	}
@@ -110,7 +109,7 @@ func archiveTaskDir(root string, archivePath string) error {
 	// the archive to be the contents of the task directory, rather than the
 	// task directory itself.
 	var sources []string
-	if files, err := ioutil.ReadDir(root); err != nil {
+	if files, err := os.ReadDir(root); err != nil {
 		return errors.Wrap(err, "inspecting files in task root")
 	} else {
 		for _, f := range files {

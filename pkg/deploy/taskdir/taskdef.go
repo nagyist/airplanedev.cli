@@ -2,7 +2,6 @@ package taskdir
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -11,7 +10,7 @@ import (
 )
 
 func (td TaskDirectory) ReadDefinition() (definitions.DefinitionInterface, error) {
-	buf, err := ioutil.ReadFile(td.defPath)
+	buf, err := os.ReadFile(td.defPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "reading task definition")
 	}

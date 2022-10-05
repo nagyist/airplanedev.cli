@@ -1,7 +1,6 @@
 package fsx
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -49,7 +48,7 @@ func TestFindUntil(t *testing.T) {
 	var assert = require.New(t)
 
 	getFile := func(p string) string {
-		c, err := ioutil.ReadFile(p)
+		c, err := os.ReadFile(p)
 		assert.NoError(err)
 		return strings.TrimSpace(string(c))
 	}

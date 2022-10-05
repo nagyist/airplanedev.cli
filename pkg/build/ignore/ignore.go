@@ -1,7 +1,6 @@
 package ignore
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -91,7 +90,7 @@ func Patterns(path string) ([]string, error) {
 	// Allow user-specified ignore file. Note that users can re-INCLUDE files using !, so if our
 	// default excludes skip something necessary they can always add it back.
 	const ignorefile = ".airplaneignore"
-	bs, err := ioutil.ReadFile(filepath.Join(path, ignorefile))
+	bs, err := os.ReadFile(filepath.Join(path, ignorefile))
 	switch {
 	case os.IsNotExist(err):
 		// Nothing additional to append

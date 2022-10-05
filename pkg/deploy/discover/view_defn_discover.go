@@ -3,7 +3,7 @@ package discover
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/airplanedev/lib/pkg/api"
@@ -27,7 +27,7 @@ func (dd *ViewDefnDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 		return nil, nil
 	}
 
-	buf, err := ioutil.ReadFile(file)
+	buf, err := os.ReadFile(file)
 	if err != nil {
 		return nil, errors.Wrap(err, "reading view definition")
 	}
