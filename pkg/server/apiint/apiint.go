@@ -182,7 +182,7 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 		})
 	}
 
-	if state.EnvID == env.LocalEnvID {
+	if state.EnvID != env.LocalEnvID {
 		remoteResources, err := res.ListRemoteResources(ctx, state)
 		if err != nil {
 			return ListResourcesResponse{}, errors.Wrap(err, "fetching remote resources")
