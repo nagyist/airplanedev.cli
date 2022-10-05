@@ -5,7 +5,6 @@ package apiext_test
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -269,40 +268,4 @@ func TestGetOutput(t *testing.T) {
 	require.Equal(api.Outputs{
 		V: "hello",
 	}, resp.Output)
-}
-
-func TestListRuns(t *testing.T) {
-	require := require.New(t)
-	taskSlug := "task1"
-
-	runstore := state.NewRunStore()
-	testRuns := []dev.LocalRun{
-		{RunID: "run_0", TaskID: taskSlug, Outputs: api.Outputs{V: "run0"}},
-		{RunID: "run_1", TaskID: taskSlug, Outputs: api.Outputs{V: "run1"}, CreatorID: "user1"},
-		{RunID: "run_2", TaskID: taskSlug, Outputs: api.Outputs{V: "run2"}},
-	}
-	for i, run := range testRuns {
-		runstore.Add(taskSlug, fmt.Sprintf("run_%v", i), run)
-
-	}
-	h := test_utils.GetHttpExpect(
-		context.Background(),
-		t,
-		server.NewRouter(&state.State{
-			Runs:        runstore,
-			TaskConfigs: map[string]discover.TaskConfig{},
-		}),
-	)
-	var resp apiext.ListRunsResponse
-	body := h.GET("/v0/runs/list").
-		WithQuery("taskSlug", taskSlug).
-		Expect().
-		Status(http.StatusOK).Body()
-	err := json.Unmarshal([]byte(body.Raw()), &resp)
-	require.NoError(err)
-
-	for i := range resp.Runs {
-		// runHistory is ordered by most recent
-		require.EqualValues(resp.Runs[i], testRuns[len(testRuns)-i-1])
-	}
 }

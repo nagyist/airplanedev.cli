@@ -466,7 +466,25 @@ func ListRunsHandler(ctx context.Context, state *state.State, r *http.Request) (
 	}, nil
 }
 
-// GetTaskInfoHandler handles requests to the /v0/tasks?slug=<task_slug> endpoint.
+func ParamWithComponent(p libapi.Parameter) (libapi.Parameter, error) {
+	switch p.Type {
+	case "shorttext":
+		p.Type = "string"
+	case "longtext":
+		p.Type = "string"
+		p.Component = libapi.ComponentTextarea
+	case "sql":
+		p.Type = "string"
+		p.Component = libapi.ComponentEditorSQL
+	case "boolean", "upload", "integer", "float", "date", "datetime", "configvar":
+		break
+	default:
+		return libapi.Parameter{}, errors.Errorf("unknown parameter type: %s", p.Type)
+	}
+	return p, nil
+}
+
+// GetTaskInfoHandler handles requests to the /i/tasks/get?slug=<task_slug> endpoint.
 func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.UpdateTaskRequest, error) {
 	taskSlug := r.URL.Query().Get("slug")
 	if taskSlug == "" {
@@ -476,10 +494,35 @@ func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request
 	if !ok {
 		return libapi.UpdateTaskRequest{}, errors.Errorf("Task with slug %s not found", taskSlug)
 	}
-	req, err := taskConfig.Def.GetUpdateTaskRequest(ctx, state.LocalClient)
-	if err != nil {
-		logger.Error("Encountered error while getting task info: %v", err)
-		return libapi.UpdateTaskRequest{}, errors.Errorf("error getting task %s", taskSlug)
+	req := libapi.UpdateTaskRequest{
+		Slug:        taskConfig.Def.GetSlug(),
+		Name:        taskConfig.Def.GetName(),
+		Description: taskConfig.Def.GetDescription(),
+		Runtime:     taskConfig.Def.GetRuntime(),
+		Resources:   map[string]string{},
 	}
+	if resources := taskConfig.Def.GetResourceAttachments(); resources != nil {
+		req.Resources = resources
+	}
+	configs, err := taskConfig.Def.GetConfigAttachments()
+	if err != nil {
+		return libapi.UpdateTaskRequest{}, errors.Wrap(err, "getting config attachments")
+	}
+	req.Configs = &configs
+	parameters := make(libapi.Parameters, len(taskConfig.Def.GetParameters()))
+	for i, p := range taskConfig.Def.GetParameters() {
+		p, err := ParamWithComponent(p)
+		if err != nil {
+			return libapi.UpdateTaskRequest{}, errors.Wrap(err, "getting parameters")
+		}
+		parameters[i] = p
+	}
+	req.Parameters = parameters
+	kind, options, err := taskConfig.Def.GetKindAndOptions()
+	if err != nil {
+		return libapi.UpdateTaskRequest{}, errors.Wrap(err, "getting kind and options")
+	}
+	req.Kind = kind
+	req.KindOptions = options
 	return req, nil
 }
