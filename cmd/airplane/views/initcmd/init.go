@@ -4,7 +4,6 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -181,7 +180,7 @@ func createViewDefinition(cfg config) error {
 		return err
 	}
 
-	if err := ioutil.WriteFile(defnFilename, buf, 0644); err != nil {
+	if err := os.WriteFile(defnFilename, buf, 0644); err != nil {
 		return err
 	}
 	logger.Step("Created view definition at %s", defnFilename)
@@ -194,7 +193,7 @@ var defaultEntrypoint []byte
 func createEntrypoint(cfg config) error {
 	entrypointPath := generateEntrypointPath(cfg, false)
 
-	if err := ioutil.WriteFile(entrypointPath, defaultEntrypoint, 0644); err != nil {
+	if err := os.WriteFile(entrypointPath, defaultEntrypoint, 0644); err != nil {
 		return errors.Wrap(err, "creating view entrypoint")
 	}
 	logger.Step("Created view entrypoint at %s", entrypointPath)

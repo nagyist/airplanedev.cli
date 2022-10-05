@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -284,7 +283,7 @@ func findDefinitionForScript(ctx context.Context, cfg config, l logger.LoggerWit
 	}
 
 	for _, dir := range dirs {
-		contents, err := ioutil.ReadDir(dir)
+		contents, err := os.ReadDir(dir)
 		if err != nil {
 			return nil, errors.Wrapf(err, "reading directory %s", dir)
 		}

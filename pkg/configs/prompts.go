@@ -2,7 +2,7 @@ package configs
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 
@@ -20,7 +20,7 @@ func ReadValue(secret bool) (string, error) {
 	}
 	// Read from stdin
 	logger.Log("Reading secret from stdin...")
-	data, err := ioutil.ReadAll(os.Stdin)
+	data, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		return "", errors.Wrap(err, "reading from stdin")
 	}

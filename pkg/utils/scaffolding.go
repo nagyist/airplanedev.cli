@@ -2,7 +2,7 @@ package utils
 
 import (
 	_ "embed"
-	"io/ioutil"
+	"os"
 
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
@@ -14,7 +14,7 @@ var defaultGitignoreContents []byte
 
 func CreateDefaultGitignoreFile(path string) error {
 	if !fsx.Exists(path) {
-		if err := ioutil.WriteFile(path, defaultGitignoreContents, 0644); err != nil {
+		if err := os.WriteFile(path, defaultGitignoreContents, 0644); err != nil {
 			return errors.Wrap(err, "creating .gitignore")
 		}
 		logger.Step("Created .gitignore")

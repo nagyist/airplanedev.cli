@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -380,7 +379,7 @@ func writeDefnFile(def *definitions.Definition_0_3, cfg config) (*writeDefnFileR
 		return nil, err
 	}
 
-	if err := ioutil.WriteFile(defnFilename, buf, 0644); err != nil {
+	if err := os.WriteFile(defnFilename, buf, 0644); err != nil {
 		return nil, err
 	}
 	logger.Step("Created %s", defnFilename)
@@ -434,13 +433,13 @@ func initCodeOnly(ctx context.Context, cfg config) error {
 			return nil
 		}
 
-		buf, err := ioutil.ReadFile(cfg.file)
+		buf, err := os.ReadFile(cfg.file)
 		if err != nil {
 			return err
 		}
 		code := prependComment(buf, runtime.Comment(r, task.URL))
 		// Note: 0644 is ignored because file already exists. Uses a reasonable default just in case.
-		if err := ioutil.WriteFile(cfg.file, code, 0644); err != nil {
+		if err := os.WriteFile(cfg.file, code, 0644); err != nil {
 			return err
 		}
 		logger.Step("Linked %s to %s", cfg.file, cfg.from)
@@ -810,7 +809,7 @@ func writeEntrypoint(path string, b []byte, fileMode os.FileMode) error {
 		return err
 	}
 
-	if err := ioutil.WriteFile(path, b, fileMode); err != nil {
+	if err := os.WriteFile(path, b, fileMode); err != nil {
 		return err
 	}
 
