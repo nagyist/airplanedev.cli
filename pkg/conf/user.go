@@ -2,7 +2,6 @@ package conf
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -42,7 +41,7 @@ func ReadUserConfig(path string) (UserConfig, error) {
 		return cfg, ErrMissing
 	}
 
-	buf, err := ioutil.ReadFile(path)
+	buf, err := os.ReadFile(path)
 	if err != nil {
 		return cfg, errors.Wrap(err, "read config")
 	}
@@ -65,7 +64,7 @@ func WriteUserConfig(path string, cfg UserConfig) error {
 		return errors.Wrap(err, "marshal config")
 	}
 
-	if err := ioutil.WriteFile(path, buf, 0600); err != nil {
+	if err := os.WriteFile(path, buf, 0600); err != nil {
 		return errors.Wrap(err, "write config")
 	}
 

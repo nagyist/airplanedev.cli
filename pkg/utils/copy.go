@@ -3,7 +3,6 @@ package utils
 import (
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,13 +14,13 @@ import (
 )
 
 func CopyFile(srcPath string, dstDirectory string) error {
-	src, err := ioutil.ReadFile(srcPath)
+	src, err := os.ReadFile(srcPath)
 	if err != nil {
 		return errors.Wrapf(err, "reading src file %s", srcPath)
 	}
 
 	dstPath := filepath.Join(dstDirectory, filepath.Base(srcPath))
-	if err := ioutil.WriteFile(dstPath, src, 0644); err != nil {
+	if err := os.WriteFile(dstPath, src, 0644); err != nil {
 		return errors.Wrapf(err, "writing dst file %s", dstPath)
 	}
 	logger.Step("Copied %s", dstPath)

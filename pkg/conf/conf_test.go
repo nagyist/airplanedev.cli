@@ -1,7 +1,6 @@
 package conf
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -16,7 +15,7 @@ import (
 func tempdir(t testing.TB) string {
 	t.Helper()
 
-	name, err := ioutil.TempDir("", "cli_test")
+	name, err := os.MkdirTemp("", "cli_test")
 	if err != nil {
 		t.Fatalf("tempdir: %s", err)
 	}

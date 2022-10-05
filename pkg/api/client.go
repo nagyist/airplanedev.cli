@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -568,7 +567,7 @@ func (c Client) do(ctx context.Context, method, path string, payload, reply inte
 
 	if resp != nil {
 		defer func() {
-			if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
+			if _, err := io.Copy(io.Discard, resp.Body); err != nil {
 				logger.Error("failed to read request body: %+v", err)
 			}
 			resp.Body.Close()
