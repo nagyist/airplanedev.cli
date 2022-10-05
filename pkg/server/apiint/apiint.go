@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	res "github.com/airplanedev/cli/pkg/resource"
 	"github.com/airplanedev/cli/pkg/server/handlers"
@@ -154,22 +155,58 @@ func GetResourceHandler(ctx context.Context, state *state.State, r *http.Request
 	return GetResourceResponse{}, errors.Errorf("Resource with slug %s is not in dev config file", slug)
 }
 
+type APIResourceWithEnv struct {
+	libapi.Resource
+	Remote  bool   `json:"remote"`
+	EnvID   string `json:"envID"`
+	EnvSlug string `json:"envSlug"`
+}
+
+type ListResourcesResponse struct {
+	Resources []APIResourceWithEnv `json:"resources"`
+}
+
 // ListResourcesHandler handles requests to the /i/resources/list endpoint
-func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.ListResourcesResponse, error) {
-	resources := make([]libapi.Resource, 0, len(state.DevConfig.RawResources))
+func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Request) (ListResourcesResponse, error) {
+	resources := make([]APIResourceWithEnv, 0)
 	for slug, r := range state.DevConfig.Resources {
-		resources = append(resources, libapi.Resource{
-			ID:                r.Resource.ID(),
-			Name:              slug, // TODO: Change to actual name of resource once that's exposed from export resource.
-			Slug:              slug,
-			Kind:              libapi.ResourceKind(r.Resource.Kind()),
-			ExportResource:    r.Resource,
-			CanUseResource:    true,
-			CanUpdateResource: true,
+		resources = append(resources, APIResourceWithEnv{
+			Resource: libapi.Resource{
+				ID:                r.Resource.ID(),
+				Name:              slug, // TODO: Change to actual name of resource once that's exposed from export resource.
+				Slug:              slug,
+				Kind:              libapi.ResourceKind(r.Resource.Kind()),
+				ExportResource:    r.Resource,
+				CanUseResource:    true,
+				CanUpdateResource: true,
+			},
+			Remote:  false,
+			EnvID:   env.LocalEnvID,
+			EnvSlug: env.LocalEnvID,
 		})
 	}
 
-	return libapi.ListResourcesResponse{
+	if state.EnvID != env.LocalEnvID {
+		remoteResources, err := res.ListRemoteResources(ctx, state)
+		if err == nil {
+			for _, r := range remoteResources {
+				// This is purely so we can display remote resource information in the local dev editor. The remote list
+				// resources endpoint doesn't return CanUseResource or CanUpdateResource, and so we set them to true here.
+				r.CanUseResource = true
+				r.CanUpdateResource = true
+				resources = append(resources, APIResourceWithEnv{
+					Resource: r,
+					Remote:   true,
+					EnvID:    state.EnvID,
+					EnvSlug:  state.EnvSlug,
+				})
+			}
+		} else {
+			logger.Error("error fetching remote resources: %v", err)
+		}
+	}
+
+	return ListResourcesResponse{
 		Resources: resources,
 	}, nil
 }

@@ -58,6 +58,7 @@ func TestListResources(t *testing.T) {
 					},
 				},
 			},
+			EnvID: env.LocalEnvID,
 		}),
 	)
 
