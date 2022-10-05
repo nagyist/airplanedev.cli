@@ -157,7 +157,9 @@ func GetResourceHandler(ctx context.Context, state *state.State, r *http.Request
 
 type APIResourceWithEnv struct {
 	libapi.Resource
-	Remote bool `json:"remote"`
+	Remote  bool   `json:"remote"`
+	EnvID   string `json:"envID"`
+	EnvSlug string `json:"envSlug"`
 }
 
 type ListResourcesResponse struct {
@@ -178,7 +180,9 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 				CanUseResource:    true,
 				CanUpdateResource: true,
 			},
-			Remote: false,
+			Remote:  false,
+			EnvID:   env.LocalEnvID,
+			EnvSlug: env.LocalEnvID,
 		})
 	}
 
@@ -196,6 +200,8 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 			resources = append(resources, APIResourceWithEnv{
 				Resource: r,
 				Remote:   true,
+				EnvID:    state.EnvID,
+				EnvSlug:  state.EnvSlug,
 			})
 		}
 	}
