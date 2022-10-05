@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	cloud.google.com/go/storage v1.6.0
-	github.com/AlecAivazis/survey/v2 v2.3.5
+	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/MakeNowJust/heredoc/v2 v2.0.1
 	github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021
 	github.com/airplanedev/ojson v0.1.0
@@ -12,7 +12,7 @@ require (
 	github.com/alessio/shellescape v1.4.1
 	github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible
 	github.com/blang/semver/v4 v4.0.0
-	github.com/evanw/esbuild v0.15.6
+	github.com/evanw/esbuild v0.15.8
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-sql-driver/mysql v1.6.0
@@ -24,7 +24,7 @@ require (
 	github.com/snowflakedb/gosnowflake v1.6.13
 	github.com/stretchr/testify v1.8.0
 	github.com/xeipuuv/gojsonschema v1.2.0
-	go.mongodb.org/mongo-driver v1.10.1
+	go.mongodb.org/mongo-driver v1.10.2
 	golang.org/x/exp v0.0.0-20220921164117-439092de6870
 	golang.org/x/sync v0.0.0-20220923202941-7f9b1623fab7
 	google.golang.org/api v0.22.0
@@ -72,7 +72,6 @@ require (
 	github.com/google/flatbuffers v2.0.0+incompatible // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.0.5 // indirect
-	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
@@ -126,7 +125,7 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/Microsoft/hcsshim v0.9.1 // indirect
 	github.com/airplanedev/dlog v0.0.0-20210615011719-ca8d3becde5e
-	github.com/docker/docker v20.10.12+incompatible
+	github.com/docker/docker v20.10.18+incompatible
 	github.com/mattn/go-isatty v0.0.16
 	github.com/moby/sys/mount v0.3.0 // indirect
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06

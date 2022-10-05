@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "license": "MIT",
   "dependencies": {
-    "@airplane/views": "1.4.3",
-    "airplane": "0.2.1",
+    "@airplane/views": "1.5.0",
+    "airplane": "0.2.3",
     "lodash-es": "4.17.21",
     "react": "18.2.0",
     "react-dom": "18.2.0"
