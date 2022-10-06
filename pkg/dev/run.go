@@ -8,6 +8,7 @@ import (
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/builtins"
+	"github.com/airplanedev/lib/pkg/deploy/discover"
 )
 
 type LocalRun struct {
@@ -26,6 +27,9 @@ type LocalRun struct {
 	Displays         []libapi.Display       `json:"displays"`
 	Prompts          []libapi.Prompt        `json:"prompts"`
 	IsWaitingForUser bool                   `json:"isWaitingForUser"`
+
+	// The version of the task at the time of the run execution
+	TaskRevision discover.TaskConfig `json:"-"`
 
 	// Map of a run's attached resources: slug to ID
 	Resources map[string]string `json:"resources"`

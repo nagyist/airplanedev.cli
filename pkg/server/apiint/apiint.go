@@ -473,21 +473,20 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (Ge
 	}
 	response := GetRunResponse{Run: run}
 
-	if taskConfig, ok := state.TaskConfigs[run.TaskID]; ok {
-		utr, err := taskConfig.Def.GetUpdateTaskRequest(ctx, state.LocalClient)
+	if run.TaskRevision.Def != nil {
+		utr, err := run.TaskRevision.Def.GetUpdateTaskRequest(ctx, state.LocalClient)
 		if err != nil {
 			logger.Error("Encountered error while getting task info: %v", err)
-			return GetRunResponse{}, errors.Errorf("error getting task %s", taskConfig.Def.GetSlug())
+			return GetRunResponse{}, errors.Errorf("error getting task %s", run.TaskRevision.Def.GetSlug())
 		}
 		response.Task = &libapi.Task{
-			ID:          taskConfig.Def.GetSlug(),
-			Name:        taskConfig.Def.GetName(),
-			Slug:        taskConfig.Def.GetSlug(),
-			Description: taskConfig.Def.GetDescription(),
+			ID:          run.TaskRevision.Def.GetSlug(),
+			Name:        run.TaskRevision.Def.GetName(),
+			Slug:        run.TaskRevision.Def.GetSlug(),
+			Description: run.TaskRevision.Def.GetDescription(),
 			Parameters:  utr.Parameters,
 		}
 	}
-
 	return response, nil
 }
 

@@ -156,6 +156,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 				return dev.LocalRun{}, errors.Wrap(err, "getting attached configs")
 			}
 			runConfig.ConfigVars = configs.MaterializeConfigs(attachedConfigs, state.DevConfig.ConfigVars)
+			run.TaskRevision = localTaskConfig
 		}
 		resources, err := resource.GenerateAliasToResourceMap(
 			ctx,
@@ -221,11 +222,6 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 	}
 
 	return run, nil
-}
-
-type GetRunResponse struct {
-	Run  dev.LocalRun `json:"run"`
-	Task *libapi.Task `json:"task"`
 }
 
 // GetRunHandler handles requests to the /v0/runs/get endpoint
