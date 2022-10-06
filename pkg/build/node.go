@@ -324,9 +324,9 @@ func node(
 		{{end}}
 
 		{{if .IsWorkflow}}
-		RUN {{.InlineWorkflowShimScript}} >> /airplane/.airplane/workflow-shim.js
-		RUN {{.InlineWorkflowInterceptorsScript}} >> /airplane/.airplane/workflow-interceptors.js
-		RUN {{.InlineWorkflowBundlerScript}} >> /airplane/.airplane/workflow-bundler.js
+		RUN {{.InlineWorkflowShimScript}} >> /airplane/.airplane/workflow-shim.js \
+			&& {{.InlineWorkflowInterceptorsScript}} >> /airplane/.airplane/workflow-interceptors.js \
+			&& {{.InlineWorkflowBundlerScript}} >> /airplane/.airplane/workflow-bundler.js
 		RUN node /airplane/.airplane/workflow-bundler.js
 		{{end}}
 
