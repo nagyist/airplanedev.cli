@@ -1,18 +1,19 @@
-const worker = require('@temporalio/worker');
-const { writeFile } = require('fs/promises');
-const { builtinModules } = require('module');
+const worker = require("@temporalio/worker");
+const { writeFile } = require("fs/promises");
+const { builtinModules } = require("module");
 
 // Temporal does not let you use any Node built-in, except for `assert`, which they shim.
-const shimmedModules = builtinModules.filter(name => name !== "assert")
+const shimmedModules = builtinModules.filter((name) => name !== "assert");
 
 // Create a workflow bundle using tooling provided by Temporal;
 // see https://docs.temporal.io/docs/typescript/workers/#prebuilt-workflow-bundles
 // for details.
 async function bundle() {
   // Generate a fallback for each of the built-in Node modules.
-  const fallbacks = {}
-  await Promise.all(shimmedModules.map(async (moduleName) => {
-    const shim = `const getError = (path = "${moduleName}") => {
+  const fallbacks = {};
+  await Promise.all(
+    shimmedModules.map(async (moduleName) => {
+      const shim = `const getError = (path = "${moduleName}") => {
   return new Error(\`Workflows do not have access to Node.js built-in packages (cannot access "\${path}"). Move that logic into a Node.js task and call the task from your workflow.\`);
 }
 
@@ -37,18 +38,19 @@ const proxy = new Proxy(proxyTarget, {
 });
 
 module.exports = proxy;`;
-    fallbacks[moduleName] = `/airplane/.airplane/shims-${moduleName.replace(/\//g, "-")}.js`;
-    await writeFile(fallbacks[moduleName], shim);
-  }));
+      fallbacks[moduleName] = `/airplane/.airplane/shims-${moduleName.replace(/\//g, "-")}.js`;
+      await writeFile(fallbacks[moduleName], shim);
+    })
+  );
 
   const { code } = await worker.bundleWorkflowCode({
-    workflowsPath: '/airplane/.airplane/workflow-shim.js',
-    workflowInterceptorModules: ['/airplane/.airplane/workflow-interceptors.js'],
+    workflowsPath: "/airplane/.airplane/workflow-shim.js",
+    workflowInterceptorModules: ["/airplane/.airplane/workflow-interceptors.js"],
     webpackConfigHook: (config) => {
       // Temporal aliases each to "false" so they generate as empty modules. We want to replace them
       // with our shim above, so remove those aliases.
       for (let moduleName of shimmedModules) {
-        delete config.resolve.alias[moduleName]
+        delete config.resolve.alias[moduleName];
       }
       return {
         ...config,
@@ -70,13 +72,13 @@ module.exports = proxy;`;
           fallback: {
             ...config.resolve.fallback,
             ...fallbacks,
-          }
-        }
-      }
+          },
+        },
+      };
     },
   });
 
-  await writeFile('/airplane/.airplane/workflow-bundle.js', code);
+  await writeFile("/airplane/.airplane/workflow-bundle.js", code);
 }
 
 bundle();

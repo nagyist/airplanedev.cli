@@ -1,6 +1,8 @@
-import { workflowInfo } from '@temporalio/workflow';
-import { proxySinks } from '@temporalio/workflow';
+import { workflowInfo } from "@temporalio/workflow";
+import { proxySinks } from "@temporalio/workflow";
 const { logger } = proxySinks();
+
+const sensitiveLogKeys = ["airplane_token", "airplane_resources", "password", "token"];
 
 // Interceptor that allows us to log outbound client calls made from workflow.
 // See https://docs.temporal.io/docs/typescript/interceptors for details.
@@ -13,13 +15,10 @@ class WorkflowLogOutboundInterceptor {
   async scheduleActivity(input, next) {
     const activityType = input.activityType;
 
-    workflowLog(this.info, `Scheduling activity ${activityType}: ${JSON.stringify(input)}`);
+    workflowLog(this.info, `Scheduling activity ${activityType}: ${logStringify(input)}`);
     try {
       const result = await next(input);
-      workflowLog(
-        this.info,
-        `Activity ${activityType} result: ${JSON.stringify(result)}`
-      );
+      workflowLog(this.info, `Activity ${activityType} result: ${logStringify(result)}`);
       return result;
     } catch (error) {
       workflowLog(this.info, `Activity ${activityType} errored: ${error}`);
@@ -28,10 +27,10 @@ class WorkflowLogOutboundInterceptor {
   }
 
   async scheduleLocalActivity(input, next) {
-    workflowLog(this.info, `Scheduling local activity: ${JSON.stringify(input)}`);
+    workflowLog(this.info, `Scheduling local activity: ${logStringify(input)}`);
     try {
       const result = await next(input);
-      workflowLog(this.info, `Local activity result: ${JSON.stringify(result)}`);
+      workflowLog(this.info, `Local activity result: ${logStringify(result)}`);
       return result;
     } catch (error) {
       workflowLog(this.info, `Local activity errored: ${error}`);
@@ -40,10 +39,10 @@ class WorkflowLogOutboundInterceptor {
   }
 
   async startTimer(input, next) {
-    workflowLog(this.info, `Starting timer: ${JSON.stringify(input)}`);
+    workflowLog(this.info, `Starting timer: ${logStringify(input)}`);
     try {
       const result = await next(input);
-      workflowLog(this.info, `Starting timer result: ${JSON.stringify(result)}`);
+      workflowLog(this.info, `Starting timer result: ${logStringify(result)}`);
       return result;
     } catch (error) {
       workflowLog(this.info, `Timer errored: ${error}`);
@@ -61,13 +60,10 @@ class WorkflowLogInboundInterceptor {
   }
 
   async execute(input, next) {
-    workflowLog(this.info, `Workflow execution starting: ${JSON.stringify(input)}`);
+    workflowLog(this.info, `Workflow execution starting: ${logStringify(input)}`);
     try {
       const result = await next(input);
-      workflowLog(
-        this.info,
-        `Workflow execution result: ${JSON.stringify(result)}`
-      );
+      workflowLog(this.info, `Workflow execution result: ${logStringify(result)}`);
       return result;
     } catch (error) {
       workflowLog(this.info, `Workflow execution errored: ${error}`);
@@ -76,10 +72,10 @@ class WorkflowLogInboundInterceptor {
   }
 
   async handleSignal(input, next) {
-    workflowLog(this.info, `Handling signal: ${JSON.stringify(input)}`);
+    workflowLog(this.info, `Handling signal: ${logStringify(input)}`);
     try {
       const result = await next(input);
-      workflowLog(this.info, `Signal result: ${JSON.stringify(result)}`);
+      workflowLog(this.info, `Signal result: ${logStringify(result)}`);
       return result;
     } catch (error) {
       workflowLog(this.info, `Error handling signal: ${error}`);
@@ -100,4 +96,10 @@ function workflowLog(info, message) {
   // we cannot directly call console.log here because we override the console.log method in the workflow shim, which
   // would cause the output to get unnecessarily prepended with airplane_workflow_log:workflow
   logger.raw(`airplane_workflow_log:interceptor//${info.workflowId}/${info.runId} ${message}`);
+}
+
+function logStringify(obj) {
+  return JSON.stringify(obj, (key, value) =>
+    sensitiveLogKeys.includes(key.toLowerCase()) ? "[OMITTED]" : value
+  );
 }

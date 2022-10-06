@@ -1,12 +1,14 @@
-import os from 'os';
+import os from "os";
 
-import { NativeConnection, Worker } from '@temporalio/worker';
+import { NativeConnection, Worker } from "@temporalio/worker";
 
 // Activity code runs in the same node process as the worker, so we import it here directly.
 import { createActivities } from "@airplane/workflow-runtime/internal";
 
+const sensitiveLogKeys = ["airplane_token", "airplane_resources", "password", "token"];
+
 function formatWorkflowLog(source, workflowInfo, message) {
-  return `airplane_workflow_log:${source}//${workflowInfo.workflowId}/${workflowInfo.runId} ${message}`
+  return `airplane_workflow_log:${source}//${workflowInfo.workflowId}/${workflowInfo.runId} ${message}`;
 }
 
 // Main worker entrypoint; starts a worker that will process activities
@@ -15,28 +17,28 @@ async function runWorker(params) {
   // Get temporal host, queue, and namespace from the environment.
   const temporalHost = process.env.AP_TEMPORAL_HOST;
   if (temporalHost === undefined) {
-    throw 'AP_TEMPORAL_HOST is not set in environment';
+    throw "AP_TEMPORAL_HOST is not set in environment";
   }
 
   const taskQueue = process.env.AP_TASK_QUEUE;
   if (taskQueue === undefined) {
-    throw 'AP_TASK_QUEUE is not set in environment';
+    throw "AP_TASK_QUEUE is not set in environment";
   }
 
   const namespace = process.env.AP_NAMESPACE;
   if (namespace === undefined) {
-    throw 'AP_NAMESPACE is not set in environment';
+    throw "AP_NAMESPACE is not set in environment";
   }
 
   const temporalToken = process.env.AP_TEMPORAL_TOKEN;
   if (temporalToken === undefined) {
-    throw 'AP_TEMPORAL_TOKEN is not set in environment';
+    throw "AP_TEMPORAL_TOKEN is not set in environment";
   }
 
   // We use TLS when hitting a remote Temporal API (i.e., behind a load balancer),
   // but not a local one. The easiest way to tell the difference is by
   // looking at the port.
-  const useTLS = temporalHost.endsWith(':443');
+  const useTLS = temporalHost.endsWith(":443");
 
   console.log(
     `Starting worker with temporal host ${temporalHost}, task queue ${taskQueue}, namespace ${namespace}, useTLS ${useTLS}`
@@ -99,7 +101,7 @@ async function runWorker(params) {
 
   const worker = await Worker.create({
     workflowBundle: {
-      codePath: '/airplane/.airplane/workflow-bundle.js',
+      codePath: "/airplane/.airplane/workflow-bundle.js",
     },
     activities: {
       ...createActivities(),
@@ -128,10 +130,10 @@ export class ActivityLogInboundInterceptor {
   }
 
   async execute(input, next) {
-    activityLog(this.info, `Activity execution starting: ${JSON.stringify(input)}`);
+    activityLog(this.info, `Activity execution starting: ${logStringify(input)}`);
     try {
       const result = await next(input);
-      activityLog(this.info, `Activity execution result: ${JSON.stringify(result)}`);
+      activityLog(this.info, `Activity execution result: ${logStringify(result)}`);
       return result;
     } catch (error) {
       activityLog(this.info, `Activity execution errored: ${error}`);
@@ -148,10 +150,18 @@ function activityLog(info, message) {
   );
 }
 
+function logStringify(obj) {
+  return JSON.stringify(obj, (key, value) =>
+    sensitiveLogKeys.includes(key.toLowerCase()) ? "[OMITTED]" : value
+  );
+}
+
 // This function is the worker's entrypoint.
 async function main() {
   if (process.argv.length !== 3) {
-    console.error(`Expected to receive a single argument (via {{ "{{JSON}}" }}). Task CLI arguments may be misconfigured.`);
+    console.error(
+      `Expected to receive a single argument (via {{ "{{JSON}}" }}). Task CLI arguments may be misconfigured.`
+    );
     process.exit(1);
   }
 

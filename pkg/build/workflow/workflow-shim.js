@@ -1,5 +1,5 @@
-import airplane from 'airplane';
-import { proxySinks, CancelledFailure } from '@temporalio/workflow';
+import airplane from "airplane";
+import { proxySinks, CancelledFailure } from "@temporalio/workflow";
 {{if and (.EntrypointFunc) (ne .EntrypointFunc "default") }}
 import { {{.EntrypointFunc}} as task } from "{{.Entrypoint}}";
 {{else}}
@@ -15,7 +15,7 @@ const { logger } = proxySinks();
 // the Airplane API.
 export async function __airplaneEntrypoint(params, workflowArgs) {
   registerWorkflowRuntime();
-  logger.internal('airplane_status:active');
+  logger.internal("airplane_status:active");
   try {
     // Monkey patch node globals
     global.process = {
@@ -39,18 +39,18 @@ export async function __airplaneEntrypoint(params, workflowArgs) {
       airplane.setOutput(ret);
     }
 
-    logger.internal('airplane_status:succeeded');
+    logger.internal("airplane_status:succeeded");
   } catch (err) {
     logger.info(err);
     logger.internal(JSON.stringify(err));
     if (err instanceof CancelledFailure) {
-      logger.internal('airplane_status:cancelled');
+      logger.internal("airplane_status:cancelled");
     } else {
       // Print the error's message directly when possible. Otherwise, it includes the
       // error's name (e.g. "RunTerminationError: ...").
       const message = err instanceof Error ? err.message : String(err)
       logger.info(`airplane_output_set:error ${JSON.stringify(message)}`);
-      logger.internal('airplane_status:failed');
+      logger.internal("airplane_status:failed");
     }
   }
 }
