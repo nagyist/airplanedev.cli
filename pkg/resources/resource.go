@@ -2,19 +2,38 @@ package resources
 
 import (
 	"encoding/json"
-	"fmt"
-	"os"
-	"strings"
 
-	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 )
+
+type IBaseResource interface {
+	GetKind() ResourceKind
+	GetID() string
+	GetSlug() string
+	GetName() string
+}
 
 type BaseResource struct {
 	Kind ResourceKind `json:"kind"`
 	ID   string       `json:"id"`
 	Slug string       `json:"slug"`
 	Name string       `json:"name"`
+}
+
+func (r *BaseResource) GetKind() ResourceKind {
+	return r.Kind
+}
+
+func (r *BaseResource) GetID() string {
+	return r.ID
+}
+
+func (r *BaseResource) GetSlug() string {
+	return r.Slug
+}
+
+func (r *BaseResource) GetName() string {
+	return r.Name
 }
 
 func (r *BaseResource) Update(update BaseResource) {
@@ -35,56 +54,6 @@ func (r *BaseResource) Update(update BaseResource) {
 type ResourceKind string
 
 type EnvFactory func(ref string) (Resource, error)
-
-func GetAirplaneEnv(ref string, name string) string {
-	return GetAirplaneEnvFromFunc(ref, name, os.LookupEnv)
-}
-
-func GetAirplaneEnvFromFunc(ref string, name string, f EnvLookupFunc) string {
-	key := fmt.Sprintf("AIRPLANE_%s_%s", strings.ToUpper(ref), strings.ToUpper(name))
-	val, _ := f(key)
-	return val
-}
-
-func AirplaneResourceFromFunc(ref string, f EnvLookupFunc, res Resource) error {
-	version, ok := f("AIRPLANE_RESOURCES_VERSION")
-	if !ok {
-		version = "1"
-	}
-
-	switch version {
-	case "1":
-		serializedResources, ok := f("AIRPLANE_RESOURCES")
-		if !ok {
-			return NewErrResourceNotFound(ref)
-		}
-
-		resources := map[string]interface{}{}
-		err := json.Unmarshal([]byte(serializedResources), &resources)
-		if err != nil {
-			return errors.Wrap(err, "error unmarshalling AIRPLANE_RESOURCES")
-		}
-
-		r, ok := resources[ref]
-		if !ok {
-			return NewErrResourceNotFound(ref)
-		}
-
-		decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-			TagName: "json",
-			Result:  res,
-		})
-		if err != nil {
-			return errors.Wrap(err, "error creating decoder")
-		}
-		if err := decoder.Decode(r); err != nil {
-			return errors.Wrap(err, "error decoding resource")
-		}
-		return nil
-	default:
-		return NewErrUnsupportedResourceVersion(version)
-	}
-}
 
 func GetAirplaneResourceFromFunc(ref string, f EnvLookupFunc) (Resource, error) {
 	version, _ := f("AIRPLANE_RESOURCES_VERSION")
@@ -120,13 +89,8 @@ func GetAirplaneResourceFromFunc(ref string, f EnvLookupFunc) (Resource, error) 
 	}
 }
 
-func EnvFactoryFromFunc(rf func(string, EnvLookupFunc) (Resource, error), f EnvLookupFunc) EnvFactory {
-	return func(ref string) (Resource, error) {
-		return rf(ref, f)
-	}
-}
-
 type Resource interface {
+	IBaseResource
 	// ScrubSensitiveData removes any sensitive data from the resource (e.g., passwords, API keys,
 	// calculated fields involving sensitive data).
 	ScrubSensitiveData()
@@ -138,11 +102,13 @@ type Resource interface {
 	// Validate returns an error if the resource is invalid.
 	Validate() error
 	// Kind returns the ResourceKind associated with this resource.
-	Kind() ResourceKind
+	// Deprecated: Use GetKind() instead
+	Kind() ResourceKind // TODO: Remove
 	// String returns a string representation of this resource.
 	String() string
 	// ID returns the resource's ID.
-	ID() string
+	// Deprecated: Use GetID() instead
+	ID() string // TODO: Remove
 	// UpdateBaseResource updates the BaseResource.
 	UpdateBaseResource(r BaseResource) error
 }
