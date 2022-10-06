@@ -49,7 +49,7 @@ func NewLocalRun() *LocalRun {
 		Status:      api.RunQueued,
 		ParamValues: map[string]interface{}{},
 		Parameters:  &libapi.Parameters{},
-		CreatedAt:   time.Now(),
+		CreatedAt:   time.Now().UTC(),
 		LogBroker:   logs.NewDevLogBroker(),
 		Displays:    []libapi.Display{},
 		Prompts:     []libapi.Prompt{},
@@ -58,5 +58,5 @@ func NewLocalRun() *LocalRun {
 }
 
 func GenerateRunID() string {
-	return utils.GenerateID("run")
+	return utils.GenerateID("devrun")
 }

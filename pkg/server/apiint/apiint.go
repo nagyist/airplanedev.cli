@@ -428,10 +428,38 @@ func GetDescendantsHandler(ctx context.Context, state *state.State, r *http.Requ
 	if runID == "" {
 		return GetDescendantsResponse{}, errors.New("runID cannot be empty")
 	}
+
 	descendants := state.Runs.GetDescendants(runID)
+	processedDescendants := make([]dev.LocalRun, len(descendants))
+
+	for i, descendant := range state.Runs.GetDescendants(runID) {
+		if descendant.Remote {
+			resp, err := state.CliConfig.Client.GetRun(ctx, descendant.RunID)
+			if err != nil {
+				return GetDescendantsResponse{}, errors.Wrap(err, "getting remote run")
+			}
+
+			run := resp.Run
+
+			descendant = dev.LocalRun{
+				RunID:       run.RunID,
+				Status:      run.Status,
+				CreatedAt:   run.CreatedAt,
+				CreatorID:   run.CreatorID,
+				SucceededAt: run.SucceededAt,
+				FailedAt:    run.FailedAt,
+				ParamValues: run.ParamValues,
+				TaskID:      run.TaskID,
+				TaskName:    run.TaskName,
+				ParentID:    runID,
+				Remote:      true,
+			}
+		}
+		processedDescendants[i] = descendant
+	}
 
 	return GetDescendantsResponse{
-		Descendants: descendants,
+		Descendants: processedDescendants,
 	}, nil
 }
 

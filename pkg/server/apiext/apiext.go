@@ -79,7 +79,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 	localTaskConfig, ok := state.TaskConfigs[req.Slug]
 	isBuiltin := builtins.IsBuiltinTaskSlug(req.Slug)
 	parameters := libapi.Parameters{}
-	start := time.Now()
+	start := time.Now().UTC()
 	if isBuiltin || ok {
 		runConfig := dev.LocalRunConfig{
 			ID:          runID,
@@ -216,7 +216,6 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 
 		run.Remote = true
 		run.RunID = resp.RunID
-		run.ParentID = "" // TODO: Support linking to remote run as well
 		state.Runs.Add(req.Slug, resp.RunID, run)
 		return run, nil
 	}
