@@ -358,3 +358,17 @@ type GetResourceRequest struct {
 	EnvSlug              string `json:"envSlug"`
 	IncludeSensitiveData bool   `json:"includeSensitiveData"`
 }
+
+type Env struct {
+	ID         string     `json:"id"`
+	Slug       string     `json:"slug"`
+	Name       string     `json:"name"`
+	TeamID     string     `json:"teamID"`
+	Default    bool       `json:"default"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	CreatedBy  string     `json:"createdBy"`
+	UpdatedAt  time.Time  `json:"updatedAt"`
+	UpdatedBy  string     `json:"updatedBy"`
+	IsArchived bool       `json:"isArchived"`
+	ArchivedAt *time.Time `json:"archivedAt"`
+}

@@ -26,19 +26,16 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 	appURL := cfg.root.Client.AppURL()
 
-	var envID, envSlug string
+	var devEnv api.Env
 	devServerHost := fmt.Sprintf("127.0.0.1:%d", cfg.port)
 	if cfg.local {
 		// Use a special env ID and slug when executing tasks locally and the `--env` flag doesn't apply.
-		envID = env.LocalEnvID
-		envSlug = env.LocalEnvID
+		devEnv = env.NewLocalEnv()
 	} else {
-		env, err := cfg.root.Client.GetEnv(ctx, cfg.envSlug)
+		devEnv, err = cfg.root.Client.GetEnv(ctx, cfg.envSlug)
 		if err != nil {
 			return err
 		}
-		envID = env.ID
-		envSlug = env.Slug
 	}
 
 	localExecutor := &dev.LocalExecutor{}
@@ -61,8 +58,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		CLI:         cfg.root,
 		LocalClient: localClient,
 		DevConfig:   cfg.devConfig,
-		EnvID:       envID,
-		EnvSlug:     envSlug,
+		Env:         devEnv,
 		Executor:    localExecutor,
 		Port:        cfg.port,
 		Dir:         absoluteDir,
@@ -146,10 +142,10 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	if len(warnings.UnattachedResources) > 0 {
 		logger.Log(" ")
 		unattachedResourcesMsg := "The following tasks have resource attachments that are not defined in the dev config file"
-		if envID == env.LocalEnvID {
+		if devEnv.ID == env.LocalEnvID {
 			unattachedResourcesMsg += "."
 		} else {
-			unattachedResourcesMsg += fmt.Sprintf(" or remotely in %s.", logger.Bold(envSlug))
+			unattachedResourcesMsg += fmt.Sprintf(" or remotely in %s.", logger.Bold(devEnv.Name))
 		}
 		unattachedResourcesMsg += " Please add them through the editor or run `airplane dev config set-resource`."
 		logger.Log(unattachedResourcesMsg)
@@ -159,13 +155,13 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	logger.Log("")
-	if envID == env.LocalEnvID {
+	if devEnv.ID == env.LocalEnvID {
 		logger.Log("You have not set a fallback environment. All tasks and resources must be available locally. " +
 			"You can configure a fallback environment via `--env`.")
 	} else {
-		logger.Log("Your environment is set to %s.", logger.Bold(envSlug))
-		logger.Log("- Any task that is not available locally will execute in your %s environment.", logger.Bold(envSlug))
-		logger.Log("- Any resources not declared in your dev config will be loaded from your %s environment.", logger.Bold(envSlug))
+		logger.Log("Your environment is set to %s.", logger.Bold(devEnv.Name))
+		logger.Log("- Any task that is not available locally will execute in your %s environment.", logger.Bold(devEnv.Name))
+		logger.Log("- Any resources not declared in your dev config will be loaded from your %s environment.", logger.Bold(devEnv.Name))
 	}
 
 	logger.Log("")

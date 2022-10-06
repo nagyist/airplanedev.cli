@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -157,9 +158,8 @@ func GetResourceHandler(ctx context.Context, state *state.State, r *http.Request
 
 type APIResourceWithEnv struct {
 	libapi.Resource
-	Remote  bool   `json:"remote"`
-	EnvID   string `json:"envID"`
-	EnvSlug string `json:"envSlug"`
+	Remote bool    `json:"remote"`
+	Env    api.Env `json:"env"`
 }
 
 type ListResourcesResponse struct {
@@ -173,20 +173,19 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 		resources = append(resources, APIResourceWithEnv{
 			Resource: libapi.Resource{
 				ID:                r.Resource.ID(),
-				Name:              slug, // TODO: Change to actual name of resource once that's exposed from export resource.
+				Name:              r.Resource.GetName(),
 				Slug:              slug,
 				Kind:              libapi.ResourceKind(r.Resource.Kind()),
 				ExportResource:    r.Resource,
 				CanUseResource:    true,
 				CanUpdateResource: true,
 			},
-			Remote:  false,
-			EnvID:   env.LocalEnvID,
-			EnvSlug: env.LocalEnvID,
+			Remote: false,
+			Env:    env.NewLocalEnv(),
 		})
 	}
 
-	if state.EnvID != env.LocalEnvID {
+	if state.HasFallbackEnv() {
 		remoteResources, err := res.ListRemoteResources(ctx, state)
 		if err == nil {
 			for _, r := range remoteResources {
@@ -197,8 +196,7 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 				resources = append(resources, APIResourceWithEnv{
 					Resource: r,
 					Remote:   true,
-					EnvID:    state.EnvID,
-					EnvSlug:  state.EnvSlug,
+					Env:      state.Env,
 				})
 			}
 		} else {

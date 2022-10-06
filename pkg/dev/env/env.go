@@ -1,6 +1,9 @@
 package env
 
-import "github.com/airplanedev/lib/pkg/resources"
+import (
+	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/lib/pkg/resources"
+)
 
 const LocalEnvID = "local"
 
@@ -10,4 +13,13 @@ type ResourceWithEnv struct {
 	Resource resources.Resource
 	// Whether the resource's configuration is remote or local.
 	Remote bool
+}
+
+// NewLocalEnv returns a new environment struct with special, local fields.
+func NewLocalEnv() api.Env {
+	return api.Env{
+		ID:   LocalEnvID,
+		Slug: LocalEnvID,
+		Name: LocalEnvID,
+	}
 }

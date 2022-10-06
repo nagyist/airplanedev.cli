@@ -108,7 +108,7 @@ type APIClient interface {
 	CreateView(ctx context.Context, req libapi.CreateViewRequest) (libapi.View, error)
 	CreateDemoDB(ctx context.Context, name string) (string, error)
 
-	GetEnv(ctx context.Context, envSlug string) (libapi.GetEnvResponse, error)
+	GetEnv(ctx context.Context, envSlug string) (Env, error)
 }
 
 var _ APIClient = Client{}
@@ -518,7 +518,7 @@ func (c Client) GetResource(ctx context.Context, req GetResourceRequest) (res li
 	return
 }
 
-func (c Client) GetEnv(ctx context.Context, envSlug string) (res libapi.GetEnvResponse, err error) {
+func (c Client) GetEnv(ctx context.Context, envSlug string) (res Env, err error) {
 	err = c.do(ctx, "GET", encodeQueryString("/envs/get", url.Values{
 		"slug": []string{envSlug},
 	}), nil, &res)

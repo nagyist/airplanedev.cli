@@ -9,7 +9,6 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/configs"
 	"github.com/airplanedev/cli/pkg/dev"
-	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/resource"
@@ -87,8 +86,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			Port:        state.Port,
 			Root:        state.CliConfig,
 			Slug:        req.Slug,
-			EnvID:       state.EnvID,
-			EnvSlug:     state.EnvSlug,
+			Env:         state.Env,
 			ParentRunID: pointers.String(parentID),
 			IsBuiltin:   isBuiltin,
 			AuthInfo:    state.AuthInfo,
@@ -150,7 +148,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			if err != nil {
 				return dev.LocalRun{}, err
 			}
-			runConfig.Env = envVars
+			runConfig.EnvVars = envVars
 			attachedConfigs, err := localTaskConfig.Def.GetConfigAttachments()
 			if err != nil {
 				return dev.LocalRun{}, errors.Wrap(err, "getting attached configs")
@@ -197,14 +195,14 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			})
 		}()
 	} else {
-		if state.EnvID == env.LocalEnvID {
+		if !state.HasFallbackEnv() {
 			return dev.LocalRun{}, errors.Errorf("task with slug %s is not registered locally", req.Slug)
 		}
 
 		resp, err := state.CliConfig.Client.RunTask(ctx, api.RunTaskRequest{
 			TaskSlug:    &req.Slug,
 			ParamValues: req.ParamValues,
-			EnvSlug:     state.EnvSlug,
+			EnvSlug:     state.Env.Slug,
 		})
 		if err != nil {
 			if _, ok := err.(*libapi.TaskMissingError); ok {

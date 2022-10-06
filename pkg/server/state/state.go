@@ -8,6 +8,7 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/version"
@@ -24,6 +25,7 @@ type ViteContext struct {
 type State struct {
 	CliConfig   *cli.Config
 	LocalClient *api.Client
+	Env         api.Env
 	// Directory from which tasks and views were discovered
 	Dir      string
 	Executor dev.Executor
@@ -42,11 +44,12 @@ type State struct {
 	ViteMutex    sync.Mutex
 	Logger       logger.Logger
 
-	EnvID   string
-	EnvSlug string
-
 	AuthInfo     api.AuthInfoResponse
 	VersionCache version.Cache
+}
+
+func (s *State) HasFallbackEnv() bool {
+	return s.Env.ID != env.LocalEnvID
 }
 
 // TODO: add limit on max items

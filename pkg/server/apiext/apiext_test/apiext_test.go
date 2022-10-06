@@ -53,8 +53,7 @@ func TestExecute(t *testing.T) {
 		t,
 		server.NewRouter(&state.State{
 			CliConfig: cliConfig,
-			EnvID:     env.LocalEnvID,
-			EnvSlug:   env.LocalEnvID,
+			Env:       env.NewLocalEnv(),
 			Executor:  mockExecutor,
 			Port:      1234,
 			Runs:      store,
@@ -88,9 +87,8 @@ func TestExecute(t *testing.T) {
 		Port:        1234,
 		File:        "my_task.ts",
 		Slug:        slug,
-		Env:         map[string]string{},
-		EnvID:       env.LocalEnvID,
-		EnvSlug:     env.LocalEnvID,
+		EnvVars:     map[string]string{},
+		Env:         env.NewLocalEnv(),
 		Resources:   map[string]resources.Resource{},
 		LogBroker:   logBroker,
 	}
@@ -150,8 +148,7 @@ func TestExecuteBuiltin(t *testing.T) {
 		t,
 		server.NewRouter(&state.State{
 			CliConfig: cliConfig,
-			EnvID:     env.LocalEnvID,
-			EnvSlug:   env.LocalEnvID,
+			Env:       env.NewLocalEnv(),
 			Executor:  mockExecutor,
 			Port:      1234,
 			Runs:      store,
@@ -183,8 +180,7 @@ func TestExecuteBuiltin(t *testing.T) {
 		ParamValues: paramValues,
 		Port:        1234,
 		Slug:        slug,
-		EnvID:       env.LocalEnvID,
-		EnvSlug:     env.LocalEnvID,
+		Env:         env.NewLocalEnv(),
 		Resources: map[string]resources.Resource{
 			"db": &dbResource,
 		},

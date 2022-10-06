@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/handlers"
@@ -162,18 +161,18 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 		return StartViewResponse{}, err
 	}
 
-	vd, err := viewdir.NewViewDirectory(ctx, s.LocalClient, rootDir, viewConfig.Def.DefnFilePath, s.EnvSlug)
+	vd, err := viewdir.NewViewDirectory(ctx, s.LocalClient, rootDir, viewConfig.Def.DefnFilePath, s.Env.Slug)
 	if err != nil {
 		return StartViewResponse{}, err
 	}
 
 	viewsClient := s.CliConfig.Client
-	if s.EnvID == env.LocalEnvID {
+	if !s.HasFallbackEnv() {
 		viewsClient = s.LocalClient
 	}
 	cmd, viteServer, err := views.Dev(ctx, vd, views.ViteOpts{
 		Client:  viewsClient,
-		EnvSlug: s.EnvSlug,
+		EnvSlug: s.Env.Slug,
 		TTY:     false,
 	})
 	if err != nil {

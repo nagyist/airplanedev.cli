@@ -184,10 +184,10 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		TeamID: cfg.root.Client.TeamID,
 	}
 
+	devEnv := env.NewLocalEnv()
 	apiServer, err := server.Start(server.Options{
 		CLI:         cfg.root,
-		EnvID:       env.LocalEnvID,
-		EnvSlug:     env.LocalEnvID,
+		Env:         devEnv,
 		Executor:    localExecutor,
 		Port:        cfg.port,
 		DevConfig:   cfg.devConfig,
@@ -272,8 +272,8 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		Root:        cfg.root,
 		File:        cfg.fileOrDir,
 		Slug:        taskConfig.Def.GetSlug(),
-		EnvSlug:     cfg.envSlug,
-		Env:         envVars,
+		Env:         devEnv,
+		EnvVars:     envVars,
 		Resources:   resources,
 		ConfigVars:  configVars,
 	}

@@ -41,8 +41,8 @@ func GenerateAliasToResourceMap(
 			// We load in some default remote resources (e.g. Slack) - in those cases, the remote flag will be true,
 			// but the envID/slug will still be "local", which is not a valid remote environment. In these cases, we
 			// keep the env slug empty, which will default to the user's team's default environment.
-			if state.EnvID != env.LocalEnvID {
-				envSlug = state.EnvSlug
+			if state.HasFallbackEnv() {
+				envSlug = state.Env.Slug
 			}
 			remoteResourceWithCredentials, err := state.CliConfig.Client.GetResource(ctx, api.GetResourceRequest{
 				Slug:                 slug,
@@ -75,7 +75,7 @@ func MergeRemoteResources(ctx context.Context, state *state.State) (map[string]e
 		mergedResources[slug] = res
 	}
 
-	if state.EnvID != env.LocalEnvID {
+	if state.HasFallbackEnv() {
 		remoteResources, err := ListRemoteResources(ctx, state)
 		if err != nil {
 			return nil, errors.Wrap(err, "listing remote resources")
@@ -125,7 +125,7 @@ func mergeDefaultRemoteResource(
 }
 
 func ListRemoteResources(ctx context.Context, state *state.State) ([]libapi.Resource, error) {
-	resp, err := state.CliConfig.Client.ListResources(ctx, state.EnvSlug)
+	resp, err := state.CliConfig.Client.ListResources(ctx, state.Env.Slug)
 	if err != nil {
 		return nil, err
 	}

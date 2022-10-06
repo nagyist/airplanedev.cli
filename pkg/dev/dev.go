@@ -55,10 +55,9 @@ type LocalRunConfig struct {
 	Root        *cli.Config
 	File        string
 	Slug        string
-	EnvID       string
-	EnvSlug     string
+	Env         api.Env
 	ParentRunID *string
-	Env         map[string]string
+	EnvVars     map[string]string
 	ConfigVars  map[string]string
 	AuthInfo    api.AuthInfoResponse
 	// Mapping from alias to resource
@@ -168,8 +167,8 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 			return api.Outputs{}, err
 		}
 		// If environment variables are specified in the dev config file, use those instead
-		if len(config.Env) > 0 {
-			env = config.Env
+		if len(config.EnvVars) > 0 {
+			env = config.EnvVars
 		}
 		for k, v := range env {
 			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
@@ -390,8 +389,8 @@ func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error
 	// - AIRPLANE_TRIGGER_ID
 	// because there is no requester, session, task revision, or triggers in the context of local dev.
 	env = append(env,
-		fmt.Sprintf("AIRPLANE_ENV_ID=%s", config.EnvID),
-		fmt.Sprintf("AIRPLANE_ENV_SLUG=%s", config.EnvSlug),
+		fmt.Sprintf("AIRPLANE_ENV_ID=%s", config.Env.ID),
+		fmt.Sprintf("AIRPLANE_ENV_SLUG=%s", config.Env.Slug),
 		fmt.Sprintf("AIRPLANE_RUN_ID=%s", config.ID),
 		fmt.Sprintf("AIRPLANE_PARENT_RUN_ID=%s", pointers.ToString(config.ParentRunID)),
 		fmt.Sprintf("AIRPLANE_RUNNER_EMAIL=%s", runnerEmail),
