@@ -471,6 +471,7 @@ func ListResourceMetadataHandler(ctx context.Context, state *state.State, r *htt
 			Slug: slug,
 			DefaultEnvResource: &libapi.Resource{
 				ID:             res.ID(),
+				Name:           res.GetName(),
 				Slug:           slug,
 				Kind:           libapi.ResourceKind(res.Kind()),
 				ExportResource: res,

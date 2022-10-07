@@ -17,9 +17,10 @@ const slackSlug = "team_slack"
 
 // This is not guaranteed to be the slug of the demo db, but should be in all cases where demo db creation doesn't
 // fail during team creation.
-const demoDBSlug = "demo_db"
+const DemoDBSlug = "demo_db"
+const DemoDBName = "[Demo DB]"
 
-var defaultRemoteResourceSlugs = []string{slackSlug, demoDBSlug}
+var defaultRemoteResourceSlugs = []string{slackSlug, DemoDBSlug}
 
 // GenerateAliasToResourceMap generates a mapping from alias to resource - resourceAttachments is a mapping from alias
 // to slug, and slugToResource is a mapping from slug to resource, and so we just link the two.

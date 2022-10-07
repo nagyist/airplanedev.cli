@@ -13,8 +13,10 @@ import (
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/resource"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/utils"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/pkg/errors"
 )
@@ -102,6 +104,26 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 
 	taskConfigs, viewConfigs, err := d.Discover(ctx, cfg.fileOrDir)
 	if err != nil {
+		// This is a temporary workaround for SQL + REST tasks if a resource referenced in the task definition doesn't
+		// exist yet. Ideally, we don't error during discovery, and allow the user to create the resource through the
+		// studio.
+		var rerr libapi.ResourceMissingError
+		if errors.As(err, &rerr) {
+			var message string
+			// Handle demo db in a special case.
+			if rerr.Slug == resource.DemoDBName || rerr.Slug == resource.DemoDBSlug {
+				message = "Demo DB resource not found - please create it using `airplane demo create-db`."
+			} else {
+				message = fmt.Sprintf("Resource with name or slug %s not found, please create it using `airplane dev config set-resource`", rerr.Slug)
+				if devEnv.ID != env.LocalEnvID {
+					message += fmt.Sprintf(" or create it remotely at %s/settings/resources/new.", cfg.root.Client.AppURL())
+				} else {
+					message += "."
+				}
+			}
+
+			return errors.Errorf(message)
+		}
 		return errors.Wrap(err, "discovering task configs")
 	}
 
