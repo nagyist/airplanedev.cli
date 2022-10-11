@@ -5,13 +5,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"text/template"
+	"time"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/lib/pkg/build"
@@ -35,21 +37,21 @@ var code = template.Must(template.New("py").Parse(`{{with .Comment -}}
 # This is your task's entrypoint. When your task is executed, this
 # function will be called.
 def main(params):
-	data = [
-		{ "id": 1, "name": "Gabriel Davis", "role": "Dentist" },
-		{ "id": 2, "name": "Carolyn Garcia", "role": "Sales" },
-		{ "id": 3, "name": "Frances Hernandez", "role": "Astronaut" },
-		{ "id": 4, "name": "Melissa Rodriguez", "role": "Engineer" },
-		{ "id": 5, "name": "Jacob Hall", "role": "Engineer" },
-		{ "id": 6, "name": "Andrea Lopez", "role": "Astronaut" },
-	]
+    data = [
+        {"id": 1, "name": "Gabriel Davis", "role": "Dentist"},
+        {"id": 2, "name": "Carolyn Garcia", "role": "Sales"},
+        {"id": 3, "name": "Frances Hernandez", "role": "Astronaut"},
+        {"id": 4, "name": "Melissa Rodriguez", "role": "Engineer"},
+        {"id": 5, "name": "Jacob Hall", "role": "Engineer"},
+        {"id": 6, "name": "Andrea Lopez", "role": "Astronaut"},
+    ]
 
-	# Sort the data in ascending order by name.
-	data = sorted(data, key=lambda u: u["name"])
+    # Sort the data in ascending order by name.
+    data = sorted(data, key=lambda u: u["name"])
 
-	# You can return data to show output to users.
-	# Output documentation: https://docs.airplane.dev/tasks/output
-	return data
+    # You can return data to show output to users.
+    # Output documentation: https://docs.airplane.dev/tasks/output
+    return data
 `))
 
 // Data represents the data template.
@@ -139,24 +141,24 @@ func checkPythonInstalled(ctx context.Context, logger logger.Logger) error {
 	bin := pythonBin(logger)
 	if bin == "" {
 		return errors.New(heredoc.Doc(`
-			Could not find the python3 or python commands on your PATH.
-			Ensure that Python 3 is installed and available in your shell environment.
-		`))
+            Could not find the python3 or python commands on your PATH.
+            Ensure that Python 3 is installed and available in your shell environment.
+        `))
 	}
 	cmd := exec.CommandContext(ctx, bin, "--version")
 	logger.Debug("Running %s", strings.Join(cmd.Args, " "))
 	out, err := cmd.Output()
 	if err != nil {
 		return errors.New(fmt.Sprintf(heredoc.Doc(`
-			Got an error while running %s:
-			%s
-		`), strings.Join(cmd.Args, " "), err.Error()))
+            Got an error while running %s:
+            %s
+        `), strings.Join(cmd.Args, " "), err.Error()))
 	}
 	version := string(out)
 	if !strings.HasPrefix(version, "Python 3.") {
 		return errors.New(fmt.Sprintf(heredoc.Doc(`
-			Could not find Python 3 on your PATH. Found %s but running --version returned: %s
-		`), bin, version))
+            Could not find Python 3 on your PATH. Found %s but running --version returned: %s
+        `), bin, version))
 	}
 	return nil
 }
@@ -176,9 +178,282 @@ func (r Runtime) Generate(t *runtime.Task) ([]byte, fs.FileMode, error) {
 	return buf.Bytes(), 0644, nil
 }
 
+func toPythonType(value string) (string, error) {
+	switch value {
+	case "shorttext":
+		return "str", nil
+	case "longtext":
+		return "airplane.LongText", nil
+	case "sql":
+		return "airplane.SQL", nil
+	case "boolean":
+		return "bool", nil
+	case "integer":
+		return "int", nil
+	case "float":
+		return "float", nil
+	case "file":
+		return "str", nil
+	case "airplane.File":
+		return "str", nil
+	case "date":
+		return "datetime.date", nil
+	case "datetime":
+		return "datetime.datetime", nil
+	case "configvar":
+		return "airplane.ConfigVar", nil
+	case "upload":
+		return "airplane.File", nil
+	}
+	return "", errors.Errorf("unsupported type %s", value)
+}
+
+func needsDatetimeImport(params []definitions.ParameterDefinition_0_3) bool {
+	for _, param := range params {
+		if param.Type == "date" || param.Type == "datetime" {
+			return true
+		}
+	}
+	return false
+}
+
+func needsOptionalImport(params []definitions.ParameterDefinition_0_3) bool {
+	for _, param := range params {
+		if !paramIsRequired(param) {
+			return true
+		}
+	}
+	return false
+}
+
+func toPythonTypeVar(paramType string, paramValue interface{}) (string, error) {
+	switch v := paramValue.(type) {
+	case nil:
+		return "None", nil
+	case bool:
+		if v {
+			return "True", nil
+		}
+		return "False", nil
+	case float64:
+		return fmt.Sprintf("%v", v), nil
+	case string:
+		if paramType == "date" {
+			date, err := time.Parse("2006-01-02", v)
+			if err != nil {
+				return "", errors.Wrap(err, "date")
+			}
+			return fmt.Sprintf(
+				"datetime.date(%d, %d, %d)",
+				date.Year(), date.Month(), date.Day(),
+			), nil
+		} else if paramType == "datetime" {
+			dt, err := time.Parse("2006-01-02T15:04:05Z", v)
+			if err != nil {
+				return "", errors.Wrap(err, "unable to parse datetime")
+			}
+			return fmt.Sprintf(
+				"datetime.datetime(%d, %d, %d, %d, %d, %d)",
+				dt.Year(), dt.Month(), dt.Day(), dt.Hour(), dt.Minute(), dt.Second(),
+			), nil
+		} else if paramType == "configVar" {
+			return fmt.Sprintf(`airplane.ConfigVar(name=%s, value="")`, strconv.Quote(v)), nil
+		}
+		return strconv.Quote(v), nil
+	default:
+		return "", errors.Errorf("unable to handle variable %v of type %T", v, v)
+	}
+}
+
+func paramIsRequired(param definitions.ParameterDefinition_0_3) bool {
+	return param.Required.Value()
+}
+
+// Inline code template.
+var inlineCode = template.Must(template.New("py").Funcs(template.FuncMap{
+	"toPythonType":    toPythonType,
+	"toPythonTypeVar": toPythonTypeVar,
+	"paramIsRequired": paramIsRequired,
+	"quote":           strconv.Quote,
+}).Parse(`{{- if .NeedsDatetimeImport}}import datetime
+{{end}}
+{{- if .NeedsOptionalImport }}from typing import Optional
+{{end}}
+import airplane
+{{if .Parameters }}from typing_extensions import Annotated
+{{end}}
+
+@airplane.{{ .SDKMethod }}(
+    slug={{quote .Slug}},
+    name={{quote .Name}},
+    {{- if .Description}}
+    description={{quote .Description}},
+    {{- end}}
+    {{- if .RequireRequests}}
+    require_requests=True,
+    {{- else}}
+    require_requests=False,
+    {{- end}}
+    {{- if .AllowSelfApprovals}}
+    allow_self_approvals=True,
+    {{- else}}
+    allow_self_approvals=False,
+    {{- end}}
+    {{- if ne .Timeout 3600}}
+    timeout={{.Timeout}},
+    {{- end}}
+    {{- if .Constraints}}
+    constraints={
+    {{- range $key, $value := .Constraints}}
+        {{quote $key}}: {{quote $value}},
+    {{- end}}
+    },
+    {{- end}}
+    {{- if .Resources.Attachments}}
+    resources=[
+    {{- range $key, $value := .Resources.Attachments}}
+        airplane.Resource(
+            alias={{quote $key}},
+            slug={{quote $value}},
+        ),
+    {{- end}}
+    ],
+    {{- end}}
+    {{- if .Schedules }}
+    schedules=[
+    {{- range $key, $value := .Schedules}}
+        airplane.Schedule(
+            slug={{quote $key}},
+            cron={{quote $value.CronExpr}},
+            {{- if $value.Name}}
+            name={{quote $value.Name}},
+            {{- end}}
+            {{- if $value.Description}}
+            description={{quote $value.Description}},
+            {{- end}}
+            {{- if $value.ParamValues}}
+            param_values={
+                {{- range $pSlug, $pValue := $value.ParamValues}}
+                {{quote $pSlug}}: {{toPythonTypeVar (index $.ParamSlugToType $pSlug) $pValue}},
+                {{- end}}
+            },
+            {{- end}}
+        ),
+    {{- end}}
+    ],
+    {{- end}}
+    {{- if .Python.EnvVars }}
+    env_vars=[
+    {{- range $key, $value := .Python.EnvVars}}
+    {{- if $value.Value}}
+        airplane.EnvVar(
+            name={{quote $key}},
+            value={{quote $value.Value}},
+        ),
+    {{- else if $value.Config}}
+        airplane.EnvVar(
+            name={{quote $key}},
+            config_var_name={{quote $value.Config}},
+        ),
+    {{- end}}
+    {{- end}}
+    ],
+    {{- end}}
+)
+{{- if .Parameters}}
+def {{.Slug}}(
+    {{- range $key, $value := .Parameters}}
+    {{$value.Slug}}: Annotated[
+        {{- if not (paramIsRequired $value)}}
+        Optional[{{toPythonType $value.Type}}],
+        {{- else }}
+        {{toPythonType $value.Type}},
+        {{- end}}
+        airplane.ParamConfig(
+            slug={{quote $value.Slug}},
+            {{- if $value.Name}}
+            name={{quote $value.Name}},
+            {{- end}}
+            {{- if $value.Description}}
+            description={{quote $value.Description}},
+            {{- end}}
+            {{- if $value.Options}}
+            options=[
+                {{- range $oKey, $oValue := $value.Options}}
+                {{- if $oValue.Label}}
+                airplane.LabeledOption(
+                    label={{quote $oValue.Label}},
+                    value={{toPythonTypeVar $value.Type $oValue.Value}},
+                ),
+                {{- else}}
+                {{toPythonTypeVar $value.Type $oValue.Value}}},
+                {{- end}}
+                {{- end}}
+            ],
+            {{- end}}
+            {{- if $value.Regex}}
+            regex={{quote $value.Regex}},
+            {{- end}}
+        ),
+    ]{{if ne $value.Default nil}} = {{toPythonTypeVar $value.Type $value.Default}}{{end}},
+    {{- end}}
+):
+{{- else}}
+def {{.Slug}}():
+{{- end}}
+    data = [
+        {"id": 1, "name": "Gabriel Davis", "role": "Dentist"},
+        {"id": 2, "name": "Carolyn Garcia", "role": "Sales"},
+        {"id": 3, "name": "Frances Hernandez", "role": "Astronaut"},
+        {"id": 4, "name": "Melissa Rodriguez", "role": "Engineer"},
+        {"id": 5, "name": "Jacob Hall", "role": "Engineer"},
+        {"id": 6, "name": "Andrea Lopez", "role": "Astronaut"},
+    ]
+
+    # Sort the data in ascending order by name.
+    data = sorted(data, key=lambda u: u["name"])
+
+    # You can return data to show output to users.
+    # Output documentation: https://docs.airplane.dev/tasks/output
+    return data
+`))
+
+type inlineHelper struct {
+	*definitions.Definition_0_3
+	AllowSelfApprovals  bool
+	Timeout             int
+	SDKMethod           string
+	NeedsOptionalImport bool
+	NeedsDatetimeImport bool
+	ParamSlugToType     map[string]string
+}
+
 // GenerateInline implementation.
 func (r Runtime) GenerateInline(def *definitions.Definition_0_3) ([]byte, fs.FileMode, error) {
-	return nil, 0, errors.New("cannot generate inline python task configuration")
+	var buf bytes.Buffer
+	method := "task"
+	if def.Runtime == build.TaskRuntimeWorkflow {
+		method = "workflow"
+	}
+	paramSlugToType := map[string]string{}
+	for _, param := range def.Parameters {
+		paramSlugToType[param.Slug] = param.Type
+	}
+
+	helper := inlineHelper{
+		Definition_0_3:      def,
+		AllowSelfApprovals:  def.AllowSelfApprovals.Value(),
+		Timeout:             def.Timeout.Value(),
+		SDKMethod:           method,
+		NeedsOptionalImport: needsOptionalImport(def.Parameters),
+		NeedsDatetimeImport: needsDatetimeImport(def.Parameters),
+		ParamSlugToType:     paramSlugToType,
+	}
+	if err := inlineCode.Execute(&buf, helper); err != nil {
+		return nil, 0, fmt.Errorf("python: template execute - %w", err)
+	}
+
+	return buf.Bytes(), 0644, nil
 }
 
 // Workdir implementation.
