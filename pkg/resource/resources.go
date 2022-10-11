@@ -20,7 +20,8 @@ const slackSlug = "team_slack"
 const DemoDBSlug = "demo_db"
 const DemoDBName = "[Demo DB]"
 
-var defaultRemoteResourceSlugs = []string{slackSlug, DemoDBSlug}
+var defaultRemoteResourceSlugs = []string{DemoDBSlug}
+var defaultRemoteVirtualResourceSlugs = []string{slackSlug}
 
 // GenerateAliasToResourceMap generates a mapping from alias to resource - resourceAttachments is a mapping from alias
 // to slug, and slugToResource is a mapping from slug to resource, and so we just link the two.
@@ -45,7 +46,7 @@ func GenerateAliasToResourceMap(
 			if state.HasFallbackEnv() {
 				envSlug = state.Env.Slug
 			}
-			remoteResourceWithCredentials, err := state.CliConfig.Client.GetResource(ctx, api.GetResourceRequest{
+			remoteResourceWithCredentials, err := state.RemoteClient.GetResource(ctx, api.GetResourceRequest{
 				Slug:                 slug,
 				EnvSlug:              envSlug,
 				IncludeSensitiveData: true,
@@ -76,24 +77,23 @@ func MergeRemoteResources(ctx context.Context, state *state.State) (map[string]e
 		mergedResources[slug] = res
 	}
 
-	if state.HasFallbackEnv() {
-		remoteResources, err := ListRemoteResources(ctx, state)
-		if err != nil {
-			return nil, errors.Wrap(err, "listing remote resources")
-		}
+	remoteResources, err := ListRemoteResources(ctx, state)
+	if err != nil {
+		return nil, errors.Wrap(err, "listing remote resources")
+	}
 
-		for _, res := range remoteResources {
-			if _, ok := mergedResources[res.Slug]; !ok {
-				mergedResources[res.Slug] = env.ResourceWithEnv{
-					Resource: res.ExportResource,
-					Remote:   true,
-				}
+	for _, res := range remoteResources {
+		if _, ok := mergedResources[res.Slug]; !ok {
+			mergedResources[res.Slug] = env.ResourceWithEnv{
+				Resource: res.ExportResource,
+				Remote:   true,
 			}
 		}
 	}
 
-	// Always add Slack and Demo DB resources for convenience.
-	for _, slug := range defaultRemoteResourceSlugs {
+	// Add default virtual resources, which aren't returned by the request to list remote resources. Our web app doesn't
+	// currently handle Slack resources, and so we just use the Slack resource at task run time.
+	for _, slug := range defaultRemoteVirtualResourceSlugs {
 		mergeDefaultRemoteResource(ctx, state, mergedResources, slug)
 	}
 
@@ -110,7 +110,7 @@ func mergeDefaultRemoteResource(
 		return
 	}
 
-	remoteResource, err := state.CliConfig.Client.GetResource(ctx, api.GetResourceRequest{
+	remoteResource, err := state.RemoteClient.GetResource(ctx, api.GetResourceRequest{
 		Slug: slug,
 	})
 
@@ -125,12 +125,33 @@ func mergeDefaultRemoteResource(
 	}
 }
 
+// ListRemoteResources returns any remote resources that the user can develop against. If no fallback environment is
+// set, we still return a set of default remote resources for convenience.
 func ListRemoteResources(ctx context.Context, state *state.State) ([]libapi.Resource, error) {
-	resp, err := state.CliConfig.Client.ListResources(ctx, state.Env.Slug)
-	if err != nil {
-		return nil, err
+	if state.HasFallbackEnv() {
+		resp, err := state.RemoteClient.ListResources(ctx, state.Env.Slug)
+		if err != nil {
+			return nil, err
+		}
+		return resp.Resources, nil
 	}
-	return resp.Resources, nil
+
+	// Always add remote Demo DB for convenience, even when no fallback environment is set.
+	resources := make([]libapi.Resource, 0)
+	for _, slug := range defaultRemoteResourceSlugs {
+		remoteResource, err := state.RemoteClient.GetResource(ctx, api.GetResourceRequest{
+			Slug: slug,
+		})
+
+		if err == nil {
+			resources = append(resources, remoteResource.Resource)
+		} else {
+			// If default remote resource isn't found, don't error.
+			logger.Debug("Error getting resource: %v", err)
+		}
+	}
+
+	return resources, nil
 }
 
 // Creates a map of the resource alias to resource ID

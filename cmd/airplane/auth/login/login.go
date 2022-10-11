@@ -50,7 +50,7 @@ func run(ctx context.Context, cfg config) error {
 	}
 
 	logger.Log("You're all set!\n\nTo see what tasks you can run, try:\n    airplane tasks list")
-	analytics.Track(cfg.root, "User Logged In", nil)
+	analytics.Track(cfg.root.Client, "User Logged In", nil)
 	return nil
 }
 

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -185,23 +186,21 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 		})
 	}
 
-	if state.HasFallbackEnv() {
-		remoteResources, err := res.ListRemoteResources(ctx, state)
-		if err == nil {
-			for _, r := range remoteResources {
-				// This is purely so we can display remote resource information in the local dev studio. The remote list
-				// resources endpoint doesn't return CanUseResource or CanUpdateResource, and so we set them to true here.
-				r.CanUseResource = true
-				r.CanUpdateResource = true
-				resources = append(resources, APIResourceWithEnv{
-					Resource: r,
-					Remote:   true,
-					Env:      state.Env,
-				})
-			}
-		} else {
-			logger.Error("error fetching remote resources: %v", err)
+	remoteResources, err := res.ListRemoteResources(ctx, state)
+	if err == nil {
+		for _, r := range remoteResources {
+			// This is purely so we can display remote resource information in the local dev studio. The remote list
+			// resources endpoint doesn't return CanUseResource or CanUpdateResource, and so we set them to true here.
+			r.CanUseResource = true
+			r.CanUpdateResource = true
+			resources = append(resources, APIResourceWithEnv{
+				Resource: r,
+				Remote:   true,
+				Env:      state.Env,
+			})
 		}
+	} else {
+		logger.Error("error fetching remote resources: %v", err)
 	}
 
 	return ListResourcesResponse{
@@ -390,7 +389,7 @@ func SubmitPromptHandler(ctx context.Context, state *state.State, r *http.Reques
 		return PromptResponse{}, errors.New("run ID is required")
 	}
 
-	userID := state.CliConfig.ParseTokenForAnalytics().UserID
+	userID := cli.ParseTokenForAnalytics(state.RemoteClient.GetToken()).UserID
 
 	_, err := state.Runs.Update(req.RunID, func(run *dev.LocalRun) error {
 		for i := range run.Prompts {
@@ -432,7 +431,7 @@ func GetDescendantsHandler(ctx context.Context, state *state.State, r *http.Requ
 
 	for i, descendant := range state.Runs.GetDescendants(runID) {
 		if descendant.Remote {
-			resp, err := state.CliConfig.Client.GetRun(ctx, descendant.RunID)
+			resp, err := state.RemoteClient.GetRun(ctx, descendant.RunID)
 			if err != nil {
 				return GetDescendantsResponse{}, errors.Wrap(err, "getting remote run")
 			}

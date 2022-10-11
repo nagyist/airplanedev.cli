@@ -8,7 +8,6 @@ import (
 	"regexp"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -82,14 +81,14 @@ func NewRouter(state *state.State) *mux.Router {
 }
 
 type Options struct {
-	CLI         *cli.Config
-	LocalClient *api.Client
-	Env         api.Env
-	Port        int
-	Executor    dev.Executor
-	DevConfig   *conf.DevConfig
-	Dir         string
-	AuthInfo    api.AuthInfoResponse
+	LocalClient  *api.Client
+	RemoteClient api.APIClient
+	Env          api.Env
+	Port         int
+	Executor     dev.Executor
+	DevConfig    *conf.DevConfig
+	Dir          string
+	AuthInfo     api.AuthInfoResponse
 }
 
 // newServer returns a new HTTP server with API routes
@@ -124,7 +123,7 @@ func Start(opts Options) (*Server, error) {
 	}
 
 	state := &state.State{
-		CliConfig:    opts.CLI,
+		RemoteClient: opts.RemoteClient,
 		Env:          opts.Env,
 		Executor:     opts.Executor,
 		Port:         opts.Port,

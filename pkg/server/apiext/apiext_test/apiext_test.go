@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
@@ -29,7 +28,7 @@ import (
 )
 
 // TestExecute technically causes a "race condition" since `dev.Execute` executes in a separate goroutine, even though
-// we don't use the result o the mock executor in that case.
+// we don't use the result of the mock executor in that case.
 func TestExecute(t *testing.T) {
 	require := require.New(t)
 	mockExecutor := new(dev.MockExecutor)
@@ -47,16 +46,15 @@ func TestExecute(t *testing.T) {
 
 	logBroker := logs.NewDevLogBroker()
 	store := state.NewRunStore()
-	cliConfig := &cli.Config{Client: &api.Client{}}
 	h := test_utils.GetHttpExpect(
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
-			CliConfig: cliConfig,
-			Env:       env.NewLocalEnv(),
-			Executor:  mockExecutor,
-			Port:      1234,
-			Runs:      store,
+			RemoteClient: &api.MockClient{},
+			Env:          env.NewLocalEnv(),
+			Executor:     mockExecutor,
+			Port:         1234,
+			Runs:         store,
 			TaskConfigs: map[string]discover.TaskConfig{
 				slug: {
 					TaskID:         "tsk123",
@@ -76,9 +74,9 @@ func TestExecute(t *testing.T) {
 	}
 
 	runConfig := dev.LocalRunConfig{
-		Name: "My Task",
-		Root: cliConfig,
-		Kind: build.TaskKindNode,
+		Name:   "My Task",
+		Client: &api.MockClient{},
+		Kind:   build.TaskKindNode,
 		KindOptions: build.KindOptions{
 			"entrypoint":  "my_task.ts",
 			"nodeVersion": "18",
@@ -87,6 +85,7 @@ func TestExecute(t *testing.T) {
 		Port:        1234,
 		File:        "my_task.ts",
 		Slug:        slug,
+		ConfigVars:  map[string]string{},
 		EnvVars:     map[string]string{},
 		Env:         env.NewLocalEnv(),
 		Resources:   map[string]resources.Resource{},
@@ -104,7 +103,7 @@ func TestExecute(t *testing.T) {
 	var resp dev.LocalRun
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
-	require.True(strings.HasPrefix(resp.RunID, "run"))
+	require.True(strings.HasPrefix(resp.RunID, dev.RunPrefix))
 
 	run, found := store.Get(resp.RunID)
 	require.True(found)
@@ -132,7 +131,6 @@ func TestExecuteBuiltin(t *testing.T) {
 
 	logBroker := logs.NewDevLogBroker()
 	store := state.NewRunStore()
-	cliConfig := &cli.Config{Client: &api.Client{}}
 	dbResource := kinds.PostgresResource{
 		BaseResource: resources.BaseResource{
 			Kind: kinds.ResourceKindPostgres,
@@ -147,11 +145,11 @@ func TestExecuteBuiltin(t *testing.T) {
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
-			CliConfig: cliConfig,
-			Env:       env.NewLocalEnv(),
-			Executor:  mockExecutor,
-			Port:      1234,
-			Runs:      store,
+			RemoteClient: &api.MockClient{},
+			Env:          env.NewLocalEnv(),
+			Executor:     mockExecutor,
+			Port:         1234,
+			Runs:         store,
 			TaskConfigs: map[string]discover.TaskConfig{
 				slug: {
 					TaskID:         "tsk123",
@@ -176,7 +174,7 @@ func TestExecuteBuiltin(t *testing.T) {
 	}
 
 	runConfig := dev.LocalRunConfig{
-		Root:        cliConfig,
+		Client:      &api.MockClient{},
 		ParamValues: paramValues,
 		Port:        1234,
 		Slug:        slug,
@@ -201,7 +199,7 @@ func TestExecuteBuiltin(t *testing.T) {
 	var resp dev.LocalRun
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
-	require.True(strings.HasPrefix(resp.RunID, "run"))
+	require.True(strings.HasPrefix(resp.RunID, dev.RunPrefix))
 
 	run, found := store.Get(resp.RunID)
 	require.True(found)

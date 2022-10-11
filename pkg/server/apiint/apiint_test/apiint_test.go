@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
+	"github.com/airplanedev/cli/pkg/resource"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/apiext"
 	"github.com/airplanedev/cli/pkg/server/apiint"
@@ -30,6 +30,7 @@ import (
 // TODO: Add tests for other resource methods
 func TestListResources(t *testing.T) {
 	require := require.New(t)
+
 	h := test_utils.GetHttpExpect(
 		context.Background(),
 		t,
@@ -59,6 +60,16 @@ func TestListResources(t *testing.T) {
 				},
 			},
 			Env: env.NewLocalEnv(),
+			RemoteClient: &api.MockClient{
+				Resources: []libapi.Resource{
+					{
+						ID:             "res0",
+						Slug:           resource.DemoDBSlug,
+						Kind:           libapi.ResourceKind(kinds.ResourceKindPostgres),
+						ExportResource: &kinds.PostgresResource{},
+					},
+				},
+			},
 		}),
 	)
 
@@ -66,7 +77,7 @@ func TestListResources(t *testing.T) {
 		Expect().
 		Status(http.StatusOK).Body()
 
-	var resp libapi.ListResourcesResponse
+	var resp apiint.ListResourcesResponse
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
 	expected := []libapi.Resource{
@@ -80,7 +91,14 @@ func TestListResources(t *testing.T) {
 			ID:   "r-2",
 			Kind: libapi.ResourceKind(kinds.ResourceKindSlack),
 		},
+		{
+			Slug: resource.DemoDBSlug,
+			ID:   "res0",
+			Kind: libapi.ResourceKind(kinds.ResourceKindPostgres),
+		},
 	}
+
+	require.Equal(len(expected), len(resp.Resources))
 
 	// sort so we can compare- since resources are stored as a map
 	sort.Slice(resp.Resources, func(i, j int) bool {
@@ -135,10 +153,10 @@ func TestSubmitPrompts(t *testing.T) {
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
-			Runs:        runstore,
-			TaskConfigs: map[string]discover.TaskConfig{},
-			DevConfig:   &conf.DevConfig{},
-			CliConfig:   &cli.Config{Client: &api.Client{}},
+			Runs:         runstore,
+			TaskConfigs:  map[string]discover.TaskConfig{},
+			DevConfig:    &conf.DevConfig{},
+			RemoteClient: &api.MockClient{},
 		}),
 	)
 

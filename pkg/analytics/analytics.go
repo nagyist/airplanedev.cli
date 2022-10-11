@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2/terminal"
+	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -58,7 +59,8 @@ func Init(cfg *cli.Config) error {
 	}); err != nil {
 		return err
 	}
-	tok := cfg.ParseTokenForAnalytics()
+
+	tok := cli.ParseTokenForAnalytics(cfg.Client.Token)
 	sentry.ConfigureScope(func(scope *sentry.Scope) {
 		scope.SetUser(sentry.User{ID: tok.UserID})
 		scope.SetTag("team_id", tok.TeamID)
@@ -99,7 +101,7 @@ type TrackOpts struct {
 
 // Track sends a track event to Segment.
 // event should match "[event] by [user]" - e.g. "[Invite Sent] by [Alice]"
-func Track(c *cli.Config, event string, properties map[string]interface{}, opts ...TrackOpts) {
+func Track(c api.APIClient, event string, properties map[string]interface{}, opts ...TrackOpts) {
 	var opt TrackOpts
 	if len(opts) > 0 {
 		opt = opts[0]
@@ -108,7 +110,7 @@ func Track(c *cli.Config, event string, properties map[string]interface{}, opts 
 	if segmentClient == nil {
 		return
 	}
-	tok := c.ParseTokenForAnalytics()
+	tok := cli.ParseTokenForAnalytics(c.GetToken())
 	props := analytics.NewProperties().
 		Set("team_id", tok.TeamID).
 		Set("cli_version", version.Get())

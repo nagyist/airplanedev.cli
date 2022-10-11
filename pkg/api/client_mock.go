@@ -44,6 +44,18 @@ func (mc *MockClient) ListTasks(ctx context.Context, envSlug string) (res ListTa
 	panic("not implemented") // TODO: Implement
 }
 
+func (mc *MockClient) RunTask(ctx context.Context, req RunTaskRequest) (RunTaskResponse, error) {
+	panic("not implemented")
+}
+
+func (mc *MockClient) GetRun(ctx context.Context, id string) (res GetRunResponse, err error) {
+	panic("not implemented")
+}
+
+func (mc *MockClient) GetOutputs(ctx context.Context, runID string) (res GetOutputsResponse, err error) {
+	panic("not implemented")
+}
+
 func (mc *MockClient) ListResources(ctx context.Context, envSlug string) (res libapi.ListResourcesResponse, err error) {
 	return libapi.ListResourcesResponse{Resources: mc.Resources}, nil
 }
@@ -193,5 +205,15 @@ func (mc *MockClient) GetEnv(ctx context.Context, envSlug string) (Env, error) {
 }
 
 func (mc *MockClient) GetResource(ctx context.Context, req GetResourceRequest) (res libapi.GetResourceResponse, err error) {
-	panic("not implemented")
+	for _, r := range mc.Resources {
+		if r.Slug == req.Slug {
+			return libapi.GetResourceResponse{Resource: r}, nil
+		}
+	}
+
+	return libapi.GetResourceResponse{}, errors.Errorf("resource with slug %s does not exist", req.Slug)
+}
+
+func (mc *MockClient) GetToken() string {
+	return "mock-token"
 }

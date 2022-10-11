@@ -84,7 +84,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			ID:          runID,
 			ParamValues: req.ParamValues,
 			Port:        state.Port,
-			Root:        state.CliConfig,
+			Client:      state.RemoteClient,
 			Slug:        req.Slug,
 			Env:         state.Env,
 			ParentRunID: pointers.String(parentID),
@@ -202,7 +202,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			return dev.LocalRun{}, errors.Errorf("task with slug %s is not registered locally", req.Slug)
 		}
 
-		resp, err := state.CliConfig.Client.RunTask(ctx, api.RunTaskRequest{
+		resp, err := state.RemoteClient.RunTask(ctx, api.RunTaskRequest{
 			TaskSlug:    &req.Slug,
 			ParamValues: req.ParamValues,
 			EnvSlug:     state.Env.Slug,
@@ -233,7 +233,7 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (de
 	}
 
 	if run.Remote {
-		resp, err := state.CliConfig.Client.GetRun(ctx, runID)
+		resp, err := state.RemoteClient.GetRun(ctx, runID)
 		if err != nil {
 			return dev.LocalRun{}, errors.Wrap(err, "getting remote run")
 		}
@@ -307,7 +307,7 @@ func GetOutputsHandler(ctx context.Context, state *state.State, r *http.Request)
 	outputs := run.Outputs
 
 	if run.Remote {
-		resp, err := state.CliConfig.Client.GetOutputs(ctx, runID)
+		resp, err := state.RemoteClient.GetOutputs(ctx, runID)
 		if err != nil {
 			return GetOutputsResponse{}, errors.Wrap(err, "getting remote run")
 		}

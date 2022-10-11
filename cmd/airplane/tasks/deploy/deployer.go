@@ -252,7 +252,7 @@ func (d *deployer) getDeployTask(ctx context.Context, tc discover.TaskConfig, up
 	}
 	start := time.Now()
 	defer func() {
-		analytics.Track(d.cfg.root, "Task Deployed", map[string]interface{}{
+		analytics.Track(d.cfg.root.Client, "Task Deployed", map[string]interface{}{
 			"source":           tp.source,
 			"kind":             tp.kind,
 			"task_id":          tp.taskID,

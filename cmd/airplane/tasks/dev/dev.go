@@ -191,12 +191,12 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 
 	devEnv := env.NewLocalEnv()
 	apiServer, err := server.Start(server.Options{
-		CLI:         cfg.root,
-		Env:         devEnv,
-		Executor:    localExecutor,
-		Port:        cfg.port,
-		DevConfig:   cfg.devConfig,
-		LocalClient: localClient,
+		LocalClient:  localClient,
+		RemoteClient: cfg.root.Client,
+		Env:          devEnv,
+		Executor:     localExecutor,
+		Port:         cfg.port,
+		DevConfig:    cfg.devConfig,
 	})
 	if err != nil {
 		return errors.Wrap(err, "starting local dev api server")
@@ -278,7 +278,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		KindOptions: kindOptions,
 		ParamValues: paramValues,
 		Port:        cfg.port,
-		Root:        cfg.root,
+		Client:      cfg.root.Client,
 		File:        cfg.fileOrDir,
 		Slug:        taskConfig.Def.GetSlug(),
 		Env:         devEnv,
@@ -291,7 +291,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		return errors.Wrap(err, "executing task")
 	}
 
-	analytics.Track(cfg.root, "Run Executed Locally", map[string]interface{}{
+	analytics.Track(cfg.root.Client, "Run Executed Locally", map[string]interface{}{
 		"kind":            kind,
 		"task_slug":       taskConfig.Def.GetSlug(),
 		"task_name":       taskConfig.Def.GetName(),

@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
@@ -23,9 +22,9 @@ type ViteContext struct {
 }
 
 type State struct {
-	CliConfig   *cli.Config
-	LocalClient *api.Client
-	Env         api.Env
+	LocalClient  *api.Client
+	RemoteClient api.APIClient
+	Env          api.Env
 	// Directory from which tasks and views were discovered
 	Dir      string
 	Executor dev.Executor

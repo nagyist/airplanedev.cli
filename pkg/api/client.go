@@ -86,7 +86,11 @@ type APIClient interface {
 	ListTasks(ctx context.Context, envSlug string) (res ListTasksResponse, err error)
 	CreateTask(ctx context.Context, req CreateTaskRequest) (res CreateTaskResponse, err error)
 	UpdateTask(ctx context.Context, req libapi.UpdateTaskRequest) (res UpdateTaskResponse, err error)
+	RunTask(ctx context.Context, req RunTaskRequest) (RunTaskResponse, error)
 	TaskURL(slug string, envSlug string) string
+
+	GetRun(ctx context.Context, id string) (res GetRunResponse, err error)
+	GetOutputs(ctx context.Context, runID string) (res GetOutputsResponse, err error)
 
 	ListResources(ctx context.Context, envSlug string) (res libapi.ListResourcesResponse, err error)
 	ListResourceMetadata(ctx context.Context) (res libapi.ListResourceMetadataResponse, err error)
@@ -109,6 +113,9 @@ type APIClient interface {
 	CreateDemoDB(ctx context.Context, name string) (string, error)
 
 	GetEnv(ctx context.Context, envSlug string) (Env, error)
+
+	// All methods below this point represent CLI-specific API operations, and not requests to api.airplane.dev.
+	GetToken() string
 }
 
 var _ APIClient = Client{}
@@ -523,6 +530,10 @@ func (c Client) GetEnv(ctx context.Context, envSlug string) (res Env, err error)
 		"slug": []string{envSlug},
 	}), nil, &res)
 	return
+}
+
+func (c Client) GetToken() string {
+	return c.Token
 }
 
 // Do sends a request with `method`, `path`, `payload` and `reply`.

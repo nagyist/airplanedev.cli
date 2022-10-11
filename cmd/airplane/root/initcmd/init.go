@@ -79,7 +79,7 @@ func run(ctx context.Context, cfg config) error {
 
 	if cfg.template != "" {
 		if strings.HasPrefix(cfg.template, "github.com/") || strings.HasPrefix(cfg.template, "https://github.com/") {
-			analytics.Track(cfg.root, "Template Cloned", map[string]interface{}{
+			analytics.Track(cfg.root.Client, "Template Cloned", map[string]interface{}{
 				"template_path": cfg.template,
 			})
 			return utils.CopyFromGithubPath(cfg.template)
@@ -166,7 +166,7 @@ func selectTemplate(ctx context.Context, templates []Template) (string, error) {
 }
 
 func initFromTemplate(ctx context.Context, cfg config, templates []Template, gitPath string) error {
-	analytics.Track(cfg.root, "Template Cloned", map[string]interface{}{
+	analytics.Track(cfg.root.Client, "Template Cloned", map[string]interface{}{
 		"template_path": gitPath,
 	})
 	template, err := FindTemplate(templates, gitPath)

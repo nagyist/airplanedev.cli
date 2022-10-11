@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -52,7 +51,7 @@ type LocalRunConfig struct {
 	KindOptions build.KindOptions
 	ParamValues api.Values
 	Port        int
-	Root        *cli.Config
+	Client      api.APIClient
 	File        string
 	Slug        string
 	Env         api.Env
@@ -275,7 +274,7 @@ func MaterializeEnvVars(taskConfig discover.TaskConfig, config *conf.DevConfig) 
 }
 
 func scanLogLine(config LocalRunConfig, line string, mu *sync.Mutex, o *ojson.Value, chunks map[string]*strings.Builder) {
-	scanForErrors(config.Root, line)
+	scanForErrors(config.Client, line)
 	mu.Lock()
 	defer mu.Unlock()
 	parsed, err := outputs.Parse(chunks, line, outputs.ParseOptions{})

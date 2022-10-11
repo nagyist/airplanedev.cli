@@ -57,14 +57,14 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		return errors.Wrap(err, "getting absolute directory of dev server root")
 	}
 	apiServer, err := server.Start(server.Options{
-		CLI:         cfg.root,
-		LocalClient: localClient,
-		DevConfig:   cfg.devConfig,
-		Env:         devEnv,
-		Executor:    localExecutor,
-		Port:        cfg.port,
-		Dir:         absoluteDir,
-		AuthInfo:    authInfo,
+		LocalClient:  localClient,
+		RemoteClient: cfg.root.Client,
+		DevConfig:    cfg.devConfig,
+		Env:          devEnv,
+		Executor:     localExecutor,
+		Port:         cfg.port,
+		Dir:          absoluteDir,
+		AuthInfo:     authInfo,
 	})
 	if err != nil {
 		return errors.Wrap(err, "starting local dev server")

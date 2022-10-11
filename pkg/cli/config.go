@@ -33,11 +33,15 @@ type Config struct {
 	Dev bool
 }
 
+type AnalyticsToken struct {
+	UserID string
+	TeamID string
+}
+
 // ParseTokenForAnalytics parses UNVERIFIED JWT information - this information can be spoofed.
 // Should only be used for analytics, nothing sensitive.
-func (c Config) ParseTokenForAnalytics() AnalyticsToken {
+func ParseTokenForAnalytics(token string) AnalyticsToken {
 	var res AnalyticsToken
-	token := c.Client.Token
 	if token == "" {
 		return res
 	}
@@ -53,11 +57,6 @@ func (c Config) ParseTokenForAnalytics() AnalyticsToken {
 	res.UserID = claims["userID"].(string)
 	res.TeamID = claims["teamID"].(string)
 	return res
-}
-
-type AnalyticsToken struct {
-	UserID string
-	TeamID string
 }
 
 // Must should be used for Cobra initialize commands that can return an error

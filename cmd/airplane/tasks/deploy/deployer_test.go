@@ -9,6 +9,7 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/build"
+	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
@@ -753,6 +754,11 @@ func TestDeploy(t *testing.T) {
 				client:       client,
 				local:        tC.local,
 				envSlug:      tC.envSlug,
+				root: &cli.Config{
+					Client: &api.Client{
+						Host: api.Host,
+					},
+				},
 			}
 			d := NewDeployer(cfg, &logger.MockLogger{}, DeployerOpts{
 				BuildCreator: &build.MockBuildCreator{},
