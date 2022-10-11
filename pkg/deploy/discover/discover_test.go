@@ -40,6 +40,7 @@ func TestDiscover(t *testing.T) {
 					TaskEntrypoint: fixturesPath + "/single_task.js",
 					Def: &definitions.Definition_0_3{
 						Slug:               "my_task",
+						Parameters:         []definitions.ParameterDefinition_0_3{},
 						Node:               &definitions.NodeDefinition_0_3{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 					},
@@ -67,6 +68,7 @@ func TestDiscover(t *testing.T) {
 					TaskEntrypoint: fixturesPath + "/single_task.js",
 					Def: &definitions.Definition_0_3{
 						Slug:               "my_task",
+						Parameters:         []definitions.ParameterDefinition_0_3{},
 						Node:               &definitions.NodeDefinition_0_3{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 					},
@@ -78,6 +80,7 @@ func TestDiscover(t *testing.T) {
 					TaskEntrypoint: fixturesPath + "/single_task2.js",
 					Def: &definitions.Definition_0_3{
 						Slug:               "my_task2",
+						Parameters:         []definitions.ParameterDefinition_0_3{},
 						Node:               &definitions.NodeDefinition_0_3{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 					},
@@ -109,6 +112,7 @@ func TestDiscover(t *testing.T) {
 					TaskEntrypoint: fixturesPath + "/nestedScripts/single_task.js",
 					Def: &definitions.Definition_0_3{
 						Slug:               "my_task",
+						Parameters:         []definitions.ParameterDefinition_0_3{},
 						Node:               &definitions.NodeDefinition_0_3{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 					},
@@ -120,6 +124,7 @@ func TestDiscover(t *testing.T) {
 					TaskEntrypoint: fixturesPath + "/nestedScripts/single_task2.js",
 					Def: &definitions.Definition_0_3{
 						Slug:               "my_task2",
+						Parameters:         []definitions.ParameterDefinition_0_3{},
 						Node:               &definitions.NodeDefinition_0_3{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 					},
@@ -236,6 +241,7 @@ func TestDiscover(t *testing.T) {
 					TaskEntrypoint: fixturesPath + "/subdir/single_task.js",
 					Def: &definitions.Definition_0_3{
 						Slug:               "my_task",
+						Parameters:         []definitions.ParameterDefinition_0_3{},
 						Node:               &definitions.NodeDefinition_0_3{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 					},
@@ -553,13 +559,13 @@ func TestDiscover(t *testing.T) {
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: fixturesPath + "/viewInline-with-tasks/myView/myView.view.tsx",
 					Def: &definitions.Definition_0_3{
-						Name: "My Task",
-						Slug: "my_task",
+						Name:       "My Task",
+						Slug:       "my_task",
+						Parameters: []definitions.ParameterDefinition_0_3{},
 						Node: &definitions.NodeDefinition_0_3{
 							Entrypoint:  "viewInline-with-tasks/myView/myView.view.tsx",
 							NodeVersion: "18",
 						},
-						Parameters:  []definitions.ParameterDefinition_0_3{},
 						Description: "my description",
 					},
 					Source: ConfigSourceCode,

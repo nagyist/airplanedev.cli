@@ -382,6 +382,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				Name:        "Python Task",
 				Slug:        "python_task",
 				Description: "A task for testing",
+				Parameters:  []ParameterDefinition_0_3{},
 				Python: &PythonDefinition_0_3{
 					Entrypoint: "main.py",
 					EnvVars: api.TaskEnv{
@@ -417,8 +418,9 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				},
 			},
 			definition: Definition_0_3{
-				Name: "Node Task",
-				Slug: "node_task",
+				Name:       "Node Task",
+				Slug:       "node_task",
+				Parameters: []ParameterDefinition_0_3{},
 				Node: &NodeDefinition_0_3{
 					Entrypoint:  "main.ts",
 					NodeVersion: "14",
@@ -454,8 +456,9 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				},
 			},
 			definition: Definition_0_3{
-				Name: "Shell Task",
-				Slug: "shell_task",
+				Name:       "Shell Task",
+				Slug:       "shell_task",
+				Parameters: []ParameterDefinition_0_3{},
 				Shell: &ShellDefinition_0_3{
 					Entrypoint: "main.sh",
 					EnvVars: api.TaskEnv{
@@ -490,8 +493,9 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				},
 			},
 			definition: Definition_0_3{
-				Name: "Image Task",
-				Slug: "image_task",
+				Name:       "Image Task",
+				Slug:       "image_task",
+				Parameters: []ParameterDefinition_0_3{},
 				Image: &ImageDefinition_0_3{
 					Image:      "ubuntu:latest",
 					Entrypoint: "bash",
@@ -540,8 +544,9 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				},
 			},
 			definition: Definition_0_3{
-				Name: "REST Task",
-				Slug: "rest_task",
+				Name:       "REST Task",
+				Slug:       "rest_task",
+				Parameters: []ParameterDefinition_0_3{},
 				Resources: ResourceDefinition_0_3{
 					Attachments: map[string]string{},
 				},
@@ -756,8 +761,9 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				},
 			},
 			definition: Definition_0_3{
-				Name: "Test Task",
-				Slug: "test_task",
+				Name:       "Test Task",
+				Slug:       "test_task",
+				Parameters: []ParameterDefinition_0_3{},
 				Python: &PythonDefinition_0_3{
 					Entrypoint: "main.py",
 				},
@@ -781,8 +787,9 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				},
 			},
 			definition: Definition_0_3{
-				Name: "Test Task",
-				Slug: "test_task",
+				Name:       "Test Task",
+				Slug:       "test_task",
+				Parameters: []ParameterDefinition_0_3{},
 				Python: &PythonDefinition_0_3{
 					Entrypoint: "main.py",
 				},
@@ -830,8 +837,9 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				},
 			},
 			definition: Definition_0_3{
-				Name: "REST Task",
-				Slug: "rest_task",
+				Name:       "REST Task",
+				Slug:       "rest_task",
+				Parameters: []ParameterDefinition_0_3{},
 				Resources: ResourceDefinition_0_3{
 					Attachments: map[string]string{},
 				},
@@ -935,6 +943,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				Name:        "Python Task",
 				Slug:        "python_task",
 				Description: "A task for testing",
+				Parameters:  []ParameterDefinition_0_3{},
 				Python: &PythonDefinition_0_3{
 					Entrypoint: "main.py",
 					EnvVars: api.TaskEnv{
@@ -989,8 +998,9 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				},
 			},
 			definition: Definition_0_3{
-				Name: "Image Task",
-				Slug: "image_task",
+				Name:       "Image Task",
+				Slug:       "image_task",
+				Parameters: []ParameterDefinition_0_3{},
 				Resources: ResourceDefinition_0_3{
 					Attachments: map[string]string{
 						"db": "local_db",

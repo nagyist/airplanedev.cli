@@ -6,7 +6,6 @@ import (
 	_ "embed"
 	"encoding/json"
 	"os"
-	"reflect"
 	"strings"
 	"text/template"
 
@@ -1026,9 +1025,11 @@ func (d Definition_0_3) GetUpdateTaskRequest(ctx context.Context, client api.IAP
 		Resources: make(map[string]string),
 	}
 
-	if err := d.addParametersToUpdateTaskRequest(ctx, &req); err != nil {
+	params, err := d.GetParameters()
+	if err != nil {
 		return api.UpdateTaskRequest{}, err
 	}
+	req.Parameters = params
 
 	if err := d.addResourcesToUpdateTaskRequest(ctx, client, &req); err != nil {
 		return api.UpdateTaskRequest{}, err
@@ -1054,97 +1055,6 @@ func (d Definition_0_3) GetUpdateTaskRequest(ctx context.Context, client api.IAP
 	}
 
 	return req, nil
-}
-
-func (d Definition_0_3) addParametersToUpdateTaskRequest(ctx context.Context, req *api.UpdateTaskRequest) error {
-	req.Parameters = make([]api.Parameter, len(d.Parameters))
-	for i, pd := range d.Parameters {
-		param := api.Parameter{
-			Name: pd.Name,
-			Slug: pd.Slug,
-			Desc: pd.Description,
-		}
-
-		switch pd.Type {
-		case "shorttext":
-			param.Type = "string"
-		case "longtext":
-			param.Type = "string"
-			param.Component = api.ComponentTextarea
-		case "sql":
-			param.Type = "string"
-			param.Component = api.ComponentEditorSQL
-		case "boolean", "upload", "integer", "float", "date", "datetime", "configvar":
-			param.Type = api.Type(pd.Type)
-		default:
-			return errors.Errorf("unknown parameter type: %s", pd.Type)
-		}
-
-		if pd.Default != nil {
-			if pd.Type == "configvar" {
-				switch reflect.ValueOf(pd.Default).Kind() {
-				case reflect.Map:
-					m, ok := pd.Default.(map[string]interface{})
-					if !ok {
-						return errors.Errorf("expected map but got %T", pd.Default)
-					}
-					if configName, ok := m["config"]; !ok {
-						return errors.Errorf("missing config property from configvar type: %v", pd.Default)
-					} else {
-						param.Default = map[string]interface{}{
-							"__airplaneType": "configvar",
-							"name":           configName,
-						}
-					}
-				case reflect.String:
-					param.Default = map[string]interface{}{
-						"__airplaneType": "configvar",
-						"name":           pd.Default,
-					}
-				default:
-					return errors.Errorf("unsupported type for default value: %T", pd.Default)
-				}
-			} else {
-				switch reflect.ValueOf(pd.Default).Kind() {
-				case reflect.String, reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-					reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-					reflect.Float32, reflect.Float64:
-					param.Default = pd.Default
-				default:
-					return errors.Errorf("unsupported type for default value: %T", pd.Default)
-				}
-			}
-		}
-
-		if !pd.Required.Value() {
-			param.Constraints.Optional = true
-		}
-
-		param.Constraints.Regex = pd.Regex
-
-		if len(pd.Options) > 0 {
-			param.Constraints.Options = make([]api.ConstraintOption, len(pd.Options))
-			for j, od := range pd.Options {
-				param.Constraints.Options[j].Label = od.Label
-				if od.Config != nil {
-					param.Constraints.Options[j].Value = map[string]interface{}{
-						"__airplaneType": "configvar",
-						"name":           *od.Config,
-					}
-				} else if pd.Type == "configvar" {
-					param.Constraints.Options[j].Value = map[string]interface{}{
-						"__airplaneType": "configvar",
-						"name":           od.Value,
-					}
-				} else {
-					param.Constraints.Options[j].Value = od.Value
-				}
-			}
-		}
-
-		req.Parameters[i] = param
-	}
-	return nil
 }
 
 func (d Definition_0_3) addResourcesToUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest) error {
@@ -1215,19 +1125,8 @@ func (d Definition_0_3) GetDescription() string {
 	return d.Description
 }
 
-func (d Definition_0_3) GetParameters() api.Parameters {
-	parameters := make([]api.Parameter, len(d.Parameters))
-	for i, param := range d.Parameters {
-		parameters[i] = api.Parameter{
-			Name:    param.Name,
-			Slug:    param.Slug,
-			Type:    api.Type(param.Type),
-			Desc:    param.Description,
-			Default: param.Default,
-		}
-	}
-
-	return parameters
+func (d Definition_0_3) GetParameters() (api.Parameters, error) {
+	return convertParametersDefToAPI(d.Parameters)
 }
 
 func (d *Definition_0_3) SetDefnFilePath(filePath string) {
@@ -1343,9 +1242,11 @@ func NewDefinitionFromTask_0_3(ctx context.Context, client api.IAPIClient, t api
 		Runtime:         t.Runtime,
 	}
 
-	if err := d.convertParametersFromTask(ctx, client, &t); err != nil {
+	params, err := convertParametersAPIToDef(t.Parameters)
+	if err != nil {
 		return Definition_0_3{}, err
 	}
+	d.Parameters = params
 
 	if err := d.convertResourcesFromTask(ctx, client, &t); err != nil {
 		return Definition_0_3{}, err
@@ -1390,102 +1291,6 @@ func NewDefinitionFromTask_0_3(ctx context.Context, client api.IAPIClient, t api
 	return d, nil
 }
 
-func (d *Definition_0_3) convertParametersFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
-	if len(t.Parameters) == 0 {
-		return nil
-	}
-	d.Parameters = make([]ParameterDefinition_0_3, len(t.Parameters))
-	for idx, param := range t.Parameters {
-		p := ParameterDefinition_0_3{
-			Name:        param.Name,
-			Slug:        param.Slug,
-			Description: param.Desc,
-		}
-
-		switch param.Type {
-		case "string":
-			switch param.Component {
-			case api.ComponentTextarea:
-				p.Type = "longtext"
-			case api.ComponentEditorSQL:
-				p.Type = "sql"
-			case api.ComponentNone:
-				p.Type = "shorttext"
-			default:
-				return errors.Errorf("unexpected component for type=string: %s", param.Component)
-			}
-		case "boolean", "upload", "integer", "float", "date", "datetime", "configvar":
-			p.Type = string(param.Type)
-		default:
-			return errors.Errorf("unknown parameter type: %s", param.Type)
-		}
-
-		if param.Default != nil {
-			if param.Type == "configvar" {
-				switch k := reflect.ValueOf(param.Default).Kind(); k {
-				case reflect.Map:
-					configName, err := extractConfigVarValue(param.Default)
-					if err != nil {
-						return errors.Wrap(err, "unhandled default configvar")
-					}
-					p.Default = configName
-				default:
-					return errors.Errorf("unsupported type for default value: %T", param.Default)
-				}
-			} else {
-				switch k := reflect.ValueOf(param.Default).Kind(); k {
-				case reflect.String, reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-					reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-					reflect.Float32, reflect.Float64:
-					p.Default = param.Default
-				default:
-					return errors.Errorf("unsupported type for default value: %T", param.Default)
-				}
-			}
-		}
-
-		p.Required.value = pointers.Bool(!param.Constraints.Optional)
-
-		p.Regex = param.Constraints.Regex
-
-		if len(param.Constraints.Options) > 0 {
-			p.Options = make([]OptionDefinition_0_3, len(param.Constraints.Options))
-			for j, opt := range param.Constraints.Options {
-				if param.Type == "configvar" {
-					switch k := reflect.ValueOf(opt.Value).Kind(); k {
-					case reflect.Map:
-						configName, err := extractConfigVarValue(opt.Value)
-						if err != nil {
-							return errors.Wrap(err, "unhandled option")
-						}
-						p.Options[j] = OptionDefinition_0_3{
-							Label: opt.Label,
-							Value: configName,
-						}
-					default:
-						return errors.Errorf("unhandled option type: %s", k)
-					}
-				} else {
-					switch k := reflect.ValueOf(opt.Value).Kind(); k {
-					case reflect.String, reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-						reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-						reflect.Float32, reflect.Float64:
-						p.Options[j] = OptionDefinition_0_3{
-							Label: opt.Label,
-							Value: opt.Value,
-						}
-					default:
-						return errors.Errorf("unhandled option type: %s", k)
-					}
-				}
-			}
-		}
-
-		d.Parameters[idx] = p
-	}
-	return nil
-}
-
 func (d *Definition_0_3) convertResourcesFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
 	if len(t.Resources) == 0 {
 		return nil
@@ -1510,23 +1315,6 @@ func (d *Definition_0_3) convertResourcesFromTask(ctx context.Context, client ap
 	}
 
 	return nil
-}
-
-func extractConfigVarValue(v interface{}) (string, error) {
-	m, ok := v.(map[string]interface{})
-	if !ok {
-		return "", errors.Errorf("expected map but got %T", v)
-	}
-	if airplaneType, ok := m["__airplaneType"]; !ok || airplaneType != "configvar" {
-		return "", errors.Errorf("expected airplaneType=configvar but got %v", airplaneType)
-	}
-	if configName, ok := m["name"]; !ok {
-		return "", errors.Errorf("missing name property from configvar type: %v", v)
-	} else if configNameStr, ok := configName.(string); !ok {
-		return "", errors.Errorf("expected name to be string but got %T", configName)
-	} else {
-		return configNameStr, nil
-	}
 }
 
 func (d *Definition_0_3) convertTaskKindFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {

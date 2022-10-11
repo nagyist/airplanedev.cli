@@ -40,7 +40,7 @@ type DefinitionInterface interface {
 	GetSlug() string
 	GetName() string
 	GetDescription() string
-	GetParameters() api.Parameters
+	GetParameters() (api.Parameters, error)
 
 	GetRuntime() build.TaskRuntime
 	UpgradeJST() error
