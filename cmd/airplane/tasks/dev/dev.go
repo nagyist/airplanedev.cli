@@ -46,7 +46,7 @@ type taskDevConfig struct {
 	entrypointFunc string
 
 	// Airplane dev server-related fields
-	editor bool
+	studio bool
 	local  bool
 }
 
@@ -70,7 +70,7 @@ func New(c *cli.Config) *cobra.Command {
 			if err != nil {
 				return errors.Wrap(err, "error determining current working directory")
 			}
-			if cfg.editor {
+			if cfg.studio {
 				// TODO: Support multiple dev server roots
 				if len(args) == 0 {
 					cfg.fileOrDir = wd
@@ -80,7 +80,7 @@ func New(c *cli.Config) *cobra.Command {
 					// Use absolute path to dev root to allow the local dev server to more easily calculate relative paths.
 					cfg.fileOrDir = args[0]
 					if cfg.fileOrDir, err = filepath.Abs(cfg.fileOrDir); err != nil {
-						return errors.Wrap(err, "getting absolute path of editor working directory")
+						return errors.Wrap(err, "getting absolute path of studio working directory")
 					}
 				}
 
@@ -143,14 +143,19 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
 	cmd.Flags().IntVar(&cfg.port, "port", server.DefaultPort, "The port to start the local airplane api server on - defaults to 4000.")
 	cmd.Flags().StringVar(&cfg.devConfigPath, "config-path", "", "The path to the dev config file to load into the local dev server.")
-	// TODO: Make opening the editor the default behavior.
-	cmd.Flags().BoolVar(&cfg.editor, "editor", false, "Run the local airplane editor")
+	// TODO: Make opening the studio the default behavior.
+	cmd.Flags().BoolVar(&cfg.studio, "studio", false, "Run the local airplane studio")
+	cmd.Flags().BoolVar(&cfg.studio, "editor", false, "Run the local airplane studio (use --studio instead)")
+
+	if err := cmd.Flags().MarkHidden("editor"); err != nil {
+		logger.Debug("error: %s", err)
+	}
 	return cmd
 }
 
 func run(ctx context.Context, cfg taskDevConfig) error {
 	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{})
-	if cfg.editor {
+	if cfg.studio {
 		return runLocalDevServer(ctx, cfg)
 	}
 

@@ -169,7 +169,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		} else {
 			unattachedResourcesMsg += fmt.Sprintf(" or remotely in %s.", logger.Bold(devEnv.Name))
 		}
-		unattachedResourcesMsg += " Please add them through the editor or run `airplane dev config set-resource`."
+		unattachedResourcesMsg += " Please add them through the studio or run `airplane dev config set-resource`."
 		logger.Log(unattachedResourcesMsg)
 		for _, ur := range warnings.UnattachedResources {
 			logger.Log("- %s: %s", ur.TaskName, ur.ResourceSlugs)
@@ -187,15 +187,15 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	logger.Log("")
-	editorURL := fmt.Sprintf("%s/editor?host=http://localhost:%d", appURL, cfg.port)
-	logger.Log("Started editor session at %s (^C to quit)", logger.Blue(editorURL))
-	logger.Log("Press ENTER to open the editor in the browser.")
+	studioURL := fmt.Sprintf("%s/studio?host=http://localhost:%d", appURL, cfg.port)
+	logger.Log("Started studio session at %s (^C to quit)", logger.Blue(studioURL))
+	logger.Log("Press ENTER to open the studio in the browser.")
 
-	// Execute the flow to open the editor in the browser in a separate goroutine so fmt.Scanln doesn't capture
+	// Execute the flow to open the studio in the browser in a separate goroutine so fmt.Scanln doesn't capture
 	// termination signals.
 	go func() {
 		fmt.Scanln()
-		if ok := utils.Open(editorURL); !ok {
+		if ok := utils.Open(studioURL); !ok {
 			logger.Log("Something went wrong. Try running the command with the --debug flag for more details.")
 		}
 	}()

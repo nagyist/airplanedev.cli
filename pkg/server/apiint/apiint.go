@@ -189,7 +189,7 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 		remoteResources, err := res.ListRemoteResources(ctx, state)
 		if err == nil {
 			for _, r := range remoteResources {
-				// This is purely so we can display remote resource information in the local dev editor. The remote list
+				// This is purely so we can display remote resource information in the local dev studio. The remote list
 				// resources endpoint doesn't return CanUseResource or CanUpdateResource, and so we set them to true here.
 				r.CanUseResource = true
 				r.CanUpdateResource = true
@@ -480,7 +480,7 @@ func GetUserHandler(ctx context.Context, state *state.State, r *http.Request) (G
 		User: User{
 			ID:        userID,
 			Email:     "hello@airplane.dev",
-			Name:      "Airplane editor",
+			Name:      "Airplane studio",
 			AvatarURL: &gravatarURL,
 		},
 	}, nil
