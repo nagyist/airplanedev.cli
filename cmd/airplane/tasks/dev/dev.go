@@ -236,7 +236,11 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	if _, err := apiServer.RegisterTasksAndViews(ctx, taskConfigs, viewConfigs); err != nil {
 		return err
 	}
-	paramValues, err := params.CLI(cfg.args, taskConfig.Def.GetName(), taskConfig.Def.GetParameters())
+	parameters, err := taskConfig.Def.GetParameters()
+	if err != nil {
+		return err
+	}
+	paramValues, err := params.CLI(cfg.args, taskConfig.Def.GetName(), parameters)
 	if errors.Is(err, flag.ErrHelp) {
 		return nil
 	} else if err != nil {

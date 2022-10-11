@@ -141,7 +141,10 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			runConfig.Name = localTaskConfig.Def.GetName()
 			runConfig.File = localTaskConfig.TaskEntrypoint
 			resourceAttachments = localTaskConfig.Def.GetResourceAttachments()
-			parameters = localTaskConfig.Def.GetParameters()
+			parameters, err = localTaskConfig.Def.GetParameters()
+			if err != nil {
+				return dev.LocalRun{}, err
+			}
 			run.TaskID = req.Slug
 			run.TaskName = localTaskConfig.Def.GetName()
 			envVars, err := dev.MaterializeEnvVars(localTaskConfig, state.DevConfig)

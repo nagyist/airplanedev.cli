@@ -528,24 +528,6 @@ func ListRunsHandler(ctx context.Context, state *state.State, r *http.Request) (
 	}, nil
 }
 
-func ParamWithComponent(p libapi.Parameter) (libapi.Parameter, error) {
-	switch p.Type {
-	case "shorttext":
-		p.Type = "string"
-	case "longtext":
-		p.Type = "string"
-		p.Component = libapi.ComponentTextarea
-	case "sql":
-		p.Type = "string"
-		p.Component = libapi.ComponentEditorSQL
-	case "boolean", "upload", "integer", "float", "date", "datetime", "configvar":
-		break
-	default:
-		return libapi.Parameter{}, errors.Errorf("unknown parameter type: %s", p.Type)
-	}
-	return p, nil
-}
-
 // GetTaskInfoHandler handles requests to the /i/tasks/get?slug=<task_slug> endpoint.
 func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.UpdateTaskRequest, error) {
 	taskSlug := r.URL.Query().Get("slug")
@@ -554,8 +536,12 @@ func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request
 	}
 	taskConfig, ok := state.TaskConfigs[taskSlug]
 	if !ok {
-		return libapi.UpdateTaskRequest{}, errors.Errorf("Task with slug %s not found", taskSlug)
+		return libapi.UpdateTaskRequest{}, errors.Errorf("Task with slug %q not found", taskSlug)
 	}
+
+	// We do not use taskConfig.Def.GetUpdateTaskRequest() directly since the task definition may be invalid.
+	// We want to best-effort support invalid task definitions (e.g. unknown resources) so that we can render
+	// corresponding validation errors in the UI.
 	req := libapi.UpdateTaskRequest{
 		Slug:        taskConfig.Def.GetSlug(),
 		Name:        taskConfig.Def.GetName(),
@@ -571,13 +557,9 @@ func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request
 		return libapi.UpdateTaskRequest{}, errors.Wrap(err, "getting config attachments")
 	}
 	req.Configs = &configs
-	parameters := make(libapi.Parameters, len(taskConfig.Def.GetParameters()))
-	for i, p := range taskConfig.Def.GetParameters() {
-		p, err := ParamWithComponent(p)
-		if err != nil {
-			return libapi.UpdateTaskRequest{}, errors.Wrap(err, "getting parameters")
-		}
-		parameters[i] = p
+	parameters, err := taskConfig.Def.GetParameters()
+	if err != nil {
+		return libapi.UpdateTaskRequest{}, errors.Wrap(err, "getting parameters")
 	}
 	req.Parameters = parameters
 	kind, options, err := taskConfig.Def.GetKindAndOptions()
