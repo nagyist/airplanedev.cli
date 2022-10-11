@@ -36,7 +36,7 @@ func (err ViewMissingError) Error() string {
 func (err ViewMissingError) ExplainError() string {
 	return fmt.Sprintf(
 		"Follow the URL below to create the view:\n%s",
-		err.AppURL+"/apps/new",
+		err.AppURL+"/views/new",
 	)
 }
 
