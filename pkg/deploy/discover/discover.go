@@ -13,11 +13,23 @@ import (
 	"github.com/pkg/errors"
 )
 
-var ignoredDirectories = map[string]bool{
-	"node_modules": true,
-	"__pycache__":  true,
-	".git":         true,
-	".airplane":    true,
+var IgnoredDirectories = map[string]bool{
+	"node_modules":   true,
+	"__pycache__":    true,
+	".git":           true,
+	".airplane":      true,
+	".airplane-view": true,
+}
+
+var SupportedFileExtensions = []string{
+	".py",
+	".sql",
+	".sh",
+	".ts",
+	".tsx",
+	".js",
+	".jsx",
+	".yaml",
 }
 
 type ConfigSource string
@@ -95,7 +107,7 @@ func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]TaskConfi
 	taskConfigsBySlug := map[string][]TaskConfig{}
 	viewConfigsBySlug := map[string][]ViewConfig{}
 	for _, p := range paths {
-		if ignoredDirectories[filepath.Base(p)] {
+		if IgnoredDirectories[filepath.Base(p)] {
 			continue
 		}
 		fileInfo, err := os.Stat(p)
