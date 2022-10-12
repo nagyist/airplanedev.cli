@@ -128,3 +128,125 @@ func TestGetPackageCopyCmds(t *testing.T) {
 		result,
 	)
 }
+
+func TestGetYarnLockPackageVersion(t *testing.T) {
+	version, err := getYarnLockPackageVersion(
+		fixtures.Path(t, "node_externals/yarnworkspace"),
+		"csstype",
+	)
+	require.NoError(t, err)
+	require.Equal(t, "3.1.0", version)
+
+	_, err = getYarnLockPackageVersion(
+		fixtures.Path(t, "node_externals/yarnworkspace"),
+		"non-existent-package",
+	)
+	require.Error(t, err)
+
+	_, err = getYarnLockPackageVersion(
+		fixtures.Path(t, "node_externals/non-existent-path"),
+		"csstype",
+	)
+	require.Error(t, err)
+}
+
+func TestGetNPMLockPackageVersion(t *testing.T) {
+	version, err := getNPMLockPackageVersion(
+		fixtures.Path(t, "node_externals/packagelock"),
+		"react",
+	)
+	require.NoError(t, err)
+	require.Equal(t, "18.2.0", version)
+
+	_, err = getNPMLockPackageVersion(
+		fixtures.Path(t, "node_externals/packagelock"),
+		"non-existent-package",
+	)
+	require.Error(t, err)
+
+	_, err = getNPMLockPackageVersion(
+		fixtures.Path(t, "node_externals/non-existent-path"),
+		"react",
+	)
+	require.Error(t, err)
+}
+
+func TestGetLockPackageVersion(t *testing.T) {
+	version := getLockPackageVersion(
+		fixtures.Path(t, "node_externals/yarnworkspace"),
+		"csstype",
+		"fallback",
+	)
+	require.Equal(t, "3.1.0", version)
+
+	version = getLockPackageVersion(
+		fixtures.Path(t, "node_externals/packagelock"),
+		"react",
+		"fallback",
+	)
+	require.Equal(t, "18.2.0", version)
+
+	version = getLockPackageVersion(
+		fixtures.Path(t, "node_externals/non-existent-path"),
+		"react",
+		"fallback",
+	)
+	require.Equal(t, "fallback", version)
+}
+
+func TestMeetsMinimumVersion(t *testing.T) {
+	testCases := []struct {
+		desc           string
+		packageVersion string
+		minVersion     string
+		expectedMeets  bool
+		expectedErr    bool
+	}{
+		{
+			desc:           "same version",
+			packageVersion: "0.2.10",
+			minVersion:     "0.2.10",
+			expectedMeets:  true,
+		},
+		{
+			desc:           "same version with caret prefix",
+			packageVersion: "^0.2.10",
+			minVersion:     "0.2.10",
+			expectedMeets:  true,
+		},
+		{
+			desc:           "same version with tilde prefix",
+			packageVersion: "^0.2.10",
+			minVersion:     "0.2.10",
+			expectedMeets:  true,
+		},
+		{
+			desc:           "higher version",
+			packageVersion: "^0.2.15",
+			minVersion:     "0.2.10",
+			expectedMeets:  true,
+		},
+		{
+			desc:           "lower version",
+			packageVersion: "^0.2.5",
+			minVersion:     "0.2.10",
+			expectedMeets:  false,
+		},
+		{
+			desc:           "unparseable package version",
+			packageVersion: "not a version",
+			minVersion:     "0.2.10",
+			expectedErr:    true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		meets, err := meetsMinimumVersion(testCase.packageVersion, testCase.minVersion)
+		require.Equal(t, testCase.expectedMeets, meets, testCase.desc)
+		if testCase.expectedErr {
+			require.Error(t, err, testCase.desc)
+		} else {
+			require.NoError(t, err, testCase.desc)
+		}
+	}
+}

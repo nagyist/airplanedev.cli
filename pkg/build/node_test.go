@@ -3,6 +3,7 @@ package build
 import (
 	"context"
 	"encoding/json"
+	"path/filepath"
 	"testing"
 
 	"github.com/airplanedev/lib/pkg/examples"
@@ -249,6 +250,17 @@ func TestNodeWorkflowBuilder(t *testing.T) {
 			},
 			SkipRun: true,
 		},
+		{
+			Root: "javascript/workflowold",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "main.js",
+				"runtime":    TaskRuntimeWorkflow,
+			},
+			ExpectedError: true,
+			SkipRun:       true,
+		},
 	}
 
 	RunTests(t, ctx, tests)
@@ -278,7 +290,7 @@ func TestGenShimPackageJSON(t *testing.T) {
 			isWorkflow:  true,
 			expectedShimPackageJSON: shimPackageJSON{
 				Dependencies: map[string]string{
-					"@airplane/workflow-runtime": "0.2.0",
+					"@airplane/workflow-runtime": "0.2.10",
 				},
 			},
 		},
@@ -292,7 +304,11 @@ func TestGenShimPackageJSON(t *testing.T) {
 			packageJSONs, _, err := GetPackageJSONs(examples.Path(t, tc.packageJSON))
 			require.NoError(err)
 
-			shimPackageJSONSerialized, err := GenShimPackageJSON(packageJSONs, tc.isWorkflow)
+			shimPackageJSONSerialized, err := GenShimPackageJSON(
+				filepath.Dir(examples.Path(t, tc.packageJSON)),
+				packageJSONs,
+				tc.isWorkflow,
+			)
 			require.NoError(err)
 
 			shimJSON := shimPackageJSON{}

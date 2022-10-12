@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -374,4 +375,139 @@ func getWorkspaceDependencyPackages(pathPackageJSON string) (map[string]bool, er
 	}
 
 	return packages, nil
+}
+
+type yarnListResults struct {
+	Type string `json:"type"`
+	Data struct {
+		Type  string `json:"type"`
+		Trees []struct {
+			Name string `json:"name"`
+		} `json:"trees"`
+	} `json:"data"`
+}
+
+// getYarnLockPackageVersion runs yarn to get the specific version of a package.
+// If yarn isn't in use or the package isn't found, an error is returned.
+func getYarnLockPackageVersion(dir string, packageName string) (string, error) {
+	cmd := exec.Command(
+		"yarn",
+		"list",
+		"--pattern",
+		packageName,
+		"--silent",
+		"--json",
+		"--no-progress",
+	)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", errors.Wrap(
+			err,
+			fmt.Sprintf("getting airplane version via yarn: %s", string(out)),
+		)
+	}
+
+	results := yarnListResults{}
+	if err := json.Unmarshal(out, &results); err != nil {
+		return "", errors.Wrap(err, "parsing yarn list results")
+	}
+
+	for _, tree := range results.Data.Trees {
+		if strings.HasPrefix(tree.Name, fmt.Sprintf("%s@", packageName)) {
+			components := strings.SplitN(tree.Name, "@", 2)
+			return components[1], nil
+		}
+	}
+
+	return "", errors.Errorf("no version found for package %q", packageName)
+}
+
+type npmPackageLock struct {
+	Packages map[string]struct {
+		Name    string `json:"name"`
+		Version string `json:"version"`
+	} `json:"packages"`
+}
+
+// getNPMLockPackageVersion tries to get the version of a package from a
+// package-lock.json file in the argument directory. If the file doesn't exist
+// or the package isn't in the file, an error is returned.
+func getNPMLockPackageVersion(dir string, packageName string) (string, error) {
+	contents, err := os.ReadFile(filepath.Join(dir, "package-lock.json"))
+	if err != nil {
+		return "", errors.Wrap(err, "reading package-lock.json")
+	}
+
+	packageLock := npmPackageLock{}
+	if err := json.Unmarshal(contents, &packageLock); err != nil {
+		return "", errors.Wrap(err, "parsing package-lock.json")
+	}
+
+	// The package name is prefixed by "node_modules"
+	packageObj, ok := packageLock.Packages[fmt.Sprintf("node_modules/%s", packageName)]
+	if !ok {
+		return "", errors.Errorf("no version found for package %q", packageName)
+	}
+	return packageObj.Version, nil
+}
+
+// getLockPackageVersion tries to get as specific a package version as possible
+// from the user's bundle. It first tries yarn, then parsing package-lock.json,
+// then falls back to the argument fallback version (e.g., from a package.json
+// file).
+func getLockPackageVersion(
+	rootDir string,
+	packageName string,
+	fallbackVersion string,
+) string {
+	yarnVersion, err := getYarnLockPackageVersion(rootDir, packageName)
+	if err == nil {
+		log.Printf(
+			"Found %q version via yarn: %q\n",
+			packageName,
+			yarnVersion,
+		)
+		return yarnVersion
+	}
+	log.Printf(
+		"Error getting %q version from yarn: %+v\n",
+		packageName,
+		err,
+	)
+
+	npmVersion, err := getNPMLockPackageVersion(rootDir, packageName)
+	if err == nil {
+		log.Printf(
+			"Found %q version in package-lock.json: %s\n",
+			packageName,
+			npmVersion,
+		)
+		return npmVersion
+	}
+	log.Printf(
+		"Error getting %q version from package-lock.json: %+v; falling back to version %q\n",
+		packageName,
+		err,
+		fallbackVersion,
+	)
+	return fallbackVersion
+}
+
+func meetsMinimumVersion(packageVersion string, minVersion string) (bool, error) {
+	if strings.HasPrefix(packageVersion, "^") || strings.HasPrefix(packageVersion, "~") {
+		packageVersion = packageVersion[1:]
+	}
+
+	packageSemver, err := semver.ParseTolerant(packageVersion)
+	if err != nil {
+		return false, errors.Wrap(err, "parsing package version")
+	}
+
+	minSemver, err := semver.ParseTolerant(minVersion)
+	if err != nil {
+		return false, errors.Wrap(err, "parsing min required version")
+	}
+
+	return packageSemver.GE(minSemver), nil
 }

@@ -30,7 +30,8 @@ type Test struct {
 	// to validate that the task completed successfully. If not set,
 	// defaults to a random value which is passed into the example
 	// via the `id` parameter.
-	SearchString string
+	SearchString  string
+	ExpectedError bool
 }
 
 // RunTests performs a series of builder tests and looks for a given SearchString
@@ -65,6 +66,11 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 
 			// Perform the docker build:
 			resp, err := b.Build(ctx, "builder-tests", ksuid.New().String())
+			if test.ExpectedError {
+				require.Error(err)
+				return
+			}
+
 			require.NoError(err)
 			defer func() {
 				_, err := b.client.ImageRemove(ctx, resp.ImageURL, types.ImageRemoveOptions{})

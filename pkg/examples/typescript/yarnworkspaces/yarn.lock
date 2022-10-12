@@ -2,15 +2,20 @@
 # yarn lockfile v1
 
 
+"@opentelemetry/api@1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/api/-/api-1.2.0.tgz#89ef99401cde6208cff98760b67663726ef26686"
+  integrity sha512-0nBr+VZNKm9tvNDZFstI3Pq1fCTEDK5OZTnVKNvBNAKgd0yIvmwsP4m61rEv7ZP+tOUjWJhROpxK5MsnlF911g==
+
 "@types/prop-types@*":
   version "15.7.5"
   resolved "https://registry.yarnpkg.com/@types/prop-types/-/prop-types-15.7.5.tgz#5f19d2b85a98e9558036f6a3cacc8819420f05cf"
   integrity sha512-JCB8C6SnDoQf0cNycqd/35A7MjcnK+ZTqE7judS6o7utxUCg6imJg3QK2qzHKszlTjcj2cn+NwMB2i96ubpj7w==
 
-"@types/react@18.0.18":
-  version "18.0.18"
-  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.0.18.tgz#9f16f33d57bc5d9dca848d12c3572110ff9429ac"
-  integrity sha512-6hI08umYs6NaiHFEEGioXnxJ+oEhY3eRz8VCUaudZmGdtvPviCJB8mgaMxaDWAdPSYd4eFavrPk2QIolwbLYrg==
+"@types/react@18.0.21":
+  version "18.0.21"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.0.21.tgz#b8209e9626bb00a34c76f55482697edd2b43cc67"
+  integrity sha512-7QUCOxvFgnD5Jk8ZKlUAhVcRj7GuJRjnjjiY/IUBWKgOlnvDvTMLD4RTF7NPyVmbRhNrbomZiOepg7M/2Kj1mA==
   dependencies:
     "@types/prop-types" "*"
     "@types/scheduler" "*"
@@ -21,16 +26,18 @@
   resolved "https://registry.yarnpkg.com/@types/scheduler/-/scheduler-0.16.2.tgz#1a62f89525723dde24ba1b01b092bf5df8ad4d39"
   integrity sha512-hppQEBDmlwhFAXKJX2KnWLYu5yMfi91yazPb2l+lbJiwW+wdo1gNeRA+3RgNSO39WYX2euey41KEwnqesU2Jew==
 
-airplane@0.2.0:
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/airplane/-/airplane-0.2.0.tgz#728c094222a42b909f92f088b8d42f32e94a1f03"
-  integrity sha512-6aj4gp5fap+kES471KfbA1V2RPapzrewMwl+1uNW0WZBOx0cjppCaaKLZTUlddqk+xKQ75d5zME9vgW5SbdW9g==
+airplane@0.2.10:
+  version "0.2.10"
+  resolved "https://registry.yarnpkg.com/airplane/-/airplane-0.2.10.tgz#5a806de1c557029d3de38f5bc20d8beceab82df7"
+  integrity sha512-ghL+/gZu2jkEZebuxw2uBuIktI6FMiHicJZ9+kiL/ikGmrogBkgsdzGD8Qk4Gh0U3z3iEitFI//PCaU4YVM3Dg==
   dependencies:
-    "@types/react" "18.0.18"
+    "@opentelemetry/api" "1.2.0"
+    "@types/react" "18.0.21"
     cross-fetch "3.1.5"
     fast-equals "4.0.3"
     fetch-retry "5.0.3"
     query-string "7.1.1"
+    ts-dedent "2.2.0"
     uuid "9.0.0"
 
 cross-fetch@3.1.5:
@@ -130,6 +137,11 @@ tr46@~0.0.3:
   version "0.0.3"
   resolved "https://registry.yarnpkg.com/tr46/-/tr46-0.0.3.tgz#8184fd347dac9cdc185992f3a6622e14b9d9ab6a"
   integrity sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==
+
+ts-dedent@2.2.0:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/ts-dedent/-/ts-dedent-2.2.0.tgz#39e4bd297cd036292ae2394eb3412be63f563bb5"
+  integrity sha512-q5W7tVM71e2xjHZTlgfTDoPF/SmqKG5hddq9SzR49CH2hayqRKJtQ4mtRlSxKaJlR/+9rEM+mnBHf7I2/BQcpQ==
 
 uuid@9.0.0:
   version "9.0.0"

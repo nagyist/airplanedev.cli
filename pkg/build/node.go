@@ -14,9 +14,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-const DefaultNodeVersion = "18"
-const defaultSDKVersion = "0.2.0"
-const workflowRuntimePkg = "@airplane/workflow-runtime"
+const (
+	DefaultNodeVersion = "18"
+
+	defaultSDKVersion     = "~0.2"
+	minWorkflowSDKVersion = "0.2.10"
+	workflowRuntimePkg    = "@airplane/workflow-runtime"
+)
 
 type templateParams struct {
 	Workdir                          string
@@ -192,7 +196,7 @@ func node(
 		return "", err
 	}
 
-	pjson, err := GenShimPackageJSON(packageJSONs, isWorkflow)
+	pjson, err := GenShimPackageJSON(root, packageJSONs, isWorkflow)
 	if err != nil {
 		return "", err
 	}
@@ -348,7 +352,7 @@ type shimPackageJSON struct {
 
 // GenShimPackageJSON generates the `package.json` that contains the dependencies required for the shim to run. If the
 // dependency is satisfied by a parent directory (i.e. the user's code), then no need to include it here.
-func GenShimPackageJSON(packageJSONs []string, isWorkflow bool) ([]byte, error) {
+func GenShimPackageJSON(rootDir string, packageJSONs []string, isWorkflow bool) ([]byte, error) {
 	deps, err := ListDependenciesFromPackageJSONs(packageJSONs)
 	if err != nil {
 		return nil, err
@@ -380,9 +384,27 @@ func GenShimPackageJSON(packageJSONs []string, isWorkflow bool) ([]byte, error) 
 	// Always keep the versions of airplane and @airplane/workflow-runtime in sync, unless the task's dependencies
 	// explicitly include @airplane/workflow-runtime.
 	if isWorkflow {
-		if version, containsAirplane := deps["airplane"]; containsAirplane {
+		if depVersion, containsAirplane := deps["airplane"]; containsAirplane {
+			apVersion := getLockPackageVersion(rootDir, "airplane", depVersion)
+
+			// Make sure that the version is new enough to support latest
+			// workflow shims.
+			meetsMin, err := meetsMinimumVersion(apVersion, minWorkflowSDKVersion)
+			if err != nil {
+				return nil, err
+			}
+
+			if !meetsMin {
+				return nil,
+					errors.Errorf(
+						"The version of the Airplane JS SDK (%s) does not meet the minimum supported version for Workflows (%s). Please update the version of the Airplane JS SDK by running: npm install airplane@latest.",
+						apVersion,
+						minWorkflowSDKVersion,
+					)
+			}
+
 			if _, containsWorkflowRuntime := deps[workflowRuntimePkg]; !containsWorkflowRuntime {
-				pjson.Dependencies[workflowRuntimePkg] = version
+				pjson.Dependencies[workflowRuntimePkg] = apVersion
 			}
 		}
 	}
@@ -595,5 +617,4 @@ func (p *pkgJSONWorkspaces) UnmarshalJSON(data []byte) error {
 	}
 	p.workspaces = workspacesObject.Packages
 	return nil
-
 }
