@@ -21,6 +21,7 @@ type UnattachedResource struct {
 }
 
 type RegistrationWarnings struct {
-	UnsupportedApps     []AppError
+	UnsupportedApps     map[string]AppError
 	UnattachedResources []UnattachedResource
+	TaskErrors          map[string][]AppError
 }

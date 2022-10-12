@@ -75,7 +75,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 	runID := dev.GenerateRunID()
 	run.RunID = runID
 
-	localTaskConfig, ok := state.TaskConfigs[req.Slug]
+	localTaskConfig, ok := state.TaskConfigs.Get(req.Slug)
 	isBuiltin := builtins.IsBuiltinTaskSlug(req.Slug)
 	parameters := libapi.Parameters{}
 	start := time.Now().UTC()
@@ -143,7 +143,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			resourceAttachments = localTaskConfig.Def.GetResourceAttachments()
 			parameters, err = localTaskConfig.Def.GetParameters()
 			if err != nil {
-				return dev.LocalRun{}, err
+				return dev.LocalRun{}, errors.Wrap(err, "getting parameters")
 			}
 			run.TaskID = req.Slug
 			run.TaskName = localTaskConfig.Def.GetName()

@@ -29,18 +29,17 @@ type State struct {
 	Dir      string
 	Executor dev.Executor
 	Port     int
-	Runs     *runsStore
+
+	Runs *runsStore
 	// Mapping from task slug to task config
-	TaskConfigs map[string]discover.TaskConfig
-
+	TaskConfigs Store[string, discover.TaskConfig]
 	// Warnings to display on the task page
-	TaskErrors map[string][]dev_errors.AppError
-
+	TaskErrors Store[string, []dev_errors.AppError]
 	// Mapping from view slug to view config
-	ViewConfigs  map[string]discover.ViewConfig
+	ViewConfigs Store[string, discover.ViewConfig]
+
 	DevConfig    *conf.DevConfig
 	ViteContexts *lrucache.Cache
-	ViteMutex    sync.Mutex
 	Logger       logger.Logger
 
 	AuthInfo     api.AuthInfoResponse

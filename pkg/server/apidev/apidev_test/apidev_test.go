@@ -63,7 +63,7 @@ func TestListEntrypoints(t *testing.T) {
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
-			TaskConfigs: map[string]discover.TaskConfig{
+			TaskConfigs: state.NewStore(map[string]discover.TaskConfig{
 				taskSlug: {
 					TaskID:         "tsk123",
 					TaskRoot:       ".",
@@ -71,13 +71,13 @@ func TestListEntrypoints(t *testing.T) {
 					Def:            taskDefinition,
 					Source:         discover.ConfigSourceDefn,
 				},
-			},
-			ViewConfigs: map[string]discover.ViewConfig{
+			}),
+			ViewConfigs: state.NewStore(map[string]discover.ViewConfig{
 				viewSlug: {
 					Def:    viewDefinition,
 					Source: discover.ConfigSourceDefn,
 				},
-			},
+			}),
 		}),
 	)
 

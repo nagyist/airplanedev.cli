@@ -55,7 +55,7 @@ func TestExecute(t *testing.T) {
 			Executor:     mockExecutor,
 			Port:         1234,
 			Runs:         store,
-			TaskConfigs: map[string]discover.TaskConfig{
+			TaskConfigs: state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{
 				slug: {
 					TaskID:         "tsk123",
 					TaskRoot:       ".",
@@ -63,7 +63,7 @@ func TestExecute(t *testing.T) {
 					Def:            taskDefinition,
 					Source:         discover.ConfigSourceDefn,
 				},
-			},
+			}),
 			DevConfig: &conf.DevConfig{},
 		}),
 	)
@@ -150,7 +150,7 @@ func TestExecuteBuiltin(t *testing.T) {
 			Executor:     mockExecutor,
 			Port:         1234,
 			Runs:         store,
-			TaskConfigs: map[string]discover.TaskConfig{
+			TaskConfigs: state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{
 				slug: {
 					TaskID:         "tsk123",
 					TaskRoot:       ".",
@@ -158,15 +158,14 @@ func TestExecuteBuiltin(t *testing.T) {
 					Def:            taskDefinition,
 					Source:         discover.ConfigSourceDefn,
 				},
-			},
+			}),
 			DevConfig: &conf.DevConfig{Resources: map[string]env.ResourceWithEnv{
 				"database": {
 					Resource: &dbResource,
 					Remote:   false,
 				},
 			}},
-		}),
-	)
+		}))
 
 	paramValues := api.Values{
 		"query":           "select * from users limit 1",
@@ -220,7 +219,7 @@ func TestGetRun(t *testing.T) {
 		t,
 		server.NewRouter(&state.State{
 			Runs:        runstore,
-			TaskConfigs: map[string]discover.TaskConfig{},
+			TaskConfigs: state.NewStore[string, discover.TaskConfig](nil),
 		}),
 	)
 	body := h.GET("/v0/runs/get").
@@ -247,7 +246,7 @@ func TestGetOutput(t *testing.T) {
 		t,
 		server.NewRouter(&state.State{
 			Runs:        runstore,
-			TaskConfigs: map[string]discover.TaskConfig{},
+			TaskConfigs: state.NewStore[string, discover.TaskConfig](nil),
 		}),
 	)
 

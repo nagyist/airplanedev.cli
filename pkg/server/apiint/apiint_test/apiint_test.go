@@ -154,7 +154,7 @@ func TestSubmitPrompts(t *testing.T) {
 		t,
 		server.NewRouter(&state.State{
 			Runs:         runstore,
-			TaskConfigs:  map[string]discover.TaskConfig{},
+			TaskConfigs:  state.NewStore[string, discover.TaskConfig](nil),
 			DevConfig:    &conf.DevConfig{},
 			RemoteClient: &api.MockClient{},
 		}),
@@ -217,7 +217,7 @@ func TestListRuns(t *testing.T) {
 		t,
 		server.NewRouter(&state.State{
 			Runs:        runstore,
-			TaskConfigs: map[string]discover.TaskConfig{},
+			TaskConfigs: state.NewStore[string, discover.TaskConfig](nil),
 		}),
 	)
 	var resp apiext.ListRunsResponse

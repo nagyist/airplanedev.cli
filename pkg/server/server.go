@@ -10,6 +10,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/resource"
 	"github.com/airplanedev/cli/pkg/server/apidev"
@@ -128,6 +129,9 @@ func Start(opts Options) (*Server, error) {
 		Executor:     opts.Executor,
 		Port:         opts.Port,
 		Runs:         state.NewRunStore(),
+		TaskConfigs:  state.NewStore[string, discover.TaskConfig](nil),
+		TaskErrors:   state.NewStore[string, []dev_errors.AppError](nil),
+		ViewConfigs:  state.NewStore[string, discover.ViewConfig](nil),
 		LocalClient:  opts.LocalClient,
 		DevConfig:    opts.DevConfig,
 		ViteContexts: viteContextCache,
@@ -159,18 +163,13 @@ func supportsLocalExecution(name string, entrypoint string, kind build.TaskKind)
 	return r.SupportsLocalExecution()
 }
 
-// RegisterTasksAndViews generates a mapping of slug to task and view configs and stores the mappings in the server
-// state. Task registration must occur after the local dev server has started because the task discoverer hits the
-// /v0/tasks/getMetadata endpoint.
-func (s *Server) RegisterTasksAndViews(ctx context.Context, taskConfigs []discover.TaskConfig, viewConfigs []discover.ViewConfig) (dev_errors.RegistrationWarnings, error) {
-	s.state.TaskConfigs = map[string]discover.TaskConfig{}
-	var unsupported []dev_errors.AppError
+// ValidateTasks returns any dev errors about tasks, such as whether local dev is supported
+// and whether resources are attached
+func ValidateTasks(ctx context.Context, resources map[string]env.ResourceWithEnv, taskConfigs []discover.TaskConfig) (dev_errors.RegistrationWarnings, error) {
+	unsupportedApps := map[string]dev_errors.AppError{}
 	var unattachedResources []dev_errors.UnattachedResource
-	taskWarnings := map[string][]dev_errors.AppError{}
-	mergedResources, err := resource.MergeRemoteResources(ctx, s.state)
-	if err != nil {
-		return dev_errors.RegistrationWarnings{}, errors.Wrap(err, "merging local and remote resources")
-	}
+	taskErrors := map[string][]dev_errors.AppError{}
+
 	for _, cfg := range taskConfigs {
 		kind, _, err := cfg.Def.GetKindAndOptions()
 		if err != nil {
@@ -178,20 +177,20 @@ func (s *Server) RegisterTasksAndViews(ctx context.Context, taskConfigs []discov
 		}
 		supported := supportsLocalExecution(cfg.Def.GetName(), cfg.TaskEntrypoint, kind)
 		if !supported {
-			unsupported = append(unsupported, dev_errors.AppError{
-				Level:   dev_errors.LevelInfo,
+			appErr := dev_errors.AppError{
+				Level:   dev_errors.LevelError,
 				AppName: cfg.Def.GetName(),
 				AppKind: apidev.AppKindTask,
-				Reason:  fmt.Sprintf("%v task does not support local execution", kind)})
+				Reason:  fmt.Sprintf("%v task does not support local execution", kind)}
+			unsupportedApps[cfg.Def.GetSlug()] = appErr
+			taskErrors[cfg.Def.GetSlug()] = []dev_errors.AppError{appErr}
 			continue
 		}
-
-		s.state.TaskConfigs[cfg.Def.GetSlug()] = cfg
 
 		// Check resource attachments.
 		var missingResources []string
 		for _, resourceSlug := range cfg.Def.GetResourceAttachments() {
-			if _, ok := mergedResources[resourceSlug]; !ok {
+			if _, ok := resources[resourceSlug]; !ok {
 				missingResources = append(missingResources, resourceSlug)
 			}
 		}
@@ -200,7 +199,7 @@ func (s *Server) RegisterTasksAndViews(ctx context.Context, taskConfigs []discov
 				TaskName:      cfg.Def.GetName(),
 				ResourceSlugs: missingResources,
 			})
-			taskWarnings[cfg.Def.GetSlug()] = []dev_errors.AppError{
+			taskErrors[cfg.Def.GetSlug()] = []dev_errors.AppError{
 				{
 					Level:   dev_errors.LevelWarning,
 					AppName: cfg.Def.GetSlug(),
@@ -211,16 +210,37 @@ func (s *Server) RegisterTasksAndViews(ctx context.Context, taskConfigs []discov
 		}
 	}
 
-	s.state.TaskErrors = taskWarnings
-	s.state.ViewConfigs = map[string]discover.ViewConfig{}
-	for _, cfg := range viewConfigs {
-		s.state.ViewConfigs[cfg.Def.Slug] = cfg
-	}
-
 	return dev_errors.RegistrationWarnings{
-		UnsupportedApps:     unsupported,
+		UnsupportedApps:     unsupportedApps,
 		UnattachedResources: unattachedResources,
+		TaskErrors:          taskErrors,
 	}, nil
+}
+
+// RegisterTasksAndViews generates a mapping of slug to task and view configs and stores the mappings in the server
+// state. Task registration must occur after the local dev server has started because the task discoverer hits the
+// /v0/tasks/getMetadata endpoint.
+func (s *Server) RegisterTasksAndViews(ctx context.Context, taskConfigs []discover.TaskConfig, viewConfigs []discover.ViewConfig) (dev_errors.RegistrationWarnings, error) {
+	mergedResources, err := resource.MergeRemoteResources(ctx, s.state)
+	if err != nil {
+		return dev_errors.RegistrationWarnings{}, errors.Wrap(err, "merging local and remote resources")
+	}
+	registrationWarnings, err := ValidateTasks(ctx, mergedResources, taskConfigs)
+	if err != nil {
+		return dev_errors.RegistrationWarnings{}, errors.Wrap(err, "validating task")
+	}
+	for _, cfg := range taskConfigs {
+		_, isUnsupported := registrationWarnings.UnsupportedApps[cfg.Def.GetSlug()]
+		if !isUnsupported {
+			s.state.TaskConfigs.Add(cfg.Def.GetSlug(), cfg)
+		}
+	}
+	for _, cfg := range viewConfigs {
+		s.state.ViewConfigs.Add(cfg.Def.Slug, cfg)
+	}
+	s.state.TaskErrors.ReplaceItems(registrationWarnings.TaskErrors)
+
+	return registrationWarnings, err
 }
 
 // Stop terminates the local dev API server.

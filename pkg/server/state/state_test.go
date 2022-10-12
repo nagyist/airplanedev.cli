@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStore(t *testing.T) {
+func TestRunStore(t *testing.T) {
 	s := NewRunStore()
 	task1 := "task1"
 	testRuns := []dev.LocalRun{
@@ -47,7 +47,7 @@ func TestStore(t *testing.T) {
 
 }
 
-func TestStoreGet(t *testing.T) {
+func TestRunStoreGet(t *testing.T) {
 	emptyStore := NewRunStore()
 	_, ok := emptyStore.Get("runID1")
 	require.False(t, ok)
@@ -56,7 +56,7 @@ func TestStoreGet(t *testing.T) {
 	emptyStore.Add("task", "run", dev.LocalRun{})
 }
 
-func TestStoreDupes(t *testing.T) {
+func TestRunStoreDupes(t *testing.T) {
 	store := NewRunStore()
 	taskID := "task_1"
 	runID := "run_1"
@@ -66,7 +66,7 @@ func TestStoreDupes(t *testing.T) {
 	require.Len(t, runHistory, 1)
 }
 
-func TestStoreUpdate(t *testing.T) {
+func TestRunStoreUpdate(t *testing.T) {
 	store := NewRunStore()
 	taskID := "task1"
 	runID := "task1_run"

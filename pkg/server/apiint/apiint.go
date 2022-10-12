@@ -533,7 +533,7 @@ func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request
 	if taskSlug == "" {
 		return libapi.UpdateTaskRequest{}, errors.New("Task slug was not supplied, request path must be of the form /v0/tasks?slug=<task_slug>")
 	}
-	taskConfig, ok := state.TaskConfigs[taskSlug]
+	taskConfig, ok := state.TaskConfigs.Get(taskSlug)
 	if !ok {
 		return libapi.UpdateTaskRequest{}, errors.Errorf("Task with slug %q not found", taskSlug)
 	}

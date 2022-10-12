@@ -73,7 +73,7 @@ type ListEntrypointsHandlerResponse struct {
 func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Request) (ListEntrypointsHandlerResponse, error) {
 	entrypoints := make(map[string][]AppMetadata)
 
-	for slug, taskConfig := range state.TaskConfigs {
+	for slug, taskConfig := range state.TaskConfigs.Items() {
 		absoluteEntrypoint := taskConfig.TaskEntrypoint
 		if absoluteEntrypoint == "" {
 			// for YAML-only tasks like REST that don't have entrypoints
@@ -95,7 +95,7 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 		})
 	}
 
-	for slug, viewConfig := range state.ViewConfigs {
+	for slug, viewConfig := range state.ViewConfigs.Items() {
 		absoluteEntrypoint := viewConfig.Def.Entrypoint
 
 		ep, err := filepath.Rel(state.Dir, absoluteEntrypoint)
@@ -131,15 +131,11 @@ type StartViewResponse struct {
 
 // StartViewHandler handles requests to the /dev/tasks/<task_slug> endpoint.
 func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (StartViewResponse, error) {
-	// TODO: Maintain mapping between view and vite process instead of starting a new vite process on each request.
 	vars := mux.Vars(r)
 	viewSlug, ok := vars["view_slug"]
 	if !ok {
 		return StartViewResponse{}, errors.Errorf("View slug was not supplied, request path must be of the form /dev/startView/<view_slug>")
 	}
-
-	s.ViteMutex.Lock()
-	defer s.ViteMutex.Unlock()
 
 	viteContext, ok := s.ViteContexts.Get(viewSlug)
 	if ok {
@@ -151,7 +147,7 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 		return StartViewResponse{ViteServer: contextObj.ServerURL}, nil
 	}
 
-	viewConfig, ok := s.ViewConfigs[viewSlug]
+	viewConfig, ok := s.ViewConfigs.Get(viewSlug)
 	if !ok {
 		return StartViewResponse{}, errors.Errorf("View with slug %s not found", viewSlug)
 	}
@@ -247,7 +243,7 @@ func GetTaskErrorsHandler(ctx context.Context, state *state.State, r *http.Reque
 	if taskSlug == "" {
 		return GetTaskErrorResponse{}, errors.New("Task slug was not supplied, request path must be of the form /v0/tasks/warnings?slug=<task_slug>")
 	}
-	allErrors, ok := state.TaskErrors[taskSlug]
+	allErrors, ok := state.TaskErrors.Get(taskSlug)
 	if !ok {
 		return GetTaskErrorResponse{}, nil
 	}
