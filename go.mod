@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/airplanedev/lib v0.5.85
+	github.com/airplanedev/lib v0.5.86
 	github.com/airplanedev/ojson v0.1.0
 	github.com/airplanedev/trap v0.1.0
 	github.com/blang/semver v3.5.1+incompatible
@@ -34,7 +34,7 @@ require (
 	github.com/spf13/cobra v1.6.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.0
-	golang.org/x/exp v0.0.0-20221006183845-316c7553db56
+	golang.org/x/exp v0.0.0-20221012211006-4de253d81b95
 	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
 	golang.org/x/term v0.0.0-20220919170432-7a66f970e087
 	gopkg.in/yaml.v3 v3.0.1

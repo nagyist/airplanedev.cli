@@ -18,6 +18,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/apiint"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/state"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/runtime"
@@ -84,7 +85,7 @@ func NewRouter(state *state.State) *mux.Router {
 type Options struct {
 	LocalClient  *api.Client
 	RemoteClient api.APIClient
-	Env          api.Env
+	Env          libapi.Env
 	Port         int
 	Executor     dev.Executor
 	DevConfig    *conf.DevConfig

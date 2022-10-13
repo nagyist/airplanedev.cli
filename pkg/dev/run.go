@@ -40,7 +40,6 @@ type LocalRun struct {
 	StdAPIRequest builtins.StdAPIRequest `json:"stdAPIRequest"`
 
 	// internal fields
-	LogStore  logs.LogBroker `json:"-"`
 	LogBroker logs.LogBroker `json:"-"`
 	Remote    bool           `json:"-"`
 }

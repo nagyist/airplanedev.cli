@@ -18,6 +18,7 @@ import (
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/builtins"
+	"github.com/airplanedev/ojson"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -180,22 +181,37 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		}
 		state.Runs.Add(req.Slug, runID, run)
 
-		// use a new context while executing
-		// so the handler context doesn't cancel task execution
+		// Use a new context while executing so the handler context doesn't cancel task execution
 		go func() {
 			outputs, err := state.Executor.Execute(context.Background(), runConfig)
 			completedAt := time.Now()
-			run, err = state.Runs.Update(runID, func(run *dev.LocalRun) error {
-				if err != nil {
-					run.Status = api.RunFailed
-					run.FailedAt = &completedAt
-				} else {
-					run.Status = api.RunSucceeded
-					run.SucceededAt = &completedAt
+
+			status := api.RunSucceeded
+			var succeededAt *time.Time
+			var failedAt *time.Time
+
+			if err == nil {
+				succeededAt = &completedAt
+			} else {
+				status = api.RunFailed
+				failedAt = &completedAt
+				// If an error output isn't already set, set it here.
+				if outputs.V == nil {
+					outputs = api.Outputs{
+						V: ojson.NewObject().SetAndReturn("error", err.Error()),
+					}
 				}
+			}
+
+			if _, err = state.Runs.Update(runID, func(run *dev.LocalRun) error {
 				run.Outputs = outputs
+				run.Status = status
+				run.SucceededAt = succeededAt
+				run.FailedAt = failedAt
 				return nil
-			})
+			}); err != nil {
+				logger.Error("updating run with status: %+v", err)
+			}
 		}()
 	} else {
 		if !state.HasFallbackEnv() {

@@ -11,6 +11,7 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/version"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	lrucache "github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
@@ -24,7 +25,7 @@ type ViteContext struct {
 type State struct {
 	LocalClient  *api.Client
 	RemoteClient api.APIClient
-	Env          api.Env
+	Env          libapi.Env
 	// Directory from which tasks and views were discovered
 	Dir      string
 	Executor dev.Executor

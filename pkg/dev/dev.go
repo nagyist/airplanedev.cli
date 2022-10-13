@@ -19,6 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/builtins"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
@@ -54,7 +55,7 @@ type LocalRunConfig struct {
 	Client      api.APIClient
 	File        string
 	Slug        string
-	Env         api.Env
+	Env         libapi.Env
 	ParentRunID *string
 	EnvVars     map[string]string
 	ConfigVars  map[string]string
@@ -107,16 +108,10 @@ func (l *LocalExecutor) Cmd(ctx context.Context, runConfig LocalRunConfig) (CmdC
 		return CmdConfig{}, nil
 	}
 
-	configVars := map[string]interface{}{}
-	for k, v := range runConfig.ConfigVars {
-		configVars[k] = v
-	}
-
 	cmds, closer, err := r.PrepareRun(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), runtime.PrepareRunOptions{
 		Path:        entrypoint,
 		ParamValues: runConfig.ParamValues,
 		KindOptions: runConfig.KindOptions,
-		ConfigVars:  configVars,
 	})
 	if err != nil {
 		return CmdConfig{}, err
@@ -132,6 +127,18 @@ func (l *LocalExecutor) Cmd(ctx context.Context, runConfig LocalRunConfig) (CmdC
 }
 
 func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api.Outputs, error) {
+	if config.KindOptions != nil {
+		interpolatedKindOptions, err := interpolate(ctx, config, config.KindOptions)
+		if err != nil {
+			return api.Outputs{}, err
+		}
+
+		var ok bool
+		if config.KindOptions, ok = interpolatedKindOptions.(map[string]interface{}); !ok {
+			return api.Outputs{}, errors.Errorf("expected kind options after interpolation, got %T", config.KindOptions)
+		}
+	}
+
 	cmdConfig, err := l.Cmd(ctx, config)
 	if cmdConfig.closer != nil {
 		defer cmdConfig.closer.Close()
@@ -160,17 +167,30 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	cmd.Env = os.Environ()
 	// only non builtins have a runtime
 	if r != nil {
-		// Load environment variables from dev config file:
-		env, err := getDevEnvVars(r, entrypoint)
+		// Load environment variables from .env files
+		// TODO: Remove support for .env files
+		envVars, err := getDevEnvVars(r, entrypoint)
 		if err != nil {
 			return api.Outputs{}, err
 		}
-		// If environment variables are specified in the dev config file, use those instead
+
 		if len(config.EnvVars) > 0 {
-			env = config.EnvVars
+			envVars = config.EnvVars
 		}
-		for k, v := range env {
-			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+
+		if len(envVars) > 0 {
+			result, err := interpolate(ctx, config, envVars)
+			if err != nil {
+				return api.Outputs{}, err
+			}
+
+			envVarsMap, ok := result.(map[string]interface{})
+			if !ok {
+				return api.Outputs{}, errors.Errorf("expected map of env vars (key=value pairs) after interpolation, got %T", envVarsMap)
+			}
+			for k, v := range envVarsMap {
+				cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+			}
 		}
 	}
 
@@ -413,4 +433,24 @@ func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error
 	}
 	env = append(env, fmt.Sprintf("AIRPLANE_RESOURCES=%s", string(serialized)))
 	return env, nil
+}
+
+func interpolate(ctx context.Context, cfg LocalRunConfig, value any) (any, error) {
+	resp, err := cfg.Client.EvaluateTemplate(ctx, libapi.EvaluateTemplateRequest{
+		Value:       value,
+		RunID:       cfg.ID,
+		Env:         cfg.Env,
+		Resources:   cfg.Resources,
+		Configs:     cfg.ConfigVars,
+		ParamValues: cfg.ParamValues,
+	})
+	if err != nil {
+		var apiErr api.Error
+		if errors.As(err, &apiErr) {
+			return nil, errors.New(apiErr.Message)
+		}
+		return nil, err
+	}
+
+	return resp.Value, nil
 }

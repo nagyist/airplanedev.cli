@@ -112,7 +112,9 @@ type APIClient interface {
 	CreateView(ctx context.Context, req libapi.CreateViewRequest) (libapi.View, error)
 	CreateDemoDB(ctx context.Context, name string) (string, error)
 
-	GetEnv(ctx context.Context, envSlug string) (Env, error)
+	GetEnv(ctx context.Context, envSlug string) (libapi.Env, error)
+
+	EvaluateTemplate(ctx context.Context, req libapi.EvaluateTemplateRequest) (res libapi.EvaluateTemplateResponse, err error)
 
 	// All methods below this point represent CLI-specific API operations, and not requests to api.airplane.dev.
 	GetToken() string
@@ -525,10 +527,15 @@ func (c Client) GetResource(ctx context.Context, req GetResourceRequest) (res li
 	return
 }
 
-func (c Client) GetEnv(ctx context.Context, envSlug string) (res Env, err error) {
+func (c Client) GetEnv(ctx context.Context, envSlug string) (res libapi.Env, err error) {
 	err = c.do(ctx, "GET", encodeQueryString("/envs/get", url.Values{
 		"slug": []string{envSlug},
 	}), nil, &res)
+	return
+}
+
+func (c Client) EvaluateTemplate(ctx context.Context, req libapi.EvaluateTemplateRequest) (res libapi.EvaluateTemplateResponse, err error) {
+	err = c.do(ctx, "POST", "/templates/evaluate", req, &res)
 	return
 }
 

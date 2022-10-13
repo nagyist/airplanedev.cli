@@ -28,7 +28,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 	appURL := cfg.root.Client.AppURL()
 
-	var devEnv api.Env
+	var devEnv libapi.Env
 	devServerHost := fmt.Sprintf("127.0.0.1:%d", cfg.port)
 	if cfg.local {
 		// Use a special env ID and slug when executing tasks locally and the `--env` flag doesn't apply.

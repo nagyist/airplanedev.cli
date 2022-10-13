@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
@@ -159,8 +158,8 @@ func GetResourceHandler(ctx context.Context, state *state.State, r *http.Request
 
 type APIResourceWithEnv struct {
 	libapi.Resource
-	Remote bool    `json:"remote"`
-	Env    api.Env `json:"env"`
+	Remote bool       `json:"remote"`
+	Env    libapi.Env `json:"env"`
 }
 
 type ListResourcesResponse struct {

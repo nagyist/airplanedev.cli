@@ -16,7 +16,7 @@ type MockClient struct {
 	GetDeploymentResponse *Deployment
 	Resources             []libapi.Resource
 	Configs               []Config
-	Envs                  map[string]Env
+	Envs                  map[string]libapi.Env
 }
 
 var _ APIClient = &MockClient{}
@@ -196,10 +196,10 @@ func (mc *MockClient) CreateDemoDB(ctx context.Context, name string) (string, er
 	panic("not implemented")
 }
 
-func (mc *MockClient) GetEnv(ctx context.Context, envSlug string) (Env, error) {
+func (mc *MockClient) GetEnv(ctx context.Context, envSlug string) (libapi.Env, error) {
 	env, ok := mc.Envs[envSlug]
 	if !ok {
-		return Env{}, errors.Errorf("environment with slug %s does not exist", envSlug)
+		return libapi.Env{}, errors.Errorf("environment with slug %s does not exist", envSlug)
 	}
 	return env, nil
 }
@@ -216,4 +216,8 @@ func (mc *MockClient) GetResource(ctx context.Context, req GetResourceRequest) (
 
 func (mc *MockClient) GetToken() string {
 	return "mock-token"
+}
+
+func (mc *MockClient) EvaluateTemplate(ctx context.Context, req libapi.EvaluateTemplateRequest) (res libapi.EvaluateTemplateResponse, err error) {
+	panic("not implemented")
 }

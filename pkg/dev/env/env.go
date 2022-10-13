@@ -1,7 +1,7 @@
 package env
 
 import (
-	"github.com/airplanedev/cli/pkg/api"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/resources"
 )
 
@@ -16,8 +16,8 @@ type ResourceWithEnv struct {
 }
 
 // NewLocalEnv returns a new environment struct with special, local fields.
-func NewLocalEnv() api.Env {
-	return api.Env{
+func NewLocalEnv() libapi.Env {
+	return libapi.Env{
 		ID:   LocalEnvID,
 		Slug: LocalEnvID,
 		Name: LocalEnvID,
