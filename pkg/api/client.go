@@ -504,6 +504,17 @@ type Prompt struct {
 	CreatedAt   time.Time              `json:"createdAt"`
 	SubmittedAt *time.Time             `json:"submittedAt"`
 	SubmittedBy *string                `json:"submittedBy"`
+	Reviewers   *PromptReviewers       `json:"reviewers"`
+	ConfirmText string                 `json:"confirmText"`
+	CancelText  string                 `json:"cancelText"`
+}
+
+type PromptReviewers struct {
+	// Groups are indentified by their slugs.
+	Groups []string `json:"groups"`
+	// Users are indentified by their emails.
+	Users              []string `json:"users"`
+	AllowSelfApprovals *bool    `json:"allowSelfApprovals"`
 }
 
 type GetEnvResponse struct {
