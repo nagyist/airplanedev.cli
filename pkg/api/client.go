@@ -8,6 +8,7 @@ import (
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/ojson"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -517,7 +518,7 @@ type PromptReviewers struct {
 	AllowSelfApprovals *bool    `json:"allowSelfApprovals"`
 }
 
-type GetEnvResponse struct {
+type Env struct {
 	ID         string     `json:"id"`
 	Slug       string     `json:"slug"`
 	Name       string     `json:"name"`
@@ -529,4 +530,79 @@ type GetEnvResponse struct {
 	UpdatedBy  string     `json:"updatedBy"`
 	IsArchived bool       `json:"isArchived"`
 	ArchivedAt *time.Time `json:"archivedAt"`
+}
+
+type EvaluateTemplateRequest struct {
+	// Value is an arbitrary value that can include one or more Template values.
+	// Each Template will be evaluated, and if successful, will be replaced in
+	// Value with its output. The updated Value will be returned in the response.
+	// If any templates fail to evaluate, the Template will be left in Value
+	// and a separate error will be returned in the response.
+	Value interface{} `json:"value"`
+	// TODO: Add Run struct to lib and use Run instead
+	RunID       string                        `json:"runID"`
+	Env         Env                           `json:"env"`
+	Resources   map[string]resources.Resource `json:"resources"`
+	Configs     map[string]string             `json:"configs"`
+	ParamValues map[string]interface{}        `json:"paramValues"`
+	// Lookup maps is a mapping of namespace to the lookup map for that namespace.
+	// These are in addition to the lookup maps generated above. The user cannot
+	// override a default lookup, i.e. a lookup map with namespace "params" would
+	// always use ParamValues as the lookup map.
+	// For example:
+	// {
+	//   "extra_lookups": {
+	//     "field1": "hello",
+	//     "field2": "hi"
+	//   }
+	// }
+	// Any references to extra_lookups.field1 or extra_lookups.field2 in Value
+	// will be replaced by the values above.
+	LookupMaps map[string]interface{} `json:"lookupMaps"`
+}
+
+type EvaluateTemplateResponse struct {
+	Value interface{} `json:"value"`
+}
+
+func (r *EvaluateTemplateRequest) UnmarshalJSON(buf []byte) error {
+	var raw struct {
+		Value       interface{}                       `json:"value"`
+		RunID       string                            `json:"runID"`
+		Env         Env                               `json:"env"`
+		Resources   map[string]map[string]interface{} `json:"resources"`
+		Configs     map[string]string                 `json:"configs"`
+		ParamValues map[string]interface{}            `json:"params"`
+	}
+
+	if err := json.Unmarshal(buf, &raw); err != nil {
+		return err
+	}
+
+	exportResources := make(map[string]resources.Resource, len(raw.Resources))
+	for slug, res := range raw.Resources {
+		kind, ok := res["kind"]
+		if !ok {
+			return errors.New("export resource does not have kind")
+		}
+		kindStr, ok := kind.(string)
+		if !ok {
+			return errors.Errorf("kind is unexpected type %T", kind)
+		}
+
+		export, err := resources.GetResource(resources.ResourceKind(kindStr), res)
+		if err != nil {
+			return err
+		}
+		exportResources[slug] = export
+	}
+
+	r.Value = raw.Value
+	r.RunID = raw.RunID
+	r.Env = raw.Env
+	r.Resources = exportResources
+	r.Configs = raw.Configs
+	r.ParamValues = raw.ParamValues
+
+	return nil
 }

@@ -33,16 +33,12 @@ type Runtime struct{}
 
 // PrepareRun implementation.
 func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runtime.PrepareRunOptions) (rexprs []string, rcloser io.Closer, rerr error) {
-	kindOptions, err := runtime.EvalRunOptionTemplates(ctx, opts)
-	if err != nil {
-		return nil, nil, err
-	}
 	builtinClient, err := builtins.NewLocalClient(goruntime.GOOS, goruntime.GOARCH, logger)
 	if err != nil {
 		logger.Warning(err.Error())
 		return nil, nil, err
 	}
-	req, err := builtins.MarshalRequest("airplane:sql_query", kindOptions)
+	req, err := builtins.MarshalRequest("airplane:sql_query", opts.KindOptions)
 	if err != nil {
 		return nil, nil, errors.New("invalid builtin request")
 	}
