@@ -21,15 +21,19 @@ var IgnoredDirectories = map[string]bool{
 	".airplane-view": true,
 }
 
-var SupportedFileExtensions = []string{
-	".py",
-	".sql",
-	".sh",
-	".ts",
-	".tsx",
-	".js",
-	".jsx",
+// DefinitionFileExtensions is all the file extensions that could contain
+// a task or view definition: inline task or view configs,
+//  or files that accompany yaml definitions (like SQL)
+var DefinitionFileExtensions = []string{
+	// yaml configs and associated files
 	".yaml",
+	".sql",
+	// inline task and view configs
+	".airplane.ts",
+	".airplane.tsx",
+	".airplane.js",
+	".airplane.jsx",
+	"_airplane.py",
 }
 
 type ConfigSource string
