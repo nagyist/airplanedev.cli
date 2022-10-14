@@ -572,7 +572,7 @@ func (r *EvaluateTemplateRequest) UnmarshalJSON(buf []byte) error {
 		Env         Env                               `json:"env"`
 		Resources   map[string]map[string]interface{} `json:"resources"`
 		Configs     map[string]string                 `json:"configs"`
-		ParamValues map[string]interface{}            `json:"params"`
+		ParamValues map[string]interface{}            `json:"paramValues"`
 	}
 
 	if err := json.Unmarshal(buf, &raw); err != nil {
