@@ -162,14 +162,10 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 		return StartViewResponse{}, err
 	}
 
-	viewsClient := s.RemoteClient
-	if !s.HasFallbackEnv() {
-		viewsClient = s.LocalClient
-	}
 	cmd, viteServer, err := views.Dev(ctx, vd, views.ViteOpts{
 		// Views dev expects an api.Client implementation since it passes the client's token, API key, etc. as
 		// environment variables to the vite process.
-		Client:  viewsClient.(*api.Client),
+		Client:  s.LocalClient,
 		EnvSlug: s.Env.Slug,
 		TTY:     false,
 	})
