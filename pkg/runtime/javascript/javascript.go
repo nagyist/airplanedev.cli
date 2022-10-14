@@ -177,7 +177,9 @@ export default airplane.{{ .SDKMethod }}(
 		{{- end}}
 		},
 		{{- end}}
+		{{- if (not (eq .SDKMethod "workflow")) }}
 		nodeVersion: "{{.Node.NodeVersion}}",
+		{{- end}}
 		{{- if .Node.EnvVars }}
 		envVars: {
 		{{- range $key, $value := .Node.EnvVars}}
