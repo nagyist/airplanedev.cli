@@ -37,6 +37,7 @@ func New(c *cli.Config) *cobra.Command {
 		Use:   "init",
 		Short: "Initialize a task, view, or template",
 		Example: heredoc.Doc(`
+		    $ airplane init
 			$ airplane init --template getting_started
 			$ airplane init --template github.com/airplanedev/templates/getting_started
 		`),
@@ -46,7 +47,6 @@ func New(c *cli.Config) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return run(cmd.Root().Context(), cfg)
 		},
-		Hidden: true,
 	}
 
 	cmd.Flags().StringVarP(&cfg.template, "template", "t", "", "Path of a template to initialize from in the format github.com/org/repo/path/to/template or path/to/template (in the airplanedev/templates repository)")

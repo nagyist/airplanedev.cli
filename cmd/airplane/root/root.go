@@ -42,7 +42,7 @@ func New() *cobra.Command {
 		Use:   "airplane <command>",
 		Short: "Airplane CLI",
 		Example: heredoc.Doc(`
-			airplane init --slug <slug> ./path/to/script
+			airplane init
 			airplane dev ./path/to/script
 			airplane deploy ./path/to/script
 		`),
