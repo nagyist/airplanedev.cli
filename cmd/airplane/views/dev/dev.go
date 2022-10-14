@@ -89,12 +89,12 @@ func StartView(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return err
 	}
-	v, err := viewdir.NewViewDirectory(ctx, cfg.Root.Client, rootDir, cfg.FileOrDir, cfg.EnvSlug)
+	vd, err := viewdir.NewViewDirectory(ctx, cfg.Root.Client, rootDir, cfg.FileOrDir, cfg.EnvSlug)
 	if err != nil {
 		return err
 	}
 
-	cmd, _, err := views.Dev(ctx, v, views.ViteOpts{
+	cmd, _, closer, err := views.Dev(ctx, &vd, views.ViteOpts{
 		Client:  cfg.Root.Client,
 		EnvSlug: cfg.EnvSlug,
 		TTY:     true,
@@ -102,6 +102,6 @@ func StartView(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return err
 	}
-
+	defer closer.Close()
 	return cmd.Wait()
 }

@@ -162,7 +162,7 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 		return StartViewResponse{}, err
 	}
 
-	cmd, viteServer, err := views.Dev(ctx, vd, views.ViteOpts{
+	cmd, viteServer, closer, err := views.Dev(ctx, &vd, views.ViteOpts{
 		// Views dev expects an api.Client implementation since it passes the client's token, API key, etc. as
 		// environment variables to the vite process.
 		Client:  s.LocalClient,
@@ -190,6 +190,7 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 
 	s.ViteContexts.Add(viewSlug, state.ViteContext{
 		Process:   cmd.Process,
+		Closer:    closer,
 		ServerURL: viteServer,
 	})
 

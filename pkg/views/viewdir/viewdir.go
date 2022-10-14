@@ -18,12 +18,13 @@ import (
 type ViewDirectoryInterface interface {
 	Root() string
 	EntrypointPath() string
-	CacheDir() string
+	Slug() string
 }
 
 type ViewDirectory struct {
 	root           string
 	entrypointPath string
+	slug           string
 }
 
 func (this *ViewDirectory) Root() string {
@@ -32,6 +33,9 @@ func (this *ViewDirectory) Root() string {
 
 func (this *ViewDirectory) EntrypointPath() string {
 	return this.entrypointPath
+}
+func (this *ViewDirectory) Slug() string {
+	return this.slug
 }
 
 func missingViewHandler(ctx context.Context, defn definitions.ViewDefinition) (*libapi.View, error) {
@@ -95,6 +99,7 @@ func NewViewDirectory(ctx context.Context, client *api.Client, root string, sear
 		return ViewDirectory{
 			root:           absRoot,
 			entrypointPath: vc.Def.Entrypoint,
+			slug:           vc.Def.Slug,
 		}, nil
 	}
 
@@ -124,5 +129,6 @@ func NewViewDirectory(ctx context.Context, client *api.Client, root string, sear
 	return ViewDirectory{
 		root:           absRoot,
 		entrypointPath: vc.Def.Entrypoint,
+		slug:           vc.Def.Slug,
 	}, nil
 }

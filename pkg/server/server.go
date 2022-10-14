@@ -117,6 +117,10 @@ func Start(opts Options) (*Server, error) {
 		if err := viteContext.Process.Kill(); err != nil {
 			logger.Error(fmt.Sprintf("could not shutdown existing vite process: %v", err))
 		}
+
+		if err := viteContext.Closer.Close(); err != nil {
+			logger.Error(fmt.Sprintf("unable to cleanup vite process: %v", err))
+		}
 	}
 
 	viteContextCache, err := lrucache.NewWithEvict(5, onEvict)

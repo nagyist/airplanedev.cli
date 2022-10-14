@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -18,6 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/views/viewdir"
 	libbuild "github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/pkg/errors"
 )
 
@@ -28,49 +30,69 @@ const (
 	envSlugEnvKey = "AIRPLANE_ENV_SLUG"
 )
 
-func Dev(ctx context.Context, v viewdir.ViewDirectory, viteOpts ViteOpts) (*exec.Cmd, string, error) {
+func Dev(ctx context.Context, v viewdir.ViewDirectoryInterface, viteOpts ViteOpts) (*exec.Cmd, string, io.Closer, error) {
 	root := v.Root()
 	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{WithLoader: true})
 	defer l.StopLoader()
 
 	err := utils.CheckNodeVersion()
 	if err != nil {
-		return nil, "", err
+		return nil, "", nil, err
 	}
 
 	l.Debug("Root directory: %s", v.Root())
 	l.Debug("Entrypoint: %s", v.EntrypointPath())
-	tmpdir := filepath.Join(root, ".airplane-view")
-	if _, err := os.Stat(tmpdir); os.IsNotExist(err) {
-		if err := os.Mkdir(tmpdir, 0755); err != nil {
-			return nil, "", errors.Wrap(err, "creating temporary dir")
+	airplaneViewDir := filepath.Join(root, ".airplane-view")
+	if _, err := os.Stat(airplaneViewDir); os.IsNotExist(err) {
+		if err := os.Mkdir(airplaneViewDir, 0755); err != nil {
+			return nil, "", nil, errors.Wrap(err, "creating .airplane-view dir")
 		}
-		l.Debug("created temporary dir %s", tmpdir)
+		l.Debug("created .airplane-view dir %s", airplaneViewDir)
 	} else {
-		l.Debug("temporary dir %s exists", tmpdir)
+		l.Debug(".airplane-view dir %s exists", airplaneViewDir)
 	}
+
+	viewSubdir := filepath.Join(airplaneViewDir, v.Slug())
+	// Remove the previous view-specific subdirectory and its contents, if it exists.
+	if err := os.RemoveAll(viewSubdir); err != nil {
+		return nil, "", nil, errors.Wrap(err, "unable to remove previous view-specific subdir")
+	}
+
+	if err := os.Mkdir(viewSubdir, 0755); err != nil {
+		return nil, "", nil, errors.Wrap(err, "creating view-specific subdir")
+	}
+	l.Debug("created view-specific subdir %s", viewSubdir)
+	closer := runtime.CloseFunc(func() error {
+		return errors.Wrap(os.RemoveAll(viewSubdir), "unable to remove view-specific subdir")
+	})
+	defer func() {
+		// If we encountered an error before returning, then we should remove the view-specific subdirectory ourselves.
+		if err != nil {
+			closer.Close()
+		}
+	}()
 
 	entrypointFile, err := filepath.Rel(v.Root(), v.EntrypointPath())
 	if err != nil {
-		return nil, "", errors.Wrap(err, "figuring out entrypoint")
+		return nil, "", nil, errors.Wrap(err, "figuring out entrypoint")
 	}
-	if err := createWrapperTemplates(tmpdir, entrypointFile); err != nil {
-		return nil, "", err
+	if err := createWrapperTemplates(airplaneViewDir, viewSubdir, entrypointFile); err != nil {
+		return nil, "", nil, err
 	}
 
-	// Create a package.json in the temp directory with mandatory development dependencies.
+	// Create a package.json in the .airplane-view subdirectory with mandatory development dependencies.
 
 	// Read in the root package.json
 	rootPackageJSONFile, err := os.Open(filepath.Join(root, "package.json"))
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
-			return nil, "", errors.Wrap(err, "opening package.json")
+			return nil, "", nil, errors.Wrap(err, "opening package.json")
 		}
 	}
 	var rootPackageJSON interface{}
 	if rootPackageJSONFile != nil {
 		if err := json.NewDecoder(rootPackageJSONFile).Decode(&rootPackageJSON); err != nil {
-			return nil, "", errors.Wrap(err, "decoding package.json")
+			return nil, "", nil, errors.Wrap(err, "decoding package.json")
 		}
 	} else {
 		rootPackageJSON = map[string]interface{}{}
@@ -80,60 +102,60 @@ func Dev(ctx context.Context, v viewdir.ViewDirectory, viteOpts ViteOpts) (*exec
 	devPackageJSON := map[string]interface{}{}
 	existingPackageJSON, ok := rootPackageJSON.(map[string]interface{})
 	if !ok {
-		return nil, "", errors.New("expected package.json to be an object")
+		return nil, "", nil, errors.New("expected package.json to be an object")
 	}
 	if err := addDevDepsToPackageJSON(existingPackageJSON, &devPackageJSON); err != nil {
-		return nil, "", errors.Wrap(err, "patching package.json")
+		return nil, "", nil, errors.Wrap(err, "patching package.json")
 	}
 
 	// Write the development package.json.
-	newPackageJSONFile, err := os.Create(filepath.Join(tmpdir, "package.json"))
+	newPackageJSONFile, err := os.Create(filepath.Join(airplaneViewDir, "package.json"))
 	if err != nil {
-		return nil, "", errors.Wrap(err, "creating new package.json")
+		return nil, "", nil, errors.Wrap(err, "creating new package.json")
 	}
 	enc := json.NewEncoder(newPackageJSONFile)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(devPackageJSON); err != nil {
-		return nil, "", errors.Wrap(err, "writing new package.json")
+		return nil, "", nil, errors.Wrap(err, "writing new package.json")
 	}
 	if err := newPackageJSONFile.Close(); err != nil {
-		return nil, "", errors.Wrap(err, "closing new package.json file")
+		return nil, "", nil, errors.Wrap(err, "closing new package.json file")
 	}
 
 	// Create vite config.
-	if err := createViteConfig(tmpdir); err != nil {
-		return nil, "", errors.Wrap(err, "creating vite config")
+	if err := createViteConfig(airplaneViewDir); err != nil {
+		return nil, "", nil, errors.Wrap(err, "creating vite config")
 	}
 
 	// Run npm/yarn install.
-	useYarn := utils.ShouldUseYarn(tmpdir)
-	if err := utils.InstallDependencies(tmpdir, useYarn); err != nil {
+	useYarn := utils.ShouldUseYarn(airplaneViewDir)
+	if err := utils.InstallDependencies(airplaneViewDir, useYarn); err != nil {
 		l.Debug(err.Error())
 		if useYarn {
-			return nil, "", errors.New("error installing dependencies using yarn. Try installing yarn.")
+			return nil, "", nil, errors.New("error installing dependencies using yarn. Try installing yarn.")
 		}
-		return nil, "", errors.Wrap(err, "running npm/yarn install")
+		return nil, "", nil, errors.Wrap(err, "running npm/yarn install")
 	}
 
 	l.StopLoader()
 
 	// Run vite.
-	cmd, viteServer, err := runVite(ctx, viteOpts, tmpdir)
+	cmd, viteServer, err := runVite(ctx, viteOpts, airplaneViewDir, v.Slug())
 	if err != nil {
-		return nil, "", errors.Wrap(err, "running vite")
+		return nil, "", nil, errors.Wrap(err, "running vite")
 	}
 
-	return cmd, viteServer, nil
+	return cmd, viteServer, closer, nil
 }
 
-func createWrapperTemplates(tmpdir string, entrypointFile string) error {
-	entrypointFile = filepath.Join("..", entrypointFile)
+func createWrapperTemplates(airplaneViewDir string, viewSubdir string, entrypointFile string) error {
+	entrypointFile = filepath.Join("../../", entrypointFile)
 	if !strings.HasSuffix(entrypointFile, ".tsx") {
 		return errors.New("expected entrypoint file to end in .tsx")
 	}
 	entrypointModule := entrypointFile[:len(entrypointFile)-4]
 
-	indexHtmlPath := filepath.Join(tmpdir, "index.html")
+	indexHtmlPath := filepath.Join(viewSubdir, "index.html")
 	title := strings.Split(filepath.Base(entrypointFile), ".")[0]
 	indexHtmlStr, err := libbuild.IndexHtmlString(title)
 	if err != nil {
@@ -143,23 +165,37 @@ func createWrapperTemplates(tmpdir string, entrypointFile string) error {
 		return errors.Wrap(err, "writing index.html")
 	}
 
+	// We used to write the index.html file into .airplane-view/, as opposed to the view-specific subdirectory. Remove
+	// it in case it exists.
+	deprecatedIndexHTMLPath := filepath.Join(airplaneViewDir, "index.html")
+	if err := os.RemoveAll(deprecatedIndexHTMLPath); err != nil {
+		logger.Warning("unable to remove deprecated .airplane-view/index.html file: %v", err)
+	}
+
 	mainTsxStr, err := libbuild.MainTsxString(entrypointModule)
 	if err != nil {
 		return errors.Wrap(err, "loading main.tsx value")
 	}
-	mainTsxPath := filepath.Join(tmpdir, "main.tsx")
+	mainTsxPath := filepath.Join(viewSubdir, "main.tsx")
 	if err := os.WriteFile(mainTsxPath, []byte(mainTsxStr), 0644); err != nil {
 		return errors.Wrap(err, "writing main.tsx")
 	}
+
+	// Similar to index.html, remove the old .airplane-view/main.tsx file.
+	deprecatedMainTsxPath := filepath.Join(airplaneViewDir, "main.tsx")
+	if err := os.RemoveAll(deprecatedMainTsxPath); err != nil {
+		logger.Warning("unable to remove deprecated .airplane-view/main.tsx file: %v", err)
+	}
+
 	return nil
 }
 
-func createViteConfig(tmpdir string) error {
+func createViteConfig(airplaneViewDir string) error {
 	viteConfigStr, err := libbuild.ViteConfigString()
 	if err != nil {
 		return errors.Wrap(err, "loading vite.config.ts value")
 	}
-	viteConfigPath := filepath.Join(tmpdir, "vite.config.ts")
+	viteConfigPath := filepath.Join(airplaneViewDir, "vite.config.ts")
 	if err := os.WriteFile(viteConfigPath, []byte(viteConfigStr), 0644); err != nil {
 		return errors.Wrap(err, "writing vite.config.ts")
 	}
@@ -222,12 +258,13 @@ type ViteOpts struct {
 	TTY     bool
 }
 
-func runVite(ctx context.Context, opts ViteOpts, tmpdir string) (*exec.Cmd, string, error) {
-	cmd := exec.Command("node_modules/.bin/vite", "dev")
-	// TODO - View def might not be in the same location as the view itself. If
-	// we decide to support this, use the entrypoint to determine where to run
-	// the `dev` command.
-	cmd.Dir = tmpdir
+func runVite(ctx context.Context, opts ViteOpts, airplaneViewDir string, viewSlug string) (*exec.Cmd, string, error) {
+	// By default, Vite attempts to locate a config file `vite.config.ts` inside the project root, which it determines
+	// based on the location of the index.html file. Because this is part of the view-specific subdirectory, Vite will
+	// not find the config file there, and we instead need to tell it to use the config file one level higher, at
+	// .airplane-view/vite.config.ts.
+	cmd := exec.Command("node_modules/.bin/vite", "dev", "--config", "vite.config.ts", viewSlug)
+	cmd.Dir = airplaneViewDir
 	cmd.Env = append(os.Environ(), getAdditionalEnvs(opts.Client.Host, opts.Client.APIKey, opts.Client.Token, opts.EnvSlug)...)
 
 	stdout, err := cmd.StdoutPipe()

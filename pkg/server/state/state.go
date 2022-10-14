@@ -1,6 +1,7 @@
 package state
 
 import (
+	"io"
 	"os"
 	"sync"
 
@@ -18,6 +19,7 @@ import (
 )
 
 type ViteContext struct {
+	Closer    io.Closer
 	ServerURL string
 	Process   *os.Process
 }
