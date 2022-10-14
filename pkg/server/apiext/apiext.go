@@ -408,11 +408,14 @@ func CreatePromptHandler(ctx context.Context, state *state.State, r *http.Reques
 	}
 
 	prompt := libapi.Prompt{
-		ID:        utils.GenerateID("pmt"),
-		RunID:     runID,
-		Schema:    req.Schema,
-		Values:    req.Values,
-		CreatedAt: time.Now(),
+		ID:          utils.GenerateID("pmt"),
+		RunID:       runID,
+		Schema:      req.Schema,
+		Values:      req.Values,
+		Reviewers:   req.Reviewers,
+		ConfirmText: req.ConfirmText,
+		CancelText:  req.CancelText,
+		CreatedAt:   time.Now(),
 	}
 
 	if _, err := state.Runs.Update(runID, func(run *dev.LocalRun) error {
