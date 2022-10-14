@@ -166,7 +166,7 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		}
 
 		if cfg.inline && !isInlineSupportedKind(task.Kind) {
-			return errors.New("Inline config is only supported for Node tasks.")
+			return errors.New("Inline config is only supported for Node and Python tasks.")
 		}
 
 		def, err = definitions.NewDefinitionFromTask_0_3(ctx, cfg.client, task)
@@ -748,13 +748,13 @@ func promptForNewTask(file string, info *newTaskInfo, inline bool, workflow bool
 		return errors.Errorf("Unknown kind selected: %q", selectedKindName)
 	}
 	if inline && !isInlineSupportedKind(info.kind) {
-		return errors.New("Inline config is only supported for Node tasks.")
+		return errors.New("Inline config is only supported for Node and Python tasks.")
 	}
 
 	return nil
 }
 
-var inlineSupportedKinds = []build.TaskKind{build.TaskKindNode}
+var inlineSupportedKinds = []build.TaskKind{build.TaskKindNode, build.TaskKindPython}
 
 func isInlineSupportedKind(kind build.TaskKind) bool {
 	return slices.Contains(inlineSupportedKinds, kind)
@@ -791,15 +791,18 @@ func createInlineEntrypoint(r runtime.Interface, entrypoint string, def *definit
 }
 
 func modifyEntrypointForInline(kind build.TaskKind, entrypoint string) string {
-	if kind != build.TaskKindNode {
+	if !isInlineSupportedKind(kind) {
 		return entrypoint
 	}
 
 	ext := filepath.Ext(entrypoint)
 	entrypointWithoutExt := strings.TrimSuffix(entrypoint, ext)
 
-	if !strings.HasSuffix(entrypointWithoutExt, ".airplane") {
+	if kind == build.TaskKindNode && !strings.HasSuffix(entrypointWithoutExt, ".airplane") {
 		return fmt.Sprintf("%s.airplane%s", entrypointWithoutExt, ext)
+	}
+	if kind == build.TaskKindPython && !strings.HasSuffix(entrypointWithoutExt, "_airplane") {
+		return fmt.Sprintf("%s_airplane%s", entrypointWithoutExt, ext)
 	}
 	return entrypoint
 }
