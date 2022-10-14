@@ -89,7 +89,7 @@ func TestDevConfig(t *testing.T) {
 		var dir = tempdir(t)
 		var path = filepath.Join(dir, "dev.yaml")
 
-		_, err := ReadDevConfig(path)
+		_, err := readDevConfig(path)
 
 		assert.Error(err)
 		assert.True(errors.Is(err, ErrMissing))
@@ -111,14 +111,14 @@ func TestDevConfig(t *testing.T) {
 				"password": "password",
 			},
 		}
-		err := WriteDevConfig(&DevConfig{
+		err := writeDevConfig(&DevConfig{
 			ConfigVars:   configs,
 			Path:         path,
 			RawResources: configResources,
 		})
 		assert.NoError(err)
 
-		cfg, err := ReadDevConfig(path)
+		cfg, err := readDevConfig(path)
 		assert.NoError(err)
 		assert.Equal(configs, cfg.ConfigVars)
 		assert.Equal(configResources, cfg.RawResources)

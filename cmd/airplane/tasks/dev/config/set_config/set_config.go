@@ -6,8 +6,6 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/conf"
-	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -51,16 +49,5 @@ func New(c *cli.DevCLI) *cobra.Command {
 }
 
 func run(ctx context.Context, cfg config) error {
-	devConfig := cfg.devCLI.DevConfig
-	if devConfig.ConfigVars == nil {
-		devConfig.ConfigVars = map[string]string{}
-	}
-	devConfig.ConfigVars[cfg.key] = cfg.value
-	err := conf.WriteDevConfig(devConfig)
-	if err != nil {
-		return err
-	}
-
-	logger.Log("Successfully wrote config variable `%s` to dev config file.", cfg.key)
-	return nil
+	return cfg.devCLI.DevConfig.SetConfigVar(cfg.key, cfg.value)
 }

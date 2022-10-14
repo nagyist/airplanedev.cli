@@ -46,7 +46,7 @@ func New(c *cli.Config) *cobra.Command {
 			}
 
 			var err error
-			cfg.DevConfig, err = conf.LoadDevConfigFile(cfg.Filepath)
+			cfg.DevConfig, err = conf.NewDevConfigFile(cfg.Filepath)
 			if err != nil {
 				return err
 			}

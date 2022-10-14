@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/conf"
@@ -14,6 +15,7 @@ import (
 	"github.com/airplanedev/cli/pkg/version"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
+	"github.com/bep/debounce"
 	lrucache "github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
 )
@@ -40,6 +42,10 @@ type State struct {
 	TaskErrors Store[string, []dev_errors.AppError]
 	// Mapping from view slug to view config
 	ViewConfigs Store[string, discover.ViewConfig]
+
+	Discoverer *discover.Discoverer
+	//Debouncer returns the debouncing function for a given key
+	Debouncer DebounceStore
 
 	DevConfig    *conf.DevConfig
 	ViteContexts *lrucache.Cache
@@ -142,4 +148,34 @@ func (store *runsStore) GetRunHistory(taskID string) []dev.LocalRun {
 	}
 
 	return res
+}
+
+// DebounceStore keeps a mapping of keys to debounce functions
+// A debouncer takes in a function and executes it when the debouncer stops being called after X duration.
+// The debounce function can be called with different functions, but the last one will win.
+type DebounceStore struct {
+	// Mapping of key to debounce function
+	debouncers map[string]func(f func())
+	mu         sync.Mutex
+}
+
+func NewDebouncer() DebounceStore {
+	return DebounceStore{debouncers: map[string]func(f func()){}}
+}
+
+const DefaultDebounceDuration = time.Second * 1
+
+// Get will return the debounce function for a given key
+// If it does not exist, it will create one
+func (r *DebounceStore) Get(key string) func(f func()) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	fn, exists := r.debouncers[key]
+	if exists {
+		return fn
+	} else {
+		debouncer := debounce.New(DefaultDebounceDuration)
+		r.debouncers[key] = debouncer
+		return debouncer
+	}
 }

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sync"
+	"time"
 
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -26,6 +28,8 @@ type DevConfig struct {
 	Path string `json:"-" yaml:"-"`
 	// Resources is a mapping from slug to external resource.
 	Resources map[string]env.ResourceWithEnv `json:"-" yaml:"-"`
+
+	mu sync.Mutex
 }
 
 // NewDevConfig returns a default dev config.
@@ -38,6 +42,8 @@ func NewDevConfig(path string) *DevConfig {
 	}
 }
 
+// updateRawResources needs to be called whenever Resources is mutated, to keep RawResources in sync
+// the caller of updateRawResources should have the lock on the DevConfig
 func (d *DevConfig) updateRawResources() error {
 	resourceList := make([]resources.Resource, 0, len(d.RawResources))
 
@@ -61,6 +67,9 @@ func (d *DevConfig) updateRawResources() error {
 
 // SetResource updates a resource in the dev config file, creating it if necessary.
 func (d *DevConfig) SetResource(slug string, r resources.Resource) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	d.Resources[slug] = env.ResourceWithEnv{
 		Resource: r,
 		Remote:   false,
@@ -70,7 +79,7 @@ func (d *DevConfig) SetResource(slug string, r resources.Resource) error {
 		return errors.Wrap(err, "updating raw resources")
 	}
 
-	if err := WriteDevConfig(d); err != nil {
+	if err := writeDevConfig(d); err != nil {
 		return errors.Wrap(err, "writing dev config")
 	}
 	logger.Log("Wrote resource %s to dev config file at %s", slug, d.Path)
@@ -80,6 +89,9 @@ func (d *DevConfig) SetResource(slug string, r resources.Resource) error {
 
 // RemoveResource removes the resource in the dev config file with the given slug, if it exists.
 func (d *DevConfig) RemoveResource(slug string) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	for s := range d.Resources {
 		if s == slug {
 			delete(d.Resources, s)
@@ -90,14 +102,62 @@ func (d *DevConfig) RemoveResource(slug string) error {
 		return errors.Wrap(err, "updating raw resources")
 	}
 
-	if err := WriteDevConfig(d); err != nil {
+	if err := writeDevConfig(d); err != nil {
 		return errors.Wrap(err, "writing dev config")
 	}
 
 	return nil
 }
 
-func ReadDevConfig(path string) (*DevConfig, error) {
+// RemoveConfigVar deletes the config from the dev config file, if it exists.
+func (d *DevConfig) RemoveConfigVar(key string) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if _, ok := d.ConfigVars[key]; !ok {
+		return errors.Errorf("Config variable `%s` not found in dev config file", key)
+	}
+
+	delete(d.ConfigVars, key)
+	if err := writeDevConfig(d); err != nil {
+		return err
+	}
+
+	logger.Log("Deleted config variable `%q` from dev config file.", key)
+	return nil
+}
+
+// SetConfigVar updates a config in the dev config file, creating it if necessary.
+func (d *DevConfig) SetConfigVar(key string, value string) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.ConfigVars == nil {
+		d.ConfigVars = map[string]string{}
+	}
+	d.ConfigVars[key] = value
+	err := writeDevConfig(d)
+	if err != nil {
+		return err
+	}
+
+	logger.Log("Successfully wrote config variable `%q` to dev config file.", key)
+	return nil
+}
+
+// LoadConfigFile reads the contents of the dev config file at the path
+func (d *DevConfig) LoadConfigFile() error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	config, err := NewDevConfigFile(d.Path)
+	if err != nil {
+		return err
+	}
+	d.ConfigVars = config.ConfigVars
+	d.RawResources = config.RawResources
+	d.Resources = config.Resources
+	return nil
+}
+
+func readDevConfig(path string) (*DevConfig, error) {
 	cfg := &DevConfig{}
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -151,7 +211,7 @@ func ReadDevConfig(path string) (*DevConfig, error) {
 	return cfg, nil
 }
 
-func WriteDevConfig(config *DevConfig) error {
+func writeDevConfig(config *DevConfig) error {
 	if err := os.MkdirAll(filepath.Dir(config.Path), 0777); err != nil {
 		return errors.Wrap(err, "mkdir")
 	}
@@ -181,13 +241,14 @@ func WriteDevConfig(config *DevConfig) error {
 	return nil
 }
 
-// LoadDevConfigFile attempts to load in the dev config file at devConfigPath.
-func LoadDevConfigFile(devConfigPath string) (*DevConfig, error) {
+// NewDevConfigFile attempts to load in the dev config file at the provided path
+// and returns a new DevConfig
+func NewDevConfigFile(devConfigPath string) (*DevConfig, error) {
 	var devConfig *DevConfig
 	var devConfigLoaded bool
 	if devConfigPath != "" {
 		var err error
-		devConfig, err = ReadDevConfig(devConfigPath)
+		devConfig, err = readDevConfig(devConfigPath)
 		if err != nil {
 			if !errors.Is(err, ErrMissing) {
 				return nil, errors.Wrap(err, "unable to read dev config")
@@ -198,7 +259,7 @@ func LoadDevConfigFile(devConfigPath string) (*DevConfig, error) {
 	}
 
 	if devConfigLoaded {
-		logger.Log("Loaded dev config from %s", devConfigPath)
+		logger.Log("%v Loaded dev config from %s", logger.Yellow(time.Now().Format(logger.TimeFormatNoDate)), devConfigPath)
 	} else {
 		logger.Debug("Using empty dev config")
 		devConfig = NewDevConfig(devConfigPath)

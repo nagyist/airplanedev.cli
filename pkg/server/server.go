@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
+	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/conf"
@@ -26,6 +28,7 @@ import (
 	"github.com/gorilla/mux"
 	lrucache "github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
+	"github.com/rjeczalik/notify"
 )
 
 const DefaultPort = 4000
@@ -91,6 +94,7 @@ type Options struct {
 	DevConfig    *conf.DevConfig
 	Dir          string
 	AuthInfo     api.AuthInfoResponse
+	Discoverer   *discover.Discoverer
 }
 
 // newServer returns a new HTTP server with API routes
@@ -137,12 +141,14 @@ func Start(opts Options) (*Server, error) {
 		TaskConfigs:  state.NewStore[string, discover.TaskConfig](nil),
 		TaskErrors:   state.NewStore[string, []dev_errors.AppError](nil),
 		ViewConfigs:  state.NewStore[string, discover.ViewConfig](nil),
+		Debouncer:    state.NewDebouncer(),
 		LocalClient:  opts.LocalClient,
 		DevConfig:    opts.DevConfig,
 		ViteContexts: viteContextCache,
 		Dir:          opts.Dir,
 		Logger:       logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
 		AuthInfo:     opts.AuthInfo,
+		Discoverer:   opts.Discoverer,
 	}
 
 	r := NewRouter(state)
@@ -222,30 +228,156 @@ func ValidateTasks(ctx context.Context, resources map[string]env.ResourceWithEnv
 	}, nil
 }
 
+func (s *Server) DiscoverTasksAndViews(ctx context.Context, dir string) ([]discover.TaskConfig, []discover.ViewConfig, error) {
+	if s.state.Discoverer == nil {
+		return []discover.TaskConfig{}, []discover.ViewConfig{}, errors.New("discoverer not initialized")
+	}
+	taskConfigs, viewConfigs, err := s.state.Discoverer.Discover(ctx, dir)
+	if err != nil {
+		// This is a temporary workaround for SQL + REST tasks if a resource referenced in the task definition doesn't
+		// exist yet. Ideally, we don't error during discovery, and allow the user to create the resource through the
+		// studio.
+		var rerr libapi.ResourceMissingError
+		if errors.As(err, &rerr) {
+			var message string
+			// Handle demo db in a special case.
+			if rerr.Slug == resource.DemoDBName || rerr.Slug == resource.DemoDBSlug {
+				message = "Demo DB resource not found - please create it using `airplane demo create-db`."
+			} else {
+				message = fmt.Sprintf("Resource with name or slug %s not found, please create it using `airplane dev config set-resource`", rerr.Slug)
+				if s.state.Env.ID != env.LocalEnvID {
+					message += fmt.Sprintf(" or create it remotely at %s/settings/resources/new.", s.state.LocalClient.AppURL())
+				} else {
+					message += "."
+				}
+			}
+			return []discover.TaskConfig{}, []discover.ViewConfig{}, errors.Errorf(message)
+		}
+		return []discover.TaskConfig{}, []discover.ViewConfig{}, errors.Wrap(err, "discovering tasks and views")
+	}
+	return taskConfigs, viewConfigs, err
+}
+
+// shouldReloadDirectory returns whether the entire directory should be refreshed
+// or an individual path
+func shouldReloadDirectory(e notify.Event) bool {
+	// for delete or rename events, we want to refresh the entire directory
+	if e == notify.Remove || e == notify.Rename {
+		return true
+	}
+	return false
+}
+
+// ReloadApps takes in the changed file/directory and kicks off a
+// goroutine to re-discover the task/view or reload the config file.
+// It uses the state.Debouncer to debounce the actual refreshing.
+func (s *Server) ReloadApps(ctx context.Context, path string, wd string, e notify.Event) error {
+	shouldRefreshDir := shouldReloadDirectory(e)
+	if shouldRefreshDir {
+		path = wd
+	}
+	var reload func()
+
+	if path == s.state.DevConfig.Path {
+		reload = func() {
+			if err := s.state.DevConfig.LoadConfigFile(); err != nil {
+				logger.Error("Loading dev config file: %s", err.Error())
+			}
+		}
+	} else {
+		reload = func() {
+			taskConfigs, viewConfigs, err := s.DiscoverTasksAndViews(ctx, path)
+			if err != nil {
+				logger.Error(err.Error())
+			}
+			_, err = s.RegisterTasksAndViews(ctx, DiscoverOpts{
+				Tasks:        taskConfigs,
+				Views:        viewConfigs,
+				OverwriteAll: shouldRefreshDir,
+			})
+			LogNewApps(taskConfigs, viewConfigs)
+			if err != nil {
+				logger.Error(err.Error())
+			}
+		}
+	}
+
+	debounce := s.state.Debouncer.Get(path)
+	// kick off a debounced version of the reload
+	// debounce is non-blocking and will execute reload() in a separate goroutine
+	debounce(reload)
+	return nil
+}
+
+// LogNewApps prints the names of the tasks/views that were discovered
+func LogNewApps(tasks []discover.TaskConfig, views []discover.ViewConfig) {
+	taskNames := make([]string, len(tasks))
+	for i, task := range tasks {
+		taskNames[i] = task.Def.GetName()
+	}
+	taskNoun := "tasks"
+	if len(tasks) == 1 {
+		taskNoun = "task"
+	}
+	time := time.Now().Format(logger.TimeFormatNoDate)
+	if len(tasks) > 0 {
+		logger.Log("%v Loaded %s: %v", logger.Yellow(time), taskNoun, strings.Join(taskNames, ", "))
+	}
+	viewNoun := "views"
+	if len(views) == 1 {
+		viewNoun = "view"
+	}
+	viewNames := make([]string, len(views))
+	for i, view := range views {
+		viewNames[i] = view.Def.Name
+	}
+	if len(views) > 0 {
+		logger.Log("%v Loaded %s: %v", logger.Yellow(time), viewNoun, strings.Join(viewNames, ", "))
+	}
+}
+
+type DiscoverOpts struct {
+	Tasks []discover.TaskConfig
+	Views []discover.ViewConfig
+	// OverwriteAll will clear out existing tasks and views and replace them with the new ones
+	OverwriteAll bool
+}
+
 // RegisterTasksAndViews generates a mapping of slug to task and view configs and stores the mappings in the server
 // state. Task registration must occur after the local dev server has started because the task discoverer hits the
 // /v0/tasks/getMetadata endpoint.
-func (s *Server) RegisterTasksAndViews(ctx context.Context, taskConfigs []discover.TaskConfig, viewConfigs []discover.ViewConfig) (dev_errors.RegistrationWarnings, error) {
+func (s *Server) RegisterTasksAndViews(ctx context.Context, opts DiscoverOpts) (dev_errors.RegistrationWarnings, error) {
 	mergedResources, err := resource.MergeRemoteResources(ctx, s.state)
 	if err != nil {
 		return dev_errors.RegistrationWarnings{}, errors.Wrap(err, "merging local and remote resources")
 	}
-	registrationWarnings, err := ValidateTasks(ctx, mergedResources, taskConfigs)
+	warnings, err := ValidateTasks(ctx, mergedResources, opts.Tasks)
 	if err != nil {
 		return dev_errors.RegistrationWarnings{}, errors.Wrap(err, "validating task")
 	}
-	for _, cfg := range taskConfigs {
-		_, isUnsupported := registrationWarnings.UnsupportedApps[cfg.Def.GetSlug()]
-		if !isUnsupported {
+	if opts.OverwriteAll {
+		// clear existing tasks, task errorrs, and views
+		s.state.TaskConfigs.ReplaceItems(map[string]discover.TaskConfig{})
+		s.state.TaskErrors.ReplaceItems(map[string][]dev_errors.AppError{})
+		s.state.ViewConfigs.ReplaceItems(map[string]discover.ViewConfig{})
+	}
+
+	for _, cfg := range opts.Tasks {
+		if _, isUnsupported := warnings.UnsupportedApps[cfg.Def.GetSlug()]; !isUnsupported {
 			s.state.TaskConfigs.Add(cfg.Def.GetSlug(), cfg)
 		}
+		s.state.TaskErrors.Delete(cfg.Def.GetSlug())
 	}
-	for _, cfg := range viewConfigs {
+
+	for _, cfg := range opts.Views {
 		s.state.ViewConfigs.Add(cfg.Def.Slug, cfg)
 	}
-	s.state.TaskErrors.ReplaceItems(registrationWarnings.TaskErrors)
 
-	return registrationWarnings, err
+	for slug, warning := range warnings.TaskErrors {
+		s.state.TaskErrors.Add(slug, warning)
+	}
+
+	return warnings, err
 }
 
 // Stop terminates the local dev API server.

@@ -5,9 +5,10 @@ go 1.19
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/airplanedev/lib v0.5.88
+	github.com/airplanedev/lib v0.5.89
 	github.com/airplanedev/ojson v0.1.0
 	github.com/airplanedev/trap v0.1.0
+	github.com/bep/debounce v1.2.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/briandowns/spinner v1.19.0
 	github.com/dustin/go-humanize v1.0.0
@@ -29,6 +30,7 @@ require (
 	github.com/mattn/go-isatty v0.0.16
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pkg/errors v0.9.1
+	github.com/rjeczalik/notify v0.9.2
 	github.com/segmentio/analytics-go v1.2.1-0.20201110202747-0566e489c7b9
 	github.com/segmentio/events/v2 v2.5.1
 	github.com/spf13/cobra v1.6.0

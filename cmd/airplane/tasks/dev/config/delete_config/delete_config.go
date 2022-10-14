@@ -5,9 +5,6 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/conf"
-	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -37,16 +34,5 @@ func New(c *cli.DevCLI) *cobra.Command {
 
 // Run runs the open command.
 func run(ctx context.Context, cfg config) error {
-	devConfig := cfg.devCLI.DevConfig
-	if _, ok := devConfig.ConfigVars[cfg.key]; !ok {
-		return errors.Errorf("Config variable `%s` not found in dev config file", cfg.key)
-	}
-
-	delete(devConfig.ConfigVars, cfg.key)
-	if err := conf.WriteDevConfig(devConfig); err != nil {
-		return err
-	}
-
-	logger.Log("Deleted config variable `%s` from dev config file.", cfg.key)
-	return nil
+	return cfg.devCLI.DevConfig.RemoveConfigVar(cfg.key)
 }

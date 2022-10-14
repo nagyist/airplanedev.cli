@@ -48,6 +48,7 @@ type taskDevConfig struct {
 	// Airplane dev server-related fields
 	studio bool
 	local  bool
+	watch  bool
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -129,7 +130,7 @@ func New(c *cli.Config) *cobra.Command {
 				cfg.entrypointFunc = fileAndFunction[1]
 			}
 
-			cfg.devConfig, err = conf.LoadDevConfigFile(cfg.devConfigPath)
+			cfg.devConfig, err = conf.NewDevConfigFile(cfg.devConfigPath)
 			if err != nil {
 				return errors.Wrap(err, "loading dev config file")
 			}
@@ -146,6 +147,7 @@ func New(c *cli.Config) *cobra.Command {
 	// TODO: Make opening the studio the default behavior.
 	cmd.Flags().BoolVar(&cfg.studio, "studio", false, "Run the local airplane studio")
 	cmd.Flags().BoolVar(&cfg.studio, "editor", false, "Run the local airplane studio (use --studio instead)")
+	cmd.Flags().BoolVar(&cfg.watch, "watch", false, "Watch for changes and apply updates to tasks, views, and workflows automatically.")
 
 	if err := cmd.Flags().MarkHidden("editor"); err != nil {
 		logger.Debug("error: %s", err)
@@ -232,8 +234,10 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		return err
 	}
 
-	// TODO: Allow users to re-register tasks once we move to a long-running local api server
-	if _, err := apiServer.RegisterTasksAndViews(ctx, taskConfigs, viewConfigs); err != nil {
+	if _, err := apiServer.RegisterTasksAndViews(ctx, server.DiscoverOpts{
+		Tasks: taskConfigs,
+		Views: viewConfigs,
+	}); err != nil {
 		return err
 	}
 	parameters, err := taskConfig.Def.GetParameters()

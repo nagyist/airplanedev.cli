@@ -13,12 +13,13 @@ import (
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/resource"
 	"github.com/airplanedev/cli/pkg/server"
+	"github.com/airplanedev/cli/pkg/server/filewatcher"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/pkg/errors"
+	"github.com/rjeczalik/notify"
 )
 
 func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
@@ -56,24 +57,6 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	if err != nil {
 		return errors.Wrap(err, "getting absolute directory of dev server root")
 	}
-	apiServer, err := server.Start(server.Options{
-		LocalClient:  localClient,
-		RemoteClient: cfg.root.Client,
-		DevConfig:    cfg.devConfig,
-		Env:          devEnv,
-		Executor:     localExecutor,
-		Port:         cfg.port,
-		Dir:          absoluteDir,
-		AuthInfo:     authInfo,
-	})
-	if err != nil {
-		return errors.Wrap(err, "starting local dev server")
-	}
-
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-
-	logger.Log("Discovering tasks and views...")
 
 	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{})
 	// Discover local tasks and views in the directory of the file.
@@ -101,32 +84,29 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		EnvSlug: cfg.envSlug,
 		Client:  localClient,
 	}
-
-	taskConfigs, viewConfigs, err := d.Discover(ctx, cfg.fileOrDir)
+	apiServer, err := server.Start(server.Options{
+		LocalClient:  localClient,
+		RemoteClient: cfg.root.Client,
+		DevConfig:    cfg.devConfig,
+		Env:          devEnv,
+		Executor:     localExecutor,
+		Port:         cfg.port,
+		Dir:          absoluteDir,
+		AuthInfo:     authInfo,
+		Discoverer:   d,
+	})
 	if err != nil {
-		// This is a temporary workaround for SQL + REST tasks if a resource referenced in the task definition doesn't
-		// exist yet. Ideally, we don't error during discovery, and allow the user to create the resource through the
-		// studio.
-		var rerr libapi.ResourceMissingError
-		if errors.As(err, &rerr) {
-			var message string
-			// Handle demo db in a special case.
-			if rerr.Slug == resource.DemoDBName || rerr.Slug == resource.DemoDBSlug {
-				message = "Demo DB resource not found - please create it using `airplane demo create-db`."
-			} else {
-				message = fmt.Sprintf("Resource with name or slug %s not found, please create it using `airplane dev config set-resource`", rerr.Slug)
-				if devEnv.ID != env.LocalEnvID {
-					message += fmt.Sprintf(" or create it remotely at %s/settings/resources/new.", cfg.root.Client.AppURL())
-				} else {
-					message += "."
-				}
-			}
-
-			return errors.Errorf(message)
-		}
-		return errors.Wrap(err, "discovering task configs")
+		return errors.Wrap(err, "starting local dev server")
 	}
 
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+
+	logger.Log("Discovering tasks and views...")
+	taskConfigs, viewConfigs, err := apiServer.DiscoverTasksAndViews(ctx, cfg.fileOrDir)
+	if err != nil {
+		return err
+	}
 	// Print out discovered views and tasks to the user
 	taskNoun := "tasks"
 	if len(taskConfigs) == 1 {
@@ -147,9 +127,11 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	for _, view := range viewConfigs {
 		logger.Log("- %s", view.Def.Name)
 	}
-
 	// Register discovered tasks with local dev server
-	warnings, err := apiServer.RegisterTasksAndViews(ctx, taskConfigs, viewConfigs)
+	warnings, err := apiServer.RegisterTasksAndViews(ctx, server.DiscoverOpts{
+		Tasks: taskConfigs,
+		Views: viewConfigs,
+	})
 	if err != nil {
 		return err
 	}
@@ -186,10 +168,30 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		logger.Log("- Any resources not declared in your dev config will be loaded from your %s environment.", logger.Bold(devEnv.Name))
 	}
 
+	// Start watching for changes and reload apps when the -watch flag is on
+	if cfg.watch {
+		fileWatcher := filewatcher.NewAppWatcher(filewatcher.AppWatcherOpts{
+			IsValid: filewatcher.IsValidDefinitionFile,
+			Callback: func(e notify.EventInfo) error {
+				return apiServer.ReloadApps(context.Background(), e.Path(), cfg.fileOrDir, e.Event())
+			},
+		})
+
+		err := fileWatcher.Watch(cfg.fileOrDir)
+		if err != nil {
+			return errors.Wrap(err, "starting filewatcher")
+		}
+		defer fileWatcher.Stop()
+	} else {
+		logger.Log("")
+		logger.Log("Changes require restarting the studio to take effect.")
+	}
+
 	logger.Log("")
 	studioURL := fmt.Sprintf("%s/studio?host=http://localhost:%d", appURL, cfg.port)
 	logger.Log("Started studio session at %s (^C to quit)", logger.Blue(studioURL))
 	logger.Log("Press ENTER to open the studio in the browser.")
+	logger.Log("")
 
 	// Execute the flow to open the studio in the browser in a separate goroutine so fmt.Scanln doesn't capture
 	// termination signals.

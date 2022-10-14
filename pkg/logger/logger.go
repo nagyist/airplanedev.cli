@@ -16,6 +16,9 @@ var (
 	EnableDebug bool
 )
 
+// TimeFormatNoDate can be used to format timestamps
+const TimeFormatNoDate = "15:04:05"
+
 type Logger interface {
 	Log(msg string, args ...interface{})
 	Warning(msg string, args ...interface{})
