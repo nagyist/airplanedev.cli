@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@airplane/views@1.8.0":
-  version "1.8.0"
-  resolved "https://registry.yarnpkg.com/@airplane/views/-/views-1.8.0.tgz#53be91cf6ed3d5f75f59c1c2fff19e3e5f98803f"
-  integrity sha512-TnSbIc7GnWHEavpyKFv2ZdKqaH8ngmJlp4Hv14rTxLA47Yvu12wqPTNYpT2AazdVpN8yOHhiEqy5ZHVwbJrRBA==
+"@airplane/views@1.8.3":
+  version "1.8.3"
+  resolved "https://registry.yarnpkg.com/@airplane/views/-/views-1.8.3.tgz#d46cb99d6eb034c654a59b7e9505823b42d0c953"
+  integrity sha512-jiAkBhkj4ceYCYJSaW7j3sHE4bW5BpDFQe8qYEYhvYOQnjhoE1I6giNUXPV6zLP9UMu3nZByt0wdsq5YBerJZQ==
   dependencies:
     "@emotion/react" "11.10.4"
     "@heroicons/react" "2.0.11"
@@ -15,7 +15,8 @@
     "@mantine/hooks" "5.4.2"
     "@mantine/notifications" "5.4.2"
     "@mantine/prism" "5.4.2"
-    airplane "0.2.6"
+    airplane "0.2.10"
+    currency-symbol-map "5.1.0"
     dayjs "1.11.5"
     lodash-es "4.17.21"
     plotly.js-basic-dist "2.14.0"
@@ -269,6 +270,11 @@
   resolved "https://registry.yarnpkg.com/@mantine/utils/-/utils-5.4.2.tgz#5cb41263a37c1bdc019b2a08e20ef49faeaacae2"
   integrity sha512-faKJd2VEsq9hw9jR7dYBlgS8gtwWtqYtgzAJ96V5tz+gjuoDkE7St+CbP+PoPGqOWTDE0T5faRiCHbnvaYAC/A==
 
+"@opentelemetry/api@1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/api/-/api-1.2.0.tgz#89ef99401cde6208cff98760b67663726ef26686"
+  integrity sha512-0nBr+VZNKm9tvNDZFstI3Pq1fCTEDK5OZTnVKNvBNAKgd0yIvmwsP4m61rEv7ZP+tOUjWJhROpxK5MsnlF911g==
+
 "@radix-ui/number@1.0.0":
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/@radix-ui/number/-/number-1.0.0.tgz#4c536161d0de750b3f5d55860fc3de46264f897b"
@@ -419,7 +425,7 @@
   dependencies:
     "@types/react" "*"
 
-"@types/react@*", "@types/react@18.0.20":
+"@types/react@*":
   version "18.0.20"
   resolved "https://registry.yarnpkg.com/@types/react/-/react-18.0.20.tgz#e4c36be3a55eb5b456ecf501bd4a00fd4fd0c9ab"
   integrity sha512-MWul1teSPxujEHVwZl4a5HxQ9vVNsjTchVA+xRqv/VYGCuKGAU6UhfrTdF5aBefwD1BHUD8i/zq+O/vyCm/FrA==
@@ -447,24 +453,12 @@
   resolved "https://registry.yarnpkg.com/@types/unist/-/unist-2.0.6.tgz#250a7b16c3b91f672a24552ec64678eeb1d3a08d"
   integrity sha512-PBjIUxZHOuj0R15/xuwJYjFi+KZdNFrehocChv4g5hu6aFroHue8m0lBP0POdK2nKzbw0cgV1mws8+V/JAcEkQ==
 
-airplane@0.2.6:
-  version "0.2.6"
-  resolved "https://registry.yarnpkg.com/airplane/-/airplane-0.2.6.tgz#7574815e6637a5edfb1aa75ea7aac51e0256e6b2"
-  integrity sha512-UpcEB2JtIoRJUonB0f5BgHm1so0A2nYJxvFXEABiOTPB1Vo33J2HQjhED72NQG/VC3X5qWsKh8OAcV++Zkq7EA==
+airplane@0.2.10:
+  version "0.2.10"
+  resolved "https://registry.yarnpkg.com/airplane/-/airplane-0.2.10.tgz#5a806de1c557029d3de38f5bc20d8beceab82df7"
+  integrity sha512-ghL+/gZu2jkEZebuxw2uBuIktI6FMiHicJZ9+kiL/ikGmrogBkgsdzGD8Qk4Gh0U3z3iEitFI//PCaU4YVM3Dg==
   dependencies:
-    "@types/react" "18.0.20"
-    cross-fetch "3.1.5"
-    fast-equals "4.0.3"
-    fetch-retry "5.0.3"
-    query-string "7.1.1"
-    ts-dedent "2.2.0"
-    uuid "9.0.0"
-
-airplane@0.2.8:
-  version "0.2.8"
-  resolved "https://registry.yarnpkg.com/airplane/-/airplane-0.2.8.tgz#61fcbdececb9b9b461cffdde0f756f469865bfd3"
-  integrity sha512-4xwgUgSMSXFizHDcHUG7mAcQ4muKneEIV6Dk6FT+6igZrcNOKVxKJ1cymnJzTmC2xzRAo0AbPMVNhmJ+HAJgwQ==
-  dependencies:
+    "@opentelemetry/api" "1.2.0"
     "@types/react" "18.0.21"
     cross-fetch "3.1.5"
     fast-equals "4.0.3"
@@ -618,6 +612,11 @@ csstype@^3.0.2:
   version "3.1.1"
   resolved "https://registry.yarnpkg.com/csstype/-/csstype-3.1.1.tgz#841b532c45c758ee546a11d5bd7b7b473c8c30b9"
   integrity sha512-DJR/VvkAvSZW9bTouZue2sSxDwdTN92uHjqeKVm+0dAqdfNykRzQ95tay8aXMBAAPpUiq4Qcug2L7neoRh2Egw==
+
+currency-symbol-map@5.1.0:
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/currency-symbol-map/-/currency-symbol-map-5.1.0.tgz#59531fbe977ba95e8d358e90e3c9e9053efb75ad"
+  integrity sha512-LO/lzYRw134LMDVnLyAf1dHE5tyO6axEFkR3TXjQIOmMkAM9YL6QsiUwuXzZAmFnuDJcs4hayOgyIYtViXFrLw==
 
 dayjs@1.11.5:
   version "1.11.5"

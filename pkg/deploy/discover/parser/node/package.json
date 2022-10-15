@@ -11,8 +11,8 @@
   },
   "devDependencies": {
     "@types/jsdom": "20.0.0",
-    "esbuild": "0.15.10",
-    "tsx": "3.9.0",
+    "esbuild": "0.15.11",
+    "tsx": "3.10.1",
     "typescript": "4.8.4"
   }
 }
