@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -114,7 +115,7 @@ func CreateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 		return CreateResourceResponse{}, errors.Wrap(err, "computing precalculated fields")
 	}
 
-	id := fmt.Sprintf("res-%s", resourceSlug)
+	id := conf.GenerateLocalResourceID(resourceSlug)
 	resource := req.ExportResource
 	if err := resource.UpdateBaseResource(resources.BaseResource{
 		ID:   id,

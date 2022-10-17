@@ -103,13 +103,15 @@ func TestDevConfig(t *testing.T) {
 		configs := map[string]string{
 			"CONFIG_VAR": "value",
 		}
+		postgres := map[string]interface{}{
+			"kind":     "postgres",
+			"slug":     "db",
+			"username": "postgres",
+			"password": "password",
+			// no ID is written
+		}
 		configResources := []map[string]interface{}{
-			{
-				"kind":     "postgres",
-				"slug":     "db",
-				"username": "postgres",
-				"password": "password",
-			},
+			postgres,
 		}
 		err := writeDevConfig(&DevConfig{
 			ConfigVars:   configs,
@@ -121,6 +123,8 @@ func TestDevConfig(t *testing.T) {
 		cfg, err := readDevConfig(path)
 		assert.NoError(err)
 		assert.Equal(configs, cfg.ConfigVars)
+		// reading from the dev config should generate the ID into RawResources
+		postgres["id"] = "res-db"
 		assert.Equal(configResources, cfg.RawResources)
 		assert.Equal(map[string]env.ResourceWithEnv{
 			"db": {
@@ -128,6 +132,7 @@ func TestDevConfig(t *testing.T) {
 					BaseResource: resources.BaseResource{
 						Kind: kinds.ResourceKindPostgres,
 						Slug: "db",
+						ID:   "res-db",
 					},
 					Username: "postgres",
 					Password: "password",

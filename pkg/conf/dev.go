@@ -2,6 +2,7 @@ package conf
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -60,6 +61,10 @@ func (d *DevConfig) updateRawResources() error {
 	d.RawResources = []map[string]interface{}{}
 	if err := json.Unmarshal(buf, &d.RawResources); err != nil {
 		return errors.Wrap(err, "unmarshalling into raw resources")
+	}
+	for _, resource := range d.RawResources {
+		// hide the resource ID so it doesn't get marshaled into the dev config YAML
+		delete(resource, "id")
 	}
 
 	return nil
@@ -195,6 +200,9 @@ func readDevConfig(path string) (*DevConfig, error) {
 			return nil, errors.Errorf("expected slug type to be string, got %T", slug)
 		}
 
+		// generate the resource ID so the dev config file doesn't need to have it
+		r["id"] = GenerateLocalResourceID(slugStr)
+
 		res, err := resources.GetResource(resources.ResourceKind(kindStr), r)
 		if err != nil {
 			return nil, errors.Wrap(err, "getting resource from raw resource")
@@ -211,11 +219,14 @@ func readDevConfig(path string) (*DevConfig, error) {
 	return cfg, nil
 }
 
+func GenerateLocalResourceID(slug string) string {
+	return fmt.Sprintf("res-%s", slug)
+}
+
 func writeDevConfig(config *DevConfig) error {
 	if err := os.MkdirAll(filepath.Dir(config.Path), 0777); err != nil {
 		return errors.Wrap(err, "mkdir")
 	}
-
 	buf, err := yaml.Marshal(config)
 	if err != nil {
 		return err
