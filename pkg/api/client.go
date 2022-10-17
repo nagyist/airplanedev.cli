@@ -50,6 +50,10 @@ type Task struct {
 	IsArchived                 bool               `json:"isArchived" yaml:"isArchived"`
 	InterpolationMode          string             `json:"interpolationMode" yaml:"-"`
 	Triggers                   []Trigger          `json:"triggers" yaml:"-"`
+
+	CreatedAt time.Time `json:"createdAt" yaml:"-"`
+	// Computed based on the task's revision.
+	UpdatedAt time.Time `json:"updatedAt" yaml:"-"`
 }
 
 type GetTaskRequest struct {
