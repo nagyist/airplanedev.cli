@@ -58,6 +58,7 @@ type taskKind_0_3 interface {
 	getEntrypoint() (string, error)
 	getEnv() (api.TaskEnv, error)
 	getConfigAttachments() []api.ConfigAttachment
+	getBuildType() (build.BuildType, build.BuildTypeVersion)
 }
 
 var _ taskKind_0_3 = &ImageDefinition_0_3{}
@@ -123,6 +124,10 @@ func (d *ImageDefinition_0_3) getEnv() (api.TaskEnv, error) {
 
 func (d *ImageDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
 	return []api.ConfigAttachment{}
+}
+
+func (d *ImageDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
+	return build.DockerBuildType, build.BuildTypeVersionUnspecified
 }
 
 var _ taskKind_0_3 = &NodeDefinition_0_3{}
@@ -195,6 +200,10 @@ func (d *NodeDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
 	return []api.ConfigAttachment{}
 }
 
+func (d *NodeDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
+	return build.NodeBuildType, build.BuildTypeVersion(d.NodeVersion)
+}
+
 var _ taskKind_0_3 = &PythonDefinition_0_3{}
 
 type PythonDefinition_0_3 struct {
@@ -256,6 +265,10 @@ func (d *PythonDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
 	return []api.ConfigAttachment{}
 }
 
+func (d *PythonDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
+	return build.PythonBuildType, build.BuildTypeVersionUnspecified
+}
+
 var _ taskKind_0_3 = &ShellDefinition_0_3{}
 
 type ShellDefinition_0_3 struct {
@@ -315,6 +328,10 @@ func (d *ShellDefinition_0_3) getEnv() (api.TaskEnv, error) {
 
 func (d *ShellDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
 	return []api.ConfigAttachment{}
+}
+
+func (d *ShellDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
+	return build.ShellBuildType, build.BuildTypeVersionUnspecified
 }
 
 var _ taskKind_0_3 = &SQLDefinition_0_3{}
@@ -498,6 +515,10 @@ func (d *SQLDefinition_0_3) normalize(ctx context.Context, client api.IAPIClient
 	return nil
 }
 
+func (d *SQLDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
+	return build.NoneBuildType, build.BuildTypeVersionUnspecified
+}
+
 var _ taskKind_0_3 = &RESTDefinition_0_3{}
 
 type RESTDefinition_0_3 struct {
@@ -665,6 +686,10 @@ func (d *RESTDefinition_0_3) normalize(ctx context.Context, client api.IAPIClien
 		return api.ResourceMissingError{Slug: d.Resource}
 	}
 	return nil
+}
+
+func (d *RESTDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
+	return build.NoneBuildType, build.BuildTypeVersionUnspecified
 }
 
 type ParameterDefinition_0_3 struct {
@@ -1127,6 +1152,15 @@ func (d Definition_0_3) GetDescription() string {
 
 func (d Definition_0_3) GetParameters() (api.Parameters, error) {
 	return convertParametersDefToAPI(d.Parameters)
+}
+
+func (d Definition_0_3) GetBuildType() (build.BuildType, build.BuildTypeVersion, error) {
+	taskKind, err := d.taskKind()
+	if err != nil {
+		return "", "", err
+	}
+	t, v := taskKind.getBuildType()
+	return t, v, nil
 }
 
 func (d *Definition_0_3) SetDefnFilePath(filePath string) {

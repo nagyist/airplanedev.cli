@@ -2,10 +2,12 @@ package discover
 
 import (
 	"context"
+	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/airplanedev/lib/pkg/api"
+	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
@@ -152,7 +154,7 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 	return []TaskConfig{tc}, nil
 }
 
-func (dd *DefnDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, error) {
+func (dd *DefnDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, error) {
 	if !definitions.IsTaskDef(file) {
 		// Check if there is a file in the same directory with the same name that is a task defn.
 		fileWithoutExtension := strings.TrimSuffix(file, filepath.Ext(file))
@@ -162,38 +164,47 @@ func (dd *DefnDiscoverer) GetTaskRoot(ctx context.Context, file string) (string,
 				return dd.GetTaskRoot(ctx, fileWithTaskDefExtension)
 			}
 		}
-		return "", nil
+		return "", "", "", nil
 	}
 
 	dir, err := taskdir.Open(file)
 	if err != nil {
-		return "", err
+		return "", "", "", err
 	}
 	defer dir.Close()
 
 	def, err := dir.ReadDefinition()
 	if err != nil {
-		return "", err
+		return "", "", "", err
+	}
+
+	buildType, buildTypeVersion, err := def.GetBuildType()
+	if err != nil {
+		return "", "", "", err
 	}
 
 	entrypoint, err := def.GetAbsoluteEntrypoint()
 	if err == definitions.ErrNoEntrypoint {
-		return entrypoint, nil
+		absFile, err := filepath.Abs(file)
+		if err != nil {
+			return "", "", "", err
+		}
+		return path.Dir(absFile), buildType, buildTypeVersion, nil
 	} else if err != nil {
-		return "", err
+		return "", "", "", err
 	} else if err = fsx.AssertExistsAll(entrypoint); err != nil {
-		return "", err
+		return "", "", "", err
 	}
 	kind, _, err := def.GetKindAndOptions()
 	if err != nil {
-		return "", err
+		return "", "", "", err
 	}
 
 	taskPathMetadata, err := taskPathMetadata(entrypoint, kind)
 	if err != nil {
-		return "", err
+		return "", "", "", err
 	}
-	return taskPathMetadata.RootDir, nil
+	return taskPathMetadata.RootDir, buildType, buildTypeVersion, nil
 }
 
 func (dd *DefnDiscoverer) ConfigSource() ConfigSource {

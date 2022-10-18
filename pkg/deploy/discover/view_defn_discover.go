@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/airplanedev/lib/pkg/api"
+	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
@@ -52,7 +53,7 @@ func (dd *ViewDefnDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 		return nil, errors.Wrap(err, "getting absolute path of view definition file")
 	}
 
-	root, err := dd.GetViewRoot(ctx, file)
+	root, _, _, err := dd.GetViewRoot(ctx, file)
 	if err != nil {
 		return nil, err
 	}
@@ -99,20 +100,20 @@ func (dd *ViewDefnDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 	}, nil
 }
 
-func (dd *ViewDefnDiscoverer) GetViewRoot(ctx context.Context, file string) (string, error) {
+func (dd *ViewDefnDiscoverer) GetViewRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, error) {
 	if !definitions.IsViewDef(file) {
-		return "", nil
+		return "", "", "", nil
 	}
 
 	root, err := filepath.Abs(filepath.Dir(file))
 	if err != nil {
-		return "", errors.Wrap(err, "getting absolute view definition root")
+		return "", "", "", errors.Wrap(err, "getting absolute view definition root")
 	}
 	if p, ok := fsx.Find(root, "package.json"); ok {
 		root = p
 	}
 
-	return root, nil
+	return root, build.NodeBuildType, build.BuildTypeVersionUnspecified, nil
 }
 
 func (dd *ViewDefnDiscoverer) ConfigSource() ConfigSource {

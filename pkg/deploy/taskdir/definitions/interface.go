@@ -41,6 +41,7 @@ type DefinitionInterface interface {
 	GetName() string
 	GetDescription() string
 	GetParameters() (api.Parameters, error)
+	GetBuildType() (build.BuildType, build.BuildTypeVersion, error)
 
 	GetRuntime() build.TaskRuntime
 	UpgradeJST() error

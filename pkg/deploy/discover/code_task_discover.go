@@ -96,25 +96,28 @@ func (c *CodeTaskDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([
 	return taskConfigs, nil
 }
 
-func (c *CodeTaskDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, error) {
+func (c *CodeTaskDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, error) {
 	if !deployutils.IsInlineAirplaneEntity(file) {
-		return "", nil
+		return "", "", "", nil
 	}
 
 	var kind build.TaskKind
+	var buildType build.BuildType
 	if deployutils.IsNodeInlineAirplaneEntity(file) {
 		kind = build.TaskKindNode
+		buildType = build.NodeBuildType
 	} else if deployutils.IsPythonInlineAirplaneEntity(file) {
 		kind = build.TaskKindPython
+		buildType = build.PythonBuildType
 	}
 	if kind == "" {
-		return "", nil
+		return "", "", "", nil
 	}
 	pm, err := taskPathMetadata(file, kind)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to interpret task path metadata")
+		return "", "", "", errors.Wrap(err, "unable to interpret task path metadata")
 	}
-	return pm.RootDir, nil
+	return pm.RootDir, buildType, build.BuildTypeVersionUnspecified, nil
 }
 
 func (c *CodeTaskDiscoverer) ConfigSource() ConfigSource {

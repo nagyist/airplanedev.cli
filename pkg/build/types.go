@@ -20,6 +20,33 @@ const (
 	TaskKindREST TaskKind = "rest"
 )
 
+type BuildType string
+
+const (
+	NodeBuildType   BuildType = "node"
+	PythonBuildType BuildType = "python"
+	DockerBuildType BuildType = "docker"
+	ShellBuildType  BuildType = "shell"
+	// NoneBuildType indicates that the entity should not be built.
+	NoneBuildType BuildType = "none"
+)
+
+type BuildTypeVersion string
+
+const (
+	BuildTypeVersionNode14 BuildTypeVersion = "14"
+	BuildTypeVersionNode16 BuildTypeVersion = "16"
+	BuildTypeVersionNode18 BuildTypeVersion = "18"
+
+	BuildTypeVersionPython37  BuildTypeVersion = "3.7"
+	BuildTypeVersionPython38  BuildTypeVersion = "3.8"
+	BuildTypeVersionPython39  BuildTypeVersion = "3.9"
+	BuildTypeVersionPython310 BuildTypeVersion = "3.10"
+	// BuildTypeVersionUnspecified indicates either that a build type does not apply
+	// or that the build type should be chosen by the consumer.
+	BuildTypeVersionUnspecified BuildTypeVersion = ""
+)
+
 type TaskRuntime string
 
 const (

@@ -7,10 +7,12 @@ import (
 	"path/filepath"
 
 	"github.com/airplanedev/lib/pkg/api"
+	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/slices"
 )
 
 type Discoverer struct {
@@ -34,13 +36,14 @@ type Bundle struct {
 	// Only entities that exist in these paths are deployed.
 	// e.g. the root path may contain 5 individual tasks, but the user may only
 	// want to deploy one of those tasks, specified by a single target path.
-	TargetPaths []string
-	// TODO add build type and version
+	TargetPaths  []string
+	BuildType    build.BuildType
+	BuildVersion build.BuildTypeVersion
 }
 
 // Discover recursively discovers Airplane bundles located within "paths".
 func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]Bundle, error) {
-	bundleByPath := make(map[string]Bundle)
+	var bundles []Bundle
 
 	for _, p := range paths {
 		if discover.IgnoredDirectories[filepath.Base(p)] {
@@ -66,20 +69,17 @@ func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]Bundle, e
 				return nil, err
 			}
 			for _, b := range nestedBundles {
-				existingBundle, ok := bundleByPath[b.RootPath]
-				if !ok {
-					existingBundle = Bundle{RootPath: b.RootPath}
-				}
-				bundle, err := updateBundleWithTarget(existingBundle, p)
+				// Ignore nested target paths added in recursive calls. We only care about the top level.
+				b.TargetPaths = nil
+				bundles, err = addBundle(bundles, b, p)
 				if err != nil {
 					return nil, err
 				}
-				bundleByPath[bundle.RootPath] = bundle
 			}
 		} else {
 			// We found a file.
 			for _, td := range d.TaskDiscoverers {
-				bundlePath, err := td.GetTaskRoot(ctx, p)
+				bundlePath, buildType, buildTypeVersion, err := td.GetTaskRoot(ctx, p)
 				if err != nil {
 					return nil, err
 				}
@@ -88,18 +88,18 @@ func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]Bundle, e
 					continue
 				}
 
-				existingBundle, ok := bundleByPath[bundlePath]
-				if !ok {
-					existingBundle = Bundle{RootPath: bundlePath}
+				bundle := Bundle{
+					RootPath:     bundlePath,
+					BuildType:    buildType,
+					BuildVersion: buildTypeVersion,
 				}
-				b, err := updateBundleWithTarget(existingBundle, p)
+				bundles, err = addBundle(bundles, bundle, p)
 				if err != nil {
 					return nil, err
 				}
-				bundleByPath[bundlePath] = b
 			}
 			for _, td := range d.ViewDiscoverers {
-				bundlePath, err := td.GetViewRoot(ctx, p)
+				bundlePath, buildType, buildTypeVersion, err := td.GetViewRoot(ctx, p)
 				if err != nil {
 					return nil, err
 				}
@@ -108,26 +108,57 @@ func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]Bundle, e
 					continue
 				}
 
-				bundleByPath[bundlePath] = Bundle{RootPath: bundlePath}
+				bundle := Bundle{
+					RootPath:     bundlePath,
+					BuildType:    buildType,
+					BuildVersion: buildTypeVersion,
+				}
+				bundles, err = addBundle(bundles, bundle, p)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
 
-	var bundles []Bundle
-	for _, b := range bundleByPath {
-		bundles = append(bundles, b)
-	}
 	return bundles, nil
 }
 
-func updateBundleWithTarget(b Bundle, target string) (Bundle, error) {
+func addBundle(bundles []Bundle, bundle Bundle, path string) ([]Bundle, error) {
+	matchingBundle := -1
+	for i, b := range bundles {
+		if b.RootPath == bundle.RootPath && b.BuildType == bundle.BuildType && b.BuildVersion == bundle.BuildVersion {
+			matchingBundle = i
+			break
+		}
+	}
+
+	if matchingBundle != -1 {
+		b := bundles[matchingBundle]
+		// Update the already existing bundle with the target path.
+		if err := updateBundleWithTarget(&b, path); err != nil {
+			return nil, err
+		}
+		bundles[matchingBundle] = b
+		return bundles, nil
+	}
+
+	// Update the new bundle with the target path and append to the list of bundles.
+	if err := updateBundleWithTarget(&bundle, path); err != nil {
+		return nil, err
+	}
+	bundles = append(bundles, bundle)
+	return bundles, nil
+}
+
+func updateBundleWithTarget(b *Bundle, target string) error {
 	absTarget, err := filepath.Abs(target)
 	if err != nil {
-		return Bundle{}, err
+		return err
 	}
 	targetIsParentOfRoot, err := fsx.IsSubDirectory(absTarget, b.RootPath)
 	if err != nil {
-		return b, err
+		return err
 	}
 
 	var relPath string
@@ -136,27 +167,12 @@ func updateBundleWithTarget(b Bundle, target string) (Bundle, error) {
 	} else {
 		relPath, err = filepath.Rel(b.RootPath, absTarget)
 		if err != nil {
-			return Bundle{}, err
+			return err
 		}
 	}
 
-	shouldAdd := true
-	for _, existingTargetPath := range b.TargetPaths {
-		if existingTargetPath == relPath {
-			shouldAdd = false
-			break
-		}
-		isSubDirectoryOfExistingPath, err := fsx.IsSubDirectory(existingTargetPath, relPath)
-		if err != nil {
-			return b, err
-		}
-		if isSubDirectoryOfExistingPath {
-			shouldAdd = false
-			break
-		}
-	}
-	if shouldAdd {
+	if !slices.Contains(b.TargetPaths, relPath) {
 		b.TargetPaths = append(b.TargetPaths, relPath)
 	}
-	return b, nil
+	return nil
 }

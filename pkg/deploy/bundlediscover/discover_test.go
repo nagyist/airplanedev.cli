@@ -34,26 +34,50 @@ func TestDiscover(t *testing.T) {
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"taskWithComment"},
+					BuildType:   build.NodeBuildType,
 				},
 			},
 		},
 		{
-			desc:  "task with defn",
-			paths: []string{"./fixtures/taskWithDefn"},
+			desc:  "tasks with defn",
+			paths: []string{"./fixtures/tasksWithDefn"},
 			expectedBundles: []Bundle{
 				{
+					RootPath:     fixturesPath,
+					TargetPaths:  []string{"tasksWithDefn"},
+					BuildType:    build.NodeBuildType,
+					BuildVersion: build.BuildTypeVersionNode14,
+				},
+				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"taskWithDefn"},
+					TargetPaths: []string{"tasksWithDefn"},
+					BuildType:   build.PythonBuildType,
+				},
+				{
+					RootPath:    path.Join(fixturesPath, "tasksWithDefn"),
+					TargetPaths: []string{"."},
+					BuildType:   build.ShellBuildType,
+				},
+				{
+					RootPath:    path.Join(fixturesPath, "tasksWithDefn"),
+					TargetPaths: []string{"."},
+					BuildType:   build.DockerBuildType,
 				},
 			},
 		},
 		{
-			desc:  "inline task",
-			paths: []string{"./fixtures/inlineTask"},
+			desc:  "inline tasks",
+			paths: []string{"./fixtures/inlineTasks"},
 			expectedBundles: []Bundle{
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"inlineTask"},
+					TargetPaths: []string{"inlineTasks"},
+					BuildType:   build.NodeBuildType,
+				},
+				{
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"inlineTasks"},
+					BuildType:   build.PythonBuildType,
 				},
 			},
 		},
@@ -64,6 +88,7 @@ func TestDiscover(t *testing.T) {
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"viewWithDefn"},
+					BuildType:   build.NodeBuildType,
 				},
 			},
 		},
@@ -74,26 +99,62 @@ func TestDiscover(t *testing.T) {
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"viewInline"},
+					BuildType:   build.NodeBuildType,
+				},
+			},
+		},
+		{
+			desc:  "inline view with inline tasks",
+			paths: []string{"./fixtures/viewAndTaskInline"},
+			expectedBundles: []Bundle{
+				{
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"viewAndTaskInline"},
+					BuildType:   build.NodeBuildType,
 				},
 			},
 		},
 		{
 			desc:  "task with defn by script name",
-			paths: []string{"./fixtures/taskWithDefn/defn.js"},
+			paths: []string{"./fixtures/tasksWithDefn/defn.js"},
 			expectedBundles: []Bundle{
 				{
-					RootPath:    fixturesPath,
-					TargetPaths: []string{"taskWithDefn/defn.js"},
+					RootPath:     fixturesPath,
+					TargetPaths:  []string{"tasksWithDefn/defn.js"},
+					BuildType:    build.NodeBuildType,
+					BuildVersion: build.BuildTypeVersionNode14,
 				},
 			},
 		},
 		{
 			desc:  "multiple paths",
-			paths: []string{"./fixtures/inlineTask", "./fixtures/taskWithDefn", "./fixtures/taskWithDefn", "./fixtures/taskWithDefn/defn.task.yaml"},
+			paths: []string{"./fixtures/inlineTasks", "./fixtures/tasksWithDefn", "./fixtures/tasksWithDefn", "./fixtures/tasksWithDefn/defn.task.yaml"},
 			expectedBundles: []Bundle{
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"inlineTask", "taskWithDefn"},
+					TargetPaths: []string{"inlineTasks"},
+					BuildType:   build.NodeBuildType,
+				},
+				{
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"inlineTasks", "tasksWithDefn"},
+					BuildType:   build.PythonBuildType,
+				},
+				{
+					RootPath:     fixturesPath,
+					TargetPaths:  []string{"tasksWithDefn", "tasksWithDefn/defn.task.yaml"},
+					BuildType:    build.NodeBuildType,
+					BuildVersion: build.BuildTypeVersionNode14,
+				},
+				{
+					RootPath:    path.Join(fixturesPath, "tasksWithDefn"),
+					TargetPaths: []string{"."},
+					BuildType:   build.ShellBuildType,
+				},
+				{
+					RootPath:    path.Join(fixturesPath, "tasksWithDefn"),
+					TargetPaths: []string{"."},
+					BuildType:   build.DockerBuildType,
 				},
 			},
 		},
@@ -102,18 +163,40 @@ func TestDiscover(t *testing.T) {
 			paths: []string{"./fixtures/nestedTask"},
 			expectedBundles: []Bundle{
 				{
-					RootPath:    fixturesPath,
-					TargetPaths: []string{"nestedTask"},
+					RootPath:     fixturesPath,
+					TargetPaths:  []string{"nestedTask"},
+					BuildType:    build.NodeBuildType,
+					BuildVersion: build.BuildTypeVersionNode16,
 				},
 			},
 		},
+		// {
+		// 	desc:  "multiple tasks same root same build",
+		// 	paths: []string{"./fixtures/multipleTasksSameRoot"},
+		// 	expectedBundles: []Bundle{
+		// 		{
+		// 			RootPath:     fixturesPath,
+		// 			TargetPaths:  []string{"multipleTasksSameRoot"},
+		// 			BuildType:    build.NodeBuildType,
+		// 			BuildVersion: build.BuildTypeVersionNode14,
+		// 		},
+		// 	},
+		// },
 		{
-			desc:  "multiple tasks same root",
-			paths: []string{"./fixtures/multipleTasksSameRoot"},
+			desc:  "multiple tasks same root diff build",
+			paths: []string{"./fixtures/multipleTasksSameRootDiffBuild"},
 			expectedBundles: []Bundle{
 				{
-					RootPath:    fixturesPath,
-					TargetPaths: []string{"multipleTasksSameRoot"},
+					RootPath:     fixturesPath,
+					TargetPaths:  []string{"multipleTasksSameRootDiffBuild"},
+					BuildType:    build.NodeBuildType,
+					BuildVersion: build.BuildTypeVersionNode14,
+				},
+				{
+					RootPath:     fixturesPath,
+					TargetPaths:  []string{"multipleTasksSameRootDiffBuild"},
+					BuildType:    build.NodeBuildType,
+					BuildVersion: build.BuildTypeVersionNode16,
 				},
 			},
 		},
@@ -122,12 +205,16 @@ func TestDiscover(t *testing.T) {
 			paths: []string{"./fixtures/multipleTasksDiffRoot"},
 			expectedBundles: []Bundle{
 				{
-					RootPath:    fixturesPath,
-					TargetPaths: []string{"multipleTasksDiffRoot"},
+					RootPath:     fixturesPath,
+					TargetPaths:  []string{"multipleTasksDiffRoot"},
+					BuildType:    build.NodeBuildType,
+					BuildVersion: build.BuildTypeVersionNode14,
 				},
 				{
-					RootPath:    path.Join(fixturesPath, "multipleTasksDiffRoot/nested"),
-					TargetPaths: []string{"."},
+					RootPath:     path.Join(fixturesPath, "multipleTasksDiffRoot/nested"),
+					TargetPaths:  []string{"."},
+					BuildType:    build.NodeBuildType,
+					BuildVersion: build.BuildTypeVersionNode14,
 				},
 			},
 		},
