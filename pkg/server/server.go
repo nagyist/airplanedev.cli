@@ -86,15 +86,16 @@ func NewRouter(state *state.State) *mux.Router {
 }
 
 type Options struct {
-	LocalClient  *api.Client
-	RemoteClient api.APIClient
-	Env          libapi.Env
-	Port         int
-	Executor     dev.Executor
-	DevConfig    *conf.DevConfig
-	Dir          string
-	AuthInfo     api.AuthInfoResponse
-	Discoverer   *discover.Discoverer
+	LocalClient    *api.Client
+	RemoteClient   api.APIClient
+	RemoteEnv      libapi.Env
+	UseFallbackEnv bool
+	Port           int
+	Executor       dev.Executor
+	DevConfig      *conf.DevConfig
+	Dir            string
+	AuthInfo       api.AuthInfoResponse
+	Discoverer     *discover.Discoverer
 }
 
 // newServer returns a new HTTP server with API routes
@@ -133,22 +134,23 @@ func Start(opts Options) (*Server, error) {
 	}
 
 	state := &state.State{
-		RemoteClient: opts.RemoteClient,
-		Env:          opts.Env,
-		Executor:     opts.Executor,
-		Port:         opts.Port,
-		Runs:         state.NewRunStore(),
-		TaskConfigs:  state.NewStore[string, discover.TaskConfig](nil),
-		TaskErrors:   state.NewStore[string, []dev_errors.AppError](nil),
-		ViewConfigs:  state.NewStore[string, discover.ViewConfig](nil),
-		Debouncer:    state.NewDebouncer(),
-		LocalClient:  opts.LocalClient,
-		DevConfig:    opts.DevConfig,
-		ViteContexts: viteContextCache,
-		Dir:          opts.Dir,
-		Logger:       logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
-		AuthInfo:     opts.AuthInfo,
-		Discoverer:   opts.Discoverer,
+		LocalClient:    opts.LocalClient,
+		RemoteClient:   opts.RemoteClient,
+		RemoteEnv:      opts.RemoteEnv,
+		UseFallbackEnv: opts.UseFallbackEnv,
+		Executor:       opts.Executor,
+		Port:           opts.Port,
+		Runs:           state.NewRunStore(),
+		TaskConfigs:    state.NewStore[string, discover.TaskConfig](nil),
+		TaskErrors:     state.NewStore[string, []dev_errors.AppError](nil),
+		ViewConfigs:    state.NewStore[string, discover.ViewConfig](nil),
+		Debouncer:      state.NewDebouncer(),
+		DevConfig:      opts.DevConfig,
+		ViteContexts:   viteContextCache,
+		Dir:            opts.Dir,
+		Logger:         logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
+		AuthInfo:       opts.AuthInfo,
+		Discoverer:     opts.Discoverer,
 	}
 
 	r := NewRouter(state)
@@ -245,7 +247,7 @@ func (s *Server) DiscoverTasksAndViews(ctx context.Context, dir string) ([]disco
 				message = "Demo DB resource not found - please create it using `airplane demo create-db`."
 			} else {
 				message = fmt.Sprintf("Resource with name or slug %s not found, please create it using `airplane dev config set-resource`", rerr.Slug)
-				if s.state.Env.ID != env.LocalEnvID {
+				if s.state.UseFallbackEnv {
 					message += fmt.Sprintf(" or create it remotely at %s/settings/resources/new.", s.state.LocalClient.AppURL())
 				} else {
 					message += "."

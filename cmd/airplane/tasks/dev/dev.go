@@ -18,7 +18,6 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/configs"
 	"github.com/airplanedev/cli/pkg/dev"
-	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/params"
 	"github.com/airplanedev/cli/pkg/resource"
@@ -46,9 +45,9 @@ type taskDevConfig struct {
 	entrypointFunc string
 
 	// Airplane dev server-related fields
-	studio bool
-	local  bool
-	watch  bool
+	studio         bool
+	useFallbackEnv bool
+	watch          bool
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -112,9 +111,9 @@ func New(c *cli.Config) *cobra.Command {
 					}
 				}
 
-				// If the --env flag isn't explicitly set, assume local references for child tasks and resources.
-				if !cmd.Flags().Changed("env") {
-					cfg.local = true
+				// Enable fallback environments only if `--env` is explicitly set.
+				if cmd.Flags().Changed("env") {
+					cfg.useFallbackEnv = true
 				}
 			} else if len(args) == 0 || strings.HasPrefix(args[0], "-") {
 				cfg.fileOrDir = wd
@@ -191,11 +190,9 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		TeamID: cfg.root.Client.TeamID,
 	}
 
-	devEnv := env.NewLocalEnv()
 	apiServer, err := server.Start(server.Options{
 		LocalClient:  localClient,
 		RemoteClient: cfg.root.Client,
-		Env:          devEnv,
 		Executor:     localExecutor,
 		Port:         cfg.port,
 		DevConfig:    cfg.devConfig,
@@ -276,19 +273,18 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	configVars := configs.MaterializeConfigs(attachedConfigs, cfg.devConfig.ConfigVars)
 
 	localRunConfig := dev.LocalRunConfig{
-		ID:          dev.GenerateRunID(),
-		Name:        taskConfig.Def.GetName(),
-		Kind:        kind,
-		KindOptions: kindOptions,
-		ParamValues: paramValues,
-		Port:        cfg.port,
-		Client:      cfg.root.Client,
-		File:        cfg.fileOrDir,
-		Slug:        taskConfig.Def.GetSlug(),
-		Env:         devEnv,
-		EnvVars:     envVars,
-		Resources:   resources,
-		ConfigVars:  configVars,
+		ID:           dev.GenerateRunID(),
+		Name:         taskConfig.Def.GetName(),
+		Kind:         kind,
+		KindOptions:  kindOptions,
+		ParamValues:  paramValues,
+		LocalClient:  localClient,
+		RemoteClient: cfg.root.Client,
+		File:         cfg.fileOrDir,
+		Slug:         taskConfig.Def.GetSlug(),
+		EnvVars:      envVars,
+		Resources:    resources,
+		ConfigVars:   configVars,
 	}
 	_, err = localExecutor.Execute(ctx, localRunConfig)
 	if err != nil {

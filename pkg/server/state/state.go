@@ -9,7 +9,6 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
-	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/version"
@@ -29,7 +28,12 @@ type ViteContext struct {
 type State struct {
 	LocalClient  *api.Client
 	RemoteClient api.APIClient
-	Env          libapi.Env
+	RemoteEnv    libapi.Env
+	// We need UseFallbackEnv because there will always be a RemoteEnv (to look for a user's team's default resources).
+	// UseFallbackEnv determines whether we should use this remote env for tasks/resources/etc. outside of these
+	// defaults.
+	UseFallbackEnv bool
+
 	// Directory from which tasks and views were discovered
 	Dir      string
 	Executor dev.Executor
@@ -53,10 +57,6 @@ type State struct {
 
 	AuthInfo     api.AuthInfoResponse
 	VersionCache version.Cache
-}
-
-func (s *State) HasFallbackEnv() bool {
-	return s.Env.ID != env.LocalEnvID
 }
 
 // TODO: add limit on max items

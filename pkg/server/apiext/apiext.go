@@ -82,16 +82,15 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 	start := time.Now().UTC()
 	if isBuiltin || ok {
 		runConfig := dev.LocalRunConfig{
-			ID:          runID,
-			ParamValues: req.ParamValues,
-			Port:        state.Port,
-			Client:      state.RemoteClient,
-			Slug:        req.Slug,
-			Env:         state.Env,
-			ParentRunID: pointers.String(parentID),
-			IsBuiltin:   isBuiltin,
-			AuthInfo:    state.AuthInfo,
-			LogBroker:   run.LogBroker,
+			ID:           runID,
+			ParamValues:  req.ParamValues,
+			LocalClient:  state.LocalClient,
+			RemoteClient: state.RemoteClient,
+			Slug:         req.Slug,
+			ParentRunID:  pointers.String(parentID),
+			IsBuiltin:    isBuiltin,
+			AuthInfo:     state.AuthInfo,
+			LogBroker:    run.LogBroker,
 		}
 		resourceAttachments := map[string]string{}
 		mergedResources, err := resource.MergeRemoteResources(ctx, state)
@@ -214,14 +213,14 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			}
 		}()
 	} else {
-		if !state.HasFallbackEnv() {
+		if !state.UseFallbackEnv {
 			return dev.LocalRun{}, errors.Errorf("task with slug %s is not registered locally", req.Slug)
 		}
 
 		resp, err := state.RemoteClient.RunTask(ctx, api.RunTaskRequest{
 			TaskSlug:    &req.Slug,
 			ParamValues: req.ParamValues,
-			EnvSlug:     state.Env.Slug,
+			EnvSlug:     state.RemoteEnv.Slug,
 		})
 		if err != nil {
 			if _, ok := err.(*libapi.TaskMissingError); ok {

@@ -39,16 +39,9 @@ func GenerateAliasToResourceMap(
 		if !ok {
 			return nil, errors.Errorf("Cannot find resource with slug %s in dev config file or remotely", slug)
 		} else if resourceWithEnv.Remote {
-			var envSlug string
-			// We load in some default remote resources (e.g. Slack) - in those cases, the remote flag will be true,
-			// but the envID/slug will still be "local", which is not a valid remote environment. In these cases, we
-			// keep the env slug empty, which will default to the user's team's default environment.
-			if state.HasFallbackEnv() {
-				envSlug = state.Env.Slug
-			}
 			remoteResourceWithCredentials, err := state.RemoteClient.GetResource(ctx, api.GetResourceRequest{
 				Slug:                 slug,
-				EnvSlug:              envSlug,
+				EnvSlug:              state.RemoteEnv.Slug,
 				IncludeSensitiveData: true,
 			})
 			if err != nil {
@@ -128,8 +121,8 @@ func mergeDefaultRemoteResource(
 // ListRemoteResources returns any remote resources that the user can develop against. If no fallback environment is
 // set, we still return a set of default remote resources for convenience.
 func ListRemoteResources(ctx context.Context, state *state.State) ([]libapi.Resource, error) {
-	if state.HasFallbackEnv() {
-		resp, err := state.RemoteClient.ListResources(ctx, state.Env.Slug)
+	if state.UseFallbackEnv {
+		resp, err := state.RemoteClient.ListResources(ctx, state.RemoteEnv.Slug)
 		if err != nil {
 			return nil, err
 		}

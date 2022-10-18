@@ -11,12 +11,10 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev"
-	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/filewatcher"
 	"github.com/airplanedev/cli/pkg/utils"
-	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/pkg/errors"
 	"github.com/rjeczalik/notify"
@@ -29,20 +27,14 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 	appURL := cfg.root.Client.AppURL()
 
-	var devEnv libapi.Env
-	devServerHost := fmt.Sprintf("127.0.0.1:%d", cfg.port)
-	if cfg.local {
-		// Use a special env ID and slug when executing tasks locally and the `--env` flag doesn't apply.
-		devEnv = env.NewLocalEnv()
-	} else {
-		devEnv, err = cfg.root.Client.GetEnv(ctx, cfg.envSlug)
-		if err != nil {
-			return err
-		}
+	// Always fetch the remote environment (default if cfg.envSlug is empty) to allow us to add default remote
+	// resources.
+	remoteEnv, err := cfg.root.Client.GetEnv(ctx, cfg.envSlug)
+	if err != nil {
+		return err
 	}
 
-	localExecutor := &dev.LocalExecutor{}
-
+	devServerHost := fmt.Sprintf("127.0.0.1:%d", cfg.port)
 	localClient := &api.Client{
 		Host:   devServerHost,
 		Token:  cfg.root.Client.Token,
@@ -84,16 +76,19 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		EnvSlug: cfg.envSlug,
 		Client:  localClient,
 	}
+
+	localExecutor := &dev.LocalExecutor{}
 	apiServer, err := server.Start(server.Options{
-		LocalClient:  localClient,
-		RemoteClient: cfg.root.Client,
-		DevConfig:    cfg.devConfig,
-		Env:          devEnv,
-		Executor:     localExecutor,
-		Port:         cfg.port,
-		Dir:          absoluteDir,
-		AuthInfo:     authInfo,
-		Discoverer:   d,
+		LocalClient:    localClient,
+		RemoteClient:   cfg.root.Client,
+		RemoteEnv:      remoteEnv,
+		UseFallbackEnv: cfg.useFallbackEnv,
+		DevConfig:      cfg.devConfig,
+		Executor:       localExecutor,
+		Port:           cfg.port,
+		Dir:            absoluteDir,
+		AuthInfo:       authInfo,
+		Discoverer:     d,
 	})
 	if err != nil {
 		return errors.Wrap(err, "starting local dev server")
@@ -146,10 +141,10 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	if len(warnings.UnattachedResources) > 0 {
 		logger.Log(" ")
 		unattachedResourcesMsg := "The following tasks have resource attachments that are not defined in the dev config file"
-		if devEnv.ID == env.LocalEnvID {
-			unattachedResourcesMsg += "."
+		if cfg.useFallbackEnv {
+			unattachedResourcesMsg += fmt.Sprintf(" or remotely in %s.", logger.Bold(remoteEnv.Name))
 		} else {
-			unattachedResourcesMsg += fmt.Sprintf(" or remotely in %s.", logger.Bold(devEnv.Name))
+			unattachedResourcesMsg += "."
 		}
 		unattachedResourcesMsg += " Please add them through the studio or run `airplane dev config set-resource`."
 		logger.Log(unattachedResourcesMsg)
@@ -159,13 +154,13 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	logger.Log("")
-	if devEnv.ID == env.LocalEnvID {
+	if cfg.useFallbackEnv {
+		logger.Log("Your environment is set to %s.", logger.Bold(remoteEnv.Name))
+		logger.Log("- Any task that is not available locally will execute in your %s environment.", logger.Bold(remoteEnv.Name))
+		logger.Log("- Any resources not declared in your dev config will be loaded from your %s environment.", logger.Bold(remoteEnv.Name))
+	} else {
 		logger.Log("You have not set a fallback environment. All tasks and resources must be available locally. " +
 			"You can configure a fallback environment via `--env`.")
-	} else {
-		logger.Log("Your environment is set to %s.", logger.Bold(devEnv.Name))
-		logger.Log("- Any task that is not available locally will execute in your %s environment.", logger.Bold(devEnv.Name))
-		logger.Log("- Any resources not declared in your dev config will be loaded from your %s environment.", logger.Bold(devEnv.Name))
 	}
 
 	// Start watching for changes and reload apps when the -watch flag is on

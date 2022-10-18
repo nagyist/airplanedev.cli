@@ -15,6 +15,7 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/conf"
+	devenv "github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
@@ -51,15 +52,16 @@ type LocalRunConfig struct {
 	Kind        build.TaskKind
 	KindOptions build.KindOptions
 	ParamValues api.Values
-	Port        int
-	Client      api.APIClient
 	File        string
 	Slug        string
-	Env         libapi.Env
 	ParentRunID *string
 	EnvVars     map[string]string
 	ConfigVars  map[string]string
 	AuthInfo    api.AuthInfoResponse
+
+	LocalClient  *api.Client
+	RemoteClient api.APIClient
+
 	// Mapping from alias to resource
 	Resources map[string]resources.Resource
 	IsBuiltin bool
@@ -294,7 +296,7 @@ func MaterializeEnvVars(taskConfig discover.TaskConfig, config *conf.DevConfig) 
 }
 
 func scanLogLine(config LocalRunConfig, line string, mu *sync.Mutex, o *ojson.Value, chunks map[string]*strings.Builder) {
-	scanForErrors(config.Client, line)
+	scanForErrors(config.RemoteClient, line)
 	mu.Lock()
 	defer mu.Unlock()
 	parsed, err := outputs.Parse(chunks, line, outputs.ParseOptions{})
@@ -385,7 +387,7 @@ func entrypointFromDefn(file string) (string, error) {
 }
 
 func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error) {
-	env = append(env, fmt.Sprintf("AIRPLANE_API_HOST=http://127.0.0.1:%d", config.Port))
+	env = append(env, fmt.Sprintf("AIRPLANE_API_HOST=%s", config.LocalClient.HostURL()))
 	env = append(env, "AIRPLANE_RESOURCES_VERSION=2")
 
 	var runnerID, runnerEmail string
@@ -408,8 +410,8 @@ func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error
 	// - AIRPLANE_TRIGGER_ID
 	// because there is no requester, session, task revision, or triggers in the context of local dev.
 	env = append(env,
-		fmt.Sprintf("AIRPLANE_ENV_ID=%s", config.Env.ID),
-		fmt.Sprintf("AIRPLANE_ENV_SLUG=%s", config.Env.Slug),
+		fmt.Sprintf("AIRPLANE_ENV_ID=%s", devenv.LocalEnvID),
+		fmt.Sprintf("AIRPLANE_ENV_SLUG=%s", devenv.LocalEnvID),
 		fmt.Sprintf("AIRPLANE_RUN_ID=%s", config.ID),
 		fmt.Sprintf("AIRPLANE_PARENT_RUN_ID=%s", pointers.ToString(config.ParentRunID)),
 		fmt.Sprintf("AIRPLANE_RUNNER_EMAIL=%s", runnerEmail),
@@ -436,10 +438,10 @@ func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error
 }
 
 func interpolate(ctx context.Context, cfg LocalRunConfig, value any) (any, error) {
-	resp, err := cfg.Client.EvaluateTemplate(ctx, libapi.EvaluateTemplateRequest{
+	resp, err := cfg.RemoteClient.EvaluateTemplate(ctx, libapi.EvaluateTemplateRequest{
 		Value:       value,
 		RunID:       cfg.ID,
-		Env:         cfg.Env,
+		Env:         devenv.NewLocalEnv(),
 		Resources:   cfg.Resources,
 		Configs:     cfg.ConfigVars,
 		ParamValues: cfg.ParamValues,

@@ -157,17 +157,14 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 		return StartViewResponse{}, err
 	}
 
-	vd, err := viewdir.NewViewDirectory(ctx, s.LocalClient, rootDir, viewConfig.Def.DefnFilePath, s.Env.Slug)
+	vd, err := viewdir.NewViewDirectory(ctx, s.LocalClient, rootDir, viewConfig.Def.DefnFilePath, "")
 	if err != nil {
 		return StartViewResponse{}, err
 	}
 
 	cmd, viteServer, closer, err := views.Dev(ctx, &vd, views.ViteOpts{
-		// Views dev expects an api.Client implementation since it passes the client's token, API key, etc. as
-		// environment variables to the vite process.
-		Client:  s.LocalClient,
-		EnvSlug: s.Env.Slug,
-		TTY:     false,
+		Client: s.LocalClient,
+		TTY:    false,
 	})
 	if err != nil {
 		return StartViewResponse{}, errors.Wrap(err, "starting views dev")

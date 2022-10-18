@@ -51,7 +51,6 @@ func TestExecute(t *testing.T) {
 		t,
 		server.NewRouter(&state.State{
 			RemoteClient: &api.MockClient{},
-			Env:          env.NewLocalEnv(),
 			Executor:     mockExecutor,
 			Port:         1234,
 			Runs:         store,
@@ -74,22 +73,20 @@ func TestExecute(t *testing.T) {
 	}
 
 	runConfig := dev.LocalRunConfig{
-		Name:   "My Task",
-		Client: &api.MockClient{},
-		Kind:   build.TaskKindNode,
+		Name: "My Task",
+		Kind: build.TaskKindNode,
 		KindOptions: build.KindOptions{
 			"entrypoint":  "my_task.ts",
 			"nodeVersion": "18",
 		},
-		ParamValues: paramValues,
-		Port:        1234,
-		File:        "my_task.ts",
-		Slug:        slug,
-		ConfigVars:  map[string]string{},
-		EnvVars:     map[string]string{},
-		Env:         env.NewLocalEnv(),
-		Resources:   map[string]resources.Resource{},
-		LogBroker:   logBroker,
+		ParamValues:  paramValues,
+		File:         "my_task.ts",
+		Slug:         slug,
+		ConfigVars:   map[string]string{},
+		EnvVars:      map[string]string{},
+		RemoteClient: &api.MockClient{},
+		Resources:    map[string]resources.Resource{},
+		LogBroker:    logBroker,
 	}
 	mockExecutor.On("Execute", mock.Anything, runConfig).Return(nil)
 	body := h.POST("/v0/tasks/execute").
@@ -146,7 +143,6 @@ func TestExecuteBuiltin(t *testing.T) {
 		t,
 		server.NewRouter(&state.State{
 			RemoteClient: &api.MockClient{},
-			Env:          env.NewLocalEnv(),
 			Executor:     mockExecutor,
 			Port:         1234,
 			Runs:         store,
@@ -173,11 +169,9 @@ func TestExecuteBuiltin(t *testing.T) {
 	}
 
 	runConfig := dev.LocalRunConfig{
-		Client:      &api.MockClient{},
-		ParamValues: paramValues,
-		Port:        1234,
-		Slug:        slug,
-		Env:         env.NewLocalEnv(),
+		ParamValues:  paramValues,
+		Slug:         slug,
+		RemoteClient: &api.MockClient{},
 		Resources: map[string]resources.Resource{
 			"db": &dbResource,
 		},

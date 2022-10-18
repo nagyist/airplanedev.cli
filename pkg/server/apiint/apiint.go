@@ -196,7 +196,7 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 			resources = append(resources, APIResourceWithEnv{
 				Resource: r,
 				Remote:   true,
-				Env:      state.Env,
+				Env:      state.RemoteEnv,
 			})
 		}
 	} else {

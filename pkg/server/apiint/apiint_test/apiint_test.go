@@ -59,7 +59,6 @@ func TestListResources(t *testing.T) {
 					},
 				},
 			},
-			Env: env.NewLocalEnv(),
 			RemoteClient: &api.MockClient{
 				Resources: []libapi.Resource{
 					{
