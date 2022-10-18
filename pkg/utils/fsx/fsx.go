@@ -71,3 +71,18 @@ func FindUntil(start, end, filename string) (string, bool) {
 
 	return start, true
 }
+
+// IsSubDirectory return whether sub is a subdirectory of parent.
+// Both parent and sub must be either absolute or relative.
+func IsSubDirectory(parent, sub string) (bool, error) {
+	up := ".." + string(os.PathSeparator)
+
+	rel, err := filepath.Rel(parent, sub)
+	if err != nil {
+		return false, err
+	}
+	if !strings.HasPrefix(rel, up) && rel != ".." {
+		return true, nil
+	}
+	return false, nil
+}

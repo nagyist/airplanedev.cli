@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strings"
+	"path/filepath"
 
 	"github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
+	deployutils "github.com/airplanedev/lib/pkg/deploy/utils"
+	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/pkg/errors"
 )
@@ -25,8 +27,7 @@ type CodeViewDiscoverer struct {
 var _ ViewDiscoverer = &CodeViewDiscoverer{}
 
 func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*ViewConfig, error) {
-	if !strings.HasSuffix(file, ".airplane.tsx") && !strings.HasSuffix(file, ".airplane.jsx") &&
-		!strings.HasSuffix(file, ".view.tsx") && !strings.HasSuffix(file, ".view.jsx") {
+	if !deployutils.IsViewInlineAirplaneEntity(file) {
 		return nil, nil
 	}
 
@@ -115,6 +116,21 @@ func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 		Source: ConfigSourceCode,
 		Root:   pm.RootDir,
 	}, nil
+}
+
+func (dd *CodeViewDiscoverer) GetViewRoot(ctx context.Context, file string) (string, error) {
+	if !deployutils.IsViewInlineAirplaneEntity(file) {
+		return "", nil
+	}
+	root, err := filepath.Abs(filepath.Dir(file))
+	if err != nil {
+		return "", errors.Wrap(err, "getting absolute view definition root")
+	}
+	if p, ok := fsx.Find(root, "package.json"); ok {
+		root = p
+	}
+
+	return root, nil
 }
 
 func (dd *CodeViewDiscoverer) ConfigSource() ConfigSource {

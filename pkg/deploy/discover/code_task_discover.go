@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strings"
 
 	"github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
+	deployutils "github.com/airplanedev/lib/pkg/deploy/utils"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/pkg/errors"
 )
@@ -49,6 +49,9 @@ func (c *CodeTaskDiscoverer) GetAirplaneTasks(ctx context.Context, file string) 
 }
 
 func (c *CodeTaskDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]TaskConfig, error) {
+	if !deployutils.IsInlineAirplaneEntity(file) {
+		return nil, nil
+	}
 	defs, err := c.parseDefinitions(ctx, file)
 	if err != nil {
 		return nil, err
@@ -93,6 +96,27 @@ func (c *CodeTaskDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([
 	return taskConfigs, nil
 }
 
+func (c *CodeTaskDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, error) {
+	if !deployutils.IsInlineAirplaneEntity(file) {
+		return "", nil
+	}
+
+	var kind build.TaskKind
+	if deployutils.IsNodeInlineAirplaneEntity(file) {
+		kind = build.TaskKindNode
+	} else if deployutils.IsPythonInlineAirplaneEntity(file) {
+		kind = build.TaskKindPython
+	}
+	if kind == "" {
+		return "", nil
+	}
+	pm, err := taskPathMetadata(file, kind)
+	if err != nil {
+		return "", errors.Wrap(err, "unable to interpret task path metadata")
+	}
+	return pm.RootDir, nil
+}
+
 func (c *CodeTaskDiscoverer) ConfigSource() ConfigSource {
 	return ConfigSourceCode
 }
@@ -103,11 +127,9 @@ type ParsedDefinition struct {
 }
 
 func (c *CodeTaskDiscoverer) parseDefinitions(ctx context.Context, file string) ([]ParsedDefinition, error) {
-	if strings.HasSuffix(file, ".airplane.ts") || strings.HasSuffix(file, ".airplane.js") ||
-		strings.HasSuffix(file, ".airplane.tsx") || strings.HasSuffix(file, ".airplane.jsx") ||
-		strings.HasSuffix(file, ".view.tsx") || strings.HasSuffix(file, ".view.jsx") {
+	if deployutils.IsNodeInlineAirplaneEntity(file) {
 		return c.parseNodeDefinitions(ctx, file)
-	} else if strings.HasSuffix(file, "_airplane.py") {
+	} else if deployutils.IsPythonInlineAirplaneEntity(file) {
 		return c.parsePythonDefinitions(ctx, file)
 	}
 	return nil, nil

@@ -52,12 +52,9 @@ func (dd *ViewDefnDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 		return nil, errors.Wrap(err, "getting absolute path of view definition file")
 	}
 
-	root, err := filepath.Abs(filepath.Dir(file))
+	root, err := dd.GetViewRoot(ctx, file)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting absolute view definition root")
-	}
-	if p, ok := fsx.Find(root, "package.json"); ok {
-		root = p
+		return nil, err
 	}
 
 	view, err := dd.Client.GetView(ctx, api.GetViewRequest{Slug: d.Slug})
@@ -100,6 +97,22 @@ func (dd *ViewDefnDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 		Source: dd.ConfigSource(),
 		Root:   root,
 	}, nil
+}
+
+func (dd *ViewDefnDiscoverer) GetViewRoot(ctx context.Context, file string) (string, error) {
+	if !definitions.IsViewDef(file) {
+		return "", nil
+	}
+
+	root, err := filepath.Abs(filepath.Dir(file))
+	if err != nil {
+		return "", errors.Wrap(err, "getting absolute view definition root")
+	}
+	if p, ok := fsx.Find(root, "package.json"); ok {
+		root = p
+	}
+
+	return root, nil
 }
 
 func (dd *ViewDefnDiscoverer) ConfigSource() ConfigSource {

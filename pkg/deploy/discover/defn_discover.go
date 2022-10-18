@@ -152,6 +152,50 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 	return []TaskConfig{tc}, nil
 }
 
+func (dd *DefnDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, error) {
+	if !definitions.IsTaskDef(file) {
+		// Check if there is a file in the same directory with the same name that is a task defn.
+		fileWithoutExtension := strings.TrimSuffix(file, filepath.Ext(file))
+		for _, tde := range definitions.TaskDefExtensions {
+			fileWithTaskDefExtension := fileWithoutExtension + tde
+			if fsx.Exists(fileWithTaskDefExtension) {
+				return dd.GetTaskRoot(ctx, fileWithTaskDefExtension)
+			}
+		}
+		return "", nil
+	}
+
+	dir, err := taskdir.Open(file)
+	if err != nil {
+		return "", err
+	}
+	defer dir.Close()
+
+	def, err := dir.ReadDefinition()
+	if err != nil {
+		return "", err
+	}
+
+	entrypoint, err := def.GetAbsoluteEntrypoint()
+	if err == definitions.ErrNoEntrypoint {
+		return entrypoint, nil
+	} else if err != nil {
+		return "", err
+	} else if err = fsx.AssertExistsAll(entrypoint); err != nil {
+		return "", err
+	}
+	kind, _, err := def.GetKindAndOptions()
+	if err != nil {
+		return "", err
+	}
+
+	taskPathMetadata, err := taskPathMetadata(entrypoint, kind)
+	if err != nil {
+		return "", err
+	}
+	return taskPathMetadata.RootDir, nil
+}
+
 func (dd *DefnDiscoverer) ConfigSource() ConfigSource {
 	return ConfigSourceDefn
 }

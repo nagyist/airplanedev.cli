@@ -23,7 +23,7 @@ var IgnoredDirectories = map[string]bool{
 
 // DefinitionFileExtensions is all the file extensions that could contain
 // a task or view definition: inline task or view configs,
-//  or files that accompany yaml definitions (like SQL)
+// or files that accompany yaml definitions (like SQL)
 var DefinitionFileExtensions = []string{
 	// yaml configs and associated files
 	".yaml",
@@ -80,6 +80,9 @@ type TaskDiscoverer interface {
 	GetTaskConfigs(ctx context.Context, file string) ([]TaskConfig, error)
 	// ConfigSource returns a unique identifier of this Discoverer.
 	ConfigSource() ConfigSource
+	// GetTaskRoot inspects a file and returns the root directory of the task.
+	// If that file does not have any tasks, it will return an empty string.
+	GetTaskRoot(ctx context.Context, file string) (string, error)
 }
 
 type ViewDiscoverer interface {
@@ -88,6 +91,9 @@ type ViewDiscoverer interface {
 	GetViewConfig(ctx context.Context, file string) (*ViewConfig, error)
 	// ConfigSource returns a unique identifier of this Discoverer.
 	ConfigSource() ConfigSource
+	// GetViewRoot inspects a file and returns the root directory of the view.
+	// If that file does not have a view, it will return an empty string.
+	GetViewRoot(ctx context.Context, file string) (string, error)
 }
 
 type Discoverer struct {
