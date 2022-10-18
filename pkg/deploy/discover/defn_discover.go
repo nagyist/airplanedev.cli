@@ -22,6 +22,12 @@ type DefnDiscoverer struct {
 	// it should return `nil` to signal that the definition should be ignored. If not set, these
 	// definitions are ignored.
 	MissingTaskHandler func(context.Context, definitions.DefinitionInterface) (*api.TaskMetadata, error)
+
+	// DisableNormalize is used to determine whether to Normalize a discovered task definition. Ideally, normalization
+	// should be done in the deploy path, and not the discover path, but we include this flag for now so that certain
+	// clients (e.g. studio) can skip some validation checks.
+	// TODO: Remove this when we remove task diffs.
+	DisableNormalize bool
 }
 
 var _ TaskDiscoverer = &DefnDiscoverer{}
@@ -69,8 +75,10 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 		return nil, err
 	}
 
-	if err := def.Normalize(ctx, dd.Client); err != nil {
-		return nil, err
+	if !dd.DisableNormalize {
+		if err := def.Normalize(ctx, dd.Client); err != nil {
+			return nil, err
+		}
 	}
 
 	tc := TaskConfig{
