@@ -44,7 +44,15 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	// Use absolute path to dev root to allow the local dev server to more easily calculate relative paths.
-	dir := filepath.Dir(cfg.fileOrDir)
+	dir := cfg.fileOrDir
+	fileInfo, err := os.Stat(cfg.fileOrDir)
+	if err != nil {
+		return errors.Wrapf(err, "describing file information for %s", cfg.fileOrDir)
+	}
+	if !fileInfo.IsDir() {
+		dir = filepath.Dir(cfg.fileOrDir)
+	}
+
 	absoluteDir, err := filepath.Abs(dir)
 	if err != nil {
 		return errors.Wrap(err, "getting absolute directory of dev server root")

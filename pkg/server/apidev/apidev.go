@@ -6,9 +6,11 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/handlers"
@@ -17,6 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/version/latest"
 	"github.com/airplanedev/cli/pkg/views"
 	"github.com/airplanedev/cli/pkg/views/viewdir"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -26,6 +29,7 @@ func AttachDevRoutes(r *mux.Router, s *state.State) {
 	const basePath = "/dev/"
 	r = r.NewRoute().PathPrefix(basePath).Subrouter()
 
+	r.Handle("/info", handlers.Handler(s, GetInfoHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/version", handlers.Handler(s, GetVersionHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/list", handlers.Handler(s, ListEntrypointsHandler)).Methods("GET", "OPTIONS")
@@ -47,6 +51,27 @@ func GetVersionHandler(ctx context.Context, s *state.State, r *http.Request) (ve
 	}
 	s.VersionCache.Add(v)
 	return v, nil
+}
+
+type StudioInfo struct {
+	Workspace   string      `json:"workspace"`
+	DefaultEnv  libapi.Env  `json:"defaultEnv"`
+	FallbackEnv *libapi.Env `json:"fallbackEnv"`
+	Host        string      `json:"host"`
+}
+
+func GetInfoHandler(ctx context.Context, s *state.State, r *http.Request) (StudioInfo, error) {
+	var fallbackEnv *libapi.Env
+	if s.UseFallbackEnv {
+		fallbackEnv = &s.RemoteEnv
+	}
+
+	return StudioInfo{
+		Workspace:   s.Dir,
+		DefaultEnv:  env.NewLocalEnv(),
+		FallbackEnv: fallbackEnv,
+		Host:        strings.Replace(s.LocalClient.Host, "127.0.0.1", "localhost", 1),
+	}, nil
 }
 
 type AppKind string

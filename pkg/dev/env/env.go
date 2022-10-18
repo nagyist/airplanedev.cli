@@ -20,6 +20,6 @@ func NewLocalEnv() libapi.Env {
 	return libapi.Env{
 		ID:   LocalEnvID,
 		Slug: LocalEnvID,
-		Name: LocalEnvID,
+		Name: "Local",
 	}
 }

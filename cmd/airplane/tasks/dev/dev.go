@@ -77,11 +77,7 @@ func New(c *cli.Config) *cobra.Command {
 				} else if len(args) > 1 {
 					return errors.New("Multiple dev server roots detected, please supply only one directory to discover tasks and views")
 				} else {
-					// Use absolute path to dev root to allow the local dev server to more easily calculate relative paths.
 					cfg.fileOrDir = args[0]
-					if cfg.fileOrDir, err = filepath.Abs(cfg.fileOrDir); err != nil {
-						return errors.Wrap(err, "getting absolute path of studio working directory")
-					}
 				}
 
 				if cfg.devConfigPath == "" {
