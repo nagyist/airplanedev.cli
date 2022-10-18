@@ -63,8 +63,9 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	d := &discover.Discoverer{
 		TaskDiscoverers: []discover.TaskDiscoverer{
 			&discover.DefnDiscoverer{
-				Client: localClient,
-				Logger: l,
+				Client:           localClient,
+				Logger:           l,
+				DisableNormalize: true,
 			},
 			&discover.CodeTaskDiscoverer{
 				Client: localClient,

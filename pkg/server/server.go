@@ -236,25 +236,6 @@ func (s *Server) DiscoverTasksAndViews(ctx context.Context, dir string) ([]disco
 	}
 	taskConfigs, viewConfigs, err := s.state.Discoverer.Discover(ctx, dir)
 	if err != nil {
-		// This is a temporary workaround for SQL + REST tasks if a resource referenced in the task definition doesn't
-		// exist yet. Ideally, we don't error during discovery, and allow the user to create the resource through the
-		// studio.
-		var rerr libapi.ResourceMissingError
-		if errors.As(err, &rerr) {
-			var message string
-			// Handle demo db in a special case.
-			if rerr.Slug == resource.DemoDBName || rerr.Slug == resource.DemoDBSlug {
-				message = "Demo DB resource not found - please create it using `airplane demo create-db`."
-			} else {
-				message = fmt.Sprintf("Resource with name or slug %s not found, please create it using `airplane dev config set-resource`", rerr.Slug)
-				if s.state.UseFallbackEnv {
-					message += fmt.Sprintf(" or create it remotely at %s/settings/resources/new.", s.state.LocalClient.AppURL())
-				} else {
-					message += "."
-				}
-			}
-			return []discover.TaskConfig{}, []discover.ViewConfig{}, errors.Errorf(message)
-		}
 		return []discover.TaskConfig{}, []discover.ViewConfig{}, errors.Wrap(err, "discovering tasks and views")
 	}
 	return taskConfigs, viewConfigs, err
