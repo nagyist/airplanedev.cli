@@ -6,11 +6,14 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/apidev"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/server/test_utils"
 	"github.com/airplanedev/cli/pkg/version"
+	libapi "github.com/airplanedev/lib/pkg/api"
+	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/stretchr/testify/require"
@@ -78,6 +81,16 @@ func TestListEntrypoints(t *testing.T) {
 					Source: discover.ConfigSourceDefn,
 				},
 			}),
+			RemoteClient: &api.MockClient{
+				Tasks: map[string]libapi.Task{
+					"fooslug": {
+						Name:    "Foo",
+						Slug:    "fooslug",
+						Runtime: build.TaskRuntimeStandard,
+					},
+				},
+			},
+			UseFallbackEnv: true,
 		}),
 	)
 
@@ -104,4 +117,12 @@ func TestListEntrypoints(t *testing.T) {
 			},
 		},
 	}, resp.Entrypoints)
+	require.Equal([]apidev.AppMetadata{
+		{
+			Name:    "Foo",
+			Slug:    "fooslug",
+			Kind:    apidev.AppKindTask,
+			Runtime: build.TaskRuntimeStandard,
+		},
+	}, resp.RemoteEntrypoints)
 }

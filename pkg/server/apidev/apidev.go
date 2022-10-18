@@ -20,6 +20,7 @@ import (
 	"github.com/airplanedev/cli/pkg/views"
 	"github.com/airplanedev/cli/pkg/views/viewdir"
 	libapi "github.com/airplanedev/lib/pkg/api"
+	"github.com/airplanedev/lib/pkg/build"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -83,20 +84,22 @@ const (
 
 // AppMetadata represents metadata for a task or view.
 type AppMetadata struct {
-	Name    string  `json:"name"`
-	Slug    string  `json:"slug"`
-	Kind    AppKind `json:"kind"`
-	Runtime string  `json:"runtime"`
+	Name    string            `json:"name"`
+	Slug    string            `json:"slug"`
+	Kind    AppKind           `json:"kind"`
+	Runtime build.TaskRuntime `json:"runtime"`
 }
 
 type ListEntrypointsHandlerResponse struct {
-	Entrypoints map[string][]AppMetadata `json:"entrypoints"`
+	Entrypoints       map[string][]AppMetadata `json:"entrypoints"`
+	RemoteEntrypoints []AppMetadata            `json:"remoteEntrypoints"`
 }
 
 // ListEntrypointsHandler handles requests to the /dev/list endpoint. It generates a mapping from entrypoint relative to
 // the dev server root to the list of tasks and views that use that entrypoint.
 func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Request) (ListEntrypointsHandlerResponse, error) {
 	entrypoints := make(map[string][]AppMetadata)
+	remoteEntrypoints := make([]AppMetadata, 0)
 
 	for slug, taskConfig := range state.TaskConfigs.Items() {
 		absoluteEntrypoint := taskConfig.TaskEntrypoint
@@ -116,7 +119,7 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 			Name:    taskConfig.Def.GetName(),
 			Slug:    slug,
 			Kind:    AppKindTask,
-			Runtime: string(taskConfig.Def.GetRuntime()),
+			Runtime: taskConfig.Def.GetRuntime(),
 		})
 	}
 
@@ -137,8 +140,26 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 		})
 	}
 
+	// List remote entrypoints if fallback env is specified
+	if state.UseFallbackEnv {
+		res, err := state.RemoteClient.ListTasks(ctx, state.RemoteEnv.Slug)
+		if err != nil {
+			return ListEntrypointsHandlerResponse{}, errors.Wrap(err, "getting remote tasks")
+		}
+
+		for _, task := range res.Tasks {
+			remoteEntrypoints = append(remoteEntrypoints, AppMetadata{
+				Name:    task.Name,
+				Slug:    task.Slug,
+				Kind:    AppKindTask,
+				Runtime: task.Runtime,
+			})
+		}
+	}
+
 	return ListEntrypointsHandlerResponse{
-		Entrypoints: entrypoints,
+		Entrypoints:       entrypoints,
+		RemoteEntrypoints: remoteEntrypoints,
 	}, nil
 }
 

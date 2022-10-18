@@ -41,7 +41,13 @@ func (mc *MockClient) GetTaskMetadata(ctx context.Context, slug string) (res lib
 }
 
 func (mc *MockClient) ListTasks(ctx context.Context, envSlug string) (res ListTasksResponse, err error) {
-	panic("not implemented") // TODO: Implement
+	allTasks := make([]libapi.Task, 0, len(mc.Tasks))
+	for _, task := range mc.Tasks {
+		allTasks = append(allTasks, task)
+	}
+	return ListTasksResponse{
+		Tasks: allTasks,
+	}, nil
 }
 
 func (mc *MockClient) RunTask(ctx context.Context, req RunTaskRequest) (RunTaskResponse, error) {
