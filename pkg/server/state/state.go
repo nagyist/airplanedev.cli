@@ -42,10 +42,10 @@ type State struct {
 	Runs *runsStore
 	// Mapping from task slug to task config
 	TaskConfigs Store[string, discover.TaskConfig]
-	// Warnings to display on the task page
-	TaskErrors Store[string, []dev_errors.AppError]
 	// Mapping from view slug to view config
 	ViewConfigs Store[string, discover.ViewConfig]
+	// AppCondition holds info about task such as errors to display and time registered
+	AppCondition Store[string, AppCondition]
 
 	Discoverer *discover.Discoverer
 	//Debouncer returns the debouncing function for a given key
@@ -57,6 +57,11 @@ type State struct {
 
 	AuthInfo     api.AuthInfoResponse
 	VersionCache version.Cache
+}
+
+type AppCondition struct {
+	RefreshedAt time.Time
+	Errors      []dev_errors.AppError
 }
 
 // TODO: add limit on max items

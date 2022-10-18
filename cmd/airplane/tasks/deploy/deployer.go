@@ -626,7 +626,7 @@ func (d *deployer) confirmDeployment(ctx context.Context) error {
 		return nil
 	}
 	wasActive := d.logger.StopLoader()
-	question := fmt.Sprintf("Are you sure you want to deploy?")
+	question := "Are you sure you want to deploy?"
 	ok, err := utils.ConfirmWithAssumptions(question, d.cfg.assumeYes, d.cfg.assumeNo)
 	if wasActive {
 		d.logger.StartLoader()

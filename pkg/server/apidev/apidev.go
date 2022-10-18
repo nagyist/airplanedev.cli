@@ -283,7 +283,7 @@ func GetTaskErrorsHandler(ctx context.Context, state *state.State, r *http.Reque
 	if taskSlug == "" {
 		return GetTaskErrorResponse{}, errors.New("Task slug was not supplied, request path must be of the form /v0/tasks/warnings?slug=<task_slug>")
 	}
-	allErrors, ok := state.TaskErrors.Get(taskSlug)
+	metadata, ok := state.AppCondition.Get(taskSlug)
 	if !ok {
 		return GetTaskErrorResponse{}, nil
 	}
@@ -291,7 +291,7 @@ func GetTaskErrorsHandler(ctx context.Context, state *state.State, r *http.Reque
 	errors := []dev_errors.AppError{}
 	info := []dev_errors.AppError{}
 
-	for _, e := range allErrors {
+	for _, e := range metadata.Errors {
 		if e.Level == dev_errors.LevelWarning {
 			warnings = append(warnings, e)
 		} else if e.Level == dev_errors.LevelError {

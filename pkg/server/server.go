@@ -142,7 +142,7 @@ func Start(opts Options) (*Server, error) {
 		Port:           opts.Port,
 		Runs:           state.NewRunStore(),
 		TaskConfigs:    state.NewStore[string, discover.TaskConfig](nil),
-		TaskErrors:     state.NewStore[string, []dev_errors.AppError](nil),
+		AppCondition:   state.NewStore[string, state.AppCondition](nil),
 		ViewConfigs:    state.NewStore[string, discover.ViewConfig](nil),
 		Debouncer:      state.NewDebouncer(),
 		DevConfig:      opts.DevConfig,
@@ -360,25 +360,20 @@ func (s *Server) RegisterTasksAndViews(ctx context.Context, opts DiscoverOpts) (
 	if opts.OverwriteAll {
 		// clear existing tasks, task errorrs, and views
 		s.state.TaskConfigs.ReplaceItems(map[string]discover.TaskConfig{})
-		s.state.TaskErrors.ReplaceItems(map[string][]dev_errors.AppError{})
+		s.state.AppCondition.ReplaceItems(map[string]state.AppCondition{})
 		s.state.ViewConfigs.ReplaceItems(map[string]discover.ViewConfig{})
 	}
-
+	now := time.Now()
 	for _, cfg := range opts.Tasks {
 		if _, isUnsupported := warnings.UnsupportedApps[cfg.Def.GetSlug()]; !isUnsupported {
 			s.state.TaskConfigs.Add(cfg.Def.GetSlug(), cfg)
 		}
-		s.state.TaskErrors.Delete(cfg.Def.GetSlug())
+		w := warnings.TaskErrors[cfg.Def.GetSlug()]
+		s.state.AppCondition.Add(cfg.Def.GetSlug(), state.AppCondition{RefreshedAt: now, Errors: w})
 	}
-
 	for _, cfg := range opts.Views {
 		s.state.ViewConfigs.Add(cfg.Def.Slug, cfg)
 	}
-
-	for slug, warning := range warnings.TaskErrors {
-		s.state.TaskErrors.Add(slug, warning)
-	}
-
 	return warnings, err
 }
 

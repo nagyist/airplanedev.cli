@@ -528,42 +528,50 @@ func ListRunsHandler(ctx context.Context, state *state.State, r *http.Request) (
 }
 
 // GetTaskInfoHandler handles requests to the /i/tasks/get?slug=<task_slug> endpoint.
-func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.UpdateTaskRequest, error) {
+func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.Task, error) {
 	taskSlug := r.URL.Query().Get("slug")
 	if taskSlug == "" {
-		return libapi.UpdateTaskRequest{}, errors.New("Task slug was not supplied, request path must be of the form /v0/tasks?slug=<task_slug>")
+		return libapi.Task{}, errors.New("Task slug was not supplied, request path must be of the form /v0/tasks?slug=<task_slug>")
 	}
 	taskConfig, ok := state.TaskConfigs.Get(taskSlug)
 	if !ok {
-		return libapi.UpdateTaskRequest{}, errors.Errorf("Task with slug %q not found", taskSlug)
+		return libapi.Task{}, errors.Errorf("Task with slug %q not found", taskSlug)
 	}
 
-	// We do not use taskConfig.Def.GetUpdateTaskRequest() directly since the task definition may be invalid.
-	// We want to best-effort support invalid task definitions (e.g. unknown resources) so that we can render
+	metadata, ok := state.AppCondition.Get(taskSlug)
+	if !ok {
+		return libapi.Task{}, errors.Errorf("Task with slug %q not found", taskSlug)
+	}
+	// For our purposes, the libapi.Task and libapi.UpdateTaskRequest structs contain the same critical data.
+	// Using UpdateTaskRequest and taskConfig.Def.GetUpdateTaskRequest() conveniently
+	//  populates the needed fields (params, config attachments, etc.).
+	// We don't use GetUpdateTaskRequest() directly here since it does additional validation and
+	// we want to best-effort support invalid task definitions (e.g. unknown resources) so that we can render
 	// corresponding validation errors in the UI.
-	req := libapi.UpdateTaskRequest{
+	req := libapi.Task{
 		Slug:        taskConfig.Def.GetSlug(),
 		Name:        taskConfig.Def.GetName(),
 		Description: taskConfig.Def.GetDescription(),
 		Runtime:     taskConfig.Def.GetRuntime(),
 		Resources:   map[string]string{},
+		UpdatedAt:   metadata.RefreshedAt,
 	}
 	if resources := taskConfig.Def.GetResourceAttachments(); resources != nil {
 		req.Resources = resources
 	}
 	configs, err := taskConfig.Def.GetConfigAttachments()
 	if err != nil {
-		return libapi.UpdateTaskRequest{}, errors.Wrap(err, "getting config attachments")
+		return libapi.Task{}, errors.Wrap(err, "getting config attachments")
 	}
-	req.Configs = &configs
+	req.Configs = configs
 	parameters, err := taskConfig.Def.GetParameters()
 	if err != nil {
-		return libapi.UpdateTaskRequest{}, errors.Wrap(err, "getting parameters")
+		return libapi.Task{}, errors.Wrap(err, "getting parameters")
 	}
 	req.Parameters = parameters
 	kind, options, err := taskConfig.Def.GetKindAndOptions()
 	if err != nil {
-		return libapi.UpdateTaskRequest{}, errors.Wrap(err, "getting kind and options")
+		return libapi.Task{}, errors.Wrap(err, "getting kind and options")
 	}
 	req.Kind = kind
 	req.KindOptions = options
