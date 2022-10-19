@@ -358,3 +358,9 @@ type GetResourceRequest struct {
 	EnvSlug              string `json:"envSlug"`
 	IncludeSensitiveData bool   `json:"includeSensitiveData"`
 }
+
+// TODO: shift to lib?
+type GetPermissionsResponse struct {
+	// One true/false value for each requested action.
+	Outputs map[string]bool `json:"resource"`
+}

@@ -227,3 +227,7 @@ func (mc *MockClient) GetToken() string {
 func (mc *MockClient) EvaluateTemplate(ctx context.Context, req libapi.EvaluateTemplateRequest) (res libapi.EvaluateTemplateResponse, err error) {
 	panic("not implemented")
 }
+
+func (mc *MockClient) GetPermissions(ctx context.Context, taskSlug string, actions []string) (res GetPermissionsResponse, err error) {
+	panic("not implemented")
+}

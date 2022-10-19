@@ -116,6 +116,8 @@ type APIClient interface {
 
 	EvaluateTemplate(ctx context.Context, req libapi.EvaluateTemplateRequest) (res libapi.EvaluateTemplateResponse, err error)
 
+	GetPermissions(ctx context.Context, taskSlug string, actions []string) (GetPermissionsResponse, error)
+
 	// All methods below this point represent CLI-specific API operations, and not requests to api.airplane.dev.
 	GetToken() string
 }
@@ -536,6 +538,14 @@ func (c Client) GetEnv(ctx context.Context, envSlug string) (res libapi.Env, err
 
 func (c Client) EvaluateTemplate(ctx context.Context, req libapi.EvaluateTemplateRequest) (res libapi.EvaluateTemplateResponse, err error) {
 	err = c.do(ctx, "POST", "/templates/evaluate", req, &res)
+	return
+}
+
+func (c Client) GetPermissions(ctx context.Context, taskSlug string, actions []string) (res GetPermissionsResponse, err error) {
+	err = c.do(ctx, "GET", encodeQueryString("/permissions/get", url.Values{
+		"task_slug": []string{taskSlug},
+		"actions":   actions,
+	}), nil, &res)
 	return
 }
 

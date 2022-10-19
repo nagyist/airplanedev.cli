@@ -45,6 +45,8 @@ func AttachExternalAPIRoutes(r *mux.Router, state *state.State) {
 
 	r.Handle("/prompts/get", handlers.Handler(state, GetPromptHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/prompts/create", handlers.HandlerWithBody(state, CreatePromptHandler)).Methods("POST", "OPTIONS")
+
+	r.Handle("/permissions/get", handlers.Handler(state, GetPermissionsHandler)).Methods("GET", "OPTIONS")
 }
 
 type ExecuteTaskRequest struct {
@@ -503,4 +505,22 @@ func ListResourceMetadataHandler(ctx context.Context, state *state.State, r *htt
 	return libapi.ListResourceMetadataResponse{
 		Resources: resources,
 	}, nil
+}
+
+func GetPermissionsHandler(ctx context.Context, state *state.State, r *http.Request) (api.GetPermissionsResponse, error) {
+	taskSlug := r.URL.Query().Get("task_slug")
+	actions := r.URL.Query()["actions"]
+	_, hasLocalTask := state.TaskConfigs.Get(taskSlug)
+
+	outputs := map[string]bool{}
+	if hasLocalTask {
+		for _, action := range actions {
+			outputs[action] = true
+		}
+		return api.GetPermissionsResponse{
+			Outputs: outputs,
+		}, nil
+	}
+
+	return state.RemoteClient.GetPermissions(ctx, taskSlug, actions)
 }
