@@ -139,6 +139,9 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 		if err := def.SetWorkdir(taskPathMetadata.RootDir, taskPathMetadata.WorkDir); err != nil {
 			return nil, err
 		}
+		if err := def.SetBuildVersion(taskPathMetadata.BuildVersion); err != nil {
+			return nil, err
+		}
 
 		// Entrypoint for builder needs to be relative to taskroot, not definition directory.
 		defnDir := filepath.Dir(dir.DefinitionPath())
@@ -204,6 +207,10 @@ func (dd *DefnDiscoverer) GetTaskRoot(ctx context.Context, file string) (string,
 	if err != nil {
 		return "", "", "", err
 	}
+	if err := def.SetBuildVersion(taskPathMetadata.BuildVersion); err != nil {
+		return "", "", "", err
+	}
+
 	return taskPathMetadata.RootDir, buildType, buildTypeVersion, nil
 }
 

@@ -76,3 +76,47 @@ func TestDev(tt *testing.T) {
 
 	runtimetest.Run(tt, ctx, tests)
 }
+
+func TestVersion(t *testing.T) {
+	testCases := []struct {
+		desc         string
+		path         string
+		buildVersion build.BuildTypeVersion
+	}{
+		{
+			desc:         "single node version",
+			path:         "./fixtures/version/18/file.js",
+			buildVersion: build.BuildTypeVersionNode18,
+		},
+		{
+			desc:         "great than node version",
+			path:         "./fixtures/version/gt15/file.js",
+			buildVersion: build.BuildTypeVersionNode18,
+		},
+		{
+			desc:         "great than and less than node version",
+			path:         "./fixtures/version/gt15lt18/file.js",
+			buildVersion: build.BuildTypeVersionNode16,
+		},
+		{
+			desc: "no version",
+			path: "./fixtures/version/empty/file.js",
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			require := require.New(t)
+
+			r, err := runtime.Lookup(tC.path, build.TaskKindNode)
+			require.NoError(err)
+
+			root, err := r.Root(tC.path)
+			require.NoError(err)
+
+			bv, err := r.Version(root)
+			require.NoError(err)
+
+			require.Equal(tC.buildVersion, bv)
+		})
+	}
+}

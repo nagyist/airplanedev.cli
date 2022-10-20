@@ -14,6 +14,7 @@ type TaskPathMetadata struct {
 	RelEntrypoint string
 	RootDir       string
 	WorkDir       string
+	BuildVersion  build.BuildTypeVersion
 }
 
 func taskPathMetadata(file string, kind build.TaskKind) (TaskPathMetadata, error) {
@@ -47,10 +48,16 @@ func taskPathMetadata(file string, kind build.TaskKind) (TaskPathMetadata, error
 		return TaskPathMetadata{}, err
 	}
 
+	buildVersion, err := r.Version(taskroot)
+	if err != nil {
+		return TaskPathMetadata{}, err
+	}
+
 	return TaskPathMetadata{
 		AbsEntrypoint: absFile,
 		RelEntrypoint: ep,
 		RootDir:       taskroot,
 		WorkDir:       wd,
+		BuildVersion:  buildVersion,
 	}, nil
 }

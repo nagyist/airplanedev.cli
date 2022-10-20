@@ -82,6 +82,18 @@ func TestDiscover(t *testing.T) {
 			},
 		},
 		{
+			desc:  "inline tasks with version set",
+			paths: []string{"./fixtures/inlineTasksVersion"},
+			expectedBundles: []Bundle{
+				{
+					RootPath:     path.Join(fixturesPath, "inlineTasksVersion"),
+					TargetPaths:  []string{"."},
+					BuildType:    build.NodeBuildType,
+					BuildVersion: build.BuildTypeVersionNode16,
+				},
+			},
+		},
+		{
 			desc:  "view",
 			paths: []string{"./fixtures/viewWithDefn"},
 			expectedBundles: []Bundle{
@@ -170,27 +182,25 @@ func TestDiscover(t *testing.T) {
 				},
 			},
 		},
-		// {
-		// 	desc:  "multiple tasks same root same build",
-		// 	paths: []string{"./fixtures/multipleTasksSameRoot"},
-		// 	expectedBundles: []Bundle{
-		// 		{
-		// 			RootPath:     fixturesPath,
-		// 			TargetPaths:  []string{"multipleTasksSameRoot"},
-		// 			BuildType:    build.NodeBuildType,
-		// 			BuildVersion: build.BuildTypeVersionNode14,
-		// 		},
-		// 	},
-		// },
+		{
+			desc:  "multiple tasks same root same build",
+			paths: []string{"./fixtures/multipleTasksSameRoot"},
+			expectedBundles: []Bundle{
+				{
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"multipleTasksSameRoot"},
+					BuildType:   build.NodeBuildType,
+				},
+			},
+		},
 		{
 			desc:  "multiple tasks same root diff build",
 			paths: []string{"./fixtures/multipleTasksSameRootDiffBuild"},
 			expectedBundles: []Bundle{
 				{
-					RootPath:     fixturesPath,
-					TargetPaths:  []string{"multipleTasksSameRootDiffBuild"},
-					BuildType:    build.NodeBuildType,
-					BuildVersion: build.BuildTypeVersionNode14,
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"multipleTasksSameRootDiffBuild"},
+					BuildType:   build.NodeBuildType,
 				},
 				{
 					RootPath:     fixturesPath,

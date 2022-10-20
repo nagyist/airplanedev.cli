@@ -117,7 +117,7 @@ func (c *CodeTaskDiscoverer) GetTaskRoot(ctx context.Context, file string) (stri
 	if err != nil {
 		return "", "", "", errors.Wrap(err, "unable to interpret task path metadata")
 	}
-	return pm.RootDir, buildType, build.BuildTypeVersionUnspecified, nil
+	return pm.RootDir, buildType, pm.BuildVersion, nil
 }
 
 func (c *CodeTaskDiscoverer) ConfigSource() ConfigSource {
@@ -252,6 +252,9 @@ func constructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPat
 	}
 
 	if err := def.SetAbsoluteEntrypoint(pathMetadata.AbsEntrypoint); err != nil {
+		return nil, err
+	}
+	if err := def.SetBuildVersion(pathMetadata.BuildVersion); err != nil {
 		return nil, err
 	}
 	return &def, nil

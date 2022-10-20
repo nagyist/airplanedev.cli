@@ -63,6 +63,10 @@ func (r Runtime) Root(path string) (string, error) {
 	return filepath.Dir(path), nil
 }
 
+func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, err error) {
+	return "", nil
+}
+
 // Kind implementation.
 func (r Runtime) Kind() build.TaskKind {
 	return build.TaskKindREST

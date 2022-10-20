@@ -14,14 +14,15 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
-	"github.com/blang/semver/v4"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/slices"
 )
 
 // Init register the runtime.
@@ -177,7 +178,7 @@ export default airplane.{{ .SDKMethod }}(
 		{{- end}}
 		},
 		{{- end}}
-		{{- if (not (eq .SDKMethod "workflow")) }}
+		{{- if and (not (eq .SDKMethod "workflow")) .Node.NodeVersion }}
 		nodeVersion: "{{.Node.NodeVersion}}",
 		{{- end}}
 		{{- if .Node.EnvVars }}
@@ -323,6 +324,63 @@ func (r Runtime) Root(path string) (string, error) {
 	return root, nil
 }
 
+type pkgJSON struct {
+	Engines pkgJSONEngine `json:"engines"`
+}
+type pkgJSONEngine struct {
+	Node string `json:"node"`
+}
+
+func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, err error) {
+	pathPackageJSON := filepath.Join(rootPath, "package.json")
+
+	var pkg pkgJSON
+	buf, err := os.ReadFile(pathPackageJSON)
+	if errors.Is(err, os.ErrNotExist) {
+		return "", nil
+	} else if err != nil {
+		return "", errors.Wrapf(err, "reading %s", pathPackageJSON)
+	}
+
+	if err := json.Unmarshal(buf, &pkg); err != nil {
+		return "", errors.Wrapf(err, "parsing %s", pathPackageJSON)
+	}
+
+	if pkg.Engines.Node == "" {
+		return "", nil
+	}
+
+	nodeConstraint, err := semver.NewConstraint(pkg.Engines.Node)
+	if err != nil {
+		return "", errors.Wrapf(err, "parsing node engine %s", pkg.Engines.Node)
+	}
+
+	v, err := build.GetVersions()
+	if err != nil {
+		return "", err
+	}
+	supportedVersionsMap := v[string(build.NameNode)]
+	var supportedVersions []string
+	for supportedVersion := range supportedVersionsMap {
+		supportedVersions = append(supportedVersions, supportedVersion)
+	}
+	slices.SortFunc(supportedVersions, func(a, b string) bool {
+		return b < a
+	})
+
+	for _, supportedVersion := range supportedVersions {
+		sv, err := semver.NewVersion(supportedVersion)
+		if err != nil {
+			return "", err
+		}
+		if nodeConstraint.Check(sv) {
+			return build.BuildTypeVersion(supportedVersion), nil
+		}
+	}
+
+	return "", nil
+}
+
 // Kind implementation.
 func (r Runtime) Kind() build.TaskKind {
 	return build.TaskKindNode
@@ -461,7 +519,7 @@ func checkNodeVersion(ctx context.Context, logger logger.Logger, opts build.Kind
 		return
 	}
 
-	v, err := semver.ParseTolerant(nodeVersion)
+	v, err := semver.NewVersion(nodeVersion)
 	if err != nil {
 		logger.Debug("Unable to parse node version (%s): ignoring", nodeVersion)
 		return
@@ -476,7 +534,7 @@ func checkNodeVersion(ctx context.Context, logger logger.Logger, opts build.Kind
 	}
 
 	logger.Debug("node version: %s", strings.TrimSpace(string(out)))
-	if !strings.HasPrefix(string(out), fmt.Sprintf("v%d", v.Major)) {
+	if !strings.HasPrefix(string(out), fmt.Sprintf("v%d", v.Major())) {
 		logger.Warning("Your local version of Node (%s) does not match the version your task is configured to run against (v%s).", strings.TrimSpace(string(out)), v)
 	}
 

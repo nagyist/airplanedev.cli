@@ -2,6 +2,7 @@ package discover
 
 import (
 	"context"
+	"path"
 	"path/filepath"
 	"testing"
 
@@ -24,7 +25,7 @@ func TestDiscover(t *testing.T) {
 		expectedTaskConfigs []TaskConfig
 		expectedViewConfigs []ViewConfig
 		buildConfigs        []build.BuildConfig
-		defnFilePath        string
+		defnFilePaths       []string
 		absEntrypoints      []string
 	}{
 		{
@@ -158,8 +159,7 @@ func TestDiscover(t *testing.T) {
 						Slug:        "my_task",
 						Description: "ut dolor sit officia ea",
 						Node: &definitions.NodeDefinition_0_3{
-							Entrypoint:  "./single_task.js",
-							NodeVersion: "14",
+							Entrypoint: "./single_task.js",
 						},
 					},
 					Source: ConfigSourceDefn,
@@ -170,9 +170,77 @@ func TestDiscover(t *testing.T) {
 					"workdir": "",
 				},
 			},
-			defnFilePath: fixturesPath + "/defn.task.yaml",
+			defnFilePaths: []string{fixturesPath + "/defn.task.yaml"},
 			absEntrypoints: []string{
 				fixturesPath + "/single_task.js",
+			},
+		},
+		{
+			name:  "task definitions with version in bundle",
+			paths: []string{"./fixtures/tasksWithVersion"},
+			existingTasks: map[string]api.Task{
+				"my_task":  {ID: "tsk121", Slug: "my_task", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+				"my_task2": {ID: "tsk122", Slug: "my_task2", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+				"my_task3": {ID: "tsk123", Slug: "my_task3", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+			},
+			expectedTaskConfigs: []TaskConfig{
+				{
+					TaskID:         "tsk121",
+					TaskRoot:       path.Join(fixturesPath, "tasksWithVersion", "18"),
+					TaskEntrypoint: path.Join(fixturesPath, "tasksWithVersion", "18", "node.ts"),
+					Def: &definitions.Definition_0_3{
+						Name: "my_task",
+						Slug: "my_task",
+						Node: &definitions.NodeDefinition_0_3{
+							Entrypoint:  "node.ts",
+							NodeVersion: "18",
+						},
+					},
+					Source: ConfigSourceDefn,
+				},
+				{
+					TaskID:         "tsk122",
+					TaskRoot:       path.Join(fixturesPath, "tasksWithVersion", "gt17"),
+					TaskEntrypoint: path.Join(fixturesPath, "tasksWithVersion", "gt17", "node.ts"),
+					Def: &definitions.Definition_0_3{
+						Name: "my_task2",
+						Slug: "my_task2",
+						Node: &definitions.NodeDefinition_0_3{
+							Entrypoint:  "node.ts",
+							NodeVersion: "18",
+						},
+					},
+					Source: ConfigSourceDefn,
+				},
+				{
+					TaskID:         "tsk123",
+					TaskRoot:       path.Join(fixturesPath, "tasksWithVersion", "lt18gt14"),
+					TaskEntrypoint: path.Join(fixturesPath, "tasksWithVersion", "lt18gt14", "node.ts"),
+					Def: &definitions.Definition_0_3{
+						Name: "my_task3",
+						Slug: "my_task3",
+						Node: &definitions.NodeDefinition_0_3{
+							Entrypoint:  "node.ts",
+							NodeVersion: "16",
+						},
+					},
+					Source: ConfigSourceDefn,
+				},
+			},
+			buildConfigs: []build.BuildConfig{
+				{"workdir": ""},
+				{"workdir": ""},
+				{"workdir": ""},
+			},
+			defnFilePaths: []string{
+				path.Join(fixturesPath, "tasksWithVersion", "18", "node.task.yaml"),
+				path.Join(fixturesPath, "tasksWithVersion", "gt17", "node.task.yaml"),
+				path.Join(fixturesPath, "tasksWithVersion", "lt18gt14", "node.task.yaml"),
+			},
+			absEntrypoints: []string{
+				path.Join(fixturesPath, "tasksWithVersion", "18", "node.ts"),
+				path.Join(fixturesPath, "tasksWithVersion", "gt17", "node.ts"),
+				path.Join(fixturesPath, "tasksWithVersion", "lt18gt14", "node.ts"),
 			},
 		},
 		{
@@ -211,8 +279,7 @@ func TestDiscover(t *testing.T) {
 						Slug:        "my_task",
 						Description: "ut dolor sit officia ea",
 						Node: &definitions.NodeDefinition_0_3{
-							Entrypoint:  "./single_task.js",
-							NodeVersion: "14",
+							Entrypoint: "./single_task.js",
 						},
 					},
 					Source: ConfigSourceDefn,
@@ -223,7 +290,7 @@ func TestDiscover(t *testing.T) {
 					"workdir": "",
 				},
 			},
-			defnFilePath: fixturesPath + "/defn.task.yaml",
+			defnFilePaths: []string{fixturesPath + "/defn.task.yaml"},
 			absEntrypoints: []string{
 				fixturesPath + "/single_task.js",
 			},
@@ -284,7 +351,7 @@ func TestDiscover(t *testing.T) {
 					"entrypoint": "nonlinkedscript/single_task.js",
 				},
 			},
-			defnFilePath: fixturesPath + "/nonlinkedscript/single_task.task.yaml",
+			defnFilePaths: []string{fixturesPath + "/nonlinkedscript/single_task.task.yaml"},
 			absEntrypoints: []string{
 				fixturesPath + "/nonlinkedscript/single_task.js",
 			},
@@ -318,7 +385,7 @@ func TestDiscover(t *testing.T) {
 					"entrypoint": "nonlinkedscript/single_task.js",
 				},
 			},
-			defnFilePath: fixturesPath + "/nonlinkedscript/single_task.task.yaml",
+			defnFilePaths: []string{fixturesPath + "/nonlinkedscript/single_task.task.yaml"},
 			absEntrypoints: []string{
 				fixturesPath + "/nonlinkedscript/single_task.js",
 			},
@@ -352,7 +419,7 @@ func TestDiscover(t *testing.T) {
 					"entrypoint": "subdir/single_task.js",
 				},
 			},
-			defnFilePath: fixturesPath + "/subdir/defn.task.yaml",
+			defnFilePaths: []string{fixturesPath + "/subdir/defn.task.yaml"},
 			absEntrypoints: []string{
 				fixturesPath + "/subdir/single_task.js",
 			},
@@ -453,8 +520,7 @@ func TestDiscover(t *testing.T) {
 							},
 						},
 						Node: &definitions.NodeDefinition_0_3{
-							Entrypoint:  "taskInline/codeOnlyTask.airplane.ts",
-							NodeVersion: "18",
+							Entrypoint: "taskInline/codeOnlyTask.airplane.ts",
 						},
 					},
 					Source: ConfigSourceCode,
@@ -493,8 +559,7 @@ func TestDiscover(t *testing.T) {
 							},
 						},
 						Node: &definitions.NodeDefinition_0_3{
-							Entrypoint:  "taskInlineEsm/codeOnlyTask.airplane.ts",
-							NodeVersion: "18",
+							Entrypoint: "taskInlineEsm/codeOnlyTask.airplane.ts",
 						},
 					},
 					Source: ConfigSourceCode,
@@ -563,8 +628,7 @@ func TestDiscover(t *testing.T) {
 						Slug:       "my_task",
 						Parameters: []definitions.ParameterDefinition_0_3{},
 						Node: &definitions.NodeDefinition_0_3{
-							Entrypoint:  "viewInline-with-tasks/myView/myView.view.tsx",
-							NodeVersion: "18",
+							Entrypoint: "viewInline-with-tasks/myView/myView.view.tsx",
 						},
 						Description: "my description",
 					},
@@ -652,7 +716,9 @@ func TestDiscover(t *testing.T) {
 					err := tC.expectedTaskConfigs[i].Def.SetAbsoluteEntrypoint(tC.absEntrypoints[i])
 					require.NoError(err)
 				}
-				tC.expectedTaskConfigs[i].Def.SetDefnFilePath(tC.defnFilePath)
+				if i < len(tC.defnFilePaths) {
+					tC.expectedTaskConfigs[i].Def.SetDefnFilePath(tC.defnFilePaths[i])
+				}
 				require.Equal(tC.expectedTaskConfigs[i], taskConfigs[i])
 			}
 

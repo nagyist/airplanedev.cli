@@ -15,7 +15,7 @@ type TaskParam = {
 };
 
 type NodeDef = {
-  nodeVersion: "12" | "14" | "15" | "16" | "18";
+  nodeVersion?: "12" | "14" | "15" | "16" | "18";
   envVars?: Record<string, string | { config: string } | { value: string }>;
 };
 
@@ -106,7 +106,7 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
             parameters: params,
             entrypointFunc: exportName,
             node: {
-              nodeVersion: config.nodeVersion ?? "18",
+              nodeVersion: config.nodeVersion,
               envVars: config.envVars,
             },
           });

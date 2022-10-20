@@ -421,6 +421,9 @@ func GetNodeVersion(opts KindOptions) string {
 	if !ok {
 		return DefaultNodeVersion
 	}
+	if nv == "" {
+		return DefaultNodeVersion
+	}
 
 	return nv
 }

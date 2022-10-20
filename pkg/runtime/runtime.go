@@ -62,6 +62,12 @@ type Interface interface {
 	// `package.json` or `requirements.txt`, they'll use `fs.Find()`.
 	Root(path string) (dir string, err error)
 
+	// Version attempts to detect the version that the entity should be built with. Returns
+	// an empty version if it cannot be determined.
+	//
+	// Typically runtimes will look for the version in a specific file such as `package.json`.
+	Version(rootPath string) (buildVersion build.BuildTypeVersion, err error)
+
 	// Kind returns a task kind that matches the runtime.
 	//
 	// Generate and other methods should not be called

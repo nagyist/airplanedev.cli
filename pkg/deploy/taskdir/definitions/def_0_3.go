@@ -60,6 +60,7 @@ type taskKind_0_3 interface {
 	getConfigAttachments() []api.ConfigAttachment
 	getResourceAttachments() map[string]string
 	getBuildType() (build.BuildType, build.BuildTypeVersion)
+	setBuildVersion(build.BuildTypeVersion)
 }
 
 var _ taskKind_0_3 = &ImageDefinition_0_3{}
@@ -135,6 +136,9 @@ func (d *ImageDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVe
 	return build.DockerBuildType, build.BuildTypeVersionUnspecified
 }
 
+func (d *ImageDefinition_0_3) setBuildVersion(v build.BuildTypeVersion) {
+}
+
 var _ taskKind_0_3 = &NodeDefinition_0_3{}
 
 type NodeDefinition_0_3 struct {
@@ -187,10 +191,13 @@ func (d *NodeDefinition_0_3) getAbsoluteEntrypoint() (string, error) {
 }
 
 func (d *NodeDefinition_0_3) getKindOptions() (build.KindOptions, error) {
-	return build.KindOptions{
-		"entrypoint":  d.Entrypoint,
-		"nodeVersion": d.NodeVersion,
-	}, nil
+	ko := build.KindOptions{
+		"entrypoint": d.Entrypoint,
+	}
+	if d.NodeVersion != "" {
+		ko["nodeVersion"] = d.NodeVersion
+	}
+	return ko, nil
 }
 
 func (d *NodeDefinition_0_3) getEntrypoint() (string, error) {
@@ -211,6 +218,12 @@ func (d *NodeDefinition_0_3) getResourceAttachments() map[string]string {
 
 func (d *NodeDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
 	return build.NodeBuildType, build.BuildTypeVersion(d.NodeVersion)
+}
+
+func (d *NodeDefinition_0_3) setBuildVersion(v build.BuildTypeVersion) {
+	if d.NodeVersion == "" {
+		d.NodeVersion = string(v)
+	}
 }
 
 var _ taskKind_0_3 = &PythonDefinition_0_3{}
@@ -282,6 +295,9 @@ func (d *PythonDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeV
 	return build.PythonBuildType, build.BuildTypeVersionUnspecified
 }
 
+func (d *PythonDefinition_0_3) setBuildVersion(v build.BuildTypeVersion) {
+}
+
 var _ taskKind_0_3 = &ShellDefinition_0_3{}
 
 type ShellDefinition_0_3 struct {
@@ -349,6 +365,9 @@ func (d *ShellDefinition_0_3) getResourceAttachments() map[string]string {
 
 func (d *ShellDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
 	return build.ShellBuildType, build.BuildTypeVersionUnspecified
+}
+
+func (d *ShellDefinition_0_3) setBuildVersion(v build.BuildTypeVersion) {
 }
 
 var _ taskKind_0_3 = &SQLDefinition_0_3{}
@@ -539,6 +558,8 @@ func (d *SQLDefinition_0_3) getResourceAttachments() map[string]string {
 func (d *SQLDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
 	return build.NoneBuildType, build.BuildTypeVersionUnspecified
 }
+func (d *SQLDefinition_0_3) setBuildVersion(v build.BuildTypeVersion) {
+}
 
 var _ taskKind_0_3 = &RESTDefinition_0_3{}
 
@@ -716,6 +737,8 @@ func (d *RESTDefinition_0_3) getResourceAttachments() map[string]string {
 func (d *RESTDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
 	return build.NoneBuildType, build.BuildTypeVersionUnspecified
 }
+func (d *RESTDefinition_0_3) setBuildVersion(v build.BuildTypeVersion) {
+}
 
 type ParameterDefinition_0_3 struct {
 	Name        string                 `json:"name"`
@@ -781,8 +804,7 @@ func NewDefinition_0_3(name string, slug string, kind build.TaskKind, entrypoint
 		}
 	case build.TaskKindNode:
 		def.Node = &NodeDefinition_0_3{
-			Entrypoint:  entrypoint,
-			NodeVersion: build.DefaultNodeVersion,
+			Entrypoint: entrypoint,
 		}
 	case build.TaskKindPython:
 		def.Python = &PythonDefinition_0_3{
@@ -1185,6 +1207,15 @@ func (d Definition_0_3) GetBuildType() (build.BuildType, build.BuildTypeVersion,
 	}
 	t, v := taskKind.getBuildType()
 	return t, v, nil
+}
+
+func (d Definition_0_3) SetBuildVersion(v build.BuildTypeVersion) error {
+	taskKind, err := d.taskKind()
+	if err != nil {
+		return err
+	}
+	taskKind.setBuildVersion(v)
+	return nil
 }
 
 func (d *Definition_0_3) SetDefnFilePath(filePath string) {

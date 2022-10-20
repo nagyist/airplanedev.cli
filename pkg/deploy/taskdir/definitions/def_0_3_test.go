@@ -437,6 +437,27 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 			},
 		},
 		{
+			name: "node task without version",
+			task: api.Task{
+				Name:      "Node Task",
+				Slug:      "node_task",
+				Arguments: []string{"{{JSON.stringify(params)}}"},
+				Kind:      build.TaskKindNode,
+				KindOptions: build.KindOptions{
+					"entrypoint": "main.ts",
+				},
+			},
+			definition: Definition_0_3{
+				Name:       "Node Task",
+				Slug:       "node_task",
+				Parameters: []ParameterDefinition_0_3{},
+				Node: &NodeDefinition_0_3{
+					Entrypoint: "main.ts",
+				},
+				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
+			},
+		},
+		{
 			name: "shell task",
 			task: api.Task{
 				Name:      "Shell Task",

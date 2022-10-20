@@ -18,12 +18,13 @@
                 },
                 "nodeVersion": {
                   "description": "The version of Node to use.",
-                  "enum": ["14", "16", "18"]
+                  "enum": ["14", "16", "18"],
+                  "deprecated": true
                 },
                 "envVars": { "$ref": "#/$defs/envVars" }
               },
               "additionalProperties": false,
-              "required": ["entrypoint", "nodeVersion"]
+              "required": ["entrypoint"]
             }
           },
           "required": ["node"]

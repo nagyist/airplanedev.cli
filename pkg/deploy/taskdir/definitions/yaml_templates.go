@@ -63,9 +63,6 @@ node:
   # can be absolute or relative to the location of the definition file.
   entrypoint: {{.Entrypoint}}
 
-  # The version of Node to use. Valid values: 14, 16, 18.
-  nodeVersion: "{{.NodeVersion}}"
-
   # A map of environment variables to use when running the task. The value
   # should be an object; if specifying raw values, the value must be an object
   # with ` + "`value`" + ` mapped to the value of the environment variable; if
