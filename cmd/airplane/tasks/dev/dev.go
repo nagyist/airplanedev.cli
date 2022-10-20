@@ -286,6 +286,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		EnvVars:      envVars,
 		Resources:    resources,
 		ConfigVars:   configVars,
+		PrintLogs:    true,
 	}
 	_, err = localExecutor.Execute(ctx, localRunConfig)
 	if err != nil {

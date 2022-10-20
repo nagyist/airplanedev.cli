@@ -66,6 +66,7 @@ type LocalRunConfig struct {
 	Resources map[string]resources.Resource
 	IsBuiltin bool
 	LogBroker logs.LogBroker
+	PrintLogs bool
 }
 
 type CmdConfig struct {
@@ -151,8 +152,7 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	cmd := cmdConfig.cmd
 	r := cmdConfig.runtime
 	entrypoint := cmdConfig.entrypoint
-	print.BoxPrint(fmt.Sprintf("Locally running task [%s]", config.Slug))
-	logger.Log("")
+	logger.Log("%+v Locally running task %s (runID=%s).", logger.Yellow(time.Now().Format(logger.TimeFormatNoDate)), logger.Bold(config.Slug), logger.Gray(config.ID))
 
 	logger.Debug("Running %s", logger.Bold(strings.Join(cmd.Args, " ")))
 	stdout, err := cmd.StdoutPipe()
@@ -226,7 +226,9 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 				Text:      line,
 				Level:     "info",
 			})
-			logger.Log("[%s %s] %s", logger.Gray(config.Name), logger.Gray("log"), line)
+			if config.PrintLogs {
+				logger.Log("[%s %s] %s", logger.Gray(config.Name), logger.Gray("log"), line)
+			}
 		}
 		return errors.Wrap(scanner.Err(), "scanning logs")
 	}
@@ -245,13 +247,12 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 
 	err = cmd.Wait()
 	outputs := api.Outputs(o)
-	logger.Log("")
-	logger.Log("%s for task %s:", logger.Gray("Output"), logger.Gray(config.Slug))
-	print.Outputs(outputs)
-
-	logger.Log("")
-	print.BoxPrint(fmt.Sprintf("Finished running task [%s]", config.Slug))
-	logger.Log("")
+	if config.PrintLogs {
+		logger.Log("")
+		logger.Log("%s for task %s:", logger.Gray("Output"), logger.Gray(config.Slug))
+		print.Outputs(outputs)
+	}
+	logger.Log("%v Finished running task %s (runID=%s).", logger.Yellow(time.Now().Format(logger.TimeFormatNoDate)), logger.Bold(config.Slug), logger.Gray(config.ID))
 
 	return outputs, err
 }

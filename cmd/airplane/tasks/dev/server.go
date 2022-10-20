@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/filewatcher"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/pkg/errors"
 	"github.com/rjeczalik/notify"
@@ -106,31 +108,47 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
-	logger.Log("Discovering tasks and views...")
+	fmt.Fprint(os.Stderr, "Discovering tasks, workflows, and views...")
 	taskConfigs, viewConfigs, err := apiServer.DiscoverTasksAndViews(ctx, cfg.fileOrDir)
 	if err != nil {
+		logger.Log("")
 		return err
 	}
 	// Print out discovered views and tasks to the user
-	taskNoun := "tasks"
-	if len(taskConfigs) == 1 {
-		taskNoun = "task"
-	}
-	logger.Log("Found %d %s:", len(taskConfigs), taskNoun)
-	for _, task := range taskConfigs {
-		logger.Log("- %s", task.Def.GetName())
+	numTasks := 0
+	numWorkflows := 0
+	for _, tc := range taskConfigs {
+		if tc.Def.GetRuntime() == build.TaskRuntimeWorkflow {
+			numWorkflows++
+		} else {
+			numTasks++
+		}
 	}
 
-	logger.Log("")
+	taskNoun := "tasks"
+	if numTasks == 1 {
+		taskNoun = "task"
+	}
+
+	workflowNoun := "workflows"
+	if numWorkflows == 1 {
+		workflowNoun = "workflow"
+	}
 
 	viewNoun := "views"
 	if len(viewConfigs) == 1 {
 		viewNoun = "view"
 	}
-	logger.Log("Found %d %s:", len(viewConfigs), viewNoun)
-	for _, view := range viewConfigs {
-		logger.Log("- %s", view.Def.Name)
-	}
+	logger.Log(
+		"registered %s %s, %s %s, and %s %s.",
+		logger.Green(strconv.Itoa(numTasks)),
+		logger.Green(taskNoun),
+		logger.Green(strconv.Itoa(numWorkflows)),
+		logger.Green(workflowNoun),
+		logger.Green(strconv.Itoa(len(viewConfigs))),
+		logger.Green(viewNoun),
+	)
+
 	// Register discovered tasks with local dev server
 	warnings, err := apiServer.RegisterTasksAndViews(ctx, server.DiscoverOpts{
 		Tasks: taskConfigs,
@@ -164,12 +182,11 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 
 	logger.Log("")
 	if cfg.useFallbackEnv {
-		logger.Log("Your environment is set to %s.", logger.Bold(remoteEnv.Name))
-		logger.Log("- Any task that is not available locally will execute in your %s environment.", logger.Bold(remoteEnv.Name))
-		logger.Log("- Any resources not declared in your dev config will be loaded from your %s environment.", logger.Bold(remoteEnv.Name))
+		logger.Log("Your fallback environment is set to %s.", logger.Bold(remoteEnv.Name))
+		logger.Log("- Any task not registered locally will execute in %s.", logger.Bold(remoteEnv.Name))
+		logger.Log("- Any resource not declared in your dev config will be loaded from %s.", logger.Bold(remoteEnv.Name))
 	} else {
-		logger.Log("You have not set a fallback environment. All tasks and resources must be available locally. " +
-			"You can configure a fallback environment via `--env`.")
+		logger.Log("All tasks and resources must be available locally. You can configure a fallback environment via `--env`.")
 	}
 
 	// Start watching for changes and reload apps when the -watch flag is on

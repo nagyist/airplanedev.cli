@@ -158,6 +158,7 @@ func Start(opts Options) (*Server, error) {
 
 	go func() {
 		if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Log("")
 			logger.Error(fmt.Sprintf("failed to start api server: %v", err))
 			os.Exit(1)
 		}
