@@ -42,11 +42,11 @@ type taskDevConfig struct {
 	// If there are multiple tasks a, b in file f (config as code), specifying airplane
 	// dev f::a would set fileOrDir to f and entrypointFunc to a.
 	entrypointFunc string
-	
+
 	// Airplane dev server-related fields
-	studio         bool
-	useFallbackEnv bool
-	watch          bool
+	studio           bool
+	useFallbackEnv   bool
+	disableWatchMode bool
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -139,7 +139,7 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().StringVar(&cfg.devConfigPath, "config-path", "", "The path to the dev config file to load into the local dev server.")
 	cmd.Flags().BoolVar(&cfg.studio, "studio", true, "Run the local Studio")
 	cmd.Flags().BoolVar(&cfg.studio, "editor", true, "Run the local Studio")
-	cmd.Flags().BoolVar(&cfg.watch, "watch", true, "Watch for changes and apply updates to tasks, views, and workflows automatically.")
+	cmd.Flags().BoolVar(&cfg.disableWatchMode, "no-watch", false, "Disable watch mode. Changes require restarting the studio to take effect.")
 
 	if err := cmd.Flags().MarkDeprecated("editor", "launching the Studio is now the default behavior."); err != nil {
 		logger.Debug("marking --editor as deprecated: %s", err)

@@ -189,23 +189,22 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		logger.Log("All tasks and resources must be available locally. You can configure a fallback environment via `--env`.")
 	}
 
-	// Start watching for changes and reload apps when the -watch flag is on
-	if cfg.watch {
+	// Start watching for changes and reload apps, unless it's disabled.
+	if cfg.disableWatchMode {
+		logger.Log("")
+		logger.Log("Changes require restarting the studio to take effect.")
+	} else {
 		fileWatcher := filewatcher.NewAppWatcher(filewatcher.AppWatcherOpts{
 			IsValid: filewatcher.IsValidDefinitionFile,
 			Callback: func(e notify.EventInfo) error {
 				return apiServer.ReloadApps(context.Background(), e.Path(), cfg.fileOrDir, e.Event())
 			},
 		})
-
 		err := fileWatcher.Watch(cfg.fileOrDir)
 		if err != nil {
 			return errors.Wrap(err, "starting filewatcher")
 		}
 		defer fileWatcher.Stop()
-	} else {
-		logger.Log("")
-		logger.Log("Changes require restarting the studio to take effect.")
 	}
 
 	logger.Log("")
