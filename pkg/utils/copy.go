@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -97,10 +98,14 @@ func CopyFromGithubPath(gitPath string) error {
 
 			if err = InstallDependencies(directory, useYarn); err != nil {
 				logger.Debug(err.Error())
-				if useYarn {
-					return errors.New("error installing dependencies using yarn. Try installing yarn.")
+				if errors.Is(err, exec.ErrNotFound) {
+					if useYarn {
+						return errors.New("error installing dependencies using yarn. Try installing yarn.")
+					} else {
+						return errors.New("error installing dependencies using npm. Try installing npm.")
+					}
 				}
-				return err
+				return errors.Wrap(err, "running npm/yarn install")
 			}
 			logger.Step("Finished installing dependencies")
 		}

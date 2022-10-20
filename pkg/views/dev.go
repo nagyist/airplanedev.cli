@@ -131,8 +131,12 @@ func Dev(ctx context.Context, v viewdir.ViewDirectoryInterface, viteOpts ViteOpt
 	useYarn := utils.ShouldUseYarn(airplaneViewDir)
 	if err := utils.InstallDependencies(airplaneViewDir, useYarn); err != nil {
 		l.Debug(err.Error())
-		if useYarn {
-			return nil, "", nil, errors.New("error installing dependencies using yarn. Try installing yarn.")
+		if errors.Is(err, exec.ErrNotFound) {
+			if useYarn {
+				return nil, "", nil, errors.New("error installing dependencies using yarn. Try installing yarn.")
+			} else {
+				return nil, "", nil, errors.New("error installing dependencies using npm. Try installing npm.")
+			}
 		}
 		return nil, "", nil, errors.Wrap(err, "running npm/yarn install")
 	}
