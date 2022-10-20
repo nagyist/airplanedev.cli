@@ -11,7 +11,6 @@ import (
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/views"
 	"github.com/airplanedev/cli/pkg/views/viewdir"
-	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -32,8 +31,8 @@ func New(c *cli.Config) *cobra.Command {
 		Short: "Locally run a view",
 		Long:  "Locally runs a view from the view's directory",
 		Example: heredoc.Doc(`
-			airplane dev
-			airplane dev ./path/to/directory
+			airplane views dev
+			airplane views dev ./path/to/directory
 		`),
 		PersistentPreRunE: utils.WithParentPersistentPreRunE(func(cmd *cobra.Command, args []string) error {
 			// TODO: update the `dev` command to work w/out internet access
@@ -53,6 +52,7 @@ func New(c *cli.Config) *cobra.Command {
 
 			return Run(cmd.Root().Context(), cfg)
 		},
+		Deprecated: "please use `airplane dev` instead.",
 	}
 
 	cmd.Flags().StringVar(&cfg.EnvSlug, "env", "", "The slug of the environment to run the view against. Defaults to your team's default environment.")
@@ -66,21 +66,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	return StartView(ctx, cfg)
-}
-
-func IsView(dir string) error {
-	// TODO check if we are nested inside of a View directory.
-	contents, err := os.ReadDir(dir)
-	if err != nil {
-		return errors.Wrapf(err, "reading %s", dir)
-	}
-
-	for _, content := range contents {
-		if definitions.IsViewDef(content.Name()) {
-			return nil
-		}
-	}
-	return errors.Errorf("%s is not an Airplane view. It is missing a view definition file", dir)
 }
 
 // StartView starts a view development server.

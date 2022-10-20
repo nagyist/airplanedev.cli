@@ -43,7 +43,7 @@ func New() *cobra.Command {
 		Short: "Airplane CLI",
 		Example: heredoc.Doc(`
 			airplane init
-			airplane dev ./path/to/script
+			airplane dev ./path/to/tasks_views_workflows
 			airplane deploy ./path/to/script
 		`),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {

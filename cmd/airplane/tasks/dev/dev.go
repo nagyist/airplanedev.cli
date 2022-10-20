@@ -11,7 +11,6 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config"
-	viewsdev "github.com/airplanedev/cli/cmd/airplane/views/dev"
 	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
@@ -37,13 +36,13 @@ type taskDevConfig struct {
 	envSlug       string
 
 	// Short-lived dev command fields
-	// TODO: Remove these fields once launching the dev server is the default behavior of airplane dev
+	// TODO: Remove these fields once we remove legacy airplane dev behavior
 	fileOrDir string
 	args      []string
 	// If there are multiple tasks a, b in file f (config as code), specifying airplane
 	// dev f::a would set fileOrDir to f and entrypointFunc to a.
 	entrypointFunc string
-
+	
 	// Airplane dev server-related fields
 	studio         bool
 	useFallbackEnv bool
@@ -58,11 +57,10 @@ func New(c *cli.Config) *cobra.Command {
 		Short: "Locally run a task",
 		Long:  "Locally runs a task, optionally with specific parameters.",
 		Example: heredoc.Doc(`
-			airplane dev ./task.js [-- <parameters...>]
-			airplane dev ./task.ts::<exportName> [-- <parameters...>] (for multiple tasks in one file)
+			airplane dev ./airplane_apps/ (developing a set of tasks, views, or workflows)
+			airplane dev ./my.task.yaml (developing a single task)
 		`),
 		PersistentPreRunE: utils.WithParentPersistentPreRunE(func(cmd *cobra.Command, args []string) error {
-			// TODO: update the `dev` command to work w/out internet access
 			return login.EnsureLoggedIn(cmd.Root().Context(), c)
 		}),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -139,13 +137,12 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
 	cmd.Flags().IntVar(&cfg.port, "port", server.DefaultPort, "The port to start the local airplane api server on - defaults to 4000.")
 	cmd.Flags().StringVar(&cfg.devConfigPath, "config-path", "", "The path to the dev config file to load into the local dev server.")
-	// TODO: Make opening the studio the default behavior.
-	cmd.Flags().BoolVar(&cfg.studio, "studio", false, "Run the local airplane studio")
-	cmd.Flags().BoolVar(&cfg.studio, "editor", false, "Run the local airplane studio (use --studio instead)")
-	cmd.Flags().BoolVar(&cfg.watch, "watch", false, "Watch for changes and apply updates to tasks, views, and workflows automatically.")
+	cmd.Flags().BoolVar(&cfg.studio, "studio", true, "Run the local Studio")
+	cmd.Flags().BoolVar(&cfg.studio, "editor", true, "Run the local Studio")
+	cmd.Flags().BoolVar(&cfg.watch, "watch", true, "Watch for changes and apply updates to tasks, views, and workflows automatically.")
 
-	if err := cmd.Flags().MarkHidden("editor"); err != nil {
-		logger.Debug("error: %s", err)
+	if err := cmd.Flags().MarkDeprecated("editor", "launching the Studio is now the default behavior."); err != nil {
+		logger.Debug("marking --editor as deprecated: %s", err)
 	}
 	return cmd
 }
@@ -158,23 +155,6 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 
 	if !fsx.Exists(cfg.fileOrDir) {
 		return errors.Errorf("Unable to open: %s", cfg.fileOrDir)
-	}
-
-	fileInfo, err := os.Stat(cfg.fileOrDir)
-	if err != nil {
-		return errors.Wrapf(err, "describing %s", cfg.fileOrDir)
-	}
-
-	if fileInfo.IsDir() {
-		if viewsdev.IsView(cfg.fileOrDir) == nil {
-			return viewsdev.Run(ctx, viewsdev.Config{
-				Root:      cfg.root,
-				FileOrDir: cfg.fileOrDir,
-				Args:      cfg.args,
-				EnvSlug:   cfg.envSlug,
-			})
-		}
-		return errors.Errorf("%s is a directory", cfg.fileOrDir)
 	}
 
 	localExecutor := &dev.LocalExecutor{}

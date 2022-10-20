@@ -207,7 +207,7 @@ func suggestNextSteps(cfg config) {
 
 	logger.Suggest(
 		"⚡ To develop your view locally:",
-		"airplane views dev %s",
+		"airplane dev %s",
 		cfg.viewDir,
 	)
 

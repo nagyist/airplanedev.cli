@@ -530,7 +530,7 @@ func suggestNextSteps(req suggestNextStepsRequest) {
 	}
 	if req.showLocalExecution {
 		logger.Suggest(
-			"⚡ To execute the task locally:",
+			"⚡ To develop the task locally:",
 			"airplane dev %s",
 			file,
 		)
