@@ -1,6 +1,7 @@
 const worker = require("@temporalio/worker");
 const { writeFile } = require("fs/promises");
 const { builtinModules } = require("module");
+const webpack = require('webpack')
 
 // Temporal does not let you use any Node built-in, except for `assert`, which they shim.
 const shimmedModules = builtinModules.filter((name) => name !== "assert");
@@ -74,6 +75,16 @@ module.exports = proxy;`;
             ...fallbacks,
           },
         },
+        plugins: [
+          ...(config.plugins || []),
+          // Rewrite all `node:*` imports to the corresponding fallback file.
+          // We do this with a plugin since `resolve.fallback` does not support import schemes (e.g. `node:`).
+          // Based on: https://github.com/webpack/webpack/issues/13290#issuecomment-987880453
+          new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
+            const moduleName = resource.request.replace(/^node:/, "");
+            resource.request = fallbacks[moduleName];
+          }),
+        ],
       };
     },
   });
