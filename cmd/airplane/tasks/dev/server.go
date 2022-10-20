@@ -209,7 +209,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	logger.Log("")
-	studioURL := fmt.Sprintf("%s/studio?host=http://localhost:%d", appURL, cfg.port)
+	studioURL := fmt.Sprintf("%s/studio?host=http://localhost:%d&__env=%s", appURL, cfg.port, remoteEnv.Slug)
 	logger.Log("Started studio session at %s (^C to quit)", logger.Blue(studioURL))
 	logger.Log("Press ENTER to open the studio in the browser.")
 	logger.Log("")
