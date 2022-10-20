@@ -58,6 +58,7 @@ type taskKind_0_3 interface {
 	getEntrypoint() (string, error)
 	getEnv() (api.TaskEnv, error)
 	getConfigAttachments() []api.ConfigAttachment
+	getResourceAttachments() map[string]string
 	getBuildType() (build.BuildType, build.BuildTypeVersion)
 }
 
@@ -124,6 +125,10 @@ func (d *ImageDefinition_0_3) getEnv() (api.TaskEnv, error) {
 
 func (d *ImageDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
 	return []api.ConfigAttachment{}
+}
+
+func (d *ImageDefinition_0_3) getResourceAttachments() map[string]string {
+	return nil
 }
 
 func (d *ImageDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
@@ -200,6 +205,10 @@ func (d *NodeDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
 	return []api.ConfigAttachment{}
 }
 
+func (d *NodeDefinition_0_3) getResourceAttachments() map[string]string {
+	return nil
+}
+
 func (d *NodeDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
 	return build.NodeBuildType, build.BuildTypeVersion(d.NodeVersion)
 }
@@ -265,6 +274,10 @@ func (d *PythonDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
 	return []api.ConfigAttachment{}
 }
 
+func (d *PythonDefinition_0_3) getResourceAttachments() map[string]string {
+	return nil
+}
+
 func (d *PythonDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
 	return build.PythonBuildType, build.BuildTypeVersionUnspecified
 }
@@ -328,6 +341,10 @@ func (d *ShellDefinition_0_3) getEnv() (api.TaskEnv, error) {
 
 func (d *ShellDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
 	return []api.ConfigAttachment{}
+}
+
+func (d *ShellDefinition_0_3) getResourceAttachments() map[string]string {
+	return nil
 }
 
 func (d *ShellDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
@@ -515,6 +532,10 @@ func (d *SQLDefinition_0_3) normalize(ctx context.Context, client api.IAPIClient
 	return nil
 }
 
+func (d *SQLDefinition_0_3) getResourceAttachments() map[string]string {
+	return map[string]string{"db": d.Resource}
+}
+
 func (d *SQLDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
 	return build.NoneBuildType, build.BuildTypeVersionUnspecified
 }
@@ -686,6 +707,10 @@ func (d *RESTDefinition_0_3) normalize(ctx context.Context, client api.IAPIClien
 		return api.ResourceMissingError{Slug: d.Resource}
 	}
 	return nil
+}
+
+func (d *RESTDefinition_0_3) getResourceAttachments() map[string]string {
+	return map[string]string{"rest": d.Resource}
 }
 
 func (d *RESTDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
@@ -1092,12 +1117,11 @@ func (d Definition_0_3) addResourcesToUpdateTaskRequest(ctx context.Context, cli
 		return errors.Wrap(err, "fetching resources")
 	}
 
-	for alias, slug := range d.Resources.Attachments {
-		id, ok := collection.bySlug[slug]
-		if ok {
+	for alias, ref := range d.Resources.Attachments {
+		if id, ok := collection.bySlug[ref]; ok {
 			req.Resources[alias] = id
 		} else {
-			return errors.Errorf("unknown resource: %q", slug)
+			return errors.Errorf("unknown resource: %q", ref)
 		}
 	}
 
@@ -1206,16 +1230,25 @@ func (d *Definition_0_3) GetConfigAttachments() ([]api.ConfigAttachment, error) 
 	return taskKind.getConfigAttachments(), nil
 }
 
-func (d *Definition_0_3) GetResourceAttachments() map[string]string {
-	// SQL and REST store resource attachments on a different field
-	// and don't have aliases - both have a hardcoded value.
-	if d.SQL != nil {
-		d.Resources.Attachments = map[string]string{"db": d.SQL.Resource}
+func (d *Definition_0_3) GetResourceAttachments() (map[string]string, error) {
+	taskKind, err := d.taskKind()
+	if err != nil {
+		return nil, err
 	}
-	if d.REST != nil {
-		d.Resources.Attachments = map[string]string{"rest": d.REST.Resource}
+
+	taskKindResourceAttachments := taskKind.getResourceAttachments()
+	resourceAttachments := make(map[string]string, len(d.Resources.Attachments)+len(taskKindResourceAttachments))
+	// Append explicit resource attachments.
+	for alias, id := range d.Resources.Attachments {
+		resourceAttachments[alias] = id
 	}
-	return d.Resources.Attachments
+
+	// Append kind-specific resource attachments - these override any explicit resource attachments above
+	for alias, id := range taskKindResourceAttachments {
+		resourceAttachments[alias] = id
+	}
+
+	return resourceAttachments, nil
 }
 
 func (d *Definition_0_3) GetSlug() string {
