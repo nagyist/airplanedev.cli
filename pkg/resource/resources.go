@@ -33,14 +33,16 @@ func GenerateAliasToResourceMap(
 ) (map[string]resources.Resource, error) {
 	aliasToResourceMap := map[string]resources.Resource{}
 	// We only need to generate entries in the map for resources that are explicitly attached to a task.
-	for alias, slug := range resourceAttachments {
+	for alias, ref := range resourceAttachments {
 		var resource resources.Resource
-		resourceWithEnv, ok := slugToResource[slug]
+		resourceWithEnv, ok := LookupResource(slugToResource, ref)
 		if !ok {
-			return nil, errors.Errorf("Cannot find resource with slug %s in dev config file or remotely", slug)
-		} else if resourceWithEnv.Remote {
+			return nil, errors.Errorf("Cannot find resource with ref %s in dev config file or remotely", ref)
+		}
+
+		if resourceWithEnv.Remote {
 			remoteResourceWithCredentials, err := state.RemoteClient.GetResource(ctx, api.GetResourceRequest{
-				Slug:                 slug,
+				ID:                   resourceWithEnv.Resource.GetID(),
 				EnvSlug:              state.RemoteEnv.Slug,
 				IncludeSensitiveData: true,
 			})
@@ -147,11 +149,26 @@ func ListRemoteResources(ctx context.Context, state *state.State) ([]libapi.Reso
 	return resources, nil
 }
 
+// LookupResource looks up a resource by slug or name.
+func LookupResource(resourcesBySlug map[string]env.ResourceWithEnv, ref string) (env.ResourceWithEnv, bool) {
+	if res, ok := resourcesBySlug[ref]; ok {
+		return res, true
+	}
+
+	for _, res := range resourcesBySlug {
+		if res.Resource.GetName() == ref {
+			return res, true
+		}
+	}
+
+	return env.ResourceWithEnv{}, false
+}
+
 // Creates a map of the resource alias to resource ID
-func GenerateResourceAliasToID(resourceAliases map[string]resources.Resource) map[string]string {
+func GenerateResourceAliasToID(aliasToResource map[string]resources.Resource) map[string]string {
 	resourceAliasToID := map[string]string{}
-	for alias, resource := range resourceAliases {
-		resourceAliasToID[alias] = resource.ID()
+	for alias, resource := range aliasToResource {
+		resourceAliasToID[alias] = resource.GetID()
 	}
 	return resourceAliasToID
 }

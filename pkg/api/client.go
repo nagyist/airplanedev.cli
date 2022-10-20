@@ -516,6 +516,7 @@ func (c Client) ListResourceMetadata(ctx context.Context) (res libapi.ListResour
 
 func (c Client) GetResource(ctx context.Context, req GetResourceRequest) (res libapi.GetResourceResponse, err error) {
 	err = c.do(ctx, "GET", encodeQueryString("/resources/get", url.Values{
+		"id":                   []string{req.ID},
 		"slug":                 []string{req.Slug},
 		"envSlug":              []string{req.EnvSlug},
 		"includeSensitiveData": []string{strconv.FormatBool(req.IncludeSensitiveData)},

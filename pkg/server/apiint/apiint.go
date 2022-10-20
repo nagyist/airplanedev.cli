@@ -556,8 +556,10 @@ func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request
 		Resources:   map[string]string{},
 		UpdatedAt:   metadata.RefreshedAt,
 	}
-	if resources := taskConfig.Def.GetResourceAttachments(); resources != nil {
-		req.Resources = resources
+	if resourceAttachments, err := taskConfig.Def.GetResourceAttachments(); err != nil {
+		return libapi.Task{}, errors.Wrap(err, "getting resource attachments")
+	} else if resourceAttachments != nil {
+		req.Resources = resourceAttachments
 	}
 	configs, err := taskConfig.Def.GetConfigAttachments()
 	if err != nil {

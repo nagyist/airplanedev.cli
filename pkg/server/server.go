@@ -202,9 +202,13 @@ func ValidateTasks(ctx context.Context, resources map[string]env.ResourceWithEnv
 
 		// Check resource attachments.
 		var missingResources []string
-		for _, resourceSlug := range cfg.Def.GetResourceAttachments() {
-			if _, ok := resources[resourceSlug]; !ok {
-				missingResources = append(missingResources, resourceSlug)
+		resourceAttachments, err := cfg.Def.GetResourceAttachments()
+		if err != nil {
+			return dev_errors.RegistrationWarnings{}, errors.Wrap(err, "getting resource attachments")
+		}
+		for _, ref := range resourceAttachments {
+			if _, ok := resource.LookupResource(resources, ref); !ok {
+				missingResources = append(missingResources, ref)
 			}
 		}
 		if len(missingResources) > 0 {
@@ -238,6 +242,7 @@ func (s *Server) DiscoverTasksAndViews(ctx context.Context, dir string) ([]disco
 	if err != nil {
 		return []discover.TaskConfig{}, []discover.ViewConfig{}, errors.Wrap(err, "discovering tasks and views")
 	}
+
 	return taskConfigs, viewConfigs, err
 }
 

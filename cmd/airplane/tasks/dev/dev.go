@@ -243,10 +243,15 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	} else if err != nil {
 		return err
 	}
+
+	resourceAttachments, err := taskConfig.Def.GetResourceAttachments()
+	if err != nil {
+		return err
+	}
 	resources, err := resource.GenerateAliasToResourceMap(
 		ctx,
 		nil,
-		taskConfig.Def.GetResourceAttachments(),
+		resourceAttachments,
 		cfg.devConfig.Resources,
 	)
 	if err != nil {

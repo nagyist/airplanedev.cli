@@ -142,7 +142,10 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			runConfig.KindOptions = kindOptions
 			runConfig.Name = localTaskConfig.Def.GetName()
 			runConfig.File = localTaskConfig.TaskEntrypoint
-			resourceAttachments = localTaskConfig.Def.GetResourceAttachments()
+			resourceAttachments, err = localTaskConfig.Def.GetResourceAttachments()
+			if err != nil {
+				return dev.LocalRun{}, errors.Wrap(err, "getting resource attachments")
+			}
 			parameters, err = localTaskConfig.Def.GetParameters()
 			if err != nil {
 				return dev.LocalRun{}, errors.Wrap(err, "getting parameters")
@@ -490,10 +493,10 @@ func ListResourceMetadataHandler(ctx context.Context, state *state.State, r *htt
 	for slug, resourceWithEnv := range mergedResources {
 		res := resourceWithEnv.Resource
 		resources = append(resources, libapi.ResourceMetadata{
-			ID:   res.ID(),
+			ID:   res.GetID(),
 			Slug: slug,
 			DefaultEnvResource: &libapi.Resource{
-				ID:             res.ID(),
+				ID:             res.GetID(),
 				Name:           res.GetName(),
 				Slug:           slug,
 				Kind:           libapi.ResourceKind(res.Kind()),
