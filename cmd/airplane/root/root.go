@@ -11,10 +11,11 @@ import (
 	"github.com/airplanedev/cli/cmd/airplane/auth/logout"
 	"github.com/airplanedev/cli/cmd/airplane/configs"
 	"github.com/airplanedev/cli/cmd/airplane/demo"
+	"github.com/airplanedev/cli/cmd/airplane/root/deploy"
 	"github.com/airplanedev/cli/cmd/airplane/root/initcmd"
 	"github.com/airplanedev/cli/cmd/airplane/runs"
 	"github.com/airplanedev/cli/cmd/airplane/tasks"
-	"github.com/airplanedev/cli/cmd/airplane/tasks/deploy"
+	tasksdeploy "github.com/airplanedev/cli/cmd/airplane/tasks/deploy"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/execute"
 	"github.com/airplanedev/cli/cmd/airplane/version"
@@ -110,9 +111,10 @@ func New() *cobra.Command {
 	cmd.PersistentFlags().BoolVarP(&cfg.Version, "version", "v", false, "Print the CLI version.")
 	// Root commands:
 	cmd.AddCommand(initcmd.New(cfg))
+	cmd.AddCommand(deploy.New(cfg))
 
 	// Aliases for popular namespaced commands:
-	cmd.AddCommand(deploy.New(cfg))
+	cmd.AddCommand(tasksdeploy.New(cfg))
 	cmd.AddCommand(dev.New(cfg))
 	cmd.AddCommand(execute.New(cfg))
 	cmd.AddCommand(login.New(cfg))

@@ -291,11 +291,23 @@ type DeployView struct {
 	GitFilePath string `json:"gitFilePath"`
 }
 
+type BuildContext struct {
+	Type    build.BuildType        `json:"type"`
+	Version build.BuildTypeVersion `json:"version"`
+}
+
+type DeployBundle struct {
+	UploadID     string       `json:"uploadID"`
+	TargetFiles  []string     `json:"targetFiles"`
+	BuildContext BuildContext `json:"buildContext"`
+}
+
 type CreateDeploymentRequest struct {
-	Tasks       []DeployTask `json:"tasks"`
-	Views       []DeployView `json:"views"`
-	GitMetadata GitMetadata  `json:"gitMetadata"`
-	EnvSlug     string       `json:"envSlug"`
+	Tasks       []DeployTask   `json:"tasks"`
+	Views       []DeployView   `json:"views"`
+	Bundles     []DeployBundle `json:"bundles"`
+	GitMetadata GitMetadata    `json:"gitMetadata"`
+	EnvSlug     string         `json:"envSlug"`
 }
 
 type CancelDeploymentRequest struct {
