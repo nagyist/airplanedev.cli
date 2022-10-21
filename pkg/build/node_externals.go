@@ -19,6 +19,7 @@ import (
 var (
 	esmModules = map[string]bool{
 		"node-fetch": true,
+		"fetch-blob": true,
 		// airplane>=0.2.0 depends on node-fetch
 		"airplane":        true,
 		"@airplane/views": true,
