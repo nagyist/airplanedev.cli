@@ -32,11 +32,17 @@ func TestDev(tt *testing.T) {
 	tests := []runtimetest.Test{
 		{
 			Kind: build.TaskKindNode,
-			Opts: runtime.PrepareRunOptions{Path: "javascript/simple/main.js"},
+			Opts: runtime.PrepareRunOptions{
+				Path:     "javascript/simple/main.js",
+				TaskSlug: "simple",
+			},
 		},
 		{
 			Kind: build.TaskKindNode,
-			Opts: runtime.PrepareRunOptions{Path: "javascript/customroot/main.js"},
+			Opts: runtime.PrepareRunOptions{
+				Path:     "javascript/customroot/main.js",
+				TaskSlug: "custom",
+			},
 		},
 		// This test can fail depending on the order in which packages are loaded
 		// since it depends on the typescript runtime being registered.

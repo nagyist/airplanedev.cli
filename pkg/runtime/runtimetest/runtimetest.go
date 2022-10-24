@@ -55,6 +55,7 @@ func Run(tt *testing.T, ctx context.Context, tests []Test) {
 				Path:        copyExample(t, r, examples.Path(t, opts.Path)),
 				ParamValues: opts.ParamValues,
 				KindOptions: opts.KindOptions,
+				TaskSlug:    opts.TaskSlug,
 			})
 			require.NoError(err)
 			defer func() {

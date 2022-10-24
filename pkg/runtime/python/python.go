@@ -73,14 +73,11 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		return nil, nil, err
 	}
 
-	tmpdir := filepath.Join(root, ".airplane")
-	if err := os.Mkdir(tmpdir, os.ModeDir|0777); err != nil && !os.IsExist(err) {
-		return nil, nil, errors.Wrap(err, "creating .airplane directory")
+	_, taskDir, closer, err := runtime.CreateTaskDir(root, opts.TaskSlug)
+	if err != nil {
+		return nil, nil, err
 	}
-	closer := runtime.CloseFunc(func() error {
-		logger.Debug("Cleaning up temporary directory...")
-		return errors.Wrap(os.RemoveAll(tmpdir), "unable to remove temporary directory")
-	})
+
 	defer func() {
 		// If we encountered an error before returning, then we're responsible
 		// for performing our own cleanup.
@@ -103,7 +100,7 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		return nil, nil, err
 	}
 
-	if err := os.WriteFile(filepath.Join(tmpdir, "shim.py"), []byte(shim), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(taskDir, "shim.py"), []byte(shim), 0644); err != nil {
 		return nil, nil, errors.Wrap(err, "writing shim file")
 	}
 
@@ -116,7 +113,7 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 	if bin == "" {
 		return nil, nil, errors.New("could not find python")
 	}
-	return []string{pythonBin(logger), filepath.Join(tmpdir, "shim.py"), string(pv)}, closer, nil
+	return []string{pythonBin(logger), filepath.Join(taskDir, "shim.py"), string(pv)}, closer, nil
 }
 
 // pythonBin returns the first of python3 or python found on PATH, if any.

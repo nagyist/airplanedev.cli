@@ -402,13 +402,11 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		return nil, nil, err
 	}
 
-	tmpdir := filepath.Join(root, ".airplane")
-	if err := os.Mkdir(tmpdir, os.ModeDir|0777); err != nil && !os.IsExist(err) {
-		return nil, nil, errors.Wrap(err, "creating .airplane directory")
+	airplaneDir, taskDir, closer, err := runtime.CreateTaskDir(root, opts.TaskSlug)
+	if err != nil {
+		return nil, nil, err
 	}
-	closer := runtime.CloseFunc(func() error {
-		return errors.Wrap(os.RemoveAll(tmpdir), "unable to remove temporary directory")
-	})
+
 	defer func() {
 		// If we encountered an error before returning, then we're responsible
 		// for performing our own cleanup.
@@ -423,14 +421,14 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 	}
 	entrypointFunc, _ := opts.KindOptions["entrypointFunc"].(string)
 	shim, err := build.TemplatedNodeShim(build.NodeShimParams{
-		Entrypoint:     entrypoint,
+		Entrypoint:     filepath.Join("..", entrypoint),
 		EntrypointFunc: entrypointFunc,
 	})
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if err := os.WriteFile(filepath.Join(tmpdir, "shim.js"), []byte(shim), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(taskDir, "shim.js"), []byte(shim), 0644); err != nil {
 		return nil, nil, errors.Wrap(err, "writing shim file")
 	}
 
@@ -445,7 +443,7 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := os.WriteFile(filepath.Join(tmpdir, "package.json"), pjson, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(airplaneDir, "package.json"), pjson, 0644); err != nil {
 		return nil, nil, errors.Wrap(err, "writing shim package.json")
 	}
 	cmd := exec.CommandContext(ctx, "npm", "install")
@@ -457,7 +455,7 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		return nil, nil, errors.New("failed to install shim deps")
 	}
 
-	if err := os.RemoveAll(filepath.Join(tmpdir, "dist")); err != nil {
+	if err := os.RemoveAll(filepath.Join(airplaneDir, "dist")); err != nil {
 		return nil, nil, errors.Wrap(err, "cleaning dist folder")
 	}
 
@@ -473,8 +471,8 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 	res := esbuild.Build(esbuild.BuildOptions{
 		Bundle: true,
 
-		EntryPoints: []string{filepath.Join(tmpdir, "shim.js")},
-		Outfile:     filepath.Join(tmpdir, "dist/shim.js"),
+		EntryPoints: []string{filepath.Join(taskDir, "shim.js")},
+		Outfile:     filepath.Join(taskDir, "dist/shim.js"),
 		Write:       true,
 
 		External: externalDeps,

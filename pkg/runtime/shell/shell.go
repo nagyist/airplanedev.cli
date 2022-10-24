@@ -66,14 +66,11 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		logger.Warning("The script will run inside your local machine environment.")
 	}
 
-	tmpdir := filepath.Join(root, ".airplane")
-	if err := os.Mkdir(tmpdir, os.ModeDir|0777); err != nil && !os.IsExist(err) {
-		return nil, nil, errors.Wrap(err, "creating .airplane directory")
+	_, taskDir, closer, err := runtime.CreateTaskDir(root, opts.TaskSlug)
+	if err != nil {
+		return nil, nil, err
 	}
-	closer := runtime.CloseFunc(func() error {
-		logger.Debug("Cleaning up temporary directory...")
-		return errors.Wrap(os.RemoveAll(tmpdir), "unable to remove temporary directory")
-	})
+
 	defer func() {
 		// If we encountered an error before returning, then we're responsible
 		// for performing our own cleanup.
@@ -83,7 +80,7 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 	}()
 
 	shim := build.ShellShim()
-	if err := os.WriteFile(filepath.Join(tmpdir, "shim.sh"), []byte(shim), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(taskDir, "shim.sh"), []byte(shim), 0644); err != nil {
 		return nil, nil, errors.Wrap(err, "writing shim file")
 	}
 
@@ -93,7 +90,7 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 	}
 
 	cmd := []string{
-		"bash", filepath.Join(tmpdir, "shim.sh"),
+		"bash", filepath.Join(taskDir, "shim.sh"),
 		filepath.Join(root, entrypoint),
 	}
 	// TODO: this is a rough approximation of how interpolateParameters works in prod

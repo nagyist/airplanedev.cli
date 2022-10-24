@@ -20,32 +20,53 @@ func TestDev(tt *testing.T) {
 	tests := []runtimetest.Test{
 		{
 			Kind: build.TaskKindNode,
-			Opts: runtime.PrepareRunOptions{Path: "typescript/simple/main.ts"},
+			Opts: runtime.PrepareRunOptions{
+				Path:     "typescript/simple/main.ts",
+				TaskSlug: "simple",
+			},
 		},
 		{
 			Kind: build.TaskKindNode,
-			Opts: runtime.PrepareRunOptions{Path: "typescript/airplaneoverride/main.ts"},
+			Opts: runtime.PrepareRunOptions{
+				Path:     "typescript/airplaneoverride/main.ts",
+				TaskSlug: "override",
+			},
 		},
 		{
 			Kind: build.TaskKindNode,
-			Opts: runtime.PrepareRunOptions{Path: "typescript/npm/main.ts"},
+			Opts: runtime.PrepareRunOptions{
+				Path:     "typescript/npm/main.ts",
+				TaskSlug: "npm",
+			},
 		},
 		{
 			Kind: build.TaskKindNode,
-			Opts: runtime.PrepareRunOptions{Path: "typescript/yarn/main.ts"},
+			Opts: runtime.PrepareRunOptions{
+				Path:     "typescript/yarn/main.ts",
+				TaskSlug: "yarn",
+			},
 		},
 		{
 			Kind: build.TaskKindNode,
-			Opts: runtime.PrepareRunOptions{Path: "typescript/imports/task/main.ts"},
+			Opts: runtime.PrepareRunOptions{
+				Path:     "typescript/imports/task/main.ts",
+				TaskSlug: "imports",
+			},
 		},
 		{
-			Kind:         build.TaskKindNode,
-			Opts:         runtime.PrepareRunOptions{Path: "typescript/noparams/main.ts"},
+			Kind: build.TaskKindNode,
+			Opts: runtime.PrepareRunOptions{
+				Path:     "typescript/noparams/main.ts",
+				TaskSlug: "no_params",
+			},
 			SearchString: "success",
 		},
 		{
 			Kind: build.TaskKindNode,
-			Opts: runtime.PrepareRunOptions{Path: "typescript/esnext/main.ts"},
+			Opts: runtime.PrepareRunOptions{
+				Path:     "typescript/esnext/main.ts",
+				TaskSlug: "esnext",
+			},
 		},
 		{
 			Kind: build.TaskKindNode,
@@ -58,15 +79,22 @@ func TestDev(tt *testing.T) {
 				// code _runs_ in an older version of Node. We have more control over
 				// this in our Docker-based builder tests, so we test that there.
 				KindOptions: build.KindOptions{"nodeVersion": "14"},
+				TaskSlug:    "esnext_14",
 			},
 		},
 		{
 			Kind: build.TaskKindNode,
-			Opts: runtime.PrepareRunOptions{Path: "typescript/esm/main.ts"},
+			Opts: runtime.PrepareRunOptions{
+				Path:     "typescript/esm/main.ts",
+				TaskSlug: "esm",
+			},
 		},
 		{
 			Kind: build.TaskKindNode,
-			Opts: runtime.PrepareRunOptions{Path: "typescript/aliases/main.ts"},
+			Opts: runtime.PrepareRunOptions{
+				Path:     "typescript/aliases/main.ts",
+				TaskSlug: "aliases",
+			},
 		},
 		// TODO: debug why yarn workspaces aren't working. Seems like we would need to compile
 		// pkg1 before compiling pkg2. Once we do that, add an npm workspaces variant along with
