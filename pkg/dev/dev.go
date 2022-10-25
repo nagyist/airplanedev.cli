@@ -115,6 +115,7 @@ func (l *LocalExecutor) Cmd(ctx context.Context, runConfig LocalRunConfig) (CmdC
 		Path:        entrypoint,
 		ParamValues: runConfig.ParamValues,
 		KindOptions: runConfig.KindOptions,
+		TaskSlug:    runConfig.Slug,
 	})
 	if err != nil {
 		return CmdConfig{}, err

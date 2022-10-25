@@ -79,10 +79,9 @@ func TestDeploy(t *testing.T) {
 							TaskID: "tsk123",
 							Kind:   "node",
 							BuildConfig: libBuild.BuildConfig{
-								"entrypoint":  "",
-								"nodeVersion": "",
-								"runtime":     libBuild.TaskRuntimeStandard,
-								"shim":        "true",
+								"entrypoint": "",
+								"runtime":    libBuild.TaskRuntimeStandard,
+								"shim":       "true",
 							},
 							UploadID: "uploadID",
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
@@ -93,8 +92,7 @@ func TestDeploy(t *testing.T) {
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
-									"entrypoint":  "",
-									"nodeVersion": "",
+									"entrypoint": "",
 								},
 								Runtime: "",
 								ExecuteRules: libapi.UpdateExecuteRulesRequest{
@@ -131,10 +129,9 @@ func TestDeploy(t *testing.T) {
 							TaskID: "tsk123",
 							Kind:   "node",
 							BuildConfig: libBuild.BuildConfig{
-								"entrypoint":  "",
-								"nodeVersion": "",
-								"runtime":     libBuild.TaskRuntimeWorkflow,
-								"shim":        "true",
+								"entrypoint": "",
+								"runtime":    libBuild.TaskRuntimeWorkflow,
+								"shim":       "true",
 							},
 							UploadID: "uploadID",
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
@@ -145,8 +142,7 @@ func TestDeploy(t *testing.T) {
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
-									"entrypoint":  "",
-									"nodeVersion": "",
+									"entrypoint": "",
 								},
 								Runtime: libBuild.TaskRuntimeWorkflow,
 								ExecuteRules: libapi.UpdateExecuteRulesRequest{
@@ -184,9 +180,8 @@ func TestDeploy(t *testing.T) {
 							TaskID: "tsk123",
 							Kind:   "node",
 							BuildConfig: libBuild.BuildConfig{
-								"entrypoint":  "",
-								"nodeVersion": "",
-								"shim":        "true",
+								"entrypoint": "",
+								"shim":       "true",
 							},
 							UploadID: "uploadID",
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
@@ -197,8 +192,7 @@ func TestDeploy(t *testing.T) {
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
-									"entrypoint":  "",
-									"nodeVersion": "",
+									"entrypoint": "",
 								},
 								ExecuteRules: libapi.UpdateExecuteRulesRequest{
 									DisallowSelfApprove: pointers.Bool(false),
@@ -235,9 +229,8 @@ func TestDeploy(t *testing.T) {
 							TaskID: "tsk123",
 							Kind:   "node",
 							BuildConfig: libBuild.BuildConfig{
-								"entrypoint":  "",
-								"nodeVersion": "",
-								"shim":        "true",
+								"entrypoint": "",
+								"shim":       "true",
 							},
 							UploadID: "uploadID",
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
@@ -248,8 +241,7 @@ func TestDeploy(t *testing.T) {
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
-									"entrypoint":  "",
-									"nodeVersion": "",
+									"entrypoint": "",
 								},
 								ExecuteRules: libapi.UpdateExecuteRulesRequest{
 									DisallowSelfApprove: pointers.Bool(false),
@@ -285,10 +277,9 @@ func TestDeploy(t *testing.T) {
 							TaskID: "tsk123",
 							Kind:   "node",
 							BuildConfig: libBuild.BuildConfig{
-								"entrypoint":  "",
-								"nodeVersion": "",
-								"runtime":     libBuild.TaskRuntimeStandard,
-								"shim":        "true",
+								"entrypoint": "",
+								"runtime":    libBuild.TaskRuntimeStandard,
+								"shim":       "true",
 							},
 							UploadID: "uploadID",
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
@@ -299,8 +290,7 @@ func TestDeploy(t *testing.T) {
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
-									"entrypoint":  "",
-									"nodeVersion": "",
+									"entrypoint": "",
 								},
 								ExecuteRules: libapi.UpdateExecuteRulesRequest{
 									DisallowSelfApprove: pointers.Bool(false),
@@ -383,10 +373,9 @@ func TestDeploy(t *testing.T) {
 							TaskID: "tsk123",
 							Kind:   "node",
 							BuildConfig: libBuild.BuildConfig{
-								"entrypoint":  "",
-								"nodeVersion": "",
-								"runtime":     libBuild.TaskRuntimeStandard,
-								"shim":        "true",
+								"entrypoint": "",
+								"runtime":    libBuild.TaskRuntimeStandard,
+								"shim":       "true",
 							},
 
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
@@ -397,8 +386,7 @@ func TestDeploy(t *testing.T) {
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
-									"entrypoint":  "",
-									"nodeVersion": "",
+									"entrypoint": "",
 								},
 								Runtime: "",
 								Image:   pointers.String("imageURL"),
@@ -451,10 +439,9 @@ func TestDeploy(t *testing.T) {
 							TaskID: "tsk123",
 							Kind:   "node",
 							BuildConfig: libBuild.BuildConfig{
-								"entrypoint":  "",
-								"nodeVersion": "",
-								"runtime":     libBuild.TaskRuntimeStandard,
-								"shim":        "true",
+								"entrypoint": "",
+								"runtime":    libBuild.TaskRuntimeStandard,
+								"shim":       "true",
 							},
 							UploadID: "uploadID",
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
@@ -465,8 +452,7 @@ func TestDeploy(t *testing.T) {
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
-									"entrypoint":  "",
-									"nodeVersion": "",
+									"entrypoint": "",
 								},
 								ExecuteRules: libapi.UpdateExecuteRulesRequest{
 									DisallowSelfApprove: pointers.Bool(false),
@@ -516,10 +502,9 @@ func TestDeploy(t *testing.T) {
 							TaskID: "tsk123",
 							Kind:   "node",
 							BuildConfig: libBuild.BuildConfig{
-								"entrypoint":  "",
-								"nodeVersion": "",
-								"runtime":     libBuild.TaskRuntimeStandard,
-								"shim":        "true",
+								"entrypoint": "",
+								"runtime":    libBuild.TaskRuntimeStandard,
+								"shim":       "true",
 							},
 							UploadID: "uploadID",
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
@@ -530,8 +515,7 @@ func TestDeploy(t *testing.T) {
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
-									"entrypoint":  "",
-									"nodeVersion": "",
+									"entrypoint": "",
 								},
 								Runtime: "",
 								ExecuteRules: libapi.UpdateExecuteRulesRequest{
@@ -658,10 +642,9 @@ func TestDeploy(t *testing.T) {
 							TaskID: "tsk123",
 							Kind:   "node",
 							BuildConfig: libBuild.BuildConfig{
-								"entrypoint":  "",
-								"nodeVersion": "",
-								"runtime":     libBuild.TaskRuntimeStandard,
-								"shim":        "true",
+								"entrypoint": "",
+								"runtime":    libBuild.TaskRuntimeStandard,
+								"shim":       "true",
 							},
 							UploadID: "uploadID",
 							UpdateTaskRequest: libapi.UpdateTaskRequest{
@@ -672,8 +655,7 @@ func TestDeploy(t *testing.T) {
 								Configs:    &[]libapi.ConfigAttachment{},
 								Kind:       "node",
 								KindOptions: libBuild.KindOptions{
-									"entrypoint":  "",
-									"nodeVersion": "",
+									"entrypoint": "",
 								},
 								Runtime: "",
 								ExecuteRules: libapi.UpdateExecuteRulesRequest{
@@ -703,11 +685,11 @@ func TestDeploy(t *testing.T) {
 			viewConfigs: []discover.ViewConfig{
 				{
 					Root: fixturesPath, Source: discover.ConfigSourceDefn, ID: "view123", Def: definitions.ViewDefinition{
-						Slug:        "my_view",
-						Name:        "my view",
-						Entrypoint:  filepath.Join(fixturesPath, "my_view.tsx"),
-						Description: "My view's description",
-					},
+					Slug:        "my_view",
+					Name:        "my view",
+					Entrypoint:  filepath.Join(fixturesPath, "my_view.tsx"),
+					Description: "My view's description",
+				},
 				},
 			},
 			deploys: []api.CreateDeploymentRequest{
