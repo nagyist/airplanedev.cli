@@ -22,27 +22,21 @@ import (
 )
 
 type config struct {
-	client         *api.Client
-	envSlug        string
-	name           string
-	viewDir        string
-	slug           string
-	from           string
-	gettingStarted bool
+	client  *api.Client
+	envSlug string
+	name    string
+	viewDir string
+	slug    string
+	from    string
 }
-
-const gettingStartedExample = "github.com/airplanedev/examples/views/getting_started"
 
 func New(c *cli.Config) *cobra.Command {
 	var cfg = GetConfig(c.Client)
 
 	cmd := &cobra.Command{
-		Use:   "init",
-		Short: "Initialize a view definition",
-		Example: heredoc.Doc(fmt.Sprintf(`
-			$ airplane views init
-			$ airplane views init --from %s
-		`, gettingStartedExample)),
+		Use:     "init",
+		Short:   "Initialize a view definition",
+		Example: heredoc.Doc("$ airplane views init"),
 		// TODO: support passing in where to create the directory either as arg or flag
 		Args: cobra.MaximumNArgs(0),
 		PersistentPreRunE: utils.WithParentPersistentPreRunE(func(cmd *cobra.Command, args []string) error {
@@ -54,7 +48,6 @@ func New(c *cli.Config) *cobra.Command {
 	}
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
 	cmd.Flags().StringVar(&cfg.from, "from", "", "Path to an existing github folder to initialize.")
-	cmd.Flags().BoolVar(&cfg.gettingStarted, "getting-started", false, "True to generate starter tasks and views.")
 
 	return cmd
 }
@@ -64,16 +57,7 @@ func GetConfig(client *api.Client) config {
 }
 
 func Run(ctx context.Context, cfg config) error {
-	if cfg.gettingStarted {
-		_, err := createDemoDB(ctx, cfg)
-		if err != nil {
-			return err
-		}
-		if err := utils.CopyFromGithubPath(gettingStartedExample); err != nil {
-			return err
-		}
-		(&cfg).viewDir = filepath.Base(gettingStartedExample)
-	} else if cfg.from != "" {
+	if cfg.from != "" {
 		if err := utils.CopyFromGithubPath(cfg.from); err != nil {
 			return err
 		}
@@ -155,11 +139,6 @@ func generateEntrypointPath(cfg config, inViewDir bool) string {
 
 func generateDefinitionFilePath(cfg config) string {
 	return fmt.Sprintf("%s/%s.view.yaml", cfg.viewDir, cfg.slug)
-}
-
-func createDemoDB(ctx context.Context, cfg config) (string, error) {
-	demoDBName := "[Demo DB]"
-	return cfg.client.CreateDemoDB(ctx, demoDBName)
 }
 
 func createViewDefinition(cfg config) error {
