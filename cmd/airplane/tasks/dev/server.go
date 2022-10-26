@@ -19,7 +19,6 @@ import (
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/pkg/errors"
-	"github.com/rjeczalik/notify"
 )
 
 func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
@@ -195,9 +194,10 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		logger.Log("Changes require restarting the studio to take effect.")
 	} else {
 		fileWatcher := filewatcher.NewAppWatcher(filewatcher.AppWatcherOpts{
-			IsValid: filewatcher.IsValidDefinitionFile,
-			Callback: func(e notify.EventInfo) error {
-				return apiServer.ReloadApps(context.Background(), e.Path(), cfg.fileOrDir, e.Event())
+			PollInterval: time.Millisecond * 200,
+			IsValid:      filewatcher.IsValidDefinitionFile,
+			Callback: func(e filewatcher.Event) error {
+				return apiServer.ReloadApps(context.Background(), e.Path, cfg.fileOrDir, e)
 			},
 		})
 		err := fileWatcher.Watch(cfg.fileOrDir)

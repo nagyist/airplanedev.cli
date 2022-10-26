@@ -3,10 +3,11 @@ package filewatcher
 import (
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
-	"github.com/rjeczalik/notify"
+	"github.com/radovskyb/watcher"
 )
 
 // FileWatcher will listen for changes to files in a directory
@@ -17,29 +18,71 @@ type FileWatcher interface {
 
 var _ FileWatcher = &AppWatcher{}
 
+// Operations describe what kind of event occured
+type Operation int64
+
+// Operations
+const (
+	NoOp Operation = iota
+	Create
+	Write
+	Remove
+	Move
+)
+
+// Event describes the change that occured.
+type Event struct {
+	Op   Operation
+	Path string
+}
+
+func toEvent(e watcher.Event) Event {
+	event := Event{Path: e.Path}
+	switch e.Op {
+	case watcher.Create:
+		event.Op = Create
+	case watcher.Write:
+		event.Op = Write
+	case watcher.Remove:
+		event.Op = Remove
+	case watcher.Move, watcher.Rename:
+		event.Op = Move
+	default:
+		event.Op = NoOp
+	}
+	return event
+}
+
 // Watches for changes in airplane apps (tasks, views, and dev config file)
 type AppWatcher struct {
-	changes  chan notify.EventInfo
-	isValid  func(path string) bool
-	callback func(e notify.EventInfo) error
+	watcher      *watcher.Watcher
+	pollInterval time.Duration
+	callback     func(e Event) error
+	isValid      func(path string) bool
 }
 
 type AppWatcherOpts struct {
 	// IsValid returns true if event is valid and callback should be called
 	IsValid func(path string) bool
 	// Callback is called on all valid filesystem notifications received
-	Callback func(e notify.EventInfo) error
+	Callback func(e Event) error
+	// PollInterval specifies how often to poll for changes
+	PollInterval time.Duration
 }
 
 func NewAppWatcher(opts AppWatcherOpts) FileWatcher {
+	w := watcher.New()
+	w.SetMaxEvents(20)
 	if opts.IsValid == nil {
 		// set a default filter
 		opts.IsValid = IsValidDefinitionFile
 	}
+
 	return &AppWatcher{
-		changes:  make(chan notify.EventInfo, 20),
-		callback: opts.Callback,
-		isValid:  opts.IsValid,
+		watcher:      w,
+		callback:     opts.Callback,
+		pollInterval: opts.PollInterval,
+		isValid:      opts.IsValid,
 	}
 }
 
@@ -69,27 +112,50 @@ func (f *AppWatcher) Watch(wd string) error {
 	logger.Log(logger.Green("Watching for changes in: %s", wd))
 	logger.Log(logger.Green("Changes to tasks, workflows, and views will be applied automatically."))
 
-	if err := notify.Watch(wd+"/...", f.changes, notify.All); err != nil {
+	// Ignore hidden files and known directories
+	f.watcher.IgnoreHiddenFiles(true)
+	directoriesToIgnore := make([]string, 0, len(discover.IgnoredDirectories))
+	for dir := range discover.IgnoredDirectories {
+		directoriesToIgnore = append(directoriesToIgnore, filepath.Join(wd, dir))
+	}
+	if err := f.watcher.Ignore(directoriesToIgnore...); err != nil {
 		return err
 	}
+	// Watch working directory recursively for changes.
+	if err := f.watcher.AddRecursive(wd); err != nil {
+		return err
+	}
+	// Listen for changes
 	go func() {
-		for event := range f.changes {
-			if f.callback != nil && f.isValid != nil {
-				if f.isValid(event.Path()) {
+		for {
+			select {
+			case e := <-f.watcher.Event:
+				if !e.IsDir() && f.isValid(e.Path) {
+					event := toEvent(e)
 					err := f.callback(event)
 					if err != nil {
-						logger.Log("Error refreshing app in [%s]: %v", event.Path(), err)
+						logger.Log("Error refreshing app in [%s]: %v", event.Path, err)
 					}
 				}
+			case err := <-f.watcher.Error:
+				logger.Error("Watching for changes: ", err)
+			case <-f.watcher.Closed:
+				logger.Log(" ")
+				logger.Log("Stopped watching for changes.")
+				return
 			}
 		}
 	}()
+
+	go func() {
+		if err := f.watcher.Start(f.pollInterval); err != nil {
+			logger.Error("Starting filewatcher: %s", err.Error())
+		}
+	}()
+
 	return nil
 }
 
 func (f *AppWatcher) Stop() {
-	logger.Log(" ")
-	notify.Stop(f.changes)
-	close(f.changes)
-	logger.Log("Stopped watching for changes.")
+	f.watcher.Close()
 }

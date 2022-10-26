@@ -30,7 +30,7 @@ require (
 	github.com/mattn/go-isatty v0.0.16
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pkg/errors v0.9.1
-	github.com/rjeczalik/notify v0.9.3-0.20210809113154-3472d85e95cd
+	github.com/radovskyb/watcher v1.0.7
 	github.com/segmentio/analytics-go v1.2.1-0.20201110202747-0566e489c7b9
 	github.com/segmentio/events/v2 v2.5.1
 	github.com/spf13/cobra v1.6.0

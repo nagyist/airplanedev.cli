@@ -19,6 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/apiext"
 	"github.com/airplanedev/cli/pkg/server/apiint"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
+	"github.com/airplanedev/cli/pkg/server/filewatcher"
 	"github.com/airplanedev/cli/pkg/server/state"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
@@ -28,7 +29,6 @@ import (
 	"github.com/gorilla/mux"
 	lrucache "github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
-	"github.com/rjeczalik/notify"
 )
 
 const DefaultPort = 4000
@@ -249,9 +249,9 @@ func (s *Server) DiscoverTasksAndViews(ctx context.Context, dir string) ([]disco
 
 // shouldReloadDirectory returns whether the entire directory should be refreshed
 // or an individual path
-func shouldReloadDirectory(e notify.Event) bool {
-	// for delete or rename events, we want to refresh the entire directory
-	if e == notify.Remove || e == notify.Rename {
+func shouldReloadDirectory(e filewatcher.Event) bool {
+	// for deleted or moved events, we want to refresh the entire directory
+	if e.Op == filewatcher.Remove || e.Op == filewatcher.Move {
 		return true
 	}
 	return false
@@ -260,7 +260,7 @@ func shouldReloadDirectory(e notify.Event) bool {
 // ReloadApps takes in the changed file/directory and kicks off a
 // goroutine to re-discover the task/view or reload the config file.
 // It uses the state.Debouncer to debounce the actual refreshing.
-func (s *Server) ReloadApps(ctx context.Context, path string, wd string, e notify.Event) error {
+func (s *Server) ReloadApps(ctx context.Context, path string, wd string, e filewatcher.Event) error {
 	shouldRefreshDir := shouldReloadDirectory(e)
 	if shouldRefreshDir {
 		path = wd

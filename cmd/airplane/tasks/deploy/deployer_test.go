@@ -685,11 +685,11 @@ func TestDeploy(t *testing.T) {
 			viewConfigs: []discover.ViewConfig{
 				{
 					Root: fixturesPath, Source: discover.ConfigSourceDefn, ID: "view123", Def: definitions.ViewDefinition{
-					Slug:        "my_view",
-					Name:        "my view",
-					Entrypoint:  filepath.Join(fixturesPath, "my_view.tsx"),
-					Description: "My view's description",
-				},
+						Slug:        "my_view",
+						Name:        "my view",
+						Entrypoint:  filepath.Join(fixturesPath, "my_view.tsx"),
+						Description: "My view's description",
+					},
 				},
 			},
 			deploys: []api.CreateDeploymentRequest{

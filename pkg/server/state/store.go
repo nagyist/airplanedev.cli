@@ -38,13 +38,13 @@ func (s *Store[K, V]) Items() map[K]V {
 
 func (s *Store[K, V]) Len() int {
 	s.mu.RLock()
-	s.mu.RUnlock()
+	defer s.mu.RUnlock()
 	return len(s.items)
 }
 
 func (s *Store[K, V]) Get(key K) (V, bool) {
 	s.mu.RLock()
-	s.mu.RUnlock()
+	defer s.mu.RUnlock()
 	item, ok := s.items[key]
 	return item, ok
 }
