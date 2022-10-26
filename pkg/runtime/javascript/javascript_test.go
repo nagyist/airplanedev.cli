@@ -106,6 +106,10 @@ func TestVersion(t *testing.T) {
 		},
 		{
 			desc: "no version",
+			path: "./fixtures/version/emptyPackageJSON/file.js",
+		},
+		{
+			desc: "no package.json",
 			path: "./fixtures/version/empty/file.js",
 		},
 	}

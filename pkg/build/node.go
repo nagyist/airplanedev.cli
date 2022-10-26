@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -94,19 +95,11 @@ func node(
 		}
 	}
 
-	var pkg pkgJSON
+	var pkg PackageJSON
 	if hasPackageJSON {
-		// Check to see if the package.json uses yarn/npm workspaces.
-		// If the package.json has a "workspaces" key, it uses workspaces!
-		// We want to know this because if we are in a workspace, our install
-		// has to honor all the package.json files in the workspace.
-		buf, err := os.ReadFile(rootPackageJSON)
+		pkg, err = ReadPackageJSON(rootPackageJSON)
 		if err != nil {
-			return "", errors.Wrapf(err, "node: reading %s", rootPackageJSON)
-		}
-
-		if err := json.Unmarshal(buf, &pkg); err != nil {
-			return "", fmt.Errorf("node: parsing %s - %w", rootPackageJSON, err)
+			return "", err
 		}
 	}
 
@@ -123,7 +116,7 @@ func node(
 	cfg := templateParams{
 		Workdir:        workdir,
 		HasPackageJSON: hasPackageJSON,
-		UsesWorkspaces: len(pkg.Workspaces.workspaces) > 0,
+		UsesWorkspaces: len(pkg.Workspaces.Workspaces) > 0,
 		// esbuild is relatively generous in the node versions it supports:
 		// https://esbuild.github.io/api/#target
 		NodeVersion:        GetNodeVersion(options),
@@ -593,21 +586,29 @@ type Settings struct {
 	PostInstallCommand string `json:"postinstall"`
 }
 
-type pkgJSON struct {
-	Settings   Settings               `json:"airplane"`
-	Workspaces pkgJSONWorkspaces      `json:"workspaces"`
-	Scripts    map[string]interface{} `json:"scripts"`
+type PackageJSON struct {
+	Settings             Settings               `json:"airplane"`
+	Workspaces           PackageJSONWorkspaces  `json:"workspaces"`
+	Scripts              map[string]interface{} `json:"scripts"`
+	Engines              PackageJSONEngines     `json:"engines"`
+	Dependencies         map[string]string      `json:"dependencies"`
+	DevDependencies      map[string]string      `json:"devDependencies"`
+	OptionalDependencies map[string]string      `json:"optionalDependencies"`
 }
 
-type pkgJSONWorkspaces struct {
-	workspaces []string
+type PackageJSONEngines struct {
+	NodeVersion string `json:"node"`
 }
 
-func (p *pkgJSONWorkspaces) UnmarshalJSON(data []byte) error {
+type PackageJSONWorkspaces struct {
+	Workspaces []string
+}
+
+func (p *PackageJSONWorkspaces) UnmarshalJSON(data []byte) error {
 	// Workspaces might be an array of strings...
 	var workspaces []string
 	if err := json.Unmarshal(data, &workspaces); err == nil {
-		p.workspaces = workspaces
+		p.Workspaces = workspaces
 		return nil
 	}
 
@@ -618,6 +619,38 @@ func (p *pkgJSONWorkspaces) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &workspacesObject); err != nil {
 		return err
 	}
-	p.workspaces = workspacesObject.Packages
+	p.Workspaces = workspacesObject.Packages
 	return nil
+}
+
+// ReadPackageJSON reads a directory containing a package.json or a package.json file itself
+// into a PackageJSON. If there is no package.json, an os.ErrNotExist is returned.
+func ReadPackageJSON(path string) (PackageJSON, error) {
+	packageJSONPath := path
+
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return PackageJSON{}, err
+	}
+
+	if fileInfo.IsDir() {
+		packageJSONPath = filepath.Join(path, "package.json")
+	}
+
+	f, err := os.Open(packageJSONPath)
+	if err != nil {
+		return PackageJSON{}, errors.Wrap(err, "opening package.json")
+	}
+	defer f.Close()
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return PackageJSON{}, errors.Wrap(err, "reading package.json")
+	}
+
+	var p PackageJSON
+	if err := json.Unmarshal(b, &p); err != nil {
+		return PackageJSON{}, errors.Wrap(err, "unmarshaling package.json")
+	}
+
+	return p, nil
 }

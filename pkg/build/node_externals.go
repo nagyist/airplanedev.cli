@@ -3,7 +3,6 @@ package build
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -170,23 +169,13 @@ func ListDependenciesFromPackageJSONs(packageJSONs []string) (map[string]string,
 func ListDependencies(pathPackageJSON string) (map[string]string, error) {
 	deps := make(map[string]string)
 
-	f, err := os.Open(pathPackageJSON)
+	d, err := ReadPackageJSON(pathPackageJSON)
 	if err != nil {
-		// There is no package.json (or we can't open it). Treat as having no dependencies.
-		return map[string]string{}, nil
-	}
-	defer f.Close()
-	b, err := io.ReadAll(f)
-	if err != nil {
-		return nil, errors.Wrap(err, "reading package.json")
-	}
-	var d struct {
-		Dependencies         map[string]string `json:"dependencies"`
-		DevDependencies      map[string]string `json:"devDependencies"`
-		OptionalDependencies map[string]string `json:"optionalDependencies"`
-	}
-	if err := json.Unmarshal(b, &d); err != nil {
-		return nil, errors.Wrap(err, "unmarshaling package.json")
+		if errors.Is(err, os.ErrNotExist) {
+			// There is no package.json. Treat as having no dependencies.
+			return map[string]string{}, nil
+		}
+		return nil, err
 	}
 
 	for k, v := range d.Dependencies {
@@ -220,7 +209,7 @@ func findWorkspacePackageJSONs(rootPackageJSON string) ([]string, error) {
 }
 
 func hasWorkspaces(pathPackageJSON string) (bool, error) {
-	var pkg pkgJSON
+	var pkg PackageJSON
 	buf, err := os.ReadFile(pathPackageJSON)
 	if errors.Is(err, os.ErrNotExist) {
 		return false, nil
@@ -231,11 +220,11 @@ func hasWorkspaces(pathPackageJSON string) (bool, error) {
 	if err := json.Unmarshal(buf, &pkg); err != nil {
 		return false, errors.Wrapf(err, "parsing %s", pathPackageJSON)
 	}
-	return len(pkg.Workspaces.workspaces) > 0, nil
+	return len(pkg.Workspaces.Workspaces) > 0, nil
 }
 
 func hasInstallHooks(pathPackageJSON string) (bool, error) {
-	var pkg pkgJSON
+	var pkg PackageJSON
 	buf, err := os.ReadFile(pathPackageJSON)
 	if errors.Is(err, os.ErrNotExist) {
 		return false, nil

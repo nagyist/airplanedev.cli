@@ -3,10 +3,12 @@ package build
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/airplanedev/lib/pkg/examples"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -320,4 +322,61 @@ func TestGenShimPackageJSON(t *testing.T) {
 		})
 	}
 
+}
+
+func TestReadPackageJSON(t *testing.T) {
+	fixturesPath, _ := filepath.Abs("./fixtures")
+	testCases := []struct {
+		desc                string
+		fixture             string
+		packageJSON         PackageJSON
+		expectNotExistError bool
+	}{
+		{
+			desc:    "reads package.json from file",
+			fixture: "node_externals/dependencies/package.json",
+			packageJSON: PackageJSON{
+				Dependencies:         map[string]string{"react": "18.2.0"},
+				DevDependencies:      map[string]string{"@types/react": "18.0.21"},
+				OptionalDependencies: map[string]string{"react-table": "7.8.0"},
+			},
+		},
+		{
+			desc:    "reads package.json from directory",
+			fixture: "node_externals/yarnworkspace",
+			packageJSON: PackageJSON{
+				DevDependencies: map[string]string{"react": "18.2.0"},
+				Workspaces: PackageJSONWorkspaces{
+					Workspaces: []string{"lib", "examples/*"},
+				},
+			},
+		},
+		{
+			desc:                "no package json",
+			fixture:             "node_externals",
+			expectNotExistError: true,
+		},
+		{
+			desc:                "no package json file",
+			fixture:             "node_externals/package.json",
+			expectNotExistError: true,
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			require := require.New(t)
+			assert := assert.New(t)
+
+			path := filepath.Join(fixturesPath, tC.fixture)
+
+			p, err := ReadPackageJSON(path)
+			if tC.expectNotExistError {
+				assert.True(errors.Is(err, os.ErrNotExist))
+				return
+			}
+			require.NoError(err)
+
+			assert.Equal(tC.packageJSON, p)
+		})
+	}
 }

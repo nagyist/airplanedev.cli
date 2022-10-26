@@ -299,22 +299,13 @@ func (r Runtime) Root(path string) (string, error) {
 
 	// Unless the root is overridden with an `airplane.root` field
 	// in a `package.json`.
-	pkgjson := filepath.Join(root, "package.json")
-	buf, err := os.ReadFile(pkgjson)
+	pkg, err := build.ReadPackageJSON(root)
 	if err != nil {
-		// No package.json, use workdir as root.
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
+			// No package.json, use workdir as root.
 			return root, nil
 		}
-		return "", errors.Wrapf(err, "javascript: reading %s", pkgjson)
-	}
-
-	var pkg struct {
-		Settings build.Settings `json:"airplane"`
-	}
-
-	if err := json.Unmarshal(buf, &pkg); err != nil {
-		return "", fmt.Errorf("javascript: reading %s - %w", root, err)
+		return "", err
 	}
 
 	if pkgjsonRoot := pkg.Settings.Root; pkgjsonRoot != "" {
@@ -324,35 +315,19 @@ func (r Runtime) Root(path string) (string, error) {
 	return root, nil
 }
 
-type pkgJSON struct {
-	Engines pkgJSONEngine `json:"engines"`
-}
-type pkgJSONEngine struct {
-	Node string `json:"node"`
-}
-
 func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, err error) {
-	pathPackageJSON := filepath.Join(rootPath, "package.json")
-
-	var pkg pkgJSON
-	buf, err := os.ReadFile(pathPackageJSON)
-	if errors.Is(err, os.ErrNotExist) {
-		return "", nil
-	} else if err != nil {
-		return "", errors.Wrapf(err, "reading %s", pathPackageJSON)
+	pkg, err := build.ReadPackageJSON(rootPath)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return "", err
 	}
 
-	if err := json.Unmarshal(buf, &pkg); err != nil {
-		return "", errors.Wrapf(err, "parsing %s", pathPackageJSON)
-	}
-
-	if pkg.Engines.Node == "" {
+	if pkg.Engines.NodeVersion == "" {
 		return "", nil
 	}
 
-	nodeConstraint, err := semver.NewConstraint(pkg.Engines.Node)
+	nodeConstraint, err := semver.NewConstraint(pkg.Engines.NodeVersion)
 	if err != nil {
-		return "", errors.Wrapf(err, "parsing node engine %s", pkg.Engines.Node)
+		return "", errors.Wrapf(err, "parsing node engine %s", pkg.Engines.NodeVersion)
 	}
 
 	v, err := build.GetVersions()
