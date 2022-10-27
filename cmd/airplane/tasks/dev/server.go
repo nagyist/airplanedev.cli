@@ -107,7 +107,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
-	fmt.Fprint(os.Stderr, "Discovering tasks, workflows, and views...")
+	fmt.Fprint(os.Stderr, "Discovering tasks, workflows, and views... ")
 	taskConfigs, viewConfigs, err := apiServer.DiscoverTasksAndViews(ctx, cfg.fileOrDir)
 	if err != nil {
 		logger.Log("")

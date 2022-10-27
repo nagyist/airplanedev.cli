@@ -90,13 +90,17 @@ func addAllPackages(packageJSONDirPath string, useYarn bool, dependencies NodeDe
 	}
 
 	if len(packagesToAdd) > 0 {
-		if err := addPackages(l, packageJSONDirPath, packagesToAdd, false, useYarn); err != nil {
+		if err := addPackages(l, packageJSONDirPath, packagesToAdd, false, utils.InstallOptions{
+			Yarn: useYarn,
+		}); err != nil {
 			return errors.Wrap(err, "installing dependencies")
 		}
 	}
 
 	if len(devPackagesToAdd) > 0 {
-		if err := addPackages(l, packageJSONDirPath, devPackagesToAdd, true, useYarn); err != nil {
+		if err := addPackages(l, packageJSONDirPath, devPackagesToAdd, true, utils.InstallOptions{
+			Yarn: useYarn,
+		}); err != nil {
 			return errors.Wrap(err, "installing dev dependencies")
 		}
 	}
@@ -120,38 +124,45 @@ func getPackagesToAdd(packagesToCheck, existingDeps []string) []string {
 	return packagesToAdd
 }
 
-func addPackages(l logger.Logger, packageJSONDirPath string, packageNames []string, dev, useYarn bool) error {
+func addPackages(l logger.Logger, packageJSONDirPath string, packageNames []string, dev bool, opts utils.InstallOptions) error {
 	installArgs := []string{"add"}
 	if dev {
-		if useYarn {
+		if opts.Yarn {
 			installArgs = append(installArgs, "--dev")
 		} else {
 			installArgs = append(installArgs, "--save-dev")
 		}
 	}
 	installArgs = append(installArgs, packageNames...)
+	if opts.NoBinLinks {
+		installArgs = append(installArgs, "--no-bin-links")
+	}
 	var cmd *exec.Cmd
-	if useYarn {
+	if opts.Yarn {
 		cmd = exec.Command("yarn", installArgs...)
 		l.Debug("Adding packages using yarn")
 	} else {
 		cmd = exec.Command("npm", installArgs...)
 		l.Debug("Adding packages using npm")
 	}
+	if opts.NoBinLinks {
+		l.Debug("Installing with --no-bin-links")
+	}
 
 	cmd.Dir = packageJSONDirPath
-	err := cmd.Run()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		if dev {
-			l.Log("Failed to install devDependencies")
-		} else {
-			l.Log("Failed to install dependencies")
+		errString := string(output)
+
+		if !opts.NoBinLinks && strings.Contains(errString, utils.SymlinkErrString) {
+			// Try installation again with NoBinLinks to get passed the symlink error.
+			opts.NoBinLinks = true
+			return addPackages(l, packageJSONDirPath, packageNames, dev, opts)
 		}
-		return err
+
+		return errors.New(errString)
 	}
-	for _, pkg := range packageNames {
-		l.Step(fmt.Sprintf("Installed %s", pkg))
-	}
+	l.Step(fmt.Sprintf("Installed %s", strings.Join(packageNames, ", ")))
 	return nil
 }
 

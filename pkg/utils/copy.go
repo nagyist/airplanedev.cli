@@ -96,7 +96,9 @@ func CopyFromGithubPath(gitPath string) error {
 			useYarn := ShouldUseYarn(directory)
 			logger.Step("Installing dependencies...")
 
-			if err = InstallDependencies(directory, useYarn); err != nil {
+			if err = InstallDependencies(directory, InstallOptions{
+				Yarn: useYarn,
+			}); err != nil {
 				logger.Debug(err.Error())
 				if errors.Is(err, exec.ErrNotFound) {
 					if useYarn {

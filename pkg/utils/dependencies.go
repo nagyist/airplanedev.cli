@@ -13,19 +13,34 @@ import (
 	"github.com/pkg/errors"
 )
 
-const requiredNodeVersion = "14.18.0"
+const (
+	requiredNodeVersion = "14.18.0"
+	SymlinkErrString    = "Error: EPERM: operation not permitted, symlink"
+)
 
-func InstallDependencies(dir string, useYarn bool) error {
+type InstallOptions struct {
+	Yarn       bool
+	NoBinLinks bool
+}
+
+func InstallDependencies(dir string, opts InstallOptions) error {
 	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{WithLoader: true})
 	defer l.StopLoader()
 
+	args := []string{"install"}
+	if opts.NoBinLinks {
+		args = append(args, "--no-bin-links")
+	}
 	var cmd *exec.Cmd
-	if useYarn {
-		cmd = exec.Command("yarn")
+	if opts.Yarn {
+		cmd = exec.Command("yarn", args...)
 		l.Debug("Installing dependencies with yarn")
 	} else {
-		cmd = exec.Command("npm", "install")
+		cmd = exec.Command("npm", args...)
 		l.Debug("Installing dependencies with npm")
+	}
+	if opts.NoBinLinks {
+		l.Debug("Installing with --no-bin-links")
 	}
 	cmd.Dir = dir
 
@@ -37,18 +52,32 @@ func InstallDependencies(dir string, useYarn bool) error {
 	scanner := bufio.NewScanner(stdout)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
+	logsMutex := &sync.Mutex{}
+	var allLogs []string
 	go func() {
 		defer wg.Done()
 		for scanner.Scan() {
 			m := scanner.Text()
 			l.Debug(m)
+			logsMutex.Lock()
+			allLogs = append(allLogs, m)
+			logsMutex.Unlock()
 		}
 	}()
 	if err = cmd.Start(); err != nil {
 		return err
 	}
 
-	return cmd.Wait()
+	if err := cmd.Wait(); err != nil {
+		errString := strings.Join(allLogs, "\n")
+		if !opts.NoBinLinks && strings.Contains(errString, SymlinkErrString) {
+			// Try installation again with NoBinLinks to get passed the symlink error.
+			opts.NoBinLinks = true
+			return InstallDependencies(dir, opts)
+		}
+		return errors.New(errString)
+	}
+	return nil
 }
 
 func CheckNodeVersion() error {
