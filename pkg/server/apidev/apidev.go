@@ -44,7 +44,7 @@ func GetVersionHandler(ctx context.Context, s *state.State, r *http.Request) (ve
 		return *s.VersionCache.Version, nil
 	}
 
-	isLatest := latest.CheckLatest(ctx)
+	isLatest := latest.CheckLatest(ctx, nil)
 	v := version.Metadata{
 		Status:   "ok",
 		Version:  version.Get(),

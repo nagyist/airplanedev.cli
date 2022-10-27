@@ -376,3 +376,7 @@ type GetPermissionsResponse struct {
 	// One true/false value for each requested action.
 	Outputs map[string]bool `json:"resource"`
 }
+
+type ListFlagsResponse struct {
+	Flags map[string]string `json:"flags"`
+}

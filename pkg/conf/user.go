@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -12,6 +13,17 @@ import (
 type UserConfig struct {
 	Tokens          map[string]string `json:"tokens,omitempty"`
 	EnableTelemetry *bool             `json:"enableTelemetry,omitempty"`
+	LatestVersion   VersionUpdate     `json:"latestVersion,omitempty"`
+	Flags           FlagsUpdate       `json:"flags,omitempty"`
+}
+type VersionUpdate struct {
+	Version string    `json:"version"`
+	Updated time.Time `json:"updated"`
+}
+
+type FlagsUpdate struct {
+	Flags   map[string]string `json:"flags"`
+	Updated time.Time         `json:"updated"`
 }
 
 // Path returns the default config defaultUserConfigPath.
@@ -53,8 +65,8 @@ func ReadUserConfig(path string) (UserConfig, error) {
 	return cfg, nil
 }
 
-// WriteUserConfig writes the configuration to the given defaultUserConfigPath.
-func WriteUserConfig(path string, cfg UserConfig) error {
+// writeUserConfig writes the configuration to the given defaultUserConfigPath.
+func writeUserConfig(path string, cfg UserConfig) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0777); err != nil {
 		return errors.Wrap(err, "mkdir")
 	}
@@ -73,5 +85,5 @@ func WriteUserConfig(path string, cfg UserConfig) error {
 
 // WriteDefaultUserConfig saves configuration to the default location.
 func WriteDefaultUserConfig(cfg UserConfig) error {
-	return WriteUserConfig(defaultUserConfigPath(), cfg)
+	return writeUserConfig(defaultUserConfigPath(), cfg)
 }

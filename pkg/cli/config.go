@@ -3,6 +3,7 @@ package cli
 import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/conf"
+	"github.com/airplanedev/cli/pkg/flags/flagsiface"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -17,6 +18,9 @@ type Config struct {
 	// It is initialized in the root command and passed
 	// down to all commands.
 	Client *api.Client
+
+	// Flagger supports querying feature flags.
+	Flagger flagsiface.Flagger
 
 	// DebugMode indicates if the CLI should produce additional
 	// debug output to guide end-users through issues.

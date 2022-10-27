@@ -120,6 +120,8 @@ type APIClient interface {
 
 	// All methods below this point represent CLI-specific API operations, and not requests to api.airplane.dev.
 	GetToken() string
+
+	ListFlags(ctx context.Context) (ListFlagsResponse, error)
 }
 
 var _ APIClient = Client{}
@@ -226,6 +228,14 @@ func (c Client) ListTasks(ctx context.Context, envSlug string) (res ListTasksRes
 	}
 	for j, t := range res.Tasks {
 		res.Tasks[j].URL = c.TaskURL(t.Slug, envSlug)
+	}
+	return
+}
+
+func (c Client) ListFlags(ctx context.Context) (res ListFlagsResponse, err error) {
+	err = c.do(ctx, "GET", "/flags/list", nil, &res)
+	if err != nil {
+		return
 	}
 	return
 }

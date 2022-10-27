@@ -24,6 +24,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
+	"github.com/airplanedev/cli/pkg/flags"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/version/latest"
@@ -48,7 +49,8 @@ func New() *cobra.Command {
 			airplane deploy ./path/to/script
 		`),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if c, err := conf.ReadDefaultUserConfig(); err == nil {
+			c, err := conf.ReadDefaultUserConfig()
+			if err == nil {
 				cfg.Client.Token = c.Tokens[cfg.Client.Host]
 			}
 			cfg.Client.APIKey = conf.GetAPIKey()
@@ -57,6 +59,7 @@ func New() *cobra.Command {
 			if err := analytics.Init(cfg); err != nil {
 				logger.Debug("error in analytics.Init: %v", err)
 			}
+			cfg.Flagger = &flags.APIClient{Client: cfg.Client}
 
 			switch output {
 			case "json":
@@ -75,7 +78,7 @@ func New() *cobra.Command {
 			// Log the version every time the CLI is run with `--debug`. This aligns
 			// customer debugging output with a specific release of the CLI.
 			logger.Debug(version.Version())
-			latest.CheckLatest(cmd.Context())
+			latest.CheckLatest(cmd.Context(), &c)
 
 			return nil
 		},

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	bundledeploy "github.com/airplanedev/cli/cmd/airplane/root/deploy"
 	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/build"
@@ -34,13 +35,13 @@ type deployer struct {
 	cfg          config
 	logger       logger.LoggerWithLoader
 	archiver     archive.Archiver
-	repoGetter   GitRepoGetter
+	repoGetter   bundledeploy.GitRepoGetter
 }
 
 type DeployerOpts struct {
 	BuildCreator build.BuildCreator
 	Archiver     archive.Archiver
-	RepoGetter   GitRepoGetter
+	RepoGetter   bundledeploy.GitRepoGetter
 }
 
 func NewDeployer(cfg config, l logger.LoggerWithLoader, opts DeployerOpts) *deployer {
@@ -55,8 +56,8 @@ func NewDeployer(cfg config, l logger.LoggerWithLoader, opts DeployerOpts) *depl
 	if opts.Archiver != nil {
 		a = opts.Archiver
 	}
-	var rg GitRepoGetter
-	rg = &FileGitRepoGetter{}
+	var rg bundledeploy.GitRepoGetter
+	rg = &bundledeploy.FileGitRepoGetter{}
 	if opts.RepoGetter != nil {
 		rg = opts.RepoGetter
 	}
@@ -133,7 +134,7 @@ func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig
 
 		var filePath string
 		if repo != nil {
-			filePath, err = GetEntrypointRelativeToGitRoot(repo, vc.Root)
+			filePath, err = bundledeploy.GetEntrypointRelativeToGitRoot(repo, vc.Root)
 			if err != nil {
 				d.logger.Debug("failed to get entrypoint relative to git root %s: %v", vc.Root, err)
 			}
@@ -189,7 +190,7 @@ func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig
 
 	var gitMeta api.GitMetadata
 	if repo != nil && !mismatchedGitRepos {
-		gitMeta, err = GetGitMetadata(repo)
+		gitMeta, err = bundledeploy.GetGitMetadata(repo)
 		if err != nil {
 			analytics.ReportMessage(fmt.Sprintf("failed to gather git metadata: %v", err))
 		}
@@ -360,7 +361,7 @@ More information: https://apn.sh/jst-upgrade`)
 
 	var filePath string
 	if repo != nil {
-		filePath, err = GetEntrypointRelativeToGitRoot(repo, tc.TaskEntrypoint)
+		filePath, err = bundledeploy.GetEntrypointRelativeToGitRoot(repo, tc.TaskEntrypoint)
 		if err != nil {
 			d.logger.Debug("failed to get entrypoint relative to git root %s: %v", tc.TaskEntrypoint, err)
 		}

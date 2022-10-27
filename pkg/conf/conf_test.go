@@ -44,7 +44,7 @@ func TestUserConfig(t *testing.T) {
 		var homedir = tempdir(t)
 		var path = filepath.Join(homedir, ".airplane", "config")
 
-		err := WriteUserConfig(path, UserConfig{
+		err := writeUserConfig(path, UserConfig{
 			Tokens: map[string]string{"airplane.dev": "foo"},
 		})
 		assert.NoError(err)
@@ -60,7 +60,7 @@ func TestUserConfig(t *testing.T) {
 		var path = filepath.Join(homedir, ".airplane", "config")
 
 		{
-			err := WriteUserConfig(path, UserConfig{
+			err := writeUserConfig(path, UserConfig{
 				Tokens: map[string]string{"airplane.dev": "foo"},
 			})
 			assert.NoError(err)
@@ -71,7 +71,7 @@ func TestUserConfig(t *testing.T) {
 		}
 
 		{
-			err := WriteUserConfig(path, UserConfig{
+			err := writeUserConfig(path, UserConfig{
 				Tokens: map[string]string{"airplane.dev": "baz"},
 			})
 			assert.NoError(err)

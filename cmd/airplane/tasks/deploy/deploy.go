@@ -10,8 +10,10 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
+	bundledeploy "github.com/airplanedev/cli/cmd/airplane/root/deploy"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/flags/flagsiface"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
@@ -45,13 +47,12 @@ func New(c *cli.Config) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "deploy",
-		Short: "Deploy a task",
-		Long:  "Deploy code from a local directory to Airplane.",
+		Short: "Deploy tasks, views and workflows",
+		Long:  "Deploy code from a local directory as an Airplane task, view or workflow",
 		Example: heredoc.Doc(`
+			airplane tasks deploy
 			airplane tasks deploy ./task.ts
-			airplane tasks deploy --local ./task.js
 			airplane tasks deploy ./my_task.task.yml
-			airplane tasks deploy --local ./my_task.task.yml
 			airplane tasks deploy my-directory
 			airplane tasks deploy ./my_task1.task.yml ./my_task2.task.json my-directory
 		`),
@@ -81,6 +82,9 @@ func New(c *cli.Config) *cobra.Command {
 	if err := cmd.Flags().MarkHidden("no"); err != nil {
 		logger.Debug("error: %s", err)
 	}
+	if err := cmd.Flags().MarkHidden("jst"); err != nil {
+		logger.Debug("error: %s", err)
+	}
 
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
 
@@ -99,13 +103,22 @@ type taskDeployedProps struct {
 }
 
 func run(ctx context.Context, cfg config) error {
+	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{WithLoader: true})
+	defer l.StopLoader()
+
+	if cfg.root.Flagger.Bool(ctx, l, flagsiface.DeployBundles) {
+		return bundledeploy.Deploy(ctx, bundledeploy.Config{
+			Root:         cfg.root,
+			Client:       cfg.client,
+			Paths:        cfg.paths,
+			ChangedFiles: cfg.changedFiles,
+			EnvSlug:      cfg.envSlug,
+		})
+	}
 	// Check for mutually exclusive flags.
 	if cfg.assumeYes && cfg.assumeNo {
 		return errors.New("Cannot specify both --yes and --no")
 	}
-
-	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{WithLoader: true})
-	defer l.StopLoader()
 
 	createdTasks := map[string]bool{}
 	d := &discover.Discoverer{

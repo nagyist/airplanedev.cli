@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/analytics"
+	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/version"
 )
@@ -24,20 +25,34 @@ type release struct {
 }
 
 // CheckLatest queries the GitHub API for newer releases and prints a warning if the CLI is outdated.
-func CheckLatest(ctx context.Context) bool {
+func CheckLatest(ctx context.Context, userConfig *conf.UserConfig) bool {
 	if version.Get() == "<unknown>" || version.Prerelease() {
 		// Pass silently if we don't know the current CLI version or are on a pre-release.
 		return true
 	}
 
-	latest, err := getLatest(ctx)
-	if err != nil {
-		analytics.ReportError(err)
-		logger.Debug("An error ocurred checking for the latest version: %s", err)
+	var latest string
+	if userConfig != nil && userConfig.LatestVersion.Version != "" &&
+		userConfig.LatestVersion.Updated.After(time.Now().AddDate(0, 0, -1)) {
+		// We only want to log about newer CLI versions once a day.
 		return true
-	} else if latest == "" {
-		// Pass silently if we can't identify the latest version.
-		return true
+	} else {
+		latest, err := getLatest(ctx)
+		if err != nil {
+			analytics.ReportError(err)
+			logger.Debug("An error ocurred checking for the latest version: %s", err)
+			return true
+		} else if latest == "" {
+			// Pass silently if we can't identify the latest version.
+			return true
+		}
+		userConfig.LatestVersion = conf.VersionUpdate{
+			Version: latest,
+			Updated: time.Now().UTC(),
+		}
+		if err := conf.WriteDefaultUserConfig(*userConfig); err != nil {
+			// Do nothing
+		}
 	}
 
 	latestWithoutPrefix := strings.TrimPrefix(latest, "v")

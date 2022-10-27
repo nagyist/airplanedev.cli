@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/airplanedev/cli/cmd/airplane/tasks/deploy"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -206,11 +205,11 @@ func TestDeploy(t *testing.T) {
 			for k, v := range tC.envVars {
 				os.Setenv(k, v)
 			}
-			cfg := config{
-				changedFiles: tC.changedFiles,
-				client:       client,
-				envSlug:      tC.envSlug,
-				root: &cli.Config{
+			cfg := Config{
+				ChangedFiles: tC.changedFiles,
+				Client:       client,
+				EnvSlug:      tC.envSlug,
+				Root: &cli.Config{
 					Client: &api.Client{
 						Host: api.Host,
 					},
@@ -218,7 +217,7 @@ func TestDeploy(t *testing.T) {
 			}
 			d := NewDeployer(cfg, &logger.MockLogger{}, DeployerOpts{
 				Archiver:   &archive.MockArchiver{},
-				RepoGetter: &deploy.MockGitRepoGetter{Repo: tC.gitRepo},
+				RepoGetter: &MockGitRepoGetter{Repo: tC.gitRepo},
 			})
 
 			err := d.Deploy(context.Background(), tC.bundles)
@@ -230,6 +229,55 @@ func TestDeploy(t *testing.T) {
 			}
 
 			assert.Equal(tC.deploys, client.Deploys)
+		})
+	}
+}
+
+func TestParseRemote(t *testing.T) {
+	testCases := []struct {
+		desc      string
+		remote    string
+		ownerName string
+		repoName  string
+		vendor    api.GitVendor
+	}{
+		{
+			desc:      "git http",
+			remote:    "https://github.com/airplanedev/airport",
+			ownerName: "airplanedev",
+			repoName:  "airport",
+			vendor:    api.GitVendorGitHub,
+		},
+		{
+			desc:      "git http with .git suffix",
+			remote:    "https://github.com/airplanedev/airport.git",
+			ownerName: "airplanedev",
+			repoName:  "airport",
+			vendor:    api.GitVendorGitHub,
+		},
+		{
+			desc:      "git ssh",
+			remote:    "git@github.com:airplanedev/airport.git",
+			ownerName: "airplanedev",
+			repoName:  "airport",
+			vendor:    api.GitVendorGitHub,
+		},
+		{
+			desc:   "unknown - no error returned",
+			remote: "some remote",
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			assert := assert.New(t)
+			require := require.New(t)
+
+			owner, name, vendor, err := parseRemote(tC.remote)
+			require.NoError(err)
+
+			assert.Equal(tC.ownerName, owner)
+			assert.Equal(tC.repoName, name)
+			assert.Equal(tC.vendor, vendor)
 		})
 	}
 }

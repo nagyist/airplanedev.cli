@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/airplanedev/cli/cmd/airplane/tasks/deploy"
 	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/conf"
@@ -24,24 +23,24 @@ import (
 )
 
 type deployer struct {
-	cfg        config
+	cfg        Config
 	logger     logger.LoggerWithLoader
 	archiver   archive.Archiver
-	repoGetter deploy.GitRepoGetter
+	repoGetter GitRepoGetter
 }
 
 type DeployerOpts struct {
 	Archiver   archive.Archiver
-	RepoGetter deploy.GitRepoGetter
+	RepoGetter GitRepoGetter
 }
 
-func NewDeployer(cfg config, l logger.LoggerWithLoader, opts DeployerOpts) *deployer {
-	a := archive.NewAPIArchiver(l, cfg.client, &archive.HttpUploader{})
+func NewDeployer(cfg Config, l logger.LoggerWithLoader, opts DeployerOpts) *deployer {
+	a := archive.NewAPIArchiver(l, cfg.Client, &archive.HttpUploader{})
 	if opts.Archiver != nil {
 		a = opts.Archiver
 	}
-	var rg deploy.GitRepoGetter
-	rg = &deploy.FileGitRepoGetter{}
+	var rg GitRepoGetter
+	rg = &FileGitRepoGetter{}
 	if opts.RepoGetter != nil {
 		rg = opts.RepoGetter
 	}
@@ -56,7 +55,7 @@ func NewDeployer(cfg config, l logger.LoggerWithLoader, opts DeployerOpts) *depl
 // Deploy creates a deployment.
 func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) error {
 	var err error
-	if len(d.cfg.changedFiles) > 0 {
+	if len(d.cfg.ChangedFiles) > 0 {
 		bundles, err = d.filterBundlesByChangedFiles(ctx, bundles)
 		if err != nil {
 			return err
@@ -114,7 +113,7 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 
 	var gitMeta api.GitMetadata
 	if repo != nil && !mismatchedGitRepos {
-		gitMeta, err = deploy.GetGitMetadata(repo)
+		gitMeta, err = GetGitMetadata(repo)
 		if err != nil {
 			analytics.ReportMessage(fmt.Sprintf("failed to gather git metadata: %v", err))
 		}
@@ -129,23 +128,23 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 		}
 	}
 
-	resp, err := d.cfg.client.CreateDeployment(ctx, api.CreateDeploymentRequest{
+	resp, err := d.cfg.Client.CreateDeployment(ctx, api.CreateDeploymentRequest{
 		Bundles:     bundlesToDeploy,
 		GitMetadata: gitMeta,
-		EnvSlug:     d.cfg.envSlug,
+		EnvSlug:     d.cfg.EnvSlug,
 	})
 	if err != nil {
 		return err
 	}
 
 	d.deployLog(ctx, api.LogLevelInfo, deployLogReq{msg: logger.Gray("Creating deployment...")})
-	d.logger.Log(logger.Purple(fmt.Sprintf("\nView deployment: %s\n", d.cfg.client.DeploymentURL(resp.Deployment.ID, d.cfg.envSlug))))
+	d.logger.Log(logger.Purple(fmt.Sprintf("\nView deployment: %s\n", d.cfg.Client.DeploymentURL(resp.Deployment.ID, d.cfg.EnvSlug))))
 
-	err = d.waitForDeploy(ctx, d.cfg.client, resp.Deployment.ID)
+	err = d.waitForDeploy(ctx, d.cfg.Client, resp.Deployment.ID)
 	if errors.Is(err, context.Canceled) {
 		// Since `ctx` is cancelled, use a fresh context to cancel the deployment.
 		//nolint: contextcheck
-		cerr := d.cfg.client.CancelDeployment(context.Background(), api.CancelDeploymentRequest{ID: resp.Deployment.ID})
+		cerr := d.cfg.Client.CancelDeployment(context.Background(), api.CancelDeploymentRequest{ID: resp.Deployment.ID})
 		if cerr != nil {
 			d.logger.Warning("Failed to cancel deployment: %v", cerr)
 		} else {
@@ -203,7 +202,7 @@ func (d *deployer) tarAndUpload(ctx context.Context, root string) (string, error
 func (d *deployer) filterBundlesByChangedFiles(ctx context.Context, bundles []bundlediscover.Bundle) ([]bundlediscover.Bundle, error) {
 	var filteredBundles []bundlediscover.Bundle
 	for _, b := range bundles {
-		contains, err := containsFile(b.RootPath, d.cfg.changedFiles)
+		contains, err := containsFile(b.RootPath, d.cfg.ChangedFiles)
 		if err != nil {
 			return nil, err
 		}

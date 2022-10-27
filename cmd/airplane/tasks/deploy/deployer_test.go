@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	bundledeploy "github.com/airplanedev/cli/cmd/airplane/root/deploy"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/build"
 	"github.com/airplanedev/cli/pkg/cli"
@@ -745,7 +746,7 @@ func TestDeploy(t *testing.T) {
 			d := NewDeployer(cfg, &logger.MockLogger{}, DeployerOpts{
 				BuildCreator: &build.MockBuildCreator{},
 				Archiver:     &archive.MockArchiver{},
-				RepoGetter:   &MockGitRepoGetter{Repo: tC.gitRepo},
+				RepoGetter:   &bundledeploy.MockGitRepoGetter{Repo: tC.gitRepo},
 			})
 			for i, absEntrypoint := range tC.absoluteEntrypoints {
 				err := tC.taskConfigs[i].Def.SetAbsoluteEntrypoint(absEntrypoint)
@@ -761,55 +762,6 @@ func TestDeploy(t *testing.T) {
 
 			assert.Equal(tC.existingTasks, client.Tasks)
 			assert.Equal(tC.deploys, client.Deploys)
-		})
-	}
-}
-
-func TestParseRemote(t *testing.T) {
-	testCases := []struct {
-		desc      string
-		remote    string
-		ownerName string
-		repoName  string
-		vendor    api.GitVendor
-	}{
-		{
-			desc:      "git http",
-			remote:    "https://github.com/airplanedev/airport",
-			ownerName: "airplanedev",
-			repoName:  "airport",
-			vendor:    api.GitVendorGitHub,
-		},
-		{
-			desc:      "git http with .git suffix",
-			remote:    "https://github.com/airplanedev/airport.git",
-			ownerName: "airplanedev",
-			repoName:  "airport",
-			vendor:    api.GitVendorGitHub,
-		},
-		{
-			desc:      "git ssh",
-			remote:    "git@github.com:airplanedev/airport.git",
-			ownerName: "airplanedev",
-			repoName:  "airport",
-			vendor:    api.GitVendorGitHub,
-		},
-		{
-			desc:   "unknown - no error returned",
-			remote: "some remote",
-		},
-	}
-	for _, tC := range testCases {
-		t.Run(tC.desc, func(t *testing.T) {
-			assert := assert.New(t)
-			require := require.New(t)
-
-			owner, name, vendor, err := parseRemote(tC.remote)
-			require.NoError(err)
-
-			assert.Equal(tC.ownerName, owner)
-			assert.Equal(tC.repoName, name)
-			assert.Equal(tC.vendor, vendor)
 		})
 	}
 }
