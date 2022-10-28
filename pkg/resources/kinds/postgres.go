@@ -91,9 +91,6 @@ func (r PostgresResource) Validate() error {
 	if r.Database == "" {
 		return resources.NewErrMissingResourceField("database")
 	}
-	if r.Password == "" {
-		return resources.NewErrMissingResourceField("password")
-	}
 	if r.SSLMode != "disable" && r.SSLMode != "require" {
 		return errors.Errorf("Unknown SSLMode: %s", r.SSLMode)
 	}
