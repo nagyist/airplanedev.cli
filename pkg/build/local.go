@@ -48,8 +48,7 @@ func (d *localBuildCreator) CreateBuild(ctx context.Context, req Request) (*buil
 	if req.Shim {
 		buildConfig["shim"] = "true"
 	}
-
-	b, err := build.New(build.LocalConfig{
+	b, _, err := build.New(build.LocalConfig{
 		Root:    req.Root,
 		Builder: string(kind),
 		// TODO(fleung): should be build.BuildConfig, not build.KindOptions
