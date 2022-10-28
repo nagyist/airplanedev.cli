@@ -40,7 +40,7 @@ type Server struct {
 
 // address returns the TCP address that the api server listens on
 func address(port int) string {
-	return fmt.Sprintf("127.0.0.1:%d", port)
+	return fmt.Sprintf("0.0.0.0:%d", port)
 }
 
 var corsOrigins = []string{

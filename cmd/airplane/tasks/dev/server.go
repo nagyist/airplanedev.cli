@@ -215,12 +215,14 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 
 	// Execute the flow to open the studio in the browser in a separate goroutine so fmt.Scanln doesn't capture
 	// termination signals.
-	go func() {
-		fmt.Scanln()
-		if ok := utils.Open(studioURL); !ok {
-			logger.Log("Something went wrong. Try running the command with the --debug flag for more details.")
-		}
-	}()
+	if !cfg.nonInteractive {
+		go func() {
+			fmt.Scanln()
+			if ok := utils.Open(studioURL); !ok {
+				logger.Log("Something went wrong. Try running the command with the --debug flag for more details.")
+			}
+		}()
+	}
 
 	// Wait for termination signal (e.g. Ctrl+C)
 	<-stop

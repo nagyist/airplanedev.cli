@@ -47,6 +47,7 @@ type taskDevConfig struct {
 	studio           bool
 	useFallbackEnv   bool
 	disableWatchMode bool
+	nonInteractive   bool
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -140,6 +141,11 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().BoolVar(&cfg.studio, "studio", true, "Run the local Studio")
 	cmd.Flags().BoolVar(&cfg.studio, "editor", true, "Run the local Studio")
 	cmd.Flags().BoolVar(&cfg.disableWatchMode, "no-watch", false, "Disable watch mode. Changes require restarting the studio to take effect.")
+	cmd.Flags().BoolVar(&cfg.nonInteractive, "non-interactive", false, "Run the local Studio in non-interactive mode (when running in sandbox)")
+
+	if err := cmd.Flags().MarkHidden("non-interactive"); err != nil {
+		logger.Debug("marking --non-interactive as hidden: %s", err)
+	}
 
 	if err := cmd.Flags().MarkDeprecated("editor", "launching the Studio is now the default behavior."); err != nil {
 		logger.Debug("marking --editor as deprecated: %s", err)
