@@ -1,0 +1,7 @@
+nodeVersion: "18"
+envVars:
+  fromValue: value
+  fromValue2:
+    value: value2
+  fromConfig:
+    config: CONFIG

@@ -16,6 +16,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
@@ -321,35 +322,43 @@ func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, 
 		return "", err
 	}
 
-	if pkg.Engines.NodeVersion == "" {
-		return "", nil
-	}
+	if pkg.Engines.NodeVersion != "" {
+		// Look for version in package.json
+		nodeConstraint, err := semver.NewConstraint(pkg.Engines.NodeVersion)
+		if err != nil {
+			return "", errors.Wrapf(err, "parsing node engine %s", pkg.Engines.NodeVersion)
+		}
 
-	nodeConstraint, err := semver.NewConstraint(pkg.Engines.NodeVersion)
-	if err != nil {
-		return "", errors.Wrapf(err, "parsing node engine %s", pkg.Engines.NodeVersion)
-	}
-
-	v, err := build.GetVersions()
-	if err != nil {
-		return "", err
-	}
-	supportedVersionsMap := v[string(build.NameNode)]
-	var supportedVersions []string
-	for supportedVersion := range supportedVersionsMap {
-		supportedVersions = append(supportedVersions, supportedVersion)
-	}
-	slices.SortFunc(supportedVersions, func(a, b string) bool {
-		return b < a
-	})
-
-	for _, supportedVersion := range supportedVersions {
-		sv, err := semver.NewVersion(supportedVersion)
+		v, err := build.GetVersions()
 		if err != nil {
 			return "", err
 		}
-		if nodeConstraint.Check(sv) {
-			return build.BuildTypeVersion(supportedVersion), nil
+		supportedVersionsMap := v[string(build.NameNode)]
+		var supportedVersions []string
+		for supportedVersion := range supportedVersionsMap {
+			supportedVersions = append(supportedVersions, supportedVersion)
+		}
+		slices.SortFunc(supportedVersions, func(a, b string) bool {
+			return b < a
+		})
+
+		for _, supportedVersion := range supportedVersions {
+			sv, err := semver.NewVersion(supportedVersion)
+			if err != nil {
+				return "", err
+			}
+			if nodeConstraint.Check(sv) {
+				return build.BuildTypeVersion(supportedVersion), nil
+			}
+		}
+	}
+
+	// Look for version in airplane.config
+	configPath, found := fsx.Find(rootPath, config.FileName)
+	if found {
+		c, err := config.NewAirplaneConfigFromFile(filepath.Join(configPath, config.FileName))
+		if err == nil && c.NodeVersion != "" {
+			return c.NodeVersion, nil
 		}
 	}
 

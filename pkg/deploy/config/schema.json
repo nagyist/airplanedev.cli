@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Airplane Config",
+  "properties": {
+    "envVars": { "$ref": "#/$defs/envVars" },
+    "nodeVersion": {
+      "description": "The version of Node to use.",
+      "enum": ["14", "16", "18"]
+    }
+  },
+  "additionalProperties": false,
+
+  "$defs": {
+    "envVars": {
+      "description": "A map of environment variables to use when building and running. If specifying raw values, the value may be a string; if using config variables, the value must be an object with config mapped to the name of the config variable.",
+      "examples": ["env_var_value", { "config": "db_from_config" }],
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "object",
+              "properties": {
+                "config": { "type": "string" }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -105,6 +105,11 @@ func TestVersion(t *testing.T) {
 			buildVersion: build.BuildTypeVersionNode16,
 		},
 		{
+			desc:         "version from config file",
+			path:         "./fixtures/version/fromConfig/file.js",
+			buildVersion: build.BuildTypeVersionNode14,
+		},
+		{
 			desc: "no version",
 			path: "./fixtures/version/emptyPackageJSON/file.js",
 		},
