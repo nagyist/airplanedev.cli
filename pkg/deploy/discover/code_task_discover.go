@@ -172,7 +172,7 @@ func (c *CodeTaskDiscoverer) parseNodeDefinitions(ctx context.Context, file stri
 		nodeConfig := parsedTask["node"].(map[string]interface{})
 		nodeConfig["entrypoint"] = pm.RelEntrypoint
 
-		def, err := constructDefinition(parsedTask, pm)
+		def, err := ConstructDefinition(parsedTask, pm)
 		if err != nil {
 			return nil, err
 		}
@@ -204,7 +204,7 @@ func (c *CodeTaskDiscoverer) parsePythonDefinitions(ctx context.Context, file st
 		pythonConfig := parsedTask["python"].(map[string]interface{})
 		pythonConfig["entrypoint"] = pathMetadata.RelEntrypoint
 
-		def, err := constructDefinition(parsedTask, pathMetadata)
+		def, err := ConstructDefinition(parsedTask, pathMetadata)
 		if err != nil {
 			return nil, err
 		}
@@ -218,7 +218,7 @@ func (c *CodeTaskDiscoverer) parsePythonDefinitions(ctx context.Context, file st
 	return parsedDefinitions, nil
 }
 
-func constructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPathMetadata) (definitions.DefinitionInterface, error) {
+func ConstructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPathMetadata) (definitions.DefinitionInterface, error) {
 	entrypointFunc, ok := parsedTask["entrypointFunc"].(string)
 	if !ok {
 		return nil, errors.New("expected 'entrypointFunc' key in parsed task")

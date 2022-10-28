@@ -1,0 +1,7 @@
+{
+    "name": "node_tasks",
+    "dependencies": {
+        "airplane": "0.2.0-32",
+        "@airplane/workflow-runtime": "0.2.0-32"
+    }
+}

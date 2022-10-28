@@ -17,6 +17,7 @@ type TaskParam = {
 type NodeDef = {
   nodeVersion?: "12" | "14" | "15" | "16" | "18";
   envVars?: Record<string, string | { config: string } | { value: string }>;
+  entrypoint: string;
 };
 
 type TaskDef = {
@@ -108,6 +109,7 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
             node: {
               nodeVersion: config.nodeVersion,
               envVars: config.envVars,
+              entrypoint: file,
             },
           });
         }
@@ -125,4 +127,4 @@ const dom = new JSDOM(`<!DOCTYPE html><body></div></body>`);
 (global as any).document = dom.window.document;
 const files = process.argv.slice(2);
 const taskConfigs = extractTaskConfigs(files);
-console.log(JSON.stringify(taskConfigs));
+console.log("EXTRACTED_ENTITY_CONFIGS:" + JSON.stringify(taskConfigs));

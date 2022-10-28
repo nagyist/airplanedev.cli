@@ -62,7 +62,7 @@ func esbuildUserFiles(rootDir string) error {
 
 		Platform: esbuild.PlatformNode,
 		Engines: []esbuild.Engine{
-			{Name: esbuild.EngineNode, Version: build.DefaultNodeVersion},
+			{Name: esbuild.EngineNode, Version: string(build.DefaultNodeVersion)},
 		},
 		Format:   esbuild.FormatCommonJS,
 		Bundle:   true,
@@ -120,8 +120,11 @@ func extractJSConfigs(file string) (ParsedJSConfigs, error) {
 		return ParsedJSConfigs{}, errors.Wrapf(err, "parsing file=%q", file)
 	}
 
+	// Parser output is EXTRACTED_ENTITY_CONFIGS:{...}
+	parsedOutput := strings.SplitN(string(out), ":", 2)
+
 	var parsedConfigs ParsedJSConfigs
-	if err := json.Unmarshal(out, &parsedConfigs); err != nil {
+	if err := json.Unmarshal([]byte(parsedOutput[1]), &parsedConfigs); err != nil {
 		return ParsedJSConfigs{}, errors.Wrap(err, "unmarshalling parser output")
 	}
 	return parsedConfigs, nil
@@ -135,8 +138,12 @@ func extractPythonConfigs(file string) ([]map[string]interface{}, error) {
 		}
 		return []map[string]interface{}{}, errors.Wrapf(err, "parsing file=%q", file)
 	}
+
+	// Parser output is EXTRACTED_ENTITY_CONFIGS:{...}
+	parsedOutput := strings.SplitN(string(out), ":", 2)
+
 	var parsedTasks []map[string]interface{}
-	if err := json.Unmarshal(out, &parsedTasks); err != nil {
+	if err := json.Unmarshal([]byte(parsedOutput[1]), &parsedTasks); err != nil {
 		return nil, errors.Wrap(err, "unmarshalling parser output")
 	}
 	return parsedTasks, nil

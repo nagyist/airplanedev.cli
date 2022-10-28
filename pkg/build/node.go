@@ -11,12 +11,13 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/airplanedev/lib/pkg/deploy/discover/parser"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
 )
 
 const (
-	DefaultNodeVersion = "18"
+	DefaultNodeVersion = BuildTypeVersionNode18
 
 	defaultSDKVersion     = "~0.2"
 	minWorkflowSDKVersion = "0.2.10"
@@ -44,6 +45,15 @@ type templateParams struct {
 	PreInstallPath                   string
 	PostInstallPath                  string
 	PackageCopyCmds                  []string
+
+	// FilesToBuild is a string of space-separated js/ts files to esbuild (user code) for
+	// running tasks and discovering inline configuration.
+	FilesToBuild string
+	// FilesToDiscover is a string of space-separated built js files to discover entity configs from.
+	// These files are the output of esbuild on FilesToBuild.
+	FilesToDiscover string
+	// InlineUniversalShim is installed to run any built entity in the image (imports entrypoint dynamically)
+	InlineUniversalShim string
 }
 
 // node creates a dockerfile for Node (typescript/javascript).
@@ -80,20 +90,7 @@ func node(
 	pathPackageLock := filepath.Join(root, "package-lock.json")
 	hasPackageLock := fsx.AssertExistsAll(pathPackageLock) == nil
 
-	runtime, ok := options["runtime"]
-	var isWorkflow bool
-
-	if ok {
-		// Depending on how the options were serialized, the runtime can be
-		// either a string or TaskRuntime; handle both.
-		switch v := runtime.(type) {
-		case string:
-			isWorkflow = v == string(TaskRuntimeWorkflow)
-		case TaskRuntime:
-			isWorkflow = v == TaskRuntimeWorkflow
-		default:
-		}
-	}
+	isWorkflow := isWorkflowRuntime(options)
 
 	var pkg PackageJSON
 	if hasPackageJSON {
@@ -102,11 +99,6 @@ func node(
 			return "", err
 		}
 	}
-
-	for i, a := range buildArgs {
-		buildArgs[i] = fmt.Sprintf("ARG %s", a)
-	}
-	argsCommand := strings.Join(buildArgs, "\n")
 
 	installHooks, err := GetInstallHooks(entrypoint, root)
 	if err != nil {
@@ -122,7 +114,7 @@ func node(
 		NodeVersion:        GetNodeVersion(options),
 		PreInstallCommand:  pkg.Settings.PreInstallCommand,
 		PostInstallCommand: pkg.Settings.PostInstallCommand,
-		Args:               argsCommand,
+		Args:               makeArgsCommand(buildArgs),
 		IsWorkflow:         isWorkflow,
 		PreInstallPath:     installHooks.PreInstallFilePath,
 		PostInstallPath:    installHooks.PostInstallFilePath,
@@ -220,27 +212,12 @@ func node(
 		cfg.InlineShim = inlineString(shim)
 	}
 
-	installCommand := "npm install --production"
-	if pkg.Settings.InstallCommand != "" {
-		installCommand = pkg.Settings.InstallCommand
-	} else if isYarn {
-		if yarnBerry, _ := isYarnBerry(rootPackageJSON); yarnBerry {
-			// Yarn Berry has removed --non-interactive --production --frozen-lockfile. There
-			// is no real replacement for these, so we'll just install with `yarn install`.
-			installCommand = "yarn install"
-		} else {
-			// Because the install command is running in the context of a docker build, the yarn cache
-			// isn't used after the packages are installed, and so we clean the cache to keep the
-			// image lean. This doesn't apply to Yarn v2 (specifically Plug'n'Play), which uses the
-			// cache directory for storing packages.
-			installCommand = "yarn install --non-interactive --production --frozen-lockfile && yarn cache clean"
-		}
-	} else if hasPackageLock {
-		// Use npm ci if possible, since it's faster and behaves better:
-		// https://docs.npmjs.com/cli/v8/commands/npm-ci
-		installCommand = "npm ci --production"
-	}
-	cfg.InstallCommand = strings.ReplaceAll(installCommand, "\n", "\\n")
+	cfg.InstallCommand = makeInstallCommand(makeInstallCommandReq{
+		PkgInstallCommand: pkg.Settings.InstallCommand,
+		RootPackageJSON:   rootPackageJSON,
+		IsYarn:            isYarn,
+		HasPackageLock:    hasPackageLock,
+	})
 
 	// For safety purposes, we need to install from the full code if either (1) there are any
 	// hook scripts in the package.json files or (2) there's an airplane preinstall
@@ -408,14 +385,14 @@ func GenShimPackageJSON(rootDir string, packageJSONs []string, isWorkflow bool) 
 
 func GetNodeVersion(opts KindOptions) string {
 	if opts == nil || opts["nodeVersion"] == nil {
-		return DefaultNodeVersion
+		return string(DefaultNodeVersion)
 	}
 	nv, ok := opts["nodeVersion"].(string)
 	if !ok {
-		return DefaultNodeVersion
+		return string(DefaultNodeVersion)
 	}
 	if nv == "" {
-		return DefaultNodeVersion
+		return string(DefaultNodeVersion)
 	}
 
 	return nv
@@ -423,6 +400,9 @@ func GetNodeVersion(opts KindOptions) string {
 
 //go:embed node-shim.js
 var nodeShim string
+
+//go:embed universal-node-shim.js
+var universalNodeShim string
 
 //go:embed workflow/worker-shim.js
 var workerShim string
@@ -563,7 +543,7 @@ func nodeLegacyBuilder(root string, options KindOptions) (string, error) {
 
 func getBaseNodeImage(version string) (string, error) {
 	if version == "" {
-		version = DefaultNodeVersion
+		version = string(DefaultNodeVersion)
 	}
 	v, err := GetVersion(NameNode, version)
 	if err != nil {
@@ -653,4 +633,322 @@ func ReadPackageJSON(path string) (PackageJSON, error) {
 	}
 
 	return p, nil
+}
+
+// nodeBundle creates a dockerfile for all Node tasks/workflows within a task root (typescript/javascript).
+func nodeBundle(
+	root string,
+	buildContext BuildContext,
+	options KindOptions,
+	buildArgs []string,
+	relEntityFiles []string,
+) (string, error) {
+	var err error
+
+	// For backwards compatibility, continue to build old Node tasks
+	// in the same way. Tasks built with the latest CLI will set
+	// shim=true which enables the new code path.
+	if shim, ok := options["shim"].(string); !ok || shim != "true" {
+		return nodeLegacyBuilder(root, options)
+	}
+
+	workdir, _ := options["workdir"].(string)
+	rootPackageJSON := filepath.Join(root, "package.json")
+	hasPackageJSON := fsx.AssertExistsAll(rootPackageJSON) == nil
+
+	pathYarnLock := filepath.Join(root, "yarn.lock")
+	isYarn := fsx.AssertExistsAll(pathYarnLock) == nil
+
+	pathPackageLock := filepath.Join(root, "package-lock.json")
+	hasPackageLock := fsx.AssertExistsAll(pathPackageLock) == nil
+
+	isWorkflow := isWorkflowRuntime(options)
+
+	var pkg PackageJSON
+	if hasPackageJSON {
+		pkg, err = ReadPackageJSON(rootPackageJSON)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	// Install hooks can only exist in the task root for bundle builds
+	installHooks, err := GetInstallHooks("", root)
+	if err != nil {
+		return "", err
+	}
+
+	cfg := templateParams{
+		Workdir:        workdir,
+		HasPackageJSON: hasPackageJSON,
+		UsesWorkspaces: len(pkg.Workspaces.Workspaces) > 0,
+		// esbuild is relatively generous in the node versions it supports:
+		// https://esbuild.github.io/api/#target
+		NodeVersion:         string(buildContext.VersionOrDefault()),
+		PreInstallCommand:   pkg.Settings.PreInstallCommand,
+		PostInstallCommand:  pkg.Settings.PostInstallCommand,
+		PreInstallPath:      installHooks.PreInstallFilePath,
+		PostInstallPath:     installHooks.PostInstallFilePath,
+		Args:                makeArgsCommand(buildArgs),
+		IsWorkflow:          isWorkflow,
+		InlineUniversalShim: inlineString(universalNodeShim),
+	}
+
+	var absoluteEntrypoints []string
+	var absoluteEntrypointOutputs []string
+	for _, relEntityFile := range relEntityFiles {
+		absoluteEntrypoints = append(absoluteEntrypoints, filepath.Join("/airplane", relEntityFile))
+
+		relEntityExt := filepath.Ext(relEntityFile)
+		// esbuild will output entrypoint bundles to /airplane/.airplane
+		absoluteEntrypointOutputs = append(absoluteEntrypointOutputs,
+			filepath.Join("/airplane/.airplane", strings.TrimSuffix(relEntityFile, relEntityExt)+".js"))
+	}
+	cfg.FilesToBuild = strings.Join(absoluteEntrypoints, " ")
+	cfg.FilesToDiscover = strings.Join(absoluteEntrypointOutputs, " ")
+
+	packageJSONs, usesWorkspaces, err := GetPackageJSONs(rootPackageJSON)
+	if err != nil {
+		return "", err
+	}
+
+	var hasPackageInstallHooks bool
+
+	if cfg.HasPackageJSON {
+		cfg.PackageCopyCmds, err = GetPackageCopyCmds(root, packageJSONs)
+		if err != nil {
+			return "", err
+		}
+
+		// Check all files for pre- or post-install scripts. If there are any found, then
+		// we to run the install with the entire codebase to be safe as opposed to
+		// just the package.json and yarn files (since the postinstall scripts might assume
+		// that all code is present).
+		for _, packageJSONPath := range packageJSONs {
+			hasPackageInstallHooks, err = hasInstallHooks(packageJSONPath)
+			if err != nil {
+				return "", err
+			}
+			if hasPackageInstallHooks {
+				break
+			}
+		}
+	} else {
+		// Just create an empty package.json in the root
+		cfg.PackageCopyCmds = []string{"RUN echo '{}' > /airplane/package.json"}
+	}
+
+	if cfg.HasPackageJSON {
+		// Workaround to get esbuild to not bundle dependencies.
+		// See build.ExternalPackages for details.
+		deps, err := ExternalPackages(packageJSONs, usesWorkspaces)
+		if err != nil {
+			return "", err
+		}
+		var flags []string
+		for _, dep := range deps {
+			flags = append(flags, fmt.Sprintf("--external:%s", dep))
+		}
+		if isWorkflow {
+			// Even if these are imported, we need to mark the root packages
+			// as external for esbuild to work properly. Esbuild doesn't
+			// care about repeats, so no need to dedupe.
+			flags = append(flags, "--external:@temporalio", "--external:@swc")
+		}
+
+		cfg.ExternalFlags = strings.Join(flags, " ")
+	}
+
+	if !strings.HasPrefix(cfg.Workdir, "/") {
+		cfg.Workdir = "/" + cfg.Workdir
+	}
+
+	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion)
+	if err != nil {
+		return "", err
+	}
+
+	pjson, err := GenShimPackageJSON(root, packageJSONs, isWorkflow)
+	if err != nil {
+		return "", err
+	}
+	cfg.InlineShimPackageJSON = inlineString(string(pjson))
+
+	cfg.InstallCommand = makeInstallCommand(makeInstallCommandReq{
+		PkgInstallCommand: pkg.Settings.InstallCommand,
+		RootPackageJSON:   rootPackageJSON,
+		IsYarn:            isYarn,
+		HasPackageLock:    hasPackageLock,
+	})
+
+	// For safety purposes, we need to install from the full code if either (1) there are any
+	// hook scripts in the package.json files or (2) there's an airplane preinstall
+	// command; any of these could be assuming that the full code is present. This prevents us
+	// from caching the user's dependencies separately from their code.
+	//
+	// TODO: Investigate whether we can get around this by doing an npm or yarn install with
+	// an '--ignore-scripts' flag, then run it again without this flag.
+	cfg.InstallRequiresCode = hasPackageInstallHooks ||
+		cfg.PreInstallCommand != "" ||
+		cfg.PreInstallPath != ""
+
+	// Generate parser and store on context
+	parserPath := path.Join(root, ".airplane-build-tools", "inlineParser.js")
+	if err := os.MkdirAll(path.Dir(parserPath), 0755); err != nil {
+		return "", errors.Wrapf(err, "creating parser file")
+	}
+	if err := os.WriteFile(parserPath, []byte(parser.NodeParserScript), 0755); err != nil {
+		return "", errors.Wrap(err, "writing parser script")
+	}
+
+	// The following Dockerfile can build both JS and TS tasks. In general, we're
+	// aiming for recent EC202x support and for support for import/export syntax.
+	// The former is easier, since recent versions of Node have excellent coverage
+	// of the ECMAScript spec. The latter could be achieved through ECMAScript
+	// modules (ESM), but those are not well-supported within the Node community.
+	// Basic functionality of ESM is also still in the experimental stage, such as
+	// module resolution for relative paths (f.e. ./main.js vs. ./main). Therefore,
+	// we have to fallback to a separate build step to offer import/export support.
+	// We have a few options -- f.e. babel, tsc, or swc -- but we go with esbuild
+	// since it is native to Go.
+	//
+	// Down the road, we may want to give customers more control over this build process
+	// in which case we could introduce an extra step for performing build commands.
+	return applyTemplate(heredoc.Doc(`
+		FROM {{.Base}}
+		ENV NODE_ENV=production
+		WORKDIR /airplane{{.Workdir}}
+		# Support setting BUILD_NPM_RC or BUILD_NPM_TOKEN to configure private registry auth
+		ARG BUILD_NPM_RC
+		ARG BUILD_NPM_TOKEN
+		RUN [ -z "${BUILD_NPM_RC}" ] || echo "${BUILD_NPM_RC}" > .npmrc
+		RUN [ -z "${BUILD_NPM_TOKEN}" ] || echo "//registry.npmjs.org/:_authToken=${BUILD_NPM_TOKEN}" > .npmrc
+		# qemu (on m1 at least) segfaults while looking up a UID/GID for running
+		# postinstall scripts. We run as root with --unsafe-perm instead, skipping
+		# that lookup. Possibly could fix by building for linux/arm on m1 instead
+		# of always building for linux/amd64.
+		RUN npm install -g esbuild@0.12 --unsafe-perm
+
+		# npm >= 7 will automatically install peer dependencies, even if they're satisfied by the root. This is
+		# problematic because we need the @airplane/workflow-runtime package to register the workflow runtime in the
+		# runtime map that is utilized by the user's code, and so we explicitly request legacy behavior in this
+		# instance, which does not install peer dependencies by default.
+		RUN mkdir -p /airplane/.airplane && \
+			cd /airplane/.airplane && \
+			{{.InlineShimPackageJSON}} > package.json && \
+			npm install --legacy-peer-deps
+
+		{{range .PackageCopyCmds}}
+		{{.}}
+		{{end}}
+
+		{{if .InstallRequiresCode}}
+		COPY . /airplane
+		{{end}}
+
+		{{.Args}}
+
+		{{if .PreInstallCommand}}
+		RUN {{.PreInstallCommand}}
+		{{else if .PreInstallPath}}
+		COPY {{ .PreInstallPath }} airplane_preinstall.sh
+		RUN chmod +x airplane_preinstall.sh && ./airplane_preinstall.sh
+		{{end}}
+
+		RUN {{.InstallCommand}}
+
+		{{if not .InstallRequiresCode}}
+		COPY . /airplane
+		{{end}}
+
+		{{if .PostInstallCommand}}
+		RUN {{.PostInstallCommand}}
+		{{else if .PostInstallPath}}
+		COPY {{ .PostInstallPath }} airplane_postinstall.sh
+		RUN chmod +x airplane_postinstall.sh && ./airplane_postinstall.sh
+		{{end}}
+
+		{{if .IsWorkflow}}
+		RUN {{.InlineWorkflowShimScript}} >> /airplane/.airplane/workflow-shim.js \
+			&& {{.InlineWorkflowInterceptorsScript}} >> /airplane/.airplane/workflow-interceptors.js \
+			&& {{.InlineWorkflowBundlerScript}} >> /airplane/.airplane/workflow-bundler.js
+		RUN node /airplane/.airplane/workflow-bundler.js
+		{{end}}
+
+		RUN {{.InlineUniversalShim}} > /airplane/.airplane/universal-shim.js && \
+			esbuild /airplane/.airplane/universal-shim.js \
+				--bundle \
+				--platform=node {{.ExternalFlags}} \
+				--target=node{{.NodeVersion}} \
+				--outfile=/airplane/.airplane/dist/universal-shim.js
+
+		RUN esbuild {{.FilesToBuild}} \
+			--bundle \
+			--platform=node {{.ExternalFlags}} \
+			--target=node{{.NodeVersion}} \
+			--outdir=/airplane/.airplane \
+			--outbase=/airplane
+
+		# Discover inline tasks now that dependencies are installed and entrypoint files
+		# are built.
+		# FilesToDiscover is the location of the output of the transpiled js files
+		# that should be discovered.
+		RUN node /airplane/.airplane-build-tools/inlineParser.js {{.FilesToDiscover}}
+	`), cfg)
+}
+
+func isWorkflowRuntime(options KindOptions) bool {
+	runtime, ok := options["runtime"]
+	if !ok {
+		return false
+	}
+
+	// Depending on how the options were serialized, the runtime can be
+	// either a string or TaskRuntime; handle both.
+	switch v := runtime.(type) {
+	case string:
+		return v == string(TaskRuntimeWorkflow)
+	case TaskRuntime:
+		return v == TaskRuntimeWorkflow
+	default:
+		return false
+	}
+}
+
+type makeInstallCommandReq struct {
+	PkgInstallCommand string
+	RootPackageJSON   string
+	IsYarn            bool
+	HasPackageLock    bool
+}
+
+func makeInstallCommand(req makeInstallCommandReq) string {
+	installCommand := "npm install --production"
+	if req.PkgInstallCommand != "" {
+		installCommand = req.PkgInstallCommand
+	} else if req.IsYarn {
+		if yarnBerry, _ := isYarnBerry(req.RootPackageJSON); yarnBerry {
+			// Yarn Berry has removed --non-interactive --production --frozen-lockfile. There
+			// is no real replacement for these, so we'll just install with `yarn install`.
+			installCommand = "yarn install"
+		} else {
+			// Because the install command is running in the context of a docker build, the yarn cache
+			// isn't used after the packages are installed, and so we clean the cache to keep the
+			// image lean. This doesn't apply to Yarn v2 (specifically Plug'n'Play), which uses the
+			// cache directory for storing packages.
+			installCommand = "yarn install --non-interactive --production --frozen-lockfile && yarn cache clean"
+		}
+	} else if req.HasPackageLock {
+		// Use npm ci if possible, since it's faster and behaves better:
+		// https://docs.npmjs.com/cli/v8/commands/npm-ci
+		installCommand = "npm ci --production"
+	}
+	return strings.ReplaceAll(installCommand, "\n", "\\n")
+}
+
+func makeArgsCommand(buildArgs []string) string {
+	for i, a := range buildArgs {
+		buildArgs[i] = fmt.Sprintf("ARG %s", a)
+	}
+	return strings.Join(buildArgs, "\n")
 }

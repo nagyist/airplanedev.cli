@@ -43,6 +43,7 @@ class EnvVar:
 @dataclasses.dataclass
 class PythonDef:
     envVars: Optional[Dict[str, EnvVar]]
+    entrypoint: str
 
 
 @dataclasses.dataclass
@@ -141,6 +142,7 @@ def extract_task_configs(files: List[str]) -> List[Def]:
                                     )
                                     for e in conf.env_vars or []
                                 },
+                                entrypoint=file,
                             ),
                         )
                     )
@@ -151,7 +153,7 @@ def extract_task_configs(files: List[str]) -> List[Def]:
 def main() -> None:
     files = sys.argv[1:]
     task_configs = extract_task_configs(files)
-    print(json.dumps([as_def(config) for config in task_configs]))
+    print("EXTRACTED_ENTITY_CONFIGS:" + json.dumps([as_def(config) for config in task_configs]))
 
 
 if __name__ == "__main__":

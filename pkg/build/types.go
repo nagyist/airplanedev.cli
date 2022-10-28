@@ -1,5 +1,7 @@
 package build
 
+import "golang.org/x/exp/slices"
+
 // KindOptions are part of the task definition, supplied by the user.
 type KindOptions map[string]interface{}
 
@@ -7,6 +9,7 @@ type KindOptions map[string]interface{}
 // KindOptions.
 type BuildConfig map[string]interface{}
 
+// Moving forward, opt to use BuildType instead
 type TaskKind string
 
 const (
@@ -24,12 +27,18 @@ type BuildType string
 
 const (
 	NodeBuildType   BuildType = "node"
+	ViewBuildType   BuildType = "view"
 	PythonBuildType BuildType = "python"
 	DockerBuildType BuildType = "docker"
 	ShellBuildType  BuildType = "shell"
 	// NoneBuildType indicates that the entity should not be built.
 	NoneBuildType BuildType = "none"
 )
+
+func (b BuildType) Valid() bool {
+	_, ok := AllBuildTypeVersions[b]
+	return ok
+}
 
 type BuildTypeVersion string
 
@@ -42,10 +51,70 @@ const (
 	BuildTypeVersionPython38  BuildTypeVersion = "3.8"
 	BuildTypeVersionPython39  BuildTypeVersion = "3.9"
 	BuildTypeVersionPython310 BuildTypeVersion = "3.10"
-	// BuildTypeVersionUnspecified indicates either that a build type does not apply
-	// or that the build type should be chosen by the consumer.
+
 	BuildTypeVersionUnspecified BuildTypeVersion = ""
 )
+
+var AllBuildTypeVersions = map[BuildType][]BuildTypeVersion{
+	NodeBuildType: {
+		BuildTypeVersionNode14,
+		BuildTypeVersionNode16,
+		BuildTypeVersionNode18,
+		BuildTypeVersionUnspecified,
+	},
+	ViewBuildType: {
+		BuildTypeVersionNode14,
+		BuildTypeVersionNode16,
+		BuildTypeVersionNode18,
+		BuildTypeVersionUnspecified,
+	},
+	PythonBuildType: {
+		BuildTypeVersionPython37,
+		BuildTypeVersionPython38,
+		BuildTypeVersionPython39,
+		BuildTypeVersionPython310,
+		BuildTypeVersionUnspecified,
+	},
+	DockerBuildType: {
+		BuildTypeVersionUnspecified,
+	},
+	ShellBuildType: {
+		BuildTypeVersionUnspecified,
+	},
+	NoneBuildType: {
+		BuildTypeVersionUnspecified,
+	},
+}
+
+type BuildContext struct {
+	Type    BuildType        `json:"type"`
+	Version BuildTypeVersion `json:"version"`
+}
+
+func (b BuildContext) Valid() bool {
+	if !b.Type.Valid() {
+		return false
+	}
+	return slices.Contains(AllBuildTypeVersions[b.Type], b.Version)
+}
+
+func (b BuildContext) VersionOrDefault() BuildTypeVersion {
+	if b.Version == BuildTypeVersionUnspecified {
+		return b.DefaultVersion()
+	}
+	return b.Version
+}
+
+func (b BuildContext) DefaultVersion() BuildTypeVersion {
+	switch b.Type {
+	case NodeBuildType, ViewBuildType:
+		return BuildTypeVersionNode18
+	case PythonBuildType:
+		return BuildTypeVersionPython310
+	default:
+		return BuildTypeVersionUnspecified
+	}
+}
 
 type TaskRuntime string
 

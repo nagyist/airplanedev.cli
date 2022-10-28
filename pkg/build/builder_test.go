@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -17,6 +18,12 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/require"
 )
+
+type BundleTestRun struct {
+	RelEntrypoint string
+	ExportName    string
+	SearchString  string
+}
 
 type Test struct {
 	// Root is the task root to perform a build inside of.
@@ -32,6 +39,14 @@ type Test struct {
 	// via the `id` parameter.
 	SearchString  string
 	ExpectedError bool
+
+	// Bundle-specific test config
+	Bundle         bool
+	BuildContext   BuildContext
+	RelEntityFiles []string
+	BundleRuns     []BundleTestRun
+
+	// TODO: pipe to actual build/container run etc. set increased timeout if times out
 }
 
 // RunTests performs a series of builder tests and looks for a given SearchString
@@ -52,13 +67,26 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 			// t.Parallel()
 
 			require := require.New(t)
+			var b ImageBuilder
+			var client *client.Client
+			var err error
 
-			b, err := New(LocalConfig{
-				Root:      examples.Path(t, test.Root),
-				Builder:   string(test.Kind),
-				Options:   test.Options,
-				BuildArgs: test.BuildArgs,
-			})
+			if test.Bundle {
+				b, client, err = NewBundleBuilder(BundleLocalConfig{
+					Root:           examples.Path(t, test.Root),
+					BuildContext:   test.BuildContext,
+					Options:        test.Options,
+					RelEntityFiles: test.RelEntityFiles,
+				})
+			} else {
+				b, client, err = New(LocalConfig{
+					Root:      examples.Path(t, test.Root),
+					Builder:   string(test.Kind),
+					Options:   test.Options,
+					BuildArgs: test.BuildArgs,
+				})
+			}
+
 			require.NoError(err)
 			t.Cleanup(func() {
 				require.NoError(b.Close())
@@ -73,7 +101,7 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 
 			require.NoError(err)
 			defer func() {
-				_, err := b.client.ImageRemove(ctx, resp.ImageURL, types.ImageRemoveOptions{})
+				_, err := client.ImageRemove(ctx, resp.ImageURL, types.ImageRemoveOptions{})
 				require.NoError(err)
 			}()
 
@@ -86,24 +114,55 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 			}
 
 			if !test.SkipRun {
-				// Run the produced docker image:
-				out := runTask(t, ctx, b.client, resp.ImageURL, test.ParamValues)
-				require.True(strings.Contains(string(out), test.SearchString), "unable to find %q in output:\n%s", test.SearchString, string(out))
+				if test.Bundle {
+					if test.BuildContext.Type != NodeBuildType {
+						require.Fail("bundle tests are only available for node images")
+					}
+					for _, testRun := range test.BundleRuns {
+						out := runTask(t, ctx, client, runTaskConfig{
+							Image:       resp.ImageURL,
+							ParamValues: test.ParamValues,
+							Entrypoint:  []string{"node", "/airplane/.airplane/dist/universal-shim.js", path.Join("/airplane/.airplane/", testRun.RelEntrypoint), testRun.ExportName},
+						})
+						require.True(strings.Contains(string(out), testRun.SearchString), "unable to find %q in output:\n%s", test.SearchString, string(out))
+					}
+				} else {
+					// Run the produced docker image:
+					out := runTask(t, ctx, client, runTaskConfig{
+						Image:       resp.ImageURL,
+						ParamValues: test.ParamValues,
+					})
+					require.True(strings.Contains(string(out), test.SearchString), "unable to find %q in output:\n%s", test.SearchString, string(out))
+				}
 			}
 		})
 	}
 }
 
-func runTask(t *testing.T, ctx context.Context, dclient *client.Client, image string, paramValues Values) []byte {
+type runTaskConfig struct {
+	Image       string
+	ParamValues Values
+	Entrypoint  strslice.StrSlice
+}
+
+func runTask(t *testing.T, ctx context.Context, dclient *client.Client, c runTaskConfig) []byte {
 	require := require.New(t)
 
-	pv, err := json.Marshal(paramValues)
+	pv, err := json.Marshal(c.ParamValues)
 	require.NoError(err)
 
+	var cmd strslice.StrSlice
+	if len(c.Entrypoint) == 0 {
+		cmd = strslice.StrSlice{string(pv)}
+	} else {
+		c.Entrypoint = append(c.Entrypoint, string(pv))
+	}
+
 	resp, err := dclient.ContainerCreate(ctx, &container.Config{
-		Image: image,
-		Tty:   false,
-		Cmd:   strslice.StrSlice{string(pv)},
+		Image:      c.Image,
+		Tty:        false,
+		Cmd:        cmd,
+		Entrypoint: c.Entrypoint,
 	}, nil, nil, nil, "")
 	require.NoError(err)
 	containerID := resp.ID

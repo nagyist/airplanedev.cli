@@ -20,6 +20,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+type ImageBuilder interface {
+	Build(context.Context, string, string) (*Response, error)
+	Push(context.Context, string) error
+	Close() error
+}
+
 // RegistryAuth represents the registry auth.
 type RegistryAuth struct {
 	Token string
@@ -85,9 +91,9 @@ type Builder struct {
 }
 
 // New returns a new local builder with c.
-func New(c LocalConfig) (*Builder, error) {
+func New(c LocalConfig) (*Builder, *client.Client, error) {
 	if !filepath.IsAbs(c.Root) {
-		return nil, fmt.Errorf("build: expected an absolute root path, got %q", c.Root)
+		return nil, nil, fmt.Errorf("build: expected an absolute root path, got %q", c.Root)
 	}
 
 	if c.Builder == "" {
@@ -103,7 +109,7 @@ func New(c LocalConfig) (*Builder, error) {
 		client.WithAPIVersionNegotiation(),
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	return &Builder{
@@ -113,7 +119,7 @@ func New(c LocalConfig) (*Builder, error) {
 		auth:     c.Auth,
 		buildEnv: c.BuildArgs,
 		client:   client,
-	}, nil
+	}, client, nil
 }
 
 func (b *Builder) Close() error {
@@ -129,7 +135,7 @@ func (b *Builder) Close() error {
 // and adds it to the tree, it passes the tree as the build context
 // and initializes the build.
 func (b *Builder) Build(ctx context.Context, taskID, version string) (*Response, error) {
-	name := "task-" + SanitizeTaskID(taskID)
+	name := "task-" + SanitizeID(taskID)
 	uri := name + ":" + version
 	if b.auth != nil {
 		uri = b.auth.Repo + "/" + uri
@@ -275,7 +281,7 @@ func (b *Builder) authconfigs() map[string]types.AuthConfig {
 	}
 }
 
-// SanitizeTaskID sanitizes the given task ID.
+// SanitizeID sanitizes the given ID.
 //
 // Names may only contain lowercase letters, numbers, and
 // hyphens, and must begin with a letter and end with a letter or number.
@@ -285,7 +291,7 @@ func (b *Builder) authconfigs() map[string]types.AuthConfig {
 //
 // The following string manipulations won't matter for non-ksuid
 // IDs (the current scheme).
-func SanitizeTaskID(s string) string {
+func SanitizeID(s string) string {
 	s = strings.ToLower(s)
 	if unicode.IsDigit(rune(s[len(s)-1])) {
 		s = s[:len(s)-1] + "a"
