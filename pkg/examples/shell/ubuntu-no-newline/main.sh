@@ -4,4 +4,4 @@
 
 echo "Echoing env variable"
 
-echo "${foo}"
+env

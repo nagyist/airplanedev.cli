@@ -3,6 +3,7 @@ package build
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"path"
 	"path/filepath"
@@ -123,6 +124,7 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 							Image:       resp.ImageURL,
 							ParamValues: test.ParamValues,
 							Entrypoint:  []string{"node", "/airplane/.airplane/dist/universal-shim.js", path.Join("/airplane/.airplane/", testRun.RelEntrypoint), testRun.ExportName},
+							Kind:        test.Kind,
 						})
 						require.True(strings.Contains(string(out), testRun.SearchString), "unable to find %q in output:\n%s", test.SearchString, string(out))
 					}
@@ -131,6 +133,7 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 					out := runTask(t, ctx, client, runTaskConfig{
 						Image:       resp.ImageURL,
 						ParamValues: test.ParamValues,
+						Kind:        test.Kind,
 					})
 					require.True(strings.Contains(string(out), test.SearchString), "unable to find %q in output:\n%s", test.SearchString, string(out))
 				}
@@ -143,19 +146,30 @@ type runTaskConfig struct {
 	Image       string
 	ParamValues Values
 	Entrypoint  strslice.StrSlice
+	Kind        TaskKind
 }
 
 func runTask(t *testing.T, ctx context.Context, dclient *client.Client, c runTaskConfig) []byte {
 	require := require.New(t)
 
-	pv, err := json.Marshal(c.ParamValues)
-	require.NoError(err)
+	var paramsStr string
+	if c.Kind == TaskKindShell {
+		var params []string
+		for k, v := range c.ParamValues {
+			params = append(params, fmt.Sprintf("%s=%s", k, v))
+		}
+		paramsStr = strings.Join(params, ", ")
+	} else {
+		pv, err := json.Marshal(c.ParamValues)
+		require.NoError(err)
+		paramsStr = string(pv)
+	}
 
 	var cmd strslice.StrSlice
 	if len(c.Entrypoint) == 0 {
-		cmd = strslice.StrSlice{string(pv)}
+		cmd = strslice.StrSlice{paramsStr}
 	} else {
-		c.Entrypoint = append(c.Entrypoint, string(pv))
+		c.Entrypoint = append(c.Entrypoint, paramsStr)
 	}
 
 	resp, err := dclient.ContainerCreate(ctx, &container.Config{
