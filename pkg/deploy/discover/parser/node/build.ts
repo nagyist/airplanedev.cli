@@ -27,6 +27,7 @@ esbuild
     entryPoints: ["parser.ts"],
     outfile: "parser.js",
     bundle: true,
+    minify: true,
     platform: "node",
     external: ["canvas"],
     plugins: [jsdomPatch],
