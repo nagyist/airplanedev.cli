@@ -42,10 +42,10 @@ type Test struct {
 	ExpectedError bool
 
 	// Bundle-specific test config
-	Bundle         bool
-	BuildContext   BuildContext
-	RelEntityFiles []string
-	BundleRuns     []BundleTestRun
+	Bundle       bool
+	BuildContext BuildContext
+	FilesToBuild []string
+	BundleRuns   []BundleTestRun
 
 	// TODO: pipe to actual build/container run etc. set increased timeout if times out
 }
@@ -74,10 +74,10 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 
 			if test.Bundle {
 				b, client, err = NewBundleBuilder(BundleLocalConfig{
-					Root:           examples.Path(t, test.Root),
-					BuildContext:   test.BuildContext,
-					Options:        test.Options,
-					RelEntityFiles: test.RelEntityFiles,
+					Root:         examples.Path(t, test.Root),
+					BuildContext: test.BuildContext,
+					Options:      test.Options,
+					FilesToBuild: test.FilesToBuild,
 				})
 			} else {
 				b, client, err = New(LocalConfig{

@@ -252,7 +252,11 @@ func TestInlineConfiguredTasks(t *testing.T) {
 				Type:    NodeBuildType,
 				Version: BuildTypeVersionNode18,
 			},
-			RelEntityFiles: []string{"rootInlineTask.airplane.ts", "subfolder/subfolderInlineTask.airplane.ts"},
+			FilesToBuild: []string{
+				"rootInlineTask.airplane.ts",
+				"subfolder/subfolderInlineTask.airplane.ts",
+				"subfolder/nonInlineTask.ts",
+			},
 			BundleRuns: []BundleTestRun{
 				{
 					RelEntrypoint: "rootInlineTask.airplane.js",
@@ -268,6 +272,11 @@ func TestInlineConfiguredTasks(t *testing.T) {
 					RelEntrypoint: "subfolder/subfolderInlineTask.airplane.js",
 					ExportName:    "default",
 					SearchString:  "running:default_export_subfolder",
+				},
+				{
+					RelEntrypoint: "subfolder/nonInlineTask.js",
+					ExportName:    "default",
+					SearchString:  "running:non_inline_task",
 				},
 			},
 		},

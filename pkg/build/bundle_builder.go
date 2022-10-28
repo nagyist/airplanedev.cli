@@ -33,8 +33,11 @@ type BundleLocalConfig struct {
 	// When nil, it uses an empty map of options.
 	Options KindOptions
 
-	// RelEntityFiles are the target files to be built.
-	RelEntityFiles []string
+	// FilesToBuild are the target files to be built (if applicable).
+	FilesToBuild []string
+
+	// FilesToDiscover are the target files to discover (if applicable).
+	FilesToDiscover []string
 
 	// Auth represents the registry auth to use.
 	//
@@ -43,21 +46,23 @@ type BundleLocalConfig struct {
 }
 
 type BundleDockerfileConfig struct {
-	BuildContext   BuildContext
-	Root           string
-	Options        KindOptions
-	BuildArgKeys   []string
-	RelEntityFiles []string
+	BuildContext    BuildContext
+	Root            string
+	Options         KindOptions
+	BuildArgKeys    []string
+	FilesToBuild    []string
+	FilesToDiscover []string
 }
 
 // Builder implements an image builder.
 type BundleBuilder struct {
-	root           string
-	buildContext   BuildContext
-	options        KindOptions
-	relEntityFiles []string
-	auth           *RegistryAuth
-	client         *client.Client
+	root            string
+	buildContext    BuildContext
+	options         KindOptions
+	filesToBuild    []string
+	filesToDiscover []string
+	auth            *RegistryAuth
+	client          *client.Client
 }
 
 // New returns a new local builder with c.
@@ -83,12 +88,13 @@ func NewBundleBuilder(c BundleLocalConfig) (*BundleBuilder, *client.Client, erro
 	}
 
 	return &BundleBuilder{
-		root:           c.Root,
-		buildContext:   c.BuildContext,
-		options:        c.Options,
-		relEntityFiles: c.RelEntityFiles,
-		auth:           c.Auth,
-		client:         client,
+		root:            c.Root,
+		buildContext:    c.BuildContext,
+		options:         c.Options,
+		filesToBuild:    c.FilesToBuild,
+		filesToDiscover: c.FilesToDiscover,
+		auth:            c.Auth,
+		client:          client,
 	}, client, nil
 }
 
@@ -124,10 +130,11 @@ func (b *BundleBuilder) Build(ctx context.Context, bundleBuildID, version string
 	defer tree.Close()
 
 	dockerfile, err := BuildBundleDockerfile(BundleDockerfileConfig{
-		BuildContext:   b.buildContext,
-		Root:           b.root,
-		Options:        b.options,
-		RelEntityFiles: b.relEntityFiles,
+		BuildContext:    b.buildContext,
+		Root:            b.root,
+		Options:         b.options,
+		FilesToBuild:    b.filesToBuild,
+		FilesToDiscover: b.filesToDiscover,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "creating dockerfile")
@@ -244,7 +251,7 @@ func BuildBundleDockerfile(c BundleDockerfileConfig) (string, error) {
 	switch c.BuildContext.Type {
 	case NodeBuildType:
 		// TODO: pipe in build args
-		return nodeBundle(c.Root, c.BuildContext, c.Options, c.BuildArgKeys, c.RelEntityFiles)
+		return nodeBundle(c.Root, c.BuildContext, c.Options, c.BuildArgKeys, c.FilesToBuild, c.FilesToDiscover)
 	default:
 		return "", errors.Errorf("build: unknown build type %v", c.BuildContext.Type)
 	}

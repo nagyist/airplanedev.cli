@@ -641,7 +641,8 @@ func nodeBundle(
 	buildContext BuildContext,
 	options KindOptions,
 	buildArgs []string,
-	relEntityFiles []string,
+	filesToBuild []string,
+	filesToDiscover []string,
 ) (string, error) {
 	var err error
 
@@ -694,18 +695,22 @@ func nodeBundle(
 		InlineUniversalShim: inlineString(universalNodeShim),
 	}
 
-	var absoluteEntrypoints []string
-	var absoluteEntrypointOutputs []string
-	for _, relEntityFile := range relEntityFiles {
-		absoluteEntrypoints = append(absoluteEntrypoints, filepath.Join("/airplane", relEntityFile))
-
-		relEntityExt := filepath.Ext(relEntityFile)
-		// esbuild will output entrypoint bundles to /airplane/.airplane
-		absoluteEntrypointOutputs = append(absoluteEntrypointOutputs,
-			filepath.Join("/airplane/.airplane", strings.TrimSuffix(relEntityFile, relEntityExt)+".js"))
+	// Generate a list of all of the files to build
+	var buildEntrypoints []string
+	for _, fileToBuild := range filesToBuild {
+		buildEntrypoints = append(buildEntrypoints, filepath.Join("/airplane", fileToBuild))
 	}
-	cfg.FilesToBuild = strings.Join(absoluteEntrypoints, " ")
-	cfg.FilesToDiscover = strings.Join(absoluteEntrypointOutputs, " ")
+	cfg.FilesToBuild = strings.Join(buildEntrypoints, " ")
+
+	// Generate a list of all of the files to discover
+	var discoverEntrypoints []string
+	for _, fileToDiscover := range filesToDiscover {
+		fileToDiscoverExt := filepath.Ext(fileToDiscover)
+		// esbuild will output entrypoint bundles to /airplane/.airplane
+		discoverEntrypoints = append(discoverEntrypoints,
+			filepath.Join("/airplane/.airplane", strings.TrimSuffix(fileToDiscover, fileToDiscoverExt)+".js"))
+	}
+	cfg.FilesToDiscover = strings.Join(discoverEntrypoints, " ")
 
 	packageJSONs, usesWorkspaces, err := GetPackageJSONs(rootPackageJSON)
 	if err != nil {
@@ -792,13 +797,15 @@ func nodeBundle(
 		cfg.PreInstallCommand != "" ||
 		cfg.PreInstallPath != ""
 
-	// Generate parser and store on context
-	parserPath := path.Join(root, ".airplane-build-tools", "inlineParser.js")
-	if err := os.MkdirAll(path.Dir(parserPath), 0755); err != nil {
-		return "", errors.Wrapf(err, "creating parser file")
-	}
-	if err := os.WriteFile(parserPath, []byte(parser.NodeParserScript), 0755); err != nil {
-		return "", errors.Wrap(err, "writing parser script")
+	if len(filesToDiscover) > 0 {
+		// Generate parser and store on context
+		parserPath := path.Join(root, ".airplane-build-tools", "inlineParser.js")
+		if err := os.MkdirAll(path.Dir(parserPath), 0755); err != nil {
+			return "", errors.Wrapf(err, "creating parser file")
+		}
+		if err := os.WriteFile(parserPath, []byte(parser.NodeParserScript), 0755); err != nil {
+			return "", errors.Wrap(err, "writing parser script")
+		}
 	}
 
 	// The following Dockerfile can build both JS and TS tasks. In general, we're
@@ -893,7 +900,9 @@ func nodeBundle(
 		# are built.
 		# FilesToDiscover is the location of the output of the transpiled js files
 		# that should be discovered.
+		{{if .FilesToDiscover}}
 		RUN node /airplane/.airplane-build-tools/inlineParser.js {{.FilesToDiscover}}
+		{{end}}
 	`), cfg)
 }
 
