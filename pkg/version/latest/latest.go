@@ -31,21 +31,22 @@ func CheckLatest(ctx context.Context, userConfig *conf.UserConfig) bool {
 		return true
 	}
 
-	var latest string
 	if userConfig != nil && userConfig.LatestVersion.Version != "" &&
 		userConfig.LatestVersion.Updated.After(time.Now().AddDate(0, 0, -1)) {
 		// We only want to log about newer CLI versions once a day.
 		return true
-	} else {
-		latest, err := getLatest(ctx)
-		if err != nil {
-			analytics.ReportError(err)
-			logger.Debug("An error ocurred checking for the latest version: %s", err)
-			return true
-		} else if latest == "" {
-			// Pass silently if we can't identify the latest version.
-			return true
-		}
+	}
+
+	latest, err := getLatest(ctx)
+	if err != nil {
+		analytics.ReportError(err)
+		logger.Debug("An error ocurred checking for the latest version: %s", err)
+		return true
+	} else if latest == "" {
+		// Pass silently if we can't identify the latest version.
+		return true
+	}
+	if userConfig != nil {
 		userConfig.LatestVersion = conf.VersionUpdate{
 			Version: latest,
 			Updated: time.Now().UTC(),
