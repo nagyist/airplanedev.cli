@@ -418,10 +418,10 @@
   resolved "https://registry.yarnpkg.com/@types/prop-types/-/prop-types-15.7.5.tgz#5f19d2b85a98e9558036f6a3cacc8819420f05cf"
   integrity sha512-JCB8C6SnDoQf0cNycqd/35A7MjcnK+ZTqE7judS6o7utxUCg6imJg3QK2qzHKszlTjcj2cn+NwMB2i96ubpj7w==
 
-"@types/react-dom@18.0.6":
-  version "18.0.6"
-  resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-18.0.6.tgz#36652900024842b74607a17786b6662dd1e103a1"
-  integrity sha512-/5OFZgfIPSwy+YuIBP/FgJnQnsxhZhjjrnxudMddeblOouIodEQ75X14Rr4wGSG/bknL+Omy9iWlLo1u/9GzAA==
+"@types/react-dom@18.0.8":
+  version "18.0.8"
+  resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-18.0.8.tgz#d2606d855186cd42cc1b11e63a71c39525441685"
+  integrity sha512-C3GYO0HLaOkk9dDAz3Dl4sbe4AKUGTCfFIZsz3n/82dPNN8Du533HzKatDxeUYWu24wJgMP1xICqkWk1YOLOIw==
   dependencies:
     "@types/react" "*"
 
@@ -438,6 +438,15 @@
   version "18.0.21"
   resolved "https://registry.yarnpkg.com/@types/react/-/react-18.0.21.tgz#b8209e9626bb00a34c76f55482697edd2b43cc67"
   integrity sha512-7QUCOxvFgnD5Jk8ZKlUAhVcRj7GuJRjnjjiY/IUBWKgOlnvDvTMLD4RTF7NPyVmbRhNrbomZiOepg7M/2Kj1mA==
+  dependencies:
+    "@types/prop-types" "*"
+    "@types/scheduler" "*"
+    csstype "^3.0.2"
+
+"@types/react@18.0.24":
+  version "18.0.24"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-18.0.24.tgz#2f79ed5b27f08d05107aab45c17919754cc44c20"
+  integrity sha512-wRJWT6ouziGUy+9uX0aW4YOJxAY0bG6/AOk5AW5QSvZqI7dk6VBIbXvcVgIw/W5Jrl24f77df98GEKTJGOLx7Q==
   dependencies:
     "@types/prop-types" "*"
     "@types/scheduler" "*"
@@ -467,10 +476,10 @@ airplane@0.2.10:
     ts-dedent "2.2.0"
     uuid "9.0.0"
 
-airplane@0.2.12:
-  version "0.2.12"
-  resolved "https://registry.yarnpkg.com/airplane/-/airplane-0.2.12.tgz#91092c3fac8651184b60ae302dcd9bbace9e3d1c"
-  integrity sha512-k4pmDWutLzYn5DHhUSljQxADWWEOpKpL2WZMKbW3etzTivivyiTyL2MKBfZWoydn1MGWlc0RkviKasp2bJNZPQ==
+airplane@0.2.13:
+  version "0.2.13"
+  resolved "https://registry.yarnpkg.com/airplane/-/airplane-0.2.13.tgz#184f4a466bcdbfc4bf51da418033cd2a7545925b"
+  integrity sha512-iUsEcr4LE1Y+HAifG+E4WAoYfbYWEW+Eg26tU3JoJpbVoseTaHKIRBwcJ10K7RvoX80V9MFwiHQ5zwVT5wFX9A==
   dependencies:
     "@opentelemetry/api" "1.2.0"
     cross-fetch "3.1.5"
