@@ -104,7 +104,7 @@ func run(ctx context.Context, cfg config) error {
 		return err
 	}
 	if selectedInit == taskOption {
-		return taskinit.Run(ctx, taskinit.GetConfig(cfg.client))
+		return taskinit.Run(ctx, taskinit.GetConfig(cfg.client, cfg.root))
 	} else if selectedInit == viewOption {
 		return viewinit.Run(ctx, viewinit.GetConfig(cfg.client))
 	} else if selectedInit == templateOption {

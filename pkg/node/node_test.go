@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMergeTSConfigsRecursively(t *testing.T) {
+func TestMergeMapsRecursively(t *testing.T) {
 	dest := map[string]interface{}{}
 	src := map[string]interface{}{
 		"foo": "hello",
@@ -16,7 +16,7 @@ func TestMergeTSConfigsRecursively(t *testing.T) {
 		},
 	}
 
-	mergeTSConfigsRecursively(dest, src)
+	mergeMapsRecursively(dest, src)
 	require.True(t, reflect.DeepEqual(dest, src))
 
 	dest = map[string]interface{}{
@@ -36,7 +36,7 @@ func TestMergeTSConfigsRecursively(t *testing.T) {
 		"additional_field": "ok",
 	}
 
-	mergeTSConfigsRecursively(dest, src)
+	mergeMapsRecursively(dest, src)
 	result := map[string]interface{}{
 		"overridden":     "ok",
 		"not_overridden": []string{"do", "not", "override", "me"},

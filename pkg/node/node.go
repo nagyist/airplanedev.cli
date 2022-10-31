@@ -17,8 +17,11 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/config"
+	"github.com/airplanedev/lib/pkg/runtime/javascript"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v3"
 )
 
 type NodeDependencies struct {
@@ -26,44 +29,113 @@ type NodeDependencies struct {
 	DevDependencies []string
 }
 
+type PackageJSONOptions = struct {
+	Dependencies NodeDependencies
+}
+
 // CreatePackageJSON ensures there is a package.json in path with the provided dependencies installed.
 // If package.json exists in cwd, use it.
 // If package.json exists in parent directory, ask user if they want to use that or create a new one.
 // If package.json doesn't exist, create a new one.
-func CreatePackageJSON(directory string, dependencies NodeDependencies) error {
+func CreatePackageJSON(directory string, packageJSONOptions PackageJSONOptions) error {
 	// Check if there's a package.json in the current or parent directory of entrypoint
 	packageJSONDirPath, ok := fsx.Find(directory, "package.json")
 	useYarn := utils.ShouldUseYarn(packageJSONDirPath)
 
+	var selectedPackageJSONDir string
 	if ok {
 		if packageJSONDirPath == directory {
-			return addAllPackages(packageJSONDirPath, useYarn, dependencies)
-		}
-		opts := []string{
-			"Yes",
-			"No, create package.json in my working directory",
-		}
-		useExisting := opts[0]
-		var surveyResp string
-		if err := survey.AskOne(
-			&survey.Select{
-				Message: fmt.Sprintf("Found existing package.json in %s. Use this to manage dependencies?", packageJSONDirPath),
-				Options: opts,
-				Default: useExisting,
-			},
-			&surveyResp,
-		); err != nil {
-			return err
-		}
-		if surveyResp == useExisting {
-			return addAllPackages(packageJSONDirPath, useYarn, dependencies)
+			selectedPackageJSONDir = packageJSONDirPath
+		} else {
+			opts := []string{
+				"Yes",
+				"No, create package.json in my working directory",
+			}
+			useExisting := opts[0]
+			var surveyResp string
+			if err := survey.AskOne(
+				&survey.Select{
+					Message: fmt.Sprintf("Found existing package.json in %s. Use this to manage dependencies?", packageJSONDirPath),
+					Options: opts,
+					Default: useExisting,
+				},
+				&surveyResp,
+			); err != nil {
+				return err
+			}
+			if surveyResp == useExisting {
+				selectedPackageJSONDir = packageJSONDirPath
+			} else {
+				// Create a new package.json in the current directory.
+				if err := createPackageJSONFile(directory); err != nil {
+					return err
+				}
+				selectedPackageJSONDir = directory
+			}
 		}
 	}
 
-	if err := createPackageJSONFile(directory); err != nil {
+	return addAllPackages(selectedPackageJSONDir, useYarn, packageJSONOptions.Dependencies)
+}
+
+// CreateOrUpdateAirplaneConfig creates or updates an existing airplane.config.yaml.
+func CreateOrUpdateAirplaneConfig(directory string, cfg config.AirplaneConfig) error {
+	nodeVersion := cfg.NodeVersion
+
+	runtime := javascript.Runtime{}
+	root, err := runtime.Root(directory)
+	if err != nil {
 		return err
 	}
-	return addAllPackages(directory, useYarn, dependencies)
+
+	existingVersion, err := runtime.Version(root)
+	if err != nil {
+		return err
+	}
+
+	if nodeVersion != "" && nodeVersion == existingVersion {
+		// Correct version already set.
+		return nil
+	}
+
+	if nodeVersion != "" && existingVersion != "" {
+		logger.Warning("Failed set Node.js version %s: conflicts with existing version %s", nodeVersion, existingVersion)
+		return nil
+	}
+
+	cfgToWrite := cfg
+	pathToWrite := filepath.Join(root, config.FileName)
+	existingConfigFileDir, hasExistingConfigFile := fsx.Find(directory, config.FileName)
+	if hasExistingConfigFile {
+		existingConfigFilePath := filepath.Join(existingConfigFileDir, config.FileName)
+		existingConfig, err := config.NewAirplaneConfigFromFile(existingConfigFilePath)
+		if err != nil {
+			return err
+		}
+		existingConfig.NodeVersion = nodeVersion
+		if existingConfig.NodeVersion == "" {
+			existingConfig.NodeVersion = build.DefaultNodeVersion
+		}
+		cfgToWrite = existingConfig
+		pathToWrite = existingConfigFilePath
+	}
+
+	buf, err := yaml.Marshal(&cfgToWrite)
+	if err != nil {
+		fmt.Printf("Error while Marshaling. %v", err)
+	}
+
+	if err := os.WriteFile(pathToWrite, buf, 0644); err != nil {
+		return errors.Wrapf(err, "writing %s", config.FileName)
+	}
+
+	if hasExistingConfigFile {
+		logger.Step("Updated %s", config.FileName)
+	} else {
+		logger.Step("Created %s", config.FileName)
+	}
+	return nil
+
 }
 
 func addAllPackages(packageJSONDirPath string, useYarn bool, dependencies NodeDependencies) error {
@@ -218,7 +290,7 @@ func mergeTSConfig(configFile []byte, strategy MergeStrategy) error {
 			return errors.Wrap(err, "unmarshalling tsconfig template")
 		}
 
-		logger.Step("Found existing tsconfig.json...")
+		logger.Debug("Found existing tsconfig.json...")
 
 		existingFile, err := os.ReadFile("tsconfig.json")
 		if err != nil {
@@ -232,11 +304,11 @@ func mergeTSConfig(configFile []byte, strategy MergeStrategy) error {
 
 		newTSConfig := map[string]interface{}{}
 		if strategy == MergeStrategyPreferExisting {
-			mergeTSConfigsRecursively(newTSConfig, templateTSConfig)
-			mergeTSConfigsRecursively(newTSConfig, existingTSConfig)
+			mergeMapsRecursively(newTSConfig, templateTSConfig)
+			mergeMapsRecursively(newTSConfig, existingTSConfig)
 		} else {
-			mergeTSConfigsRecursively(newTSConfig, existingTSConfig)
-			mergeTSConfigsRecursively(newTSConfig, templateTSConfig)
+			mergeMapsRecursively(newTSConfig, existingTSConfig)
+			mergeMapsRecursively(newTSConfig, templateTSConfig)
 		}
 
 		if printTSConfigChanges(newTSConfig, existingTSConfig, "") {
@@ -263,19 +335,19 @@ func mergeTSConfig(configFile []byte, strategy MergeStrategy) error {
 			if err := os.WriteFile("tsconfig.json", configFile, 0644); err != nil {
 				return errors.Wrap(err, "writing tsconfig.json")
 			}
-			logger.Step("Updated tsconfig.json...")
+			logger.Step("Updated tsconfig.json")
 		}
 	} else {
 		if err := os.WriteFile("tsconfig.json", configFile, 0644); err != nil {
 			return errors.Wrap(err, "writing tsconfig.json")
 		}
-		logger.Step("Added tsconfig.json...")
+		logger.Step("Created tsconfig.json")
 	}
 
 	return nil
 }
 
-func mergeTSConfigsRecursively(dest, src map[string]interface{}) {
+func mergeMapsRecursively(dest, src map[string]interface{}) {
 	for key, value := range src {
 		if subMap, isSubMap := value.(map[string]interface{}); isSubMap {
 			if destSubMap, ok := dest[key]; !ok {
@@ -283,7 +355,7 @@ func mergeTSConfigsRecursively(dest, src map[string]interface{}) {
 			} else if _, ok := destSubMap.(map[string]interface{}); !ok {
 				dest[key] = map[string]interface{}{}
 			}
-			mergeTSConfigsRecursively(dest[key].(map[string]interface{}), subMap)
+			mergeMapsRecursively(dest[key].(map[string]interface{}), subMap)
 		} else {
 			dest[key] = src[key]
 		}
@@ -314,6 +386,8 @@ func printTSConfigChanges(superset, subset map[string]interface{}, parentName st
 		}
 	}
 	w.Flush()
-	logger.Log(b.String())
+	if b.String() != "" {
+		logger.Log(b.String())
+	}
 	return hasChanges
 }

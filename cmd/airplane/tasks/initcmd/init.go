@@ -18,11 +18,13 @@ import (
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/flags/flagsiface"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/node"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
+	deployconfig "github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
 	_ "github.com/airplanedev/lib/pkg/runtime/javascript"
@@ -38,6 +40,7 @@ import (
 )
 
 type config struct {
+	root   *cli.Config
 	client *api.Client
 	file   string
 	from   string
@@ -53,6 +56,10 @@ type config struct {
 	newTaskInfo newTaskInfo
 }
 
+func GetConfig(client *api.Client, root *cli.Config) config {
+	return config{client: client, root: root}
+}
+
 type newTaskInfo struct {
 	name       string
 	kind       build.TaskKind
@@ -60,7 +67,7 @@ type newTaskInfo struct {
 }
 
 func New(c *cli.Config) *cobra.Command {
-	var cfg = GetConfig(c.Client)
+	var cfg = GetConfig(c.Client, c)
 
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -105,10 +112,6 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
 
 	return cmd
-}
-
-func GetConfig(client *api.Client) config {
-	return config{client: client}
 }
 
 func Run(ctx context.Context, cfg config) error {
@@ -218,7 +221,6 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		}
 
 		for {
-
 			if cfg.assumeYes && cfg.file != "" {
 				entrypoint = cfg.file
 			} else {
@@ -305,7 +307,7 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		}
 	}
 
-	if err := runKindSpecificInstallation(kind); err != nil {
+	if err := runKindSpecificInstallation(ctx, cfg, kind, def); err != nil {
 		return err
 	}
 
@@ -836,21 +838,40 @@ func apiTaskToRuntimeTask(task *libapi.Task) *runtime.Task {
 	return t
 }
 
-func runKindSpecificInstallation(kind build.TaskKind) error {
+func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.TaskKind, def definitions.Definition_0_3) error {
 	switch kind {
 	case build.TaskKindNode:
 		cwd, err := os.Getwd()
 		if err != nil {
 			return errors.Wrap(err, "getting working directory")
 		}
-		if err := node.CreatePackageJSON(cwd, node.NodeDependencies{
-			Dependencies:    []string{"airplane"},
-			DevDependencies: []string{"@types/node"},
+
+		if err := node.CreatePackageJSON(cwd, node.PackageJSONOptions{
+			Dependencies: node.NodeDependencies{
+				Dependencies:    []string{"airplane"},
+				DevDependencies: []string{"@types/node"},
+			},
 		}); err != nil {
 			return err
 		}
 
-		return node.CreateTaskTSConfig()
+		_, nodeVersion, err := def.GetBuildType()
+		if err != nil {
+			return err
+		}
+
+		if cfg.root.Flagger.Bool(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), flagsiface.AirplaneConfg) {
+			if err := node.CreateOrUpdateAirplaneConfig(cwd, deployconfig.AirplaneConfig{
+				NodeVersion: nodeVersion,
+			}); err != nil {
+				return err
+			}
+		}
+
+		if err := node.CreateTaskTSConfig(); err != nil {
+			return err
+		}
+		return nil
 	default:
 		return nil
 	}

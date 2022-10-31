@@ -116,9 +116,11 @@ func createViewScaffolding(ctx context.Context, cfg *config) error {
 	if fsx.Exists(filepath.Join(cwd, cfg.viewDir, "package.json")) {
 		packageJSONDir = filepath.Join(cwd, cfg.viewDir)
 	}
-	if err := node.CreatePackageJSON(packageJSONDir, node.NodeDependencies{
-		Dependencies:    []string{"@airplane/views", "react", "react-dom"},
-		DevDependencies: []string{"@types/react", "@types/react-dom", "typescript"},
+	if err := node.CreatePackageJSON(packageJSONDir, node.PackageJSONOptions{
+		Dependencies: node.NodeDependencies{
+			Dependencies:    []string{"@airplane/views", "react", "react-dom"},
+			DevDependencies: []string{"@types/react", "@types/react-dom", "typescript"},
+		},
 	}); err != nil {
 		return err
 	}
