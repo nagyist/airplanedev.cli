@@ -31,6 +31,10 @@ type CodeTaskDiscoverer struct {
 	// it should return `nil` to signal that the definition should be ignored. If not set, these
 	// definitions are ignored.
 	MissingTaskHandler func(context.Context, definitions.DefinitionInterface) (*api.TaskMetadata, error)
+
+	// DoNotVerifyMissingTasks will return TaskConfigs for tasks without verifying their existence
+	// in the api. If this value is set to true, MissingTaskHandler is ignored.
+	DoNotVerifyMissingTasks bool
 }
 
 var _ TaskDiscoverer = &CodeTaskDiscoverer{}
@@ -59,30 +63,33 @@ func (c *CodeTaskDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([
 
 	var taskConfigs []TaskConfig
 	for _, def := range defs {
-		metadata, err := c.Client.GetTaskMetadata(ctx, def.Def.GetSlug())
-		if err != nil {
-			var merr *api.TaskMissingError
-			if !errors.As(err, &merr) {
-				return nil, errors.Wrap(err, "unable to get task metadata")
-			}
-
-			if c.MissingTaskHandler == nil {
-				c.Logger.Warning(`Task with slug %s does not exist, skipping this task...`, def.Def.GetSlug())
-				continue
-			}
-
-			mptr, err := c.MissingTaskHandler(ctx, def.Def)
+		var metadata api.TaskMetadata
+		if !c.DoNotVerifyMissingTasks {
+			metadata, err = c.Client.GetTaskMetadata(ctx, def.Def.GetSlug())
 			if err != nil {
-				return nil, err
-			} else if mptr == nil {
-				c.Logger.Warning(`Task with slug %s does not exist, skipping this task...`, def.Def.GetSlug())
+				var merr *api.TaskMissingError
+				if !errors.As(err, &merr) {
+					return nil, errors.Wrap(err, "unable to get task metadata")
+				}
+
+				if c.MissingTaskHandler == nil {
+					c.Logger.Warning(`Task with slug %s does not exist, skipping this task...`, def.Def.GetSlug())
+					continue
+				}
+
+				mptr, err := c.MissingTaskHandler(ctx, def.Def)
+				if err != nil {
+					return nil, err
+				} else if mptr == nil {
+					c.Logger.Warning(`Task with slug %s does not exist, skipping this task...`, def.Def.GetSlug())
+					continue
+				}
+				metadata = *mptr
+			}
+			if metadata.IsArchived {
+				c.Logger.Warning(`Task with slug %s is archived, skipping this task...`, metadata.Slug)
 				continue
 			}
-			metadata = *mptr
-		}
-		if metadata.IsArchived {
-			c.Logger.Warning(`Task with slug %s is archived, skipping this task...`, metadata.Slug)
-			continue
 		}
 
 		taskConfigs = append(taskConfigs, TaskConfig{

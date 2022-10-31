@@ -22,6 +22,10 @@ type CodeViewDiscoverer struct {
 	Logger logger.Logger
 
 	MissingViewHandler func(context.Context, definitions.ViewDefinition) (*api.View, error)
+
+	// DoNotVerifyMissingViews will return ViewConfigs for views without verifying their existence
+	// in the api. If this value is set to true, MissingViewHandler is ignored.
+	DoNotVerifyMissingViews bool
 }
 
 var _ ViewDiscoverer = &CodeViewDiscoverer{}
@@ -84,30 +88,33 @@ func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 		}
 	}
 
-	view, err := dd.Client.GetView(ctx, api.GetViewRequest{Slug: d.Slug})
-	if err != nil {
-		var merr *api.ViewMissingError
-		if !errors.As(err, &merr) {
-			return nil, errors.Wrap(err, "unable to get view")
-		}
-		if dd.MissingViewHandler == nil {
-			return nil, nil
-		}
-
-		vptr, err := dd.MissingViewHandler(ctx, d)
+	var view api.View
+	if !dd.DoNotVerifyMissingViews {
+		view, err = dd.Client.GetView(ctx, api.GetViewRequest{Slug: d.Slug})
 		if err != nil {
-			return nil, err
-		} else if vptr == nil {
-			if dd.Logger != nil {
-				dd.Logger.Warning(`View with slug %s does not exist, skipping deployment.`, d.Slug)
+			var merr *api.ViewMissingError
+			if !errors.As(err, &merr) {
+				return nil, errors.Wrap(err, "unable to get view")
 			}
+			if dd.MissingViewHandler == nil {
+				return nil, nil
+			}
+
+			vptr, err := dd.MissingViewHandler(ctx, d)
+			if err != nil {
+				return nil, err
+			} else if vptr == nil {
+				if dd.Logger != nil {
+					dd.Logger.Warning(`View with slug %s does not exist, skipping deployment.`, d.Slug)
+				}
+				return nil, nil
+			}
+			view = *vptr
+		}
+		if view.ArchivedAt != nil {
+			dd.Logger.Warning(`View with slug %s is archived, skipping deployment.`, view.Slug)
 			return nil, nil
 		}
-		view = *vptr
-	}
-	if view.ArchivedAt != nil {
-		dd.Logger.Warning(`View with slug %s is archived, skipping deployment.`, view.Slug)
-		return nil, nil
 	}
 
 	return &ViewConfig{

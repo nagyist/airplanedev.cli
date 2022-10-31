@@ -30,6 +30,10 @@ type DefnDiscoverer struct {
 	// clients (e.g. studio) can skip some validation checks.
 	// TODO: Remove this when we remove task diffs.
 	DisableNormalize bool
+
+	// DoNotVerifyMissingTasks will return TaskConfigs for tasks without verifying their existence
+	// in the api. If this value is set to true, MissingTaskHandler is ignored.
+	DoNotVerifyMissingTasks bool
 }
 
 var _ TaskDiscoverer = &DefnDiscoverer{}
@@ -88,31 +92,34 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 		Source: dd.ConfigSource(),
 	}
 
-	metadata, err := dd.Client.GetTaskMetadata(ctx, def.GetSlug())
-	if err != nil {
-		var merr *api.TaskMissingError
-		if !errors.As(err, &merr) {
-			return nil, errors.Wrap(err, "unable to get task metadata")
-		}
-
-		if dd.MissingTaskHandler == nil {
-			return nil, nil
-		}
-
-		mptr, err := dd.MissingTaskHandler(ctx, def)
+	var metadata api.TaskMetadata
+	if !dd.DoNotVerifyMissingTasks {
+		metadata, err = dd.Client.GetTaskMetadata(ctx, def.GetSlug())
 		if err != nil {
-			return nil, err
-		} else if mptr == nil {
-			if dd.Logger != nil {
-				dd.Logger.Warning(`Task with slug %s does not exist, skipping deployment.`, def.GetSlug())
+			var merr *api.TaskMissingError
+			if !errors.As(err, &merr) {
+				return nil, errors.Wrap(err, "unable to get task metadata")
 			}
+
+			if dd.MissingTaskHandler == nil {
+				return nil, nil
+			}
+
+			mptr, err := dd.MissingTaskHandler(ctx, def)
+			if err != nil {
+				return nil, err
+			} else if mptr == nil {
+				if dd.Logger != nil {
+					dd.Logger.Warning(`Task with slug %s does not exist, skipping deployment.`, def.GetSlug())
+				}
+				return nil, nil
+			}
+			metadata = *mptr
+		}
+		if metadata.IsArchived {
+			dd.Logger.Warning(`Task with slug %s is archived, skipping deployment.`, metadata.Slug)
 			return nil, nil
 		}
-		metadata = *mptr
-	}
-	if metadata.IsArchived {
-		dd.Logger.Warning(`Task with slug %s is archived, skipping deployment.`, metadata.Slug)
-		return nil, nil
 	}
 	tc.TaskID = metadata.ID
 
