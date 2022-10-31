@@ -33,7 +33,7 @@ func view(root string, options KindOptions) (string, error) {
 	}
 
 	// TODO: possibly support multiple build tools.
-	base, err := getBaseNodeImage("")
+	base, err := getBaseNodeImage("", false)
 	if err != nil {
 		return "", err
 	}

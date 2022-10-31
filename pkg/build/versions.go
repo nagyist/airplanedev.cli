@@ -54,7 +54,7 @@ func GetVersions() (Versions, error) {
 	return versions, nil
 }
 
-func GetVersion(builder Name, version string) (Version, error) {
+func GetVersion(builder Name, version string, slim bool) (Version, error) {
 	versions, err := GetVersions()
 	if err != nil {
 		return Version{}, err
@@ -65,5 +65,12 @@ func GetVersion(builder Name, version string) (Version, error) {
 		return Version{}, errors.Errorf("unknown builder: %s", builder)
 	}
 
-	return builderVersions[version], nil
+	var versionKey string
+	if slim {
+		versionKey = version + "-slim"
+	} else {
+		versionKey = version
+	}
+
+	return builderVersions[versionKey], nil
 }

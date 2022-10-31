@@ -176,7 +176,12 @@ func node(
 		cfg.Workdir = "/" + cfg.Workdir
 	}
 
-	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion)
+	// Always use slim images for workflows.
+	//
+	// TODO: Consider also using them for standard node tasks.
+	useSlimImage := cfg.IsWorkflow
+
+	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion, useSlimImage)
 	if err != nil {
 		return "", err
 	}
@@ -217,6 +222,7 @@ func node(
 		RootPackageJSON:   rootPackageJSON,
 		IsYarn:            isYarn,
 		HasPackageLock:    hasPackageLock,
+		IsWorkflow:        cfg.IsWorkflow,
 	})
 
 	// For safety purposes, we need to install from the full code if either (1) there are any
@@ -507,7 +513,7 @@ func nodeLegacyBuilder(root string, options KindOptions) (string, error) {
 	}
 	entrypoint = path.Join(buildWorkdir, entrypoint)
 
-	baseImage, err := getBaseNodeImage(GetNodeVersion(options))
+	baseImage, err := getBaseNodeImage(GetNodeVersion(options), false)
 	if err != nil {
 		return "", err
 	}
@@ -541,11 +547,11 @@ func nodeLegacyBuilder(root string, options KindOptions) (string, error) {
 	})
 }
 
-func getBaseNodeImage(version string) (string, error) {
+func getBaseNodeImage(version string, slim bool) (string, error) {
 	if version == "" {
 		version = string(DefaultNodeVersion)
 	}
-	v, err := GetVersion(NameNode, version)
+	v, err := GetVersion(NameNode, version, slim)
 	if err != nil {
 		return "", err
 	}
@@ -553,6 +559,9 @@ func getBaseNodeImage(version string) (string, error) {
 	if base == "" {
 		// Assume the version is already a more-specific version - default to just returning it back
 		base = "node:" + version + "-buster"
+		if slim {
+			base += "-slim"
+		}
 	}
 
 	return base, nil
@@ -768,7 +777,12 @@ func nodeBundle(
 		cfg.Workdir = "/" + cfg.Workdir
 	}
 
-	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion)
+	// Always use slim images for workflows.
+	//
+	// TODO: Consider also using them for standard node tasks.
+	useSlimImage := cfg.IsWorkflow
+
+	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion, useSlimImage)
 	if err != nil {
 		return "", err
 	}
@@ -784,6 +798,7 @@ func nodeBundle(
 		RootPackageJSON:   rootPackageJSON,
 		IsYarn:            isYarn,
 		HasPackageLock:    hasPackageLock,
+		IsWorkflow:        isWorkflow,
 	})
 
 	// For safety purposes, we need to install from the full code if either (1) there are any
@@ -929,6 +944,7 @@ type makeInstallCommandReq struct {
 	RootPackageJSON   string
 	IsYarn            bool
 	HasPackageLock    bool
+	IsWorkflow        bool
 }
 
 func makeInstallCommand(req makeInstallCommandReq) string {
@@ -952,6 +968,11 @@ func makeInstallCommand(req makeInstallCommandReq) string {
 		// https://docs.npmjs.com/cli/v8/commands/npm-ci
 		installCommand = "npm ci --production"
 	}
+	if req.IsWorkflow {
+		// Remove large binaries for platforms that we aren't using
+		installCommand += " && rm -Rf /airplane/node_modules/@swc/core-linux-x64-musl /airplane/node_modules/@temporalio/core-bridge/releases/aarch64* /airplane/node_modules/@temporalio/core-bridge/releases/*windows* /airplane/node_modules/@temporalio/core-bridge/releases/*darwin*"
+	}
+
 	return strings.ReplaceAll(installCommand, "\n", "\\n")
 }
 

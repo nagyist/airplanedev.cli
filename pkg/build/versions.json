@@ -5,20 +5,40 @@
       "tag": "18.7.0-bullseye",
       "digest": "sha256:2eef0e2d04ac0aaa5d7cefbc24a137c42c925d9dffa5a2568cda7618a1378976"
     },
+    "18-slim": {
+      "image": "registry.hub.docker.com/library/node",
+      "tag": "18.7.0-bullseye-slim",
+      "digest": "sha256:3a83bba6aff12b9c2966155b0e3e342302f3763406f5562605f560ee1cd7225b"
+    },
     "16": {
       "image": "registry.hub.docker.com/library/node",
       "tag": "16.16.0-bullseye",
       "digest": "sha256:e5cc51d25639e8ca6ee34ab8320680268a87103bafdcd48979adaa2e2815eae6"
+    },
+    "16-slim": {
+      "image": "registry.hub.docker.com/library/node",
+      "tag": "16.16.0-bullseye-slim",
+      "digest": "sha256:cda7229eb72b7534396e7b58ba5b9f2454aee188317e058cbbf22686e5d07e2f"
     },
     "15": {
       "image": "registry.hub.docker.com/library/node",
       "tag": "15.14.0-buster",
       "digest": "sha256:91ec6cb0d47628e4c1ace1efe3835aaddb2a16a9549da4f86782bb05437c53d2"
     },
+    "15-slim": {
+      "image": "registry.hub.docker.com/library/node",
+      "tag": "15.14.0-buster-slim",
+      "digest": "sha256:1bb9e34d261452f2a2142d420f863353aa1ab54138158aff61e97d6b01402006"
+    },
     "14": {
       "image": "registry.hub.docker.com/library/node",
       "tag": "14.20.0-bullseye",
       "digest": "sha256:51c236107cb7066c57c598ba4bc2c87df5adde97f29436b194007a408b6dd37d"
+    },
+    "14-slim": {
+      "image": "registry.hub.docker.com/library/node",
+      "tag": "14.20.0-bullseye-slim",
+      "digest": "sha256:c605dd8b8ed8df55bd2da8b3798132bbf7eeda1948ea3872d5bec4d86d040e6f"
     },
     "12": {
       "image": "registry.hub.docker.com/library/node",
@@ -31,6 +51,11 @@
       "image": "registry.hub.docker.com/library/python",
       "tag": "3.10.6-bullseye",
       "digest": "sha256:bb8b128d4363c2c9a668faefb10894cab20b34e2f7613786f53b8631acd62266"
+    },
+    "3-slim": {
+      "image": "registry.hub.docker.com/library/python",
+      "tag": "3.10.6-slim-bullseye",
+      "digest": "sha256:dff7fd9200421a8c65e020af221a21c8aab784c5c8a8d55c64a095b645209d77"
     }
   }
 }

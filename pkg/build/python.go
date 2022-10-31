@@ -33,7 +33,7 @@ func python(
 		return "", err
 	}
 
-	v, err := GetVersion(NamePython, "3")
+	v, err := GetVersion(NamePython, "3", false)
 	if err != nil {
 		return "", err
 	}
@@ -166,7 +166,7 @@ func pythonLegacy(root string, args KindOptions) (string, error) {
 		return "", err
 	}
 
-	v, err := GetVersion(NamePython, "3")
+	v, err := GetVersion(NamePython, "3", false)
 	if err != nil {
 		return "", err
 	}
