@@ -100,7 +100,7 @@ func TestDiscover(t *testing.T) {
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"viewWithDefn"},
-					BuildType:   build.NodeBuildType,
+					BuildType:   build.ViewBuildType,
 				},
 			},
 		},
@@ -108,6 +108,11 @@ func TestDiscover(t *testing.T) {
 			desc:  "inline view",
 			paths: []string{"./fixtures/viewInline"},
 			expectedBundles: []Bundle{
+				{
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"viewInline"},
+					BuildType:   build.ViewBuildType,
+				},
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"viewInline"},
@@ -123,6 +128,11 @@ func TestDiscover(t *testing.T) {
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"viewAndTaskInline"},
 					BuildType:   build.NodeBuildType,
+				},
+				{
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"viewAndTaskInline"},
+					BuildType:   build.ViewBuildType,
 				},
 			},
 		},

@@ -113,7 +113,7 @@ func (dd *ViewDefnDiscoverer) GetViewRoot(ctx context.Context, file string) (str
 		root = p
 	}
 
-	return root, build.NodeBuildType, build.BuildTypeVersionUnspecified, nil
+	return root, build.ViewBuildType, build.BuildTypeVersionUnspecified, nil
 }
 
 func (dd *ViewDefnDiscoverer) ConfigSource() ConfigSource {

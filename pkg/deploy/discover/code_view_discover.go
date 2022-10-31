@@ -137,7 +137,7 @@ func (dd *CodeViewDiscoverer) GetViewRoot(ctx context.Context, file string) (str
 		root = p
 	}
 
-	return root, build.NodeBuildType, build.BuildTypeVersionUnspecified, nil
+	return root, build.ViewBuildType, build.BuildTypeVersionUnspecified, nil
 }
 
 func (dd *CodeViewDiscoverer) ConfigSource() ConfigSource {
