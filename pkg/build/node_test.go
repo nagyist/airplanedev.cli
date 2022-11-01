@@ -300,6 +300,17 @@ func TestNodeWorkflowBuilder(t *testing.T) {
 			SkipRun: true,
 		},
 		{
+			Root: "javascript/workflowbadimport",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "main.js",
+				"runtime":    TaskRuntimeWorkflow,
+			},
+			ExpectedError: true,
+			SkipRun:       true,
+		},
+		{
 			Root: "javascript/workflowold",
 			Kind: TaskKindNode,
 			Options: KindOptions{
