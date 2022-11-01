@@ -31,8 +31,9 @@ type Definition_0_3 struct {
 	Python *PythonDefinition_0_3 `json:"python,omitempty"`
 	Shell  *ShellDefinition_0_3  `json:"shell,omitempty"`
 
-	SQL  *SQLDefinition_0_3  `json:"sql,omitempty"`
-	REST *RESTDefinition_0_3 `json:"rest,omitempty"`
+	SQL     *SQLDefinition_0_3    `json:"sql,omitempty"`
+	REST    *RESTDefinition_0_3   `json:"rest,omitempty"`
+	Builtin *BuiltinTaskContainer `json:",inline,omitempty"`
 
 	Constraints        map[string]string        `json:"constraints,omitempty"`
 	RequireRequests    bool                     `json:"requireRequests,omitempty"`
@@ -826,11 +827,61 @@ func NewDefinition_0_3(name string, slug string, kind build.TaskKind, entrypoint
 			BodyType: "json",
 			Body:     "{}",
 		}
+	case build.TaskKindBuiltin:
+		return Definition_0_3{}, errors.New("use NewBuiltinDefinition_0_3 instead")
 	default:
 		return Definition_0_3{}, errors.Errorf("unknown kind: %s", kind)
 	}
 
 	return def, nil
+}
+
+func NewBuiltinDefinition_0_3(name string, slug string, builtin BuiltinTaskDef) (Definition_0_3, error) {
+	return Definition_0_3{
+		Name:    name,
+		Slug:    slug,
+		Builtin: &BuiltinTaskContainer{def: builtin},
+	}, nil
+}
+
+// Customize the UnmarshalJSON to pull out the builtin, if there is any. The MarshalJSON
+// customization is done on the BuiltinTaskContainer (as this field is inlined).
+func (d *Definition_0_3) UnmarshalJSON(b []byte) error {
+	// Perform a normal unmarshal operation.
+	// Note we need a new type, otherwise we recursively call this
+	// method and end up stack overflowing.
+	type definition Definition_0_3
+	var def definition
+	if err := json.Unmarshal(b, &def); err != nil {
+		return err
+	}
+	*d = Definition_0_3(def)
+
+	// Unmarshal it into a map.
+	var serialized map[string]interface{}
+	if err := json.Unmarshal(b, &serialized); err != nil {
+		return err
+	}
+
+	// Is there a builtin somewhere?
+	for key, plugin := range builtinTaskPluginsByDefinitionKey {
+		defMap, ok := serialized[key]
+		if !ok {
+			continue
+		}
+		defBytes, err := json.Marshal(defMap)
+		if err != nil {
+			return err
+		}
+		kind := plugin.GetTaskKindDefinition()
+		if err := json.Unmarshal(defBytes, &kind); err != nil {
+			return err
+		}
+		d.Builtin = &BuiltinTaskContainer{def: kind}
+		break
+	}
+
+	return nil
 }
 
 func (d Definition_0_3) Marshal(format DefFormat) ([]byte, error) {
@@ -878,7 +929,8 @@ func (d Definition_0_3) GenerateCommentedFile(format DefFormat) ([]byte, error) 
 		len(d.Constraints) > 0 ||
 		d.RequireRequests ||
 		!d.AllowSelfApprovals.IsZero() ||
-		!d.Timeout.IsZero() {
+		!d.Timeout.IsZero() ||
+		d.Builtin != nil {
 		return d.Marshal(format)
 	}
 
@@ -1062,6 +1114,8 @@ func (d Definition_0_3) Kind() (build.TaskKind, error) {
 		return build.TaskKindSQL, nil
 	} else if d.REST != nil {
 		return build.TaskKindREST, nil
+	} else if d.Builtin != nil {
+		return build.TaskKindBuiltin, nil
 	} else {
 		return "", errors.New("incomplete task definition")
 	}
@@ -1080,6 +1134,8 @@ func (d Definition_0_3) taskKind() (taskKind_0_3, error) {
 		return d.SQL, nil
 	} else if d.REST != nil {
 		return d.REST, nil
+	} else if d.Builtin != nil {
+		return d.Builtin.def, nil
 	} else {
 		return nil, errors.New("incomplete task definition")
 	}
@@ -1404,7 +1460,8 @@ func (d *Definition_0_3) convertResourcesFromTask(ctx context.Context, client ap
 	for alias, id := range t.Resources {
 		// Ignore SQL/REST resources; they get routed elsewhere.
 		if (t.Kind == build.TaskKindSQL && alias == "db") ||
-			(t.Kind == build.TaskKindREST && alias == "rest") {
+			(t.Kind == build.TaskKindREST && alias == "rest") ||
+			(t.Kind == build.TaskKindBuiltin) {
 			continue
 		}
 		slug, ok := resourceSlugsByID[id]
@@ -1436,6 +1493,8 @@ func (d *Definition_0_3) convertTaskKindFromTask(ctx context.Context, client api
 	case build.TaskKindREST:
 		d.REST = &RESTDefinition_0_3{}
 		return d.REST.hydrateFromTask(ctx, client, t)
+	case build.TaskKindBuiltin:
+		return hydrateBuiltin(ctx, client, d, t)
 	default:
 		return errors.Errorf("unknown task kind: %s", t.Kind)
 	}

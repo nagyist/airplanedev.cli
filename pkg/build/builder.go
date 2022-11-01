@@ -309,15 +309,16 @@ const (
 	NameShell  Name = "shell"
 	NameView   Name = "view"
 
-	NameSQL  Name = "sql"
-	NameREST Name = "rest"
+	NameSQL     Name = "sql"
+	NameREST    Name = "rest"
+	NameBuiltin Name = "builtin"
 )
 
 func NeedsBuilding(kind TaskKind) (bool, error) {
 	switch Name(kind) {
 	case NamePython, NameNode, NameShell:
 		return true, nil
-	case NameImage, NameSQL, NameREST:
+	case NameImage, NameSQL, NameREST, NameBuiltin:
 		return false, nil
 	default:
 		return false, errors.Errorf("NeedsBuilding got unexpected kind %s", kind)

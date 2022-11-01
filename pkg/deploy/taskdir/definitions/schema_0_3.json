@@ -95,7 +95,10 @@
                 },
                 "command": {
                   "description": "The Docker command to run. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
-                  "examples": ["echo \"hello world\"", "echo \"{{params.input}}\""],
+                  "examples": [
+                    "echo \"hello world\"",
+                    "echo \"{{params.input}}\""
+                  ],
                   "type": "string"
                 },
                 "entrypoint": {
@@ -213,6 +216,55 @@
           "required": ["rest"]
         }
       ]
+    },
+    {
+      "allOf": [
+        { "$ref": "#/$defs/baseDefinition" },
+        {
+          "type": "object",
+          "properties": {
+            "graphql": {
+              "description": "Configuration for a GraphQL task.",
+              "type": "object",
+              "properties": {
+                "resource": {
+                  "description": "The slug of a GraphQL resource.",
+                  "type": "string"
+                },
+                "query": {
+                  "description": "The set of GraphQL queries and mutations to use. This can contain multiple operations.",
+                  "type": "string"
+                },
+                "operationName": {
+                  "description": "The name of the operation to execute from the query field. This can be left blank if there is only a single operation in the query field.",
+                  "type": "string"
+                },
+                "variables": {
+                  "description": "A map of GraphQL variables. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "type": "object"
+                },
+                "urlParams": {
+                  "description": "A map of URL parameters. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "type": "object",
+                  "patternProperties": {
+                    ".*": { "type": ["string", "boolean", "number"] }
+                  }
+                },
+                "headers": {
+                  "description": "A map of request headers. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "type": "object",
+                  "patternProperties": {
+                    ".*": { "type": ["string", "boolean", "number"] }
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "required": ["resource", "query"]
+            }
+          },
+          "required": ["graphql"]
+        }
+      ]
     }
   ],
   "properties": {
@@ -233,7 +285,8 @@
     "shell": true,
     "docker": true,
     "sql": true,
-    "rest": true
+    "rest": true,
+    "graphql": true
   },
   "additionalProperties": false,
 
@@ -292,7 +345,10 @@
         },
         "options": {
           "description": "A list of options to constrain the parameter values. For configvar types, each option needs to be an object with a label (value to show to user) and a config (name of the config var). For all other types, each option can be a single value or an object with a label and a value.",
-          "examples": ["Alfred Pennyworth", { "label": "Batman", "value": "Bruce Wayne" }],
+          "examples": [
+            "Alfred Pennyworth",
+            { "label": "Batman", "value": "Bruce Wayne" }
+          ],
           "type": "array",
           "items": {
             "anyOf": [
@@ -304,7 +360,11 @@
                 "properties": {
                   "label": { "type": "string" },
                   "value": {
-                    "anyOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }]
+                    "anyOf": [
+                      { "type": "string" },
+                      { "type": "number" },
+                      { "type": "boolean" }
+                    ]
                   }
                 },
                 "required": ["label", "value"],
@@ -404,7 +464,8 @@
             {
               "type": "array",
               "items": {
-                "type": "string", "pattern": "^[a-z0-9_]{1,50}$"
+                "type": "string",
+                "pattern": "^[a-z0-9_]{1,50}$"
               }
             }
           ]

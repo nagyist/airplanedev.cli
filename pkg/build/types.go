@@ -19,8 +19,9 @@ const (
 	TaskKindShell  TaskKind = "shell"
 	TaskKindApp    TaskKind = "app"
 
-	TaskKindSQL  TaskKind = "sql"
-	TaskKindREST TaskKind = "rest"
+	TaskKindSQL     TaskKind = "sql"
+	TaskKindREST    TaskKind = "rest"
+	TaskKindBuiltin TaskKind = "builtin"
 )
 
 type BuildType string

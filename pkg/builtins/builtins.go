@@ -3,6 +3,9 @@ package builtins
 import (
 	"fmt"
 	"strings"
+
+	"github.com/airplanedev/lib/pkg/build"
+	"github.com/pkg/errors"
 )
 
 const builtinsSlugPrefix = "airplane"
@@ -11,6 +14,16 @@ const builtinsSlugPrefix = "airplane"
 type FunctionSpecification struct {
 	Namespace string `json:"namespace"`
 	Name      string `json:"name"`
+}
+
+type FunctionKey string
+
+func (fs FunctionSpecification) Key() FunctionKey {
+	return FunctionKey(fs.String())
+}
+
+func (fs FunctionSpecification) String() string {
+	return fmt.Sprintf("%s.%s", fs.Namespace, fs.Name)
 }
 
 func IsBuiltinTaskSlug(slug string) bool {
@@ -34,4 +47,40 @@ func GetBuiltinFunctionSpecification(slug string) (FunctionSpecification, error)
 		Namespace: namespaceParts[0],
 		Name:      namespaceParts[1],
 	}, nil
+}
+
+// Returns a FunctionSpecification from a set of KindOptions. Expects a `functionSpecification` key
+// at the top level to contain a function specification serialized as a map[string]interface{}.
+func GetFunctionSpecificationFromKindOptions(kindOptions build.KindOptions) (FunctionSpecification, error) {
+	var out FunctionSpecification
+	fs, ok := kindOptions["functionSpecification"]
+	if !ok {
+		return out, errors.New("Missing function specification from builtin KindOptions")
+	}
+	fsMap, ok := fs.(map[string]interface{})
+	if !ok {
+		return out, errors.Errorf("expected map function specification, got %T instead", fs)
+	}
+
+	if v, ok := fsMap["namespace"]; ok {
+		if sv, ok := v.(string); ok {
+			out.Namespace = sv
+		} else {
+			return out, errors.Errorf("expected string namespace, got %T instead", v)
+		}
+	} else {
+		return out, errors.New("missing namespace from function specification")
+	}
+
+	if v, ok := fsMap["name"]; ok {
+		if sv, ok := v.(string); ok {
+			out.Name = sv
+		} else {
+			return out, errors.Errorf("expected string name, got %T instead", v)
+		}
+	} else {
+		return out, errors.New("missing namespace from function specification")
+	}
+
+	return out, nil
 }
