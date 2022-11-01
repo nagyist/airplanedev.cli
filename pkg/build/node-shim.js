@@ -1,9 +1,9 @@
 // This file includes a shim that will execute your task code.
 import airplane from "airplane";
 {{ if and (.EntrypointFunc) (ne .EntrypointFunc "default") -}}
-import { {{.EntrypointFunc}} as task } from "{{.Entrypoint}}";
+import { {{.EntrypointFunc}} as task } from "./{{.Entrypoint}}";
 {{ else -}}
-import task from "{{.Entrypoint}}";
+import task from "./{{.Entrypoint}}";
 {{- end }}
 
 async function main() {
