@@ -1,17 +1,21 @@
-// Linked to https://app.airplane.dev/t/update_registry_cache [do not edit this line]
-
 import execa from 'execa'
 import * as fs from 'fs'
 import airplane from 'airplane'
 
-type Params = {
-  gcp_project: string
-}
-
-// Pushes the latest versions of all base images to the public Airplane Registry cache.
-//
-// airplane dev scripts/cache/main.ts -- --gcp_project=airplane-stage
-export default async function(params: Params) {
+export default airplane.task({
+  slug: "update_registry_cache",
+  name: 'Update Registry Cache',
+  description: 'This ensures the Airplane Registry hosts all of the latest base images in its public cache.',
+  parameters: {
+    gcp_project: {
+      name: "GCP project",
+      description: "The ID (e.g. `airplane-prod`) to publish to.",
+      type: "shorttext",
+      options: ["airplane-prod", "airplane-stage"],
+      default: "airplane-stage",
+    }
+  },
+}, async (params) => {
   if (!params.gcp_project) {
     throw new Error("expected a project")
   }
@@ -34,4 +38,4 @@ export default async function(params: Params) {
       airplane.appendOutput(`Pushed ${kind}:${version.tag}@${version.digest} to ${params.gcp_project}`, "logs")
     }
   }
-}
+})

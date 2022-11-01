@@ -12,9 +12,14 @@ export AIRPLANE_LIB_TAG=v0.0.1 && \
 
 ## Base images
 
-If you make changes to the base images -- `pkg/build/versions.json` -- then you'll need to push these into the public cache:
+If you make changes to the base images -- [`pkg/build/versions.json`](/pkg/build/versions.json) -- then you'll need to push these into the public cache by running `scripts/cache/main.airplane.ts` in both `airplane-stage` and `airplane-prod`.
 
-```
-airplane dev scripts/cache/main.ts -- --gcp_project=airplane-stage
-airplane dev scripts/cache/main.ts -- --gcp_project=airplane-prod
+You will need to run this locally so it can access your GCP credentials:
+
+```sh
+# You may need to temporarily remove a few fixtures for this to work.
+# rm -rf pkg && git checkout $(git rev-parse --abbrev-ref HEAD) pkg/build/versions.json
+# To revert:
+# git checkout main pkg
+airplane dev
 ```
