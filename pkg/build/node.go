@@ -176,12 +176,7 @@ func node(
 		cfg.Workdir = "/" + cfg.Workdir
 	}
 
-	// Always use slim images for workflows.
-	//
-	// TODO: Consider also using them for standard node tasks.
-	useSlimImage := cfg.IsWorkflow
-
-	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion, useSlimImage)
+	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion, false)
 	if err != nil {
 		return "", err
 	}
@@ -777,12 +772,7 @@ func nodeBundle(
 		cfg.Workdir = "/" + cfg.Workdir
 	}
 
-	// Always use slim images for workflows.
-	//
-	// TODO: Consider also using them for standard node tasks.
-	useSlimImage := cfg.IsWorkflow
-
-	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion, useSlimImage)
+	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion, false)
 	if err != nil {
 		return "", err
 	}
