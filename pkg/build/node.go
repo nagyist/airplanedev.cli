@@ -45,6 +45,7 @@ type templateParams struct {
 	PreInstallPath                   string
 	PostInstallPath                  string
 	PackageCopyCmds                  []string
+	UseSlimImage                     bool
 
 	// FilesToBuild is a string of space-separated js/ts files to esbuild (user code) for
 	// running tasks and discovering inline configuration.
@@ -176,7 +177,9 @@ func node(
 		cfg.Workdir = "/" + cfg.Workdir
 	}
 
-	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion, false)
+	baseImageType, _ := options["base"].(string)
+	cfg.UseSlimImage = baseImageType == "slim"
+	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion, cfg.UseSlimImage)
 	if err != nil {
 		return "", err
 	}
@@ -246,6 +249,14 @@ func node(
 	// in which case we could introduce an extra step for performing build commands.
 	return applyTemplate(heredoc.Doc(`
 		FROM {{.Base}}
+
+		{{if .UseSlimImage}}
+		RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+			&& apt-get -y install --no-install-recommends \
+				curl ca-certificates \
+			&& apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+		{{end}}
+
 		ENV NODE_ENV=production
 		WORKDIR /airplane{{.Workdir}}
 		# Support setting BUILD_NPM_RC or BUILD_NPM_TOKEN to configure private registry auth
@@ -772,7 +783,9 @@ func nodeBundle(
 		cfg.Workdir = "/" + cfg.Workdir
 	}
 
-	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion, false)
+	baseImageType, _ := options["base"].(string)
+	cfg.UseSlimImage = baseImageType == "slim"
+	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion, cfg.UseSlimImage)
 	if err != nil {
 		return "", err
 	}
@@ -828,6 +841,14 @@ func nodeBundle(
 	// in which case we could introduce an extra step for performing build commands.
 	return applyTemplate(heredoc.Doc(`
 		FROM {{.Base}}
+
+		{{if .UseSlimImage}}
+		RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+			&& apt-get -y install --no-install-recommends \
+				curl ca-certificates \
+			&& apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+		{{end}}
+
 		ENV NODE_ENV=production
 		WORKDIR /airplane{{.Workdir}}
 		# Support setting BUILD_NPM_RC or BUILD_NPM_TOKEN to configure private registry auth

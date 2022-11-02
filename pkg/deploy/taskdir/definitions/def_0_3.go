@@ -146,6 +146,7 @@ type NodeDefinition_0_3 struct {
 	Entrypoint  string      `json:"entrypoint"`
 	NodeVersion string      `json:"nodeVersion"`
 	EnvVars     api.TaskEnv `json:"envVars,omitempty"`
+	Base        string      `json:"base,omitempty"`
 
 	absoluteEntrypoint string `json:"-"`
 }
@@ -168,6 +169,13 @@ func (d *NodeDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAP
 			d.NodeVersion = sv
 		} else {
 			return errors.Errorf("expected string nodeVersion, got %T instead", v)
+		}
+	}
+	if v, ok := t.KindOptions["base"]; ok {
+		if sv, ok := v.(string); ok {
+			d.Base = sv
+		} else {
+			return errors.Errorf("expected string base, got %T instead", v)
 		}
 	}
 	d.EnvVars = t.Env
@@ -197,6 +205,9 @@ func (d *NodeDefinition_0_3) getKindOptions() (build.KindOptions, error) {
 	}
 	if d.NodeVersion != "" {
 		ko["nodeVersion"] = d.NodeVersion
+	}
+	if d.Base != "" {
+		ko["base"] = d.Base
 	}
 	return ko, nil
 }
@@ -232,6 +243,7 @@ var _ taskKind_0_3 = &PythonDefinition_0_3{}
 type PythonDefinition_0_3 struct {
 	Entrypoint string      `json:"entrypoint"`
 	EnvVars    api.TaskEnv `json:"envVars,omitempty"`
+	Base       string      `json:"base,omitempty"`
 
 	absoluteEntrypoint string `json:"-"`
 }
@@ -247,6 +259,13 @@ func (d *PythonDefinition_0_3) hydrateFromTask(ctx context.Context, client api.I
 			d.Entrypoint = sv
 		} else {
 			return errors.Errorf("expected string entrypoint, got %T instead", v)
+		}
+	}
+	if v, ok := t.KindOptions["base"]; ok {
+		if sv, ok := v.(string); ok {
+			d.Base = sv
+		} else {
+			return errors.Errorf("expected string base, got %T instead", v)
 		}
 	}
 	d.EnvVars = t.Env
@@ -271,9 +290,13 @@ func (d *PythonDefinition_0_3) getAbsoluteEntrypoint() (string, error) {
 }
 
 func (d *PythonDefinition_0_3) getKindOptions() (build.KindOptions, error) {
-	return build.KindOptions{
+	ko := build.KindOptions{
 		"entrypoint": d.Entrypoint,
-	}, nil
+	}
+	if d.Base != "" {
+		ko["base"] = d.Base
+	}
+	return ko, nil
 }
 
 func (d *PythonDefinition_0_3) getEntrypoint() (string, error) {

@@ -18,6 +18,15 @@ func TestPythonBuilder(t *testing.T) {
 			},
 		},
 		{
+			Root: "python/slim",
+			Kind: TaskKindPython,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "main.py",
+				"base":       "slim",
+			},
+		},
+		{
 			Root: "python/requirements",
 			Kind: TaskKindPython,
 			Options: KindOptions{

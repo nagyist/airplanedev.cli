@@ -34,6 +34,15 @@ func TestNodeBuilder(t *testing.T) {
 			},
 		},
 		{
+			Root: "typescript/slim",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "main.ts",
+				"base":       "slim",
+			},
+		},
+		{
 			Root: "typescript/airplaneoverride",
 			Kind: TaskKindNode,
 			Options: KindOptions{
@@ -296,6 +305,17 @@ func TestNodeWorkflowBuilder(t *testing.T) {
 				"shim":       "true",
 				"entrypoint": "main.js",
 				"runtime":    TaskRuntimeWorkflow,
+			},
+			SkipRun: true,
+		},
+		{
+			Root: "javascript/workflowslim",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "main.js",
+				"runtime":    TaskRuntimeWorkflow,
+				"base":       "slim",
 			},
 			SkipRun: true,
 		},

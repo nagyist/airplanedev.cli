@@ -20,7 +20,12 @@
                   "description": "The version of Node to use.",
                   "enum": ["14", "16", "18"]
                 },
-                "envVars": { "$ref": "#/$defs/envVars" }
+                "envVars": { "$ref": "#/$defs/envVars" },
+                "base": {
+                  "description": "The type of base image to use; if not specified, defaults to full.",
+                  "enum": ["", "full", "slim"],
+                  "default": ""
+                }
               },
               "additionalProperties": false,
               "required": ["entrypoint"]
@@ -44,7 +49,12 @@
                   "description": "The path to the .py file containing the logic for this task. This can be absolute or relative to the location of the definition file.",
                   "type": "string"
                 },
-                "envVars": { "$ref": "#/$defs/envVars" }
+                "envVars": { "$ref": "#/$defs/envVars" },
+                "base": {
+                  "description": "The type of base image to use; if not specified, defaults to full.",
+                  "enum": ["", "full", "slim"],
+                  "default": ""
+                }
               },
               "additionalProperties": false,
               "required": ["entrypoint"]
@@ -95,10 +105,7 @@
                 },
                 "command": {
                   "description": "The Docker command to run. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
-                  "examples": [
-                    "echo \"hello world\"",
-                    "echo \"{{params.input}}\""
-                  ],
+                  "examples": ["echo \"hello world\"", "echo \"{{params.input}}\""],
                   "type": "string"
                 },
                 "entrypoint": {
@@ -345,10 +352,7 @@
         },
         "options": {
           "description": "A list of options to constrain the parameter values. For configvar types, each option needs to be an object with a label (value to show to user) and a config (name of the config var). For all other types, each option can be a single value or an object with a label and a value.",
-          "examples": [
-            "Alfred Pennyworth",
-            { "label": "Batman", "value": "Bruce Wayne" }
-          ],
+          "examples": ["Alfred Pennyworth", { "label": "Batman", "value": "Bruce Wayne" }],
           "type": "array",
           "items": {
             "anyOf": [
@@ -360,11 +364,7 @@
                 "properties": {
                   "label": { "type": "string" },
                   "value": {
-                    "anyOf": [
-                      { "type": "string" },
-                      { "type": "number" },
-                      { "type": "boolean" }
-                    ]
+                    "anyOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }]
                   }
                 },
                 "required": ["label", "value"],

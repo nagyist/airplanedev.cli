@@ -458,6 +458,47 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 			},
 		},
 		{
+			name: "node task slim image",
+			task: api.Task{
+				Name:      "Node Task",
+				Slug:      "node_task",
+				Arguments: []string{"{{JSON.stringify(params)}}"},
+				Kind:      build.TaskKindNode,
+				KindOptions: build.KindOptions{
+					"entrypoint":  "main.ts",
+					"nodeVersion": "14",
+					"base":        "slim",
+				},
+				Env: api.TaskEnv{
+					"value": api.EnvVarValue{
+						Value: pointers.String("value"),
+					},
+					"config": api.EnvVarValue{
+						Config: pointers.String("config"),
+					},
+				},
+			},
+			definition: Definition_0_3{
+				Name:       "Node Task",
+				Slug:       "node_task",
+				Parameters: []ParameterDefinition_0_3{},
+				Node: &NodeDefinition_0_3{
+					Entrypoint:  "main.ts",
+					NodeVersion: "14",
+					EnvVars: api.TaskEnv{
+						"value": api.EnvVarValue{
+							Value: pointers.String("value"),
+						},
+						"config": api.EnvVarValue{
+							Config: pointers.String("config"),
+						},
+					},
+					Base: "slim",
+				},
+				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
+			},
+		},
+		{
 			name: "shell task",
 			task: api.Task{
 				Name:      "Shell Task",
@@ -985,6 +1026,47 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 							"example_param": "hello",
 						},
 					},
+				},
+				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
+			},
+		},
+		{
+			name: "python task slim image",
+			task: api.Task{
+				Name:        "Python Task",
+				Slug:        "python_task",
+				Description: "A task for testing",
+				Arguments:   []string{"{{JSON.stringify(params)}}"},
+				Kind:        build.TaskKindPython,
+				KindOptions: build.KindOptions{
+					"entrypoint": "main.py",
+					"base":       "slim",
+				},
+				Env: api.TaskEnv{
+					"value": api.EnvVarValue{
+						Value: pointers.String("value"),
+					},
+					"config": api.EnvVarValue{
+						Config: pointers.String("config"),
+					},
+				},
+			},
+			definition: Definition_0_3{
+				Name:        "Python Task",
+				Slug:        "python_task",
+				Description: "A task for testing",
+				Parameters:  []ParameterDefinition_0_3{},
+				Python: &PythonDefinition_0_3{
+					Entrypoint: "main.py",
+					EnvVars: api.TaskEnv{
+						"value": api.EnvVarValue{
+							Value: pointers.String("value"),
+						},
+						"config": api.EnvVarValue{
+							Config: pointers.String("config"),
+						},
+					},
+					Base: "slim",
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 			},

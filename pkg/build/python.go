@@ -33,7 +33,9 @@ func python(
 		return "", err
 	}
 
-	v, err := GetVersion(NamePython, "3", false)
+	baseImageType, _ := opts["base"].(string)
+	useSlimImage := baseImageType == "slim"
+	v, err := GetVersion(NamePython, "3", useSlimImage)
 	if err != nil {
 		return "", err
 	}
