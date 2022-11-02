@@ -515,6 +515,9 @@ func suggestNextSteps(req suggestNextStepsRequest) {
 		case build.TaskKindREST:
 			steps = append(steps, fmt.Sprintf("Add the name of a REST resource to %s", req.defnFile))
 			steps = append(steps, fmt.Sprintf("Specify the details of your REST request in %s", req.defnFile))
+		case build.TaskKindBuiltin:
+			steps = append(steps, fmt.Sprintf("Add the name of a resource to %s", req.defnFile))
+			steps = append(steps, fmt.Sprintf("Specify the details of your request in %s", req.defnFile))
 		case build.TaskKindImage:
 			steps = append(steps, fmt.Sprintf("Add the name of a Docker image to %s", req.defnFile))
 		default:
