@@ -588,15 +588,16 @@ func (d *SQLDefinition_0_3) setBuildVersion(v build.BuildTypeVersion) {
 var _ taskKind_0_3 = &RESTDefinition_0_3{}
 
 type RESTDefinition_0_3 struct {
-	Resource  string                 `json:"resource"`
-	Method    string                 `json:"method"`
-	Path      string                 `json:"path"`
-	URLParams map[string]interface{} `json:"urlParams,omitempty"`
-	Headers   map[string]interface{} `json:"headers,omitempty"`
-	BodyType  string                 `json:"bodyType"`
-	Body      interface{}            `json:"body,omitempty"`
-	FormData  map[string]interface{} `json:"formData,omitempty"`
-	Configs   []string               `json:"configs,omitempty"`
+	Resource      string                 `json:"resource"`
+	Method        string                 `json:"method"`
+	Path          string                 `json:"path"`
+	URLParams     map[string]interface{} `json:"urlParams,omitempty"`
+	Headers       map[string]interface{} `json:"headers,omitempty"`
+	BodyType      string                 `json:"bodyType"`
+	Body          interface{}            `json:"body,omitempty"`
+	FormData      map[string]interface{} `json:"formData,omitempty"`
+	RetryFailures interface{}            `json:"retryFailures,omitempty"`
+	Configs       []string               `json:"configs,omitempty"`
 }
 
 func (d *RESTDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest) error {
@@ -671,6 +672,9 @@ func (d *RESTDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAP
 			return errors.Errorf("expected map formData, got %T instead", v)
 		}
 	}
+	if v, ok := t.KindOptions["retryFailures"]; ok {
+		d.RetryFailures = v
+	}
 
 	d.Configs = make([]string, len(t.Configs))
 	for idx, config := range t.Configs {
@@ -703,13 +707,14 @@ func (d *RESTDefinition_0_3) getKindOptions() (build.KindOptions, error) {
 		d.FormData = map[string]interface{}{}
 	}
 	return build.KindOptions{
-		"method":    d.Method,
-		"path":      d.Path,
-		"urlParams": d.URLParams,
-		"headers":   d.Headers,
-		"bodyType":  d.BodyType,
-		"body":      d.Body,
-		"formData":  d.FormData,
+		"method":        d.Method,
+		"path":          d.Path,
+		"urlParams":     d.URLParams,
+		"headers":       d.Headers,
+		"bodyType":      d.BodyType,
+		"body":          d.Body,
+		"formData":      d.FormData,
+		"retryFailures": d.RetryFailures,
 	}, nil
 }
 
