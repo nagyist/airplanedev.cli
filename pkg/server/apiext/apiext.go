@@ -411,12 +411,27 @@ func CreatePromptHandler(ctx context.Context, state *state.State, r *http.Reques
 		req.Values = map[string]interface{}{}
 	}
 
+	reviewersWithDefaults := req.Reviewers
+	if reviewersWithDefaults == nil {
+		reviewersWithDefaults = &libapi.PromptReviewers{}
+	}
+	if reviewersWithDefaults.AllowSelfApprovals == nil {
+		// Default self approvals to true
+		reviewersWithDefaults.AllowSelfApprovals = pointers.Bool(true)
+	}
+	if reviewersWithDefaults.Groups == nil {
+		reviewersWithDefaults.Groups = []string{}
+	}
+	if reviewersWithDefaults.Users == nil {
+		reviewersWithDefaults.Users = []string{}
+	}
+
 	prompt := libapi.Prompt{
 		ID:          utils.GenerateID("pmt"),
 		RunID:       runID,
 		Schema:      req.Schema,
 		Values:      req.Values,
-		Reviewers:   req.Reviewers,
+		Reviewers:   reviewersWithDefaults,
 		ConfirmText: req.ConfirmText,
 		CancelText:  req.CancelText,
 		CreatedAt:   time.Now(),
