@@ -252,6 +252,8 @@ func BuildBundleDockerfile(c BundleDockerfileConfig) (string, error) {
 	case NodeBuildType:
 		// TODO: pipe in build args
 		return nodeBundle(c.Root, c.BuildContext, c.Options, c.BuildArgKeys, c.FilesToBuild, c.FilesToDiscover)
+	case ViewBuildType:
+		return viewBundle(c.Root, c.BuildContext, c.Options, c.FilesToBuild, c.FilesToDiscover)
 	default:
 		return "", errors.Errorf("build: unknown build type %v", c.BuildContext.Type)
 	}
