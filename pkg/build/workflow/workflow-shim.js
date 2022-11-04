@@ -1,5 +1,5 @@
 import airplane from "airplane";
-import { proxySinks, CancelledFailure } from "@temporalio/workflow";
+import { proxySinks, isCancellation, CancellationScope } from "@temporalio/workflow";
 {{if and (.EntrypointFunc) (ne .EntrypointFunc "default") }}
 import { {{.EntrypointFunc}} as task } from "{{.Entrypoint}}";
 {{else}}
@@ -15,6 +15,10 @@ const { logger } = proxySinks();
 // the Airplane API.
 export async function __airplaneEntrypoint(params, workflowArgs) {
   registerWorkflowRuntime();
+  if (CancellationScope.current().consideredCancelled) {
+    logger.internal("airplane_status:cancelled");
+    return;
+  }
   logger.internal("airplane_status:active");
   try {
     // Monkey patch node globals
@@ -38,12 +42,11 @@ export async function __airplaneEntrypoint(params, workflowArgs) {
     if (ret !== undefined) {
       airplane.setOutput(ret);
     }
-
     logger.internal("airplane_status:succeeded");
   } catch (err) {
     logger.info(err);
     logger.internal(JSON.stringify(err));
-    if (err instanceof CancelledFailure) {
+    if (isCancellation(err)) {
       logger.internal("airplane_status:cancelled");
     } else {
       // Print the error's message directly when possible. Otherwise, it includes the
