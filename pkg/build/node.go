@@ -177,8 +177,8 @@ func node(
 		cfg.Workdir = "/" + cfg.Workdir
 	}
 
-	baseImageType, _ := options["base"].(string)
-	cfg.UseSlimImage = baseImageType == "slim"
+	baseImageType, _ := options["base"].(BuildBase)
+	cfg.UseSlimImage = baseImageType == BuildBaseSlim
 	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion, cfg.UseSlimImage)
 	if err != nil {
 		return "", err
@@ -783,8 +783,7 @@ func nodeBundle(
 		cfg.Workdir = "/" + cfg.Workdir
 	}
 
-	baseImageType, _ := options["base"].(string)
-	cfg.UseSlimImage = baseImageType == "slim"
+	cfg.UseSlimImage = buildContext.Base == BuildBaseSlim
 	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion, cfg.UseSlimImage)
 	if err != nil {
 		return "", err

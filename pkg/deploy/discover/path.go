@@ -4,7 +4,9 @@ import (
 	"path/filepath"
 
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/runtime"
+	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/pathcase"
 	"github.com/pkg/errors"
 )
@@ -15,6 +17,7 @@ type TaskPathMetadata struct {
 	RootDir       string
 	WorkDir       string
 	BuildVersion  build.BuildTypeVersion
+	BuildBase     build.BuildBase
 }
 
 func taskPathMetadata(file string, kind build.TaskKind) (TaskPathMetadata, error) {
@@ -53,11 +56,21 @@ func taskPathMetadata(file string, kind build.TaskKind) (TaskPathMetadata, error
 		return TaskPathMetadata{}, err
 	}
 
+	var c config.AirplaneConfig
+	configPath, found := fsx.Find(taskroot, config.FileName)
+	if found {
+		c, err = config.NewAirplaneConfigFromFile(filepath.Join(configPath, config.FileName))
+		if err != nil {
+			return TaskPathMetadata{}, err
+		}
+	}
+
 	return TaskPathMetadata{
 		AbsEntrypoint: absFile,
 		RelEntrypoint: ep,
 		RootDir:       taskroot,
 		WorkDir:       wd,
 		BuildVersion:  buildVersion,
+		BuildBase:     c.Base,
 	}, nil
 }

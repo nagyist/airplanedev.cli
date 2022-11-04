@@ -146,7 +146,7 @@ func Lookup(path string, kind build.TaskKind) (Interface, error) {
 		}
 	}
 	if len(possible) > 1 {
-		return nil, errors.Errorf("found %d runtimes for task type, expecting 1", len(possible))
+		return nil, errors.Errorf("found %d runtimes for task type at path %s, expecting 1", len(possible), path)
 	}
 	if len(possible) == 0 {
 		return nil, errors.New("did not find any runtimes for task type")

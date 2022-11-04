@@ -41,10 +41,10 @@ type DefinitionInterface interface {
 	GetName() string
 	GetDescription() string
 	GetParameters() (api.Parameters, error)
-	GetBuildType() (build.BuildType, build.BuildTypeVersion, error)
-	// SetBuildVersion sets the version that this defintion should be built with. Does not
-	// override the version if it was already set.
-	SetBuildVersion(build.BuildTypeVersion) error
+	GetBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase, error)
+	// SetBuildVersionBase sets the version and base that this definition should be built with. Does not
+	// override the version or base if it was already set.
+	SetBuildVersionBase(build.BuildTypeVersion, build.BuildBase) error
 
 	GetRuntime() build.TaskRuntime
 	UpgradeJST() error

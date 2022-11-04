@@ -83,7 +83,7 @@ type TaskDiscoverer interface {
 	ConfigSource() ConfigSource
 	// GetTaskRoot inspects a file and returns the root directory of the task.
 	// If that file does not have any tasks, it will return an empty string.
-	GetTaskRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, error)
+	GetTaskRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, build.BuildBase, error)
 }
 
 type ViewDiscoverer interface {
@@ -94,7 +94,7 @@ type ViewDiscoverer interface {
 	ConfigSource() ConfigSource
 	// GetViewRoot inspects a file and returns the root directory of the view.
 	// If that file does not have a view, it will return an empty string.
-	GetViewRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, error)
+	GetViewRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, build.BuildBase, error)
 }
 
 type Discoverer struct {

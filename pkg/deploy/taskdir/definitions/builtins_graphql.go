@@ -175,9 +175,9 @@ func (d GraphQLDefinition_0_3) getResourceAttachments() map[string]string {
 	return map[string]string{"api": d.Resource}
 }
 
-func (d GraphQLDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
-	return build.NoneBuildType, build.BuildTypeVersionUnspecified
+func (d GraphQLDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
+	return build.NoneBuildType, build.BuildTypeVersionUnspecified, build.BuildBaseNone
 }
 
-func (d GraphQLDefinition_0_3) setBuildVersion(v build.BuildTypeVersion) {
+func (d GraphQLDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
 }

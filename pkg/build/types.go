@@ -90,6 +90,7 @@ var AllBuildTypeVersions = map[BuildType][]BuildTypeVersion{
 type BuildContext struct {
 	Type    BuildType        `json:"type"`
 	Version BuildTypeVersion `json:"version"`
+	Base    BuildBase        `json:"base"`
 }
 
 func (b BuildContext) Valid() bool {
@@ -116,6 +117,14 @@ func (b BuildContext) DefaultVersion() BuildTypeVersion {
 		return BuildTypeVersionUnspecified
 	}
 }
+
+type BuildBase string
+
+const (
+	BuildBaseFull BuildBase = "full"
+	BuildBaseSlim BuildBase = "slim"
+	BuildBaseNone BuildBase = ""
+)
 
 type TaskRuntime string
 

@@ -81,10 +81,10 @@ func (sd *ScriptDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]
 	}, nil
 }
 
-func (sd *ScriptDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, error) {
+func (sd *ScriptDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, build.BuildBase, error) {
 	slug := runtime.Slug(file)
 	if slug == "" {
-		return "", "", "", nil
+		return "", "", "", "", nil
 	}
 
 	task, err := sd.Client.GetTask(ctx, api.GetTaskRequest{
@@ -94,32 +94,32 @@ func (sd *ScriptDiscoverer) GetTaskRoot(ctx context.Context, file string) (strin
 	if err != nil {
 		var merr *api.TaskMissingError
 		if !errors.As(err, &merr) {
-			return "", "", "", nil
+			return "", "", "", "", nil
 		}
 
 		sd.Logger.Warning(`Task with slug %s does not exist, skipping deployment.`, slug)
-		return "", "", "", nil
+		return "", "", "", "", nil
 	}
 	if task.IsArchived {
 		sd.Logger.Warning(`Task with slug %s is archived, skipping deployment.`, slug)
-		return "", "", "", nil
+		return "", "", "", "", nil
 	}
 
 	def, err := definitions.NewDefinitionFromTask(ctx, sd.Client, task)
 	if err != nil {
-		return "", "", "", err
+		return "", "", "", "", err
 	}
 
-	buildType, buildTypeVersion, err := def.GetBuildType()
+	buildType, buildTypeVersion, buildBase, err := def.GetBuildType()
 	if err != nil {
-		return "", "", "", err
+		return "", "", "", "", err
 	}
 
 	pathMetadata, err := taskPathMetadata(file, task.Kind)
 	if err != nil {
-		return "", "", "", err
+		return "", "", "", "", err
 	}
-	return pathMetadata.RootDir, buildType, buildTypeVersion, nil
+	return pathMetadata.RootDir, buildType, buildTypeVersion, buildBase, nil
 }
 
 func (sd *ScriptDiscoverer) ConfigSource() ConfigSource {

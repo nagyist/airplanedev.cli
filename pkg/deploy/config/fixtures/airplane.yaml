@@ -5,3 +5,4 @@ envVars:
     value: value2
   fromConfig:
     config: CONFIG
+base: slim

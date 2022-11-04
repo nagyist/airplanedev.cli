@@ -39,7 +39,7 @@ func TestNodeBuilder(t *testing.T) {
 			Options: KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
-				"base":       "slim",
+				"base":       BuildBaseSlim,
 			},
 		},
 		{
@@ -315,7 +315,7 @@ func TestNodeWorkflowBuilder(t *testing.T) {
 				"shim":       "true",
 				"entrypoint": "main.js",
 				"runtime":    TaskRuntimeWorkflow,
-				"base":       "slim",
+				"base":       BuildBaseSlim,
 			},
 			SkipRun: true,
 		},

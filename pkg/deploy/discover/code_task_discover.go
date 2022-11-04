@@ -103,9 +103,9 @@ func (c *CodeTaskDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([
 	return taskConfigs, nil
 }
 
-func (c *CodeTaskDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, error) {
+func (c *CodeTaskDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, build.BuildBase, error) {
 	if !deployutils.IsInlineAirplaneEntity(file) {
-		return "", "", "", nil
+		return "", "", "", "", nil
 	}
 
 	var kind build.TaskKind
@@ -118,13 +118,13 @@ func (c *CodeTaskDiscoverer) GetTaskRoot(ctx context.Context, file string) (stri
 		buildType = build.PythonBuildType
 	}
 	if kind == "" {
-		return "", "", "", nil
+		return "", "", "", "", nil
 	}
 	pm, err := taskPathMetadata(file, kind)
 	if err != nil {
-		return "", "", "", errors.Wrap(err, "unable to interpret task path metadata")
+		return "", "", "", "", errors.Wrap(err, "unable to interpret task path metadata")
 	}
-	return pm.RootDir, buildType, pm.BuildVersion, nil
+	return pm.RootDir, buildType, pm.BuildVersion, pm.BuildBase, nil
 }
 
 func (c *CodeTaskDiscoverer) ConfigSource() ConfigSource {
@@ -261,7 +261,7 @@ func ConstructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPat
 	if err := def.SetAbsoluteEntrypoint(pathMetadata.AbsEntrypoint); err != nil {
 		return nil, err
 	}
-	if err := def.SetBuildVersion(pathMetadata.BuildVersion); err != nil {
+	if err := def.SetBuildVersionBase(pathMetadata.BuildVersion, pathMetadata.BuildBase); err != nil {
 		return nil, err
 	}
 	return &def, nil

@@ -467,7 +467,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				KindOptions: build.KindOptions{
 					"entrypoint":  "main.ts",
 					"nodeVersion": "14",
-					"base":        "slim",
+					"base":        build.BuildBaseSlim,
 				},
 				Env: api.TaskEnv{
 					"value": api.EnvVarValue{
@@ -493,7 +493,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 							Config: pointers.String("config"),
 						},
 					},
-					Base: "slim",
+					Base: build.BuildBaseSlim,
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 			},
@@ -1040,7 +1040,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 				Kind:        build.TaskKindPython,
 				KindOptions: build.KindOptions{
 					"entrypoint": "main.py",
-					"base":       "slim",
+					"base":       build.BuildBaseSlim,
 				},
 				Env: api.TaskEnv{
 					"value": api.EnvVarValue{
@@ -1066,7 +1066,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 							Config: pointers.String("config"),
 						},
 					},
-					Base: "slim",
+					Base: build.BuildBaseSlim,
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 			},

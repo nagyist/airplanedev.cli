@@ -125,19 +125,24 @@ func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 	}, nil
 }
 
-func (dd *CodeViewDiscoverer) GetViewRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, error) {
+func (dd *CodeViewDiscoverer) GetViewRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, build.BuildBase, error) {
 	if !deployutils.IsViewInlineAirplaneEntity(file) {
-		return "", "", "", nil
+		return "", "", "", "", nil
 	}
 	root, err := filepath.Abs(filepath.Dir(file))
 	if err != nil {
-		return "", "", "", errors.Wrap(err, "getting absolute view definition root")
+		return "", "", "", "", errors.Wrap(err, "getting absolute view definition root")
 	}
 	if p, ok := fsx.Find(root, "package.json"); ok {
 		root = p
 	}
 
-	return root, build.ViewBuildType, build.BuildTypeVersionUnspecified, nil
+	pm, err := taskPathMetadata(file, build.TaskKindNode)
+	if err != nil {
+		return "", "", "", "", errors.Wrap(err, "unable to interpret task path metadata")
+	}
+
+	return root, build.ViewBuildType, pm.BuildVersion, pm.BuildBase, nil
 }
 
 func (dd *CodeViewDiscoverer) ConfigSource() ConfigSource {

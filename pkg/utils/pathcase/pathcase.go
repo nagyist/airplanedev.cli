@@ -26,6 +26,9 @@ func ActualFilename(filename string) (string, error) {
 		}
 	}
 
-	// If we haven't found the file, return the error (if any) from reading the directory.
-	return "", errors.Wrap(readErr, "listing directory")
+	if readErr != nil {
+		// If we haven't found the file, return the error (if any) from reading the directory.
+		return "", errors.Wrap(readErr, "listing directory")
+	}
+	return "", errors.Errorf("calculating actual filename for %s", filename)
 }

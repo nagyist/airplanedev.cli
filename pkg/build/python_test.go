@@ -23,7 +23,7 @@ func TestPythonBuilder(t *testing.T) {
 			Options: KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.py",
-				"base":       "slim",
+				"base":       BuildBaseSlim,
 			},
 		},
 		{

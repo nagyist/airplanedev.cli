@@ -82,7 +82,7 @@ func TestDiscover(t *testing.T) {
 			},
 		},
 		{
-			desc:  "inline tasks with version set",
+			desc:  "inline tasks with version and base set",
 			paths: []string{"./fixtures/inlineTasksVersion"},
 			expectedBundles: []Bundle{
 				{
@@ -90,6 +90,7 @@ func TestDiscover(t *testing.T) {
 					TargetPaths:  []string{"."},
 					BuildType:    build.NodeBuildType,
 					BuildVersion: build.BuildTypeVersionNode16,
+					BuildBase:    build.BuildBaseSlim,
 				},
 			},
 		},
@@ -217,6 +218,12 @@ func TestDiscover(t *testing.T) {
 					TargetPaths:  []string{"multipleTasksSameRootDiffBuild"},
 					BuildType:    build.NodeBuildType,
 					BuildVersion: build.BuildTypeVersionNode16,
+				},
+				{
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"multipleTasksSameRootDiffBuild"},
+					BuildType:   build.NodeBuildType,
+					BuildBase:   build.BuildBaseSlim,
 				},
 			},
 		},

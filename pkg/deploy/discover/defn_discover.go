@@ -146,7 +146,7 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 		if err := def.SetWorkdir(taskPathMetadata.RootDir, taskPathMetadata.WorkDir); err != nil {
 			return nil, err
 		}
-		if err := def.SetBuildVersion(taskPathMetadata.BuildVersion); err != nil {
+		if err := def.SetBuildVersionBase(taskPathMetadata.BuildVersion, taskPathMetadata.BuildBase); err != nil {
 			return nil, err
 		}
 
@@ -164,7 +164,7 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 	return []TaskConfig{tc}, nil
 }
 
-func (dd *DefnDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, error) {
+func (dd *DefnDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, build.BuildBase, error) {
 	if !definitions.IsTaskDef(file) {
 		// Check if there is a file in the same directory with the same name that is a task defn.
 		fileWithoutExtension := strings.TrimSuffix(file, filepath.Ext(file))
@@ -174,51 +174,56 @@ func (dd *DefnDiscoverer) GetTaskRoot(ctx context.Context, file string) (string,
 				return dd.GetTaskRoot(ctx, fileWithTaskDefExtension)
 			}
 		}
-		return "", "", "", nil
+		return "", "", "", "", nil
 	}
 
 	dir, err := taskdir.Open(file)
 	if err != nil {
-		return "", "", "", err
+		return "", "", "", "", err
 	}
 	defer dir.Close()
 
 	def, err := dir.ReadDefinition()
 	if err != nil {
-		return "", "", "", err
+		return "", "", "", "", err
 	}
 
-	buildType, buildTypeVersion, err := def.GetBuildType()
+	buildType, buildTypeVersion, buildBase, err := def.GetBuildType()
 	if err != nil {
-		return "", "", "", err
+		return "", "", "", "", err
 	}
 
 	entrypoint, err := def.GetAbsoluteEntrypoint()
 	if err == definitions.ErrNoEntrypoint {
 		absFile, err := filepath.Abs(file)
 		if err != nil {
-			return "", "", "", err
+			return "", "", "", "", err
 		}
-		return path.Dir(absFile), buildType, buildTypeVersion, nil
+		return path.Dir(absFile), buildType, buildTypeVersion, buildBase, nil
 	} else if err != nil {
-		return "", "", "", err
+		return "", "", "", "", err
 	} else if err = fsx.AssertExistsAll(entrypoint); err != nil {
-		return "", "", "", err
+		return "", "", "", "", err
 	}
 	kind, _, err := def.GetKindAndOptions()
 	if err != nil {
-		return "", "", "", err
+		return "", "", "", "", err
 	}
 
 	taskPathMetadata, err := taskPathMetadata(entrypoint, kind)
 	if err != nil {
-		return "", "", "", err
+		return "", "", "", "", err
 	}
-	if err := def.SetBuildVersion(taskPathMetadata.BuildVersion); err != nil {
-		return "", "", "", err
+	if err := def.SetBuildVersionBase(taskPathMetadata.BuildVersion, taskPathMetadata.BuildBase); err != nil {
+		return "", "", "", "", err
+	}
+	// Recalculate the build types.
+	buildType, buildTypeVersion, buildBase, err = def.GetBuildType()
+	if err != nil {
+		return "", "", "", "", err
 	}
 
-	return taskPathMetadata.RootDir, buildType, buildTypeVersion, nil
+	return taskPathMetadata.RootDir, buildType, buildTypeVersion, buildBase, nil
 }
 
 func (dd *DefnDiscoverer) ConfigSource() ConfigSource {

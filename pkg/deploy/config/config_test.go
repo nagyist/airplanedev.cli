@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/airplanedev/lib/pkg/api"
+	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/utils/pointers"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +19,7 @@ func TestNewAirplaneConfigFromFile(t *testing.T) {
 	}{
 		{
 			desc:    "yaml with all values",
-			fixture: "airplane.config.yaml",
+			fixture: "airplane.yaml",
 			airplaneConfig: AirplaneConfig{
 				NodeVersion: "18",
 				EnvVars: api.TaskEnv{
@@ -26,6 +27,7 @@ func TestNewAirplaneConfigFromFile(t *testing.T) {
 					"fromValue2": api.EnvVarValue{Value: pointers.String("value2")},
 					"fromConfig": api.EnvVarValue{Config: pointers.String("CONFIG")},
 				},
+				Base: build.BuildBaseSlim,
 			},
 		},
 	}

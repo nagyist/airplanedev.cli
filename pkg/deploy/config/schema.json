@@ -6,6 +6,11 @@
     "nodeVersion": {
       "description": "The version of Node to use.",
       "enum": ["14", "16", "18"]
+    },
+    "base": {
+      "description": "The type of base image to use; if not specified, defaults to full.",
+      "enum": ["", "full", "slim"],
+      "default": ""
     }
   },
   "additionalProperties": false,

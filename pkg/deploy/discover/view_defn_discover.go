@@ -31,32 +31,12 @@ func (dd *ViewDefnDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 		return nil, nil
 	}
 
-	buf, err := os.ReadFile(file)
+	d, err := getViewDefinitionFromFile(file)
 	if err != nil {
-		return nil, errors.Wrap(err, "reading view definition")
+		return nil, err
 	}
 
-	format := definitions.GetViewDefFormat(file)
-	d := definitions.ViewDefinition{}
-
-	if err = d.Unmarshal(format, buf); err != nil {
-		switch err := errors.Cause(err).(type) {
-		case definitions.ErrSchemaValidation:
-			errorMsgs := []string{}
-			for _, verr := range err.Errors {
-				errorMsgs = append(errorMsgs, fmt.Sprintf("%s: %s", verr.Field(), verr.Description()))
-			}
-			return nil, definitions.NewErrReadDefinition(fmt.Sprintf("Error reading %s", file), errorMsgs...)
-		default:
-			return nil, errors.Wrap(err, "unmarshalling view definition")
-		}
-	}
-	d.DefnFilePath, err = filepath.Abs(file)
-	if err != nil {
-		return nil, errors.Wrap(err, "getting absolute path of view definition file")
-	}
-
-	root, _, _, err := dd.GetViewRoot(ctx, file)
+	root, _, _, _, err := dd.GetViewRoot(ctx, file)
 	if err != nil {
 		return nil, err
 	}
@@ -90,14 +70,6 @@ func (dd *ViewDefnDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 		}
 	}
 
-	if !filepath.IsAbs(d.Entrypoint) {
-		defnDir := filepath.Dir(file)
-		d.Entrypoint, err = filepath.Abs(filepath.Join(defnDir, d.Entrypoint))
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	return &ViewConfig{
 		ID:     view.ID,
 		Def:    d,
@@ -106,22 +78,66 @@ func (dd *ViewDefnDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 	}, nil
 }
 
-func (dd *ViewDefnDiscoverer) GetViewRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, error) {
+func (dd *ViewDefnDiscoverer) GetViewRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, build.BuildBase, error) {
 	if !definitions.IsViewDef(file) {
-		return "", "", "", nil
+		return "", "", "", "", nil
+	}
+
+	d, err := getViewDefinitionFromFile(file)
+	if err != nil {
+		return "", "", "", "", err
 	}
 
 	root, err := filepath.Abs(filepath.Dir(file))
 	if err != nil {
-		return "", "", "", errors.Wrap(err, "getting absolute view definition root")
+		return "", "", "", "", errors.Wrap(err, "getting absolute view definition root")
 	}
 	if p, ok := fsx.Find(root, "package.json"); ok {
 		root = p
 	}
 
-	return root, build.ViewBuildType, build.BuildTypeVersionUnspecified, nil
+	pm, err := taskPathMetadata(d.Entrypoint, build.TaskKindNode)
+	if err != nil {
+		return "", "", "", "", err
+	}
+
+	return root, build.ViewBuildType, pm.BuildVersion, pm.BuildBase, nil
 }
 
 func (dd *ViewDefnDiscoverer) ConfigSource() ConfigSource {
 	return ConfigSourceDefn
+}
+
+func getViewDefinitionFromFile(file string) (definitions.ViewDefinition, error) {
+	buf, err := os.ReadFile(file)
+	if err != nil {
+		return definitions.ViewDefinition{}, errors.Wrap(err, "reading view definition")
+	}
+	format := definitions.GetViewDefFormat(file)
+
+	d := definitions.ViewDefinition{}
+	if err := d.Unmarshal(format, buf); err != nil {
+		switch err := errors.Cause(err).(type) {
+		case definitions.ErrSchemaValidation:
+			errorMsgs := []string{}
+			for _, verr := range err.Errors {
+				errorMsgs = append(errorMsgs, fmt.Sprintf("%s: %s", verr.Field(), verr.Description()))
+			}
+			return definitions.ViewDefinition{}, definitions.NewErrReadDefinition(fmt.Sprintf("Error reading %s", file), errorMsgs...)
+		default:
+			return definitions.ViewDefinition{}, errors.Wrap(err, "unmarshalling view definition")
+		}
+	}
+	d.DefnFilePath, err = filepath.Abs(file)
+	if err != nil {
+		return definitions.ViewDefinition{}, errors.Wrap(err, "getting absolute path of view definition file")
+	}
+	if !filepath.IsAbs(d.Entrypoint) {
+		defnDir := filepath.Dir(file)
+		d.Entrypoint, err = filepath.Abs(filepath.Join(defnDir, d.Entrypoint))
+		if err != nil {
+			return definitions.ViewDefinition{}, err
+		}
+	}
+	return d, nil
 }

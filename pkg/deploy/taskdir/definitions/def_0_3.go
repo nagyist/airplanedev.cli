@@ -60,8 +60,8 @@ type taskKind_0_3 interface {
 	getEnv() (api.TaskEnv, error)
 	getConfigAttachments() []api.ConfigAttachment
 	getResourceAttachments() map[string]string
-	getBuildType() (build.BuildType, build.BuildTypeVersion)
-	setBuildVersion(build.BuildTypeVersion)
+	getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase)
+	SetBuildVersionBase(build.BuildTypeVersion, build.BuildBase)
 }
 
 var _ taskKind_0_3 = &ImageDefinition_0_3{}
@@ -133,20 +133,20 @@ func (d *ImageDefinition_0_3) getResourceAttachments() map[string]string {
 	return nil
 }
 
-func (d *ImageDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
-	return build.DockerBuildType, build.BuildTypeVersionUnspecified
+func (d *ImageDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
+	return build.DockerBuildType, build.BuildTypeVersionUnspecified, build.BuildBaseNone
 }
 
-func (d *ImageDefinition_0_3) setBuildVersion(v build.BuildTypeVersion) {
+func (d *ImageDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
 }
 
 var _ taskKind_0_3 = &NodeDefinition_0_3{}
 
 type NodeDefinition_0_3 struct {
-	Entrypoint  string      `json:"entrypoint"`
-	NodeVersion string      `json:"nodeVersion"`
-	EnvVars     api.TaskEnv `json:"envVars,omitempty"`
-	Base        string      `json:"base,omitempty"`
+	Entrypoint  string          `json:"entrypoint"`
+	NodeVersion string          `json:"nodeVersion"`
+	EnvVars     api.TaskEnv     `json:"envVars,omitempty"`
+	Base        build.BuildBase `json:"base,omitempty"`
 
 	absoluteEntrypoint string `json:"-"`
 }
@@ -172,7 +172,7 @@ func (d *NodeDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAP
 		}
 	}
 	if v, ok := t.KindOptions["base"]; ok {
-		if sv, ok := v.(string); ok {
+		if sv, ok := v.(build.BuildBase); ok {
 			d.Base = sv
 		} else {
 			return errors.Errorf("expected string base, got %T instead", v)
@@ -228,22 +228,25 @@ func (d *NodeDefinition_0_3) getResourceAttachments() map[string]string {
 	return nil
 }
 
-func (d *NodeDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
-	return build.NodeBuildType, build.BuildTypeVersion(d.NodeVersion)
+func (d *NodeDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
+	return build.NodeBuildType, build.BuildTypeVersion(d.NodeVersion), d.Base
 }
 
-func (d *NodeDefinition_0_3) setBuildVersion(v build.BuildTypeVersion) {
+func (d *NodeDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
 	if d.NodeVersion == "" {
 		d.NodeVersion = string(v)
+	}
+	if d.Base == "" {
+		d.Base = b
 	}
 }
 
 var _ taskKind_0_3 = &PythonDefinition_0_3{}
 
 type PythonDefinition_0_3 struct {
-	Entrypoint string      `json:"entrypoint"`
-	EnvVars    api.TaskEnv `json:"envVars,omitempty"`
-	Base       string      `json:"base,omitempty"`
+	Entrypoint string          `json:"entrypoint"`
+	EnvVars    api.TaskEnv     `json:"envVars,omitempty"`
+	Base       build.BuildBase `json:"base,omitempty"`
 
 	absoluteEntrypoint string `json:"-"`
 }
@@ -262,7 +265,7 @@ func (d *PythonDefinition_0_3) hydrateFromTask(ctx context.Context, client api.I
 		}
 	}
 	if v, ok := t.KindOptions["base"]; ok {
-		if sv, ok := v.(string); ok {
+		if sv, ok := v.(build.BuildBase); ok {
 			d.Base = sv
 		} else {
 			return errors.Errorf("expected string base, got %T instead", v)
@@ -315,11 +318,11 @@ func (d *PythonDefinition_0_3) getResourceAttachments() map[string]string {
 	return nil
 }
 
-func (d *PythonDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
-	return build.PythonBuildType, build.BuildTypeVersionUnspecified
+func (d *PythonDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
+	return build.PythonBuildType, build.BuildTypeVersionUnspecified, d.Base
 }
 
-func (d *PythonDefinition_0_3) setBuildVersion(v build.BuildTypeVersion) {
+func (d *PythonDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
 }
 
 var _ taskKind_0_3 = &ShellDefinition_0_3{}
@@ -387,11 +390,11 @@ func (d *ShellDefinition_0_3) getResourceAttachments() map[string]string {
 	return nil
 }
 
-func (d *ShellDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
-	return build.ShellBuildType, build.BuildTypeVersionUnspecified
+func (d *ShellDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
+	return build.ShellBuildType, build.BuildTypeVersionUnspecified, build.BuildBaseNone
 }
 
-func (d *ShellDefinition_0_3) setBuildVersion(v build.BuildTypeVersion) {
+func (d *ShellDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
 }
 
 var _ taskKind_0_3 = &SQLDefinition_0_3{}
@@ -579,10 +582,10 @@ func (d *SQLDefinition_0_3) getResourceAttachments() map[string]string {
 	return map[string]string{"db": d.Resource}
 }
 
-func (d *SQLDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
-	return build.NoneBuildType, build.BuildTypeVersionUnspecified
+func (d *SQLDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
+	return build.NoneBuildType, build.BuildTypeVersionUnspecified, build.BuildBaseNone
 }
-func (d *SQLDefinition_0_3) setBuildVersion(v build.BuildTypeVersion) {
+func (d *SQLDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
 }
 
 var _ taskKind_0_3 = &RESTDefinition_0_3{}
@@ -763,10 +766,10 @@ func (d *RESTDefinition_0_3) getResourceAttachments() map[string]string {
 	return map[string]string{"rest": d.Resource}
 }
 
-func (d *RESTDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion) {
-	return build.NoneBuildType, build.BuildTypeVersionUnspecified
+func (d *RESTDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
+	return build.NoneBuildType, build.BuildTypeVersionUnspecified, build.BuildBaseNone
 }
-func (d *RESTDefinition_0_3) setBuildVersion(v build.BuildTypeVersion) {
+func (d *RESTDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
 }
 
 type ParameterDefinition_0_3 struct {
@@ -1285,21 +1288,21 @@ func (d Definition_0_3) GetParameters() (api.Parameters, error) {
 	return convertParametersDefToAPI(d.Parameters)
 }
 
-func (d Definition_0_3) GetBuildType() (build.BuildType, build.BuildTypeVersion, error) {
+func (d Definition_0_3) GetBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase, error) {
 	taskKind, err := d.taskKind()
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	t, v := taskKind.getBuildType()
-	return t, v, nil
+	t, v, b := taskKind.getBuildType()
+	return t, v, b, nil
 }
 
-func (d Definition_0_3) SetBuildVersion(v build.BuildTypeVersion) error {
+func (d Definition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) error {
 	taskKind, err := d.taskKind()
 	if err != nil {
 		return err
 	}
-	taskKind.setBuildVersion(v)
+	taskKind.SetBuildVersionBase(v, b)
 	return nil
 }
 

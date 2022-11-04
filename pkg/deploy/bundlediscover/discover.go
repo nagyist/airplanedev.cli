@@ -39,6 +39,7 @@ type Bundle struct {
 	TargetPaths  []string
 	BuildType    build.BuildType
 	BuildVersion build.BuildTypeVersion
+	BuildBase    build.BuildBase
 }
 
 // Discover recursively discovers Airplane bundles located within "paths".
@@ -79,7 +80,7 @@ func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]Bundle, e
 		} else {
 			// We found a file.
 			for _, td := range d.TaskDiscoverers {
-				bundlePath, buildType, buildTypeVersion, err := td.GetTaskRoot(ctx, p)
+				bundlePath, buildType, buildTypeVersion, buildBase, err := td.GetTaskRoot(ctx, p)
 				if err != nil {
 					return nil, err
 				}
@@ -92,6 +93,7 @@ func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]Bundle, e
 					RootPath:     bundlePath,
 					BuildType:    buildType,
 					BuildVersion: buildTypeVersion,
+					BuildBase:    buildBase,
 				}
 				bundles, err = addBundle(bundles, bundle, p)
 				if err != nil {
@@ -99,7 +101,7 @@ func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]Bundle, e
 				}
 			}
 			for _, td := range d.ViewDiscoverers {
-				bundlePath, buildType, buildTypeVersion, err := td.GetViewRoot(ctx, p)
+				bundlePath, buildType, buildTypeVersion, buildBase, err := td.GetViewRoot(ctx, p)
 				if err != nil {
 					return nil, err
 				}
@@ -112,6 +114,7 @@ func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]Bundle, e
 					RootPath:     bundlePath,
 					BuildType:    buildType,
 					BuildVersion: buildTypeVersion,
+					BuildBase:    buildBase,
 				}
 				bundles, err = addBundle(bundles, bundle, p)
 				if err != nil {
@@ -127,7 +130,11 @@ func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]Bundle, e
 func addBundle(bundles []Bundle, bundle Bundle, path string) ([]Bundle, error) {
 	matchingBundle := -1
 	for i, b := range bundles {
-		if b.RootPath == bundle.RootPath && b.BuildType == bundle.BuildType && b.BuildVersion == bundle.BuildVersion {
+		match := b.RootPath == bundle.RootPath &&
+			b.BuildType == bundle.BuildType &&
+			b.BuildVersion == bundle.BuildVersion &&
+			b.BuildBase == bundle.BuildBase
+		if match {
 			matchingBundle = i
 			break
 		}

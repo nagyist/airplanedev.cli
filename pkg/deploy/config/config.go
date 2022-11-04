@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	FileName = "airplane.config.yaml"
+	FileName = "airplane.yaml"
 )
 
 //go:embed schema.json
@@ -24,6 +24,7 @@ var schemaStr string
 type AirplaneConfig struct {
 	NodeVersion build.BuildTypeVersion `yaml:"nodeVersion,omitempty"`
 	EnvVars     api.TaskEnv            `yaml:"envVars,omitempty"`
+	Base        build.BuildBase        `yaml:"base,omitempty"`
 }
 
 func NewAirplaneConfigFromFile(file string) (AirplaneConfig, error) {
