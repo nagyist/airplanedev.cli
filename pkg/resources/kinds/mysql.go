@@ -92,9 +92,6 @@ func (r MySQLResource) Validate() error {
 	if r.Database == "" {
 		return resources.NewErrMissingResourceField("database")
 	}
-	if r.Password == "" {
-		return resources.NewErrMissingResourceField("password")
-	}
 	if r.TLS != "false" && r.TLS != "skip-verify" {
 		return errors.Errorf("Unknown TLS string: %s", r.TLS)
 	}
