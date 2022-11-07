@@ -858,7 +858,7 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 			return err
 		}
 
-		_, nodeVersion, err := def.GetBuildType()
+		_, nodeVersion, buildBase, err := def.GetBuildType()
 		if err != nil {
 			return err
 		}
@@ -866,6 +866,7 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 		if cfg.root.Flagger.Bool(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), flagsiface.AirplaneConfg) {
 			if err := node.CreateOrUpdateAirplaneConfig(cwd, deployconfig.AirplaneConfig{
 				NodeVersion: nodeVersion,
+				Base:        buildBase,
 			}); err != nil {
 				return err
 			}

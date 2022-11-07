@@ -80,47 +80,56 @@ func CreatePackageJSON(directory string, packageJSONOptions PackageJSONOptions) 
 
 // CreateOrUpdateAirplaneConfig creates or updates an existing airplane.config.yaml.
 func CreateOrUpdateAirplaneConfig(directory string, cfg config.AirplaneConfig) error {
-	nodeVersion := cfg.NodeVersion
+	var existingConfig config.AirplaneConfig
+	var existingConfigFilePath string
+	var err error
+	existingConfigFileDir, hasExistingConfigFile := fsx.Find(directory, config.FileName)
+	if hasExistingConfigFile {
+		existingConfigFilePath = filepath.Join(existingConfigFileDir, config.FileName)
+		existingConfig, err = config.NewAirplaneConfigFromFile(existingConfigFilePath)
+		if err != nil {
+			return err
+		}
+	}
 
+	// Calculate node version
 	runtime := javascript.Runtime{}
 	root, err := runtime.Root(directory)
 	if err != nil {
 		return err
 	}
-
-	existingVersion, err := runtime.Version(root)
+	existingNodeVersion, err := runtime.Version(root)
 	if err != nil {
 		return err
 	}
+	correctNodeVersionSet := cfg.NodeVersion != "" && cfg.NodeVersion == existingNodeVersion
 
-	if nodeVersion != "" && nodeVersion == existingVersion {
-		// Correct version already set.
+	// Calculate build base
+	existingBuildBase := existingConfig.Base
+	correctBuildBaseSet := cfg.Base != "" && cfg.Base == existingBuildBase
+
+	if correctBuildBaseSet && correctNodeVersionSet {
+		// Correct values already set.
 		return nil
 	}
 
-	if nodeVersion != "" && existingVersion != "" {
-		logger.Warning("Failed set Node.js version %s: conflicts with existing version %s", nodeVersion, existingVersion)
-		return nil
+	if cfg.NodeVersion != "" && existingNodeVersion != "" && cfg.NodeVersion != existingNodeVersion {
+		cfg.NodeVersion = existingConfig.NodeVersion
+		logger.Warning("Failed set Node.js version %s: conflicts with existing version %s", cfg.NodeVersion, existingNodeVersion)
+	} else if cfg.NodeVersion == "" {
+		cfg.NodeVersion = build.DefaultNodeVersion
+	}
+	if cfg.Base != "" && existingBuildBase != "" && cfg.Base != existingBuildBase {
+		cfg.Base = existingConfig.Base
+		logger.Warning("Failed set base %s: conflicts with existing base %s", cfg.Base, existingBuildBase)
 	}
 
-	cfgToWrite := cfg
 	pathToWrite := filepath.Join(root, config.FileName)
-	existingConfigFileDir, hasExistingConfigFile := fsx.Find(directory, config.FileName)
 	if hasExistingConfigFile {
-		existingConfigFilePath := filepath.Join(existingConfigFileDir, config.FileName)
-		existingConfig, err := config.NewAirplaneConfigFromFile(existingConfigFilePath)
-		if err != nil {
-			return err
-		}
-		existingConfig.NodeVersion = nodeVersion
-		if existingConfig.NodeVersion == "" {
-			existingConfig.NodeVersion = build.DefaultNodeVersion
-		}
-		cfgToWrite = existingConfig
 		pathToWrite = existingConfigFilePath
 	}
 
-	buf, err := yaml.Marshal(&cfgToWrite)
+	buf, err := yaml.Marshal(&cfg)
 	if err != nil {
 		fmt.Printf("Error while Marshaling. %v", err)
 	}
