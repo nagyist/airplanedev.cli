@@ -2,6 +2,13 @@
 # yarn lockfile v1
 
 
+"@azure/abort-controller@1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@azure/abort-controller/-/abort-controller-1.1.0.tgz#788ee78457a55af8a1ad342acb182383d2119249"
+  integrity sha512-TrRLIoSQVzfAJX9H1JeFjzAoDGcoK1IYX1UImfceTZpsyYfWr09Ss1aHW1y5TrrR3iq6RZLBwJ3E24uwPhwahw==
+  dependencies:
+    tslib "^2.2.0"
+
 "@opentelemetry/api@1.2.0":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/api/-/api-1.2.0.tgz#89ef99401cde6208cff98760b67663726ef26686"
@@ -12,11 +19,12 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-18.11.9.tgz#02d013de7058cea16d36168ef2fc653464cfbad4"
   integrity sha512-CRpX21/kGdzjOpFsZSkcrXMGIBWMGNIHXXBVFSH+ggkftxg+XYP20TESbh+zFvFj3EQOl5byk0HTRn1IL6hbqg==
 
-airplane@0.2.13:
-  version "0.2.13"
-  resolved "https://registry.yarnpkg.com/airplane/-/airplane-0.2.13.tgz#184f4a466bcdbfc4bf51da418033cd2a7545925b"
-  integrity sha512-iUsEcr4LE1Y+HAifG+E4WAoYfbYWEW+Eg26tU3JoJpbVoseTaHKIRBwcJ10K7RvoX80V9MFwiHQ5zwVT5wFX9A==
+airplane@0.2.15:
+  version "0.2.15"
+  resolved "https://registry.yarnpkg.com/airplane/-/airplane-0.2.15.tgz#58f53a9029a1410791396731e574b8c02ac3d490"
+  integrity sha512-qrIj+GPF9CPLlIjvPgQhUZDyBSk/wV0Dh38WdwpIJnUFfp3CTMRpRYjl6jTN5DzAsuGFht/4Vs5mUu+cr8iDTg==
   dependencies:
+    "@azure/abort-controller" "1.1.0"
     "@opentelemetry/api" "1.2.0"
     cross-fetch "3.1.5"
     fast-equals "4.0.3"
@@ -197,6 +205,11 @@ ts-dedent@2.2.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/ts-dedent/-/ts-dedent-2.2.0.tgz#39e4bd297cd036292ae2394eb3412be63f563bb5"
   integrity sha512-q5W7tVM71e2xjHZTlgfTDoPF/SmqKG5hddq9SzR49CH2hayqRKJtQ4mtRlSxKaJlR/+9rEM+mnBHf7I2/BQcpQ==
+
+tslib@^2.2.0:
+  version "2.4.1"
+  resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.4.1.tgz#0d0bfbaac2880b91e22df0768e55be9753a5b17e"
+  integrity sha512-tGyy4dAjRIEwI7BzsB0lynWgOpfqjUdq91XXAlIWD2OwKBH7oCl/GZG/HT4BOHrTlPMOASlMQ7veyTqpmRcrNA==
 
 uuid@9.0.0:
   version "9.0.0"

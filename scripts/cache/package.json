@@ -5,7 +5,7 @@
     "@types/node": "18.11.9"
   },
   "dependencies": {
-    "airplane": "0.2.13",
+    "airplane": "0.2.15",
     "execa": "5.1.1"
   },
   "airplane": {

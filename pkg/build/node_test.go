@@ -416,7 +416,7 @@ func TestReadPackageJSON(t *testing.T) {
 			fixture: "node_externals/dependencies/package.json",
 			packageJSON: PackageJSON{
 				Dependencies:         map[string]string{"react": "18.2.0"},
-				DevDependencies:      map[string]string{"@types/react": "18.0.24"},
+				DevDependencies:      map[string]string{"@types/react": "18.0.25"},
 				OptionalDependencies: map[string]string{"react-table": "7.8.0"},
 			},
 		},
