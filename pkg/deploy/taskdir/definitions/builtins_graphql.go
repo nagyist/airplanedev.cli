@@ -34,10 +34,11 @@ func init() {
 type GraphQLDefinition_0_3 struct {
 	Resource string `json:"resource"`
 	// This field is 'query' in KindOptions.
-	Operation string                 `json:"operation"`
-	Variables map[string]interface{} `json:"variables,omitempty"`
-	URLParams map[string]interface{} `json:"urlParams,omitempty"`
-	Headers   map[string]interface{} `json:"headers,omitempty"`
+	Operation     string                 `json:"operation"`
+	Variables     map[string]interface{} `json:"variables,omitempty"`
+	URLParams     map[string]interface{} `json:"urlParams,omitempty"`
+	Headers       map[string]interface{} `json:"headers,omitempty"`
+	RetryFailures interface{}            `json:"retryFailures,omitempty"`
 }
 
 var _ taskKind_0_3 = &GraphQLDefinition_0_3{}
@@ -109,6 +110,9 @@ func (d *GraphQLDefinition_0_3) hydrateFromTask(ctx context.Context, client api.
 			return errors.Errorf("expected map headers, got %T instead", v)
 		}
 	}
+	if v, ok := request["retryFailures"]; ok {
+		d.RetryFailures = v
+	}
 	return nil
 }
 
@@ -143,10 +147,11 @@ func (d GraphQLDefinition_0_3) getKindOptions() (build.KindOptions, error) {
 			"name":      "request",
 		},
 		"request": map[string]interface{}{
-			"query":     d.Operation,
-			"variables": variables,
-			"urlParams": urlParams,
-			"headers":   headers,
+			"query":         d.Operation,
+			"variables":     variables,
+			"urlParams":     urlParams,
+			"headers":       headers,
+			"retryFailures": d.RetryFailures,
 		},
 	}, nil
 }

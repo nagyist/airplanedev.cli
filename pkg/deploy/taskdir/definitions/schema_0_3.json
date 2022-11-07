@@ -263,6 +263,10 @@
                   "patternProperties": {
                     ".*": { "type": ["string", "boolean", "number"] }
                   }
+                },
+                "retryFailures": {
+                  "description": "Retry the request if the server returns a 500, 502, 503, or 504 status code. Requests are always retried on 408 and 429 status codes. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "type": ["boolean", "string"]
                 }
               },
               "additionalProperties": false,
