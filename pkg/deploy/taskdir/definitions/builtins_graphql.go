@@ -32,8 +32,7 @@ func init() {
 }
 
 type GraphQLDefinition_0_3 struct {
-	Resource string `json:"resource"`
-	// This field is 'query' in KindOptions.
+	Resource      string                 `json:"resource"`
 	Operation     string                 `json:"operation"`
 	Variables     map[string]interface{} `json:"variables,omitempty"`
 	URLParams     map[string]interface{} `json:"urlParams,omitempty"`
@@ -82,11 +81,11 @@ func (d *GraphQLDefinition_0_3) hydrateFromTask(ctx context.Context, client api.
 	if !ok {
 		return errors.Errorf("expected map request, got %T instead", req)
 	}
-	if v, ok := request["query"]; ok {
+	if v, ok := request["operation"]; ok {
 		if sv, ok := v.(string); ok {
 			d.Operation = sv
 		} else {
-			return errors.Errorf("expected string query, got %T instead", v)
+			return errors.Errorf("expected string operation, got %T instead", v)
 		}
 	}
 	if v, ok := request["variables"]; ok {
@@ -147,7 +146,7 @@ func (d GraphQLDefinition_0_3) getKindOptions() (build.KindOptions, error) {
 			"name":      "request",
 		},
 		"request": map[string]interface{}{
-			"query":         d.Operation,
+			"operation":     d.Operation,
 			"variables":     variables,
 			"urlParams":     urlParams,
 			"headers":       headers,
