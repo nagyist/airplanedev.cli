@@ -218,6 +218,7 @@ func HandleMissingTask(cfg config, l logger.LoggerWithLoader, createdTasks *map[
 			KindOptions:      utr.KindOptions,
 			Repo:             utr.Repo,
 			Timeout:          utr.Timeout,
+			Runtime:          utr.Runtime,
 			EnvSlug:          cfg.envSlug,
 		}
 		if utr.Configs != nil {
