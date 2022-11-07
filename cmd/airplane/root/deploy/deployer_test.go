@@ -54,6 +54,7 @@ func TestDeploy(t *testing.T) {
 					TargetPaths:  []string{"myPath"},
 					BuildType:    build.NodeBuildType,
 					BuildVersion: build.BuildTypeVersionNode16,
+					BuildBase:    build.BuildBaseSlim,
 				},
 			},
 			deploys: []api.CreateDeploymentRequest{
@@ -65,6 +66,7 @@ func TestDeploy(t *testing.T) {
 							BuildContext: api.BuildContext{
 								Type:    build.NodeBuildType,
 								Version: build.BuildTypeVersionNode16,
+								Base:    build.BuildBaseSlim,
 							},
 						},
 					},

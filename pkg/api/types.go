@@ -291,10 +291,7 @@ type DeployView struct {
 	GitFilePath string `json:"gitFilePath"`
 }
 
-type BuildContext struct {
-	Type    build.BuildType        `json:"type"`
-	Version build.BuildTypeVersion `json:"version"`
-}
+type BuildContext = build.BuildContext
 
 type DeployBundle struct {
 	UploadID     string       `json:"uploadID"`

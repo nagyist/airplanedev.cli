@@ -89,6 +89,7 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 			BuildContext: api.BuildContext{
 				Type:    b.BuildType,
 				Version: b.BuildVersion,
+				Base:    b.BuildBase,
 			},
 		}
 		bundlesToDeploy = append(bundlesToDeploy, bundleToDeploy)
