@@ -15,6 +15,7 @@ import (
 	"github.com/docker/docker/client"
 	dockerJSONMessage "github.com/docker/docker/pkg/jsonmessage"
 	"github.com/mattn/go-isatty"
+	controlapi "github.com/moby/buildkit/api/services/control"
 	"github.com/pkg/errors"
 )
 
@@ -163,6 +164,7 @@ func (b *BundleBuilder) Build(ctx context.Context, bundleBuildID, version string
 		Tags:        []string{uri},
 		Platform:    "linux/amd64",
 		AuthConfigs: b.authconfigs(),
+		Version:     types.BuilderBuildKit,
 	}
 
 	resp, err := b.client.ImageBuild(ctx, bc, opts)
@@ -173,13 +175,33 @@ func (b *BundleBuilder) Build(ctx context.Context, bundleBuildID, version string
 
 	scanner := bufiox.NewScanner(resp.Body)
 	for scanner.Scan() {
-		var event *dockerJSONMessage.JSONMessage
-		if err := json.Unmarshal(scanner.Bytes(), &event); err != nil {
+		var msg *dockerJSONMessage.JSONMessage
+		if err := json.Unmarshal(scanner.Bytes(), &msg); err != nil {
 			return nil, errors.Wrap(err, "unmarshalling docker build event")
 		}
 
-		if err := event.Display(os.Stderr, isatty.IsTerminal(os.Stderr.Fd())); err != nil {
-			return nil, errors.Wrap(err, "docker build")
+		var resp controlapi.StatusResponse
+
+		if msg.ID != "moby.buildkit.trace" {
+			continue
+		}
+
+		var dt []byte
+		// ignoring all messages that are not understood
+		if err := json.Unmarshal(*msg.Aux, &dt); err != nil {
+			continue
+		}
+		if err := (&resp).Unmarshal(dt); err != nil {
+			continue
+		}
+		for _, v := range resp.GetVertexes() {
+			fmt.Fprintln(os.Stderr, v.Name)
+			if v.Cached {
+				fmt.Fprintln(os.Stderr, "CACHED")
+			}
+			if v.Error != "" {
+				fmt.Fprintln(os.Stderr, v.Error)
+			}
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -252,6 +274,8 @@ func BuildBundleDockerfile(c BundleDockerfileConfig) (string, error) {
 	case NodeBuildType:
 		// TODO: pipe in build args
 		return nodeBundle(c.Root, c.BuildContext, c.Options, c.BuildArgKeys, c.FilesToBuild, c.FilesToDiscover)
+	case ShellBuildType:
+		return shellBundle(c.Root)
 	case ViewBuildType:
 		return viewBundle(c.Root, c.BuildContext, c.Options, c.FilesToBuild, c.FilesToDiscover)
 	default:

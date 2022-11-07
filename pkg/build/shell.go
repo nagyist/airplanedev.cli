@@ -21,13 +21,86 @@ func shell(root string, options KindOptions) (string, error) {
 		return "", err
 	}
 
-	// Build off of the dockerfile if provided:
-	var dockerfileTemplate string
-	var workDir string
+	dockerfileTemplate, workDir, err := getBaseDockerfileTemplate(root)
+	if err != nil {
+		return "", err
+	}
+
+	// Extend template with our own logic - set up a WORKDIR and shim.
+	dockerfileTemplate = dockerfileTemplate + heredoc.Doc(`
+		WORKDIR {{.Workdir}}
+		RUN mkdir -p .airplane && {{.InlineShim}} > .airplane/shim.sh
+
+		COPY . .
+		RUN chmod +x {{.Entrypoint}}
+
+		ENTRYPOINT ["bash", ".airplane/shim.sh", "./{{.Entrypoint}}"]
+	`)
+	return applyTemplate(dockerfileTemplate, struct {
+		InlineShim string
+		Entrypoint string
+		Workdir    string
+	}{
+		InlineShim: inlineString(ShellShim()),
+		Entrypoint: backslashEscape(entrypoint, `"`),
+		Workdir:    workDir,
+	})
+}
+
+func shellBundle(root string) (string, error) {
+	dockerfileTemplate, workDir, err := getBaseDockerfileTemplate(root)
+	if err != nil {
+		return "", err
+	}
+
+	// Extend template with our own logic - set up a WORKDIR and shim.
+	dockerfileTemplate = dockerfileTemplate + heredoc.Doc(`
+		WORKDIR {{.Workdir}}
+		RUN mkdir -p .airplane && {{.InlineShim}} > .airplane/shim.sh
+
+		COPY --chmod=700 . .
+	`)
+	return applyTemplate(dockerfileTemplate, struct {
+		InlineShim string
+		Entrypoint string
+		Workdir    string
+	}{
+		InlineShim: inlineString(ShellShim()),
+		Workdir:    workDir,
+	})
+}
+
+//go:embed shell-shim.sh
+var shellShim string
+
+func ShellShim() string {
+	return shellShim
+}
+
+func DockerfilePaths() []string {
+	return []string{
+		"Dockerfile.airplane",
+		"Dockerfile",
+	}
+}
+
+// FindDockerfile looks for variants of supported Dockerfile locations and returns non-empty path
+// to the file, if found.
+func FindDockerfile(root string) string {
+	for _, filePath := range DockerfilePaths() {
+		dockerfilePath := filepath.Join(root, filePath)
+		if fsx.Exists(dockerfilePath) {
+			return dockerfilePath
+		}
+	}
+	return ""
+}
+
+func getBaseDockerfileTemplate(root string) (dockerfileTemplate, workDir string, err error) {
 	if dockerfilePath := FindDockerfile(root); dockerfilePath != "" {
 		contents, err := os.ReadFile(dockerfilePath)
 		if err != nil {
-			return "", errors.Wrap(err, "opening dockerfile")
+			return "", "", errors.Wrap(err, "opening dockerfile")
 		}
 		dockerfileTemplate = string(contents)
 
@@ -70,49 +143,5 @@ func shell(root string, options KindOptions) (string, error) {
 		workDir = "/airplane"
 	}
 
-	// Extend template with our own logic - set up a WORKDIR and shim.
-	dockerfileTemplate = dockerfileTemplate + heredoc.Doc(`
-		WORKDIR {{.Workdir}}
-		RUN mkdir -p .airplane && {{.InlineShim}} > .airplane/shim.sh
-
-		COPY . .
-		RUN chmod +x {{.Entrypoint}}
-
-		ENTRYPOINT ["bash", ".airplane/shim.sh", "./{{.Entrypoint}}"]
-	`)
-	return applyTemplate(dockerfileTemplate, struct {
-		InlineShim string
-		Entrypoint string
-		Workdir    string
-	}{
-		InlineShim: inlineString(ShellShim()),
-		Entrypoint: backslashEscape(entrypoint, `"`),
-		Workdir:    workDir,
-	})
-}
-
-//go:embed shell-shim.sh
-var shellShim string
-
-func ShellShim() string {
-	return shellShim
-}
-
-func DockerfilePaths() []string {
-	return []string{
-		"Dockerfile.airplane",
-		"Dockerfile",
-	}
-}
-
-// FindDockerfile looks for variants of supported Dockerfile locations and returns non-empty path
-// to the file, if found.
-func FindDockerfile(root string) string {
-	for _, filePath := range DockerfilePaths() {
-		dockerfilePath := filepath.Join(root, filePath)
-		if fsx.Exists(dockerfilePath) {
-			return dockerfilePath
-		}
-	}
-	return ""
+	return dockerfileTemplate, workDir, nil
 }

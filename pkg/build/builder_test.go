@@ -118,17 +118,29 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 
 			if !test.SkipRun {
 				if test.Bundle {
-					if test.BuildContext.Type != NodeBuildType {
-						require.Fail("bundle tests are only available for node images")
-					}
-					for _, testRun := range test.BundleRuns {
-						out := runTask(t, ctx, client, runTaskConfig{
-							Image:       resp.ImageURL,
-							ParamValues: test.ParamValues,
-							Entrypoint:  []string{"node", "/airplane/.airplane/dist/universal-shim.js", path.Join("/airplane/.airplane/", testRun.RelEntrypoint), testRun.ExportName},
-							Kind:        test.Kind,
-						})
-						require.True(strings.Contains(string(out), testRun.SearchString), "unable to find %q in output:\n%s", test.SearchString, string(out))
+					switch test.BuildContext.Type {
+					case NodeBuildType:
+						for _, testRun := range test.BundleRuns {
+							out := runTask(t, ctx, client, runTaskConfig{
+								Image:       resp.ImageURL,
+								ParamValues: test.ParamValues,
+								Entrypoint:  []string{"node", "/airplane/.airplane/dist/universal-shim.js", path.Join("/airplane/.airplane/", testRun.RelEntrypoint), testRun.ExportName},
+								Kind:        test.Kind,
+							})
+							require.True(strings.Contains(string(out), testRun.SearchString), "unable to find %q in output:\n%s", test.SearchString, string(out))
+						}
+					case ShellBuildType:
+						for _, testRun := range test.BundleRuns {
+							out := runTask(t, ctx, client, runTaskConfig{
+								Image:       resp.ImageURL,
+								ParamValues: test.ParamValues,
+								Entrypoint:  []string{"bash", ".airplane/shim.sh", "./" + testRun.RelEntrypoint},
+								Kind:        test.Kind,
+							})
+							require.True(strings.Contains(string(out), testRun.SearchString), "unable to find %q in output:\n%s", test.SearchString, string(out))
+						}
+					default:
+						require.Fail("bundle tests are not available for build context type")
 					}
 				} else {
 					// Run the produced docker image:
@@ -154,24 +166,28 @@ type runTaskConfig struct {
 func runTask(t *testing.T, ctx context.Context, dclient *client.Client, c runTaskConfig) []byte {
 	require := require.New(t)
 
-	var paramsStr string
+	var cmd strslice.StrSlice
 	if c.Kind == TaskKindShell {
 		var params []string
 		for k, v := range c.ParamValues {
 			params = append(params, fmt.Sprintf("%s=%s", k, v))
 		}
-		paramsStr = strings.Join(params, ", ")
+		if len(c.Entrypoint) == 0 {
+			cmd = strslice.StrSlice{strings.Join(params, ", ")}
+		} else {
+			for k, v := range c.ParamValues {
+				c.Entrypoint = append(c.Entrypoint, fmt.Sprintf("%s=%s", k, v))
+			}
+		}
 	} else {
 		pv, err := json.Marshal(c.ParamValues)
 		require.NoError(err)
-		paramsStr = string(pv)
-	}
+		if len(c.Entrypoint) == 0 {
+			cmd = strslice.StrSlice{string(pv)}
+		} else {
+			c.Entrypoint = append(c.Entrypoint, string(pv))
+		}
 
-	var cmd strslice.StrSlice
-	if len(c.Entrypoint) == 0 {
-		cmd = strslice.StrSlice{paramsStr}
-	} else {
-		c.Entrypoint = append(c.Entrypoint, paramsStr)
 	}
 
 	resp, err := dclient.ContainerCreate(ctx, &container.Config{
@@ -206,6 +222,8 @@ func runTask(t *testing.T, ctx context.Context, dclient *client.Client, c runTas
 	logs, err := io.ReadAll(dlog.NewReader(logr, dlog.Options{
 		AppendNewline: true,
 	}))
+	fmt.Println("Output logs")
+	fmt.Println(string(logs))
 	require.NoError(err)
 
 	select {
