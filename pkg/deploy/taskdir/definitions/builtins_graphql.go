@@ -32,12 +32,12 @@ func init() {
 }
 
 type GraphQLDefinition_0_3 struct {
-	Resource      string                 `json:"resource"`
-	Query         string                 `json:"query"`
-	OperationName string                 `json:"operationName,omitempty"`
-	Variables     map[string]interface{} `json:"variables,omitempty"`
-	URLParams     map[string]interface{} `json:"urlParams,omitempty"`
-	Headers       map[string]interface{} `json:"headers,omitempty"`
+	Resource string `json:"resource"`
+	// This field is 'query' in KindOptions.
+	Operation string                 `json:"operation"`
+	Variables map[string]interface{} `json:"variables,omitempty"`
+	URLParams map[string]interface{} `json:"urlParams,omitempty"`
+	Headers   map[string]interface{} `json:"headers,omitempty"`
 }
 
 var _ taskKind_0_3 = &GraphQLDefinition_0_3{}
@@ -83,16 +83,9 @@ func (d *GraphQLDefinition_0_3) hydrateFromTask(ctx context.Context, client api.
 	}
 	if v, ok := request["query"]; ok {
 		if sv, ok := v.(string); ok {
-			d.Query = sv
+			d.Operation = sv
 		} else {
 			return errors.Errorf("expected string query, got %T instead", v)
-		}
-	}
-	if v, ok := request["operationName"]; ok {
-		if sv, ok := v.(string); ok {
-			d.OperationName = sv
-		} else {
-			return errors.Errorf("expected string operationName, got %T instead", v)
 		}
 	}
 	if v, ok := request["variables"]; ok {
@@ -150,11 +143,10 @@ func (d GraphQLDefinition_0_3) getKindOptions() (build.KindOptions, error) {
 			"name":      "request",
 		},
 		"request": map[string]interface{}{
-			"query":         d.Query,
-			"operationName": d.OperationName,
-			"variables":     variables,
-			"urlParams":     urlParams,
-			"headers":       headers,
+			"query":     d.Operation,
+			"variables": variables,
+			"urlParams": urlParams,
+			"headers":   headers,
 		},
 	}, nil
 }
