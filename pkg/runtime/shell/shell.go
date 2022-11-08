@@ -15,6 +15,7 @@ import (
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils"
+	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/handlebars"
 	"github.com/airplanedev/lib/pkg/utils/logger"
@@ -66,7 +67,7 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		logger.Warning("The script will run inside your local machine environment.")
 	}
 
-	_, taskDir, closer, err := runtime.CreateTaskDir(root, opts.TaskSlug)
+	_, taskDir, closer, err := airplane_directory.CreateTaskDir(root, opts.TaskSlug)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -27,7 +27,7 @@ type Runtime struct{}
 
 // PrepareRun implementation.
 func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runtime.PrepareRunOptions) (rexprs []string, rcloser io.Closer, rerr error) {
-	client, err := builtins.NewLocalClient(goruntime.GOOS, goruntime.GOARCH, logger)
+	builtinClient, err := builtins.NewLocalClient(opts.RootDir, goruntime.GOOS, goruntime.GOARCH, logger)
 	if err != nil {
 		logger.Warning(err.Error())
 		return nil, nil, err
@@ -36,11 +36,11 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 	if err != nil {
 		return nil, nil, errors.New("invalid builtin request")
 	}
-	cmd, err := client.CmdString(ctx, req)
+	cmd, err := builtinClient.CmdString(ctx, req)
 	if err != nil {
 		return nil, nil, err
 	}
-	return cmd, nil, nil
+	return cmd, builtinClient.Closer, nil
 }
 
 // Generate implementation.

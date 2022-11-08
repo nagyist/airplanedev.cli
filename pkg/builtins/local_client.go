@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 
 	"cloud.google.com/go/storage"
+	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
 	"github.com/airplanedev/lib/pkg/utils/logger"
-	"github.com/mitchellh/hashstructure/v2"
 	"github.com/pkg/errors"
 	"google.golang.org/api/option"
 )
@@ -63,26 +63,6 @@ func MarshalRequest(slug string, paramValues map[string]interface{}) (string, er
 	return string(b), nil
 }
 
-// TODO: refactor and share this logic with viewsDir
-func tmpDirPath(fileName string, logger logger.Logger) string {
-	hash, err := hashstructure.Hash(fileName, hashstructure.FormatV2, nil)
-	if err != nil {
-		logger.Log("error with hashing tmpdir, using default hash value: %d", hash)
-	}
-	return filepath.Join(os.TempDir(), fmt.Sprintf("airplane-builtins-%d", hash))
-}
-
-func createBuiltinDir(directory string, logger logger.Logger) error {
-	if _, err := os.Stat(directory); os.IsNotExist(err) {
-		if err := os.Mkdir(directory, 0755); err != nil {
-			return errors.Wrap(err, "creating temporary dir")
-		}
-		logger.Debug("created temporary dir for builtins: %s", directory)
-		return nil
-	}
-	return nil
-}
-
 type LocalBuiltinClient struct {
 	fileName     string
 	directory    string
@@ -90,9 +70,11 @@ type LocalBuiltinClient struct {
 	checksumPath string
 	client       *storage.Client
 	logger       logger.Logger
+
+	Closer io.Closer
 }
 
-func NewLocalClient(opSystem string, arch string, logger logger.Logger) (*LocalBuiltinClient, error) {
+func NewLocalClient(root string, opSystem string, arch string, logger logger.Logger) (*LocalBuiltinClient, error) {
 	if !isLocalExecutionSupported(opSystem, arch) {
 		return nil, fmt.Errorf("Local builtins execution for %s %s systems is under development. Please reach out to support@airplane.dev for assistance.", opSystem, arch)
 	}
@@ -101,18 +83,19 @@ func NewLocalClient(opSystem string, arch string, logger logger.Logger) (*LocalB
 		return nil, errors.Wrap(err, "creating GCS client")
 	}
 	fileName := fmt.Sprintf("builtins-%s-%s", opSystem, arch)
-	tmpDir := tmpDirPath(fileName, logger)
-	if err := createBuiltinDir(tmpDir, logger); err != nil {
+
+	_, builtinDir, closer, err := airplane_directory.CreateTaskDir(root, "builtins")
+	if err != nil {
 		return nil, errors.Wrap(err, "creating builtins directory")
 	}
-
 	client := &LocalBuiltinClient{
 		fileName:     fileName,
 		client:       storageClient,
-		directory:    tmpDir,
-		checksumPath: filepath.Join(tmpDir, checksumFileName),
-		binaryPath:   filepath.Join(tmpDir, fileName),
+		directory:    builtinDir,
+		checksumPath: filepath.Join(builtinDir, checksumFileName),
+		binaryPath:   filepath.Join(builtinDir, fileName),
 		logger:       logger,
+		Closer:       closer,
 	}
 	_, err = client.install()
 	if err != nil {
@@ -135,7 +118,7 @@ func (b *LocalBuiltinClient) CmdString(ctx context.Context, req string) ([]strin
 // Downloads the latest version of builtins if it doesn't exist
 // otherwise uses version installed in tmp directory
 func (b *LocalBuiltinClient) install() (string, error) {
-	if _, err := os.Stat(b.binaryPath); os.IsNotExist(err) {
+	if _, err := os.Stat(b.binaryPath); err != nil && os.IsNotExist(err) {
 		b.logger.Debug("Builtins package not found: %s", b.binaryPath)
 		return b.download()
 	}

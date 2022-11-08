@@ -19,6 +19,7 @@ import (
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
+	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/pkg/errors"
@@ -73,7 +74,7 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		return nil, nil, err
 	}
 
-	_, taskDir, closer, err := runtime.CreateTaskDir(root, opts.TaskSlug)
+	_, taskDir, closer, err := airplane_directory.CreateTaskDir(root, opts.TaskSlug)
 	if err != nil {
 		return nil, nil, err
 	}
