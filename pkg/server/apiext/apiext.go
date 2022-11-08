@@ -370,9 +370,24 @@ func CreateDisplayHandler(ctx context.Context, state *state.State, r *http.Reque
 	switch req.Display.Kind {
 	case "markdown":
 		display.Content = req.Display.Content
+
+		maxMarkdownLength := 100000
+		if len(display.Content) > maxMarkdownLength {
+			return CreateDisplayResponse{}, errors.Errorf("content too long: expected at most %d characters, got %d", maxMarkdownLength, len(display.Content))
+		}
 	case "table":
 		display.Rows = req.Display.Rows
 		display.Columns = req.Display.Columns
+
+		maxRows := 10000
+		if len(display.Rows) > maxRows {
+			return CreateDisplayResponse{}, errors.Errorf("too many table rows: expected at most %d, got %d", maxRows, len(display.Rows))
+		}
+
+		maxColumns := 100
+		if len(display.Columns) > maxColumns {
+			return CreateDisplayResponse{}, errors.Errorf("too many table columns: expected at most %d, got %d", maxColumns, len(display.Columns))
+		}
 	case "json":
 		display.Value = req.Display.Value
 	}
