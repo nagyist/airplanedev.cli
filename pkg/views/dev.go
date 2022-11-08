@@ -19,7 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/views/viewdir"
 	libbuild "github.com/airplanedev/lib/pkg/build"
-	"github.com/airplanedev/lib/pkg/runtime"
+	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
 	"github.com/pkg/errors"
 )
 
@@ -62,7 +62,7 @@ func Dev(ctx context.Context, v viewdir.ViewDirectoryInterface, viteOpts ViteOpt
 		return nil, "", nil, errors.Wrap(err, "creating view-specific subdir")
 	}
 	l.Debug("created view-specific subdir %s", viewSubdir)
-	closer := runtime.CloseFunc(func() error {
+	closer := airplane_directory.CloseFunc(func() error {
 		return errors.Wrap(os.RemoveAll(viewSubdir), "unable to remove view-specific subdir")
 	})
 	defer func() {

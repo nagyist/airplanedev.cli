@@ -67,6 +67,8 @@ type LocalRunConfig struct {
 	IsBuiltin bool
 	LogBroker logs.LogBroker
 	PrintLogs bool
+	// RootDir is where the studio is running
+	RootDir string
 }
 
 type CmdConfig struct {
@@ -81,7 +83,7 @@ var LogIDGen IDGenerator
 // Cmd returns the command needed to execute the task locally
 func (l *LocalExecutor) Cmd(ctx context.Context, runConfig LocalRunConfig) (CmdConfig, error) {
 	if runConfig.IsBuiltin {
-		builtinClient, err := builtins.NewLocalClient(goruntime.GOOS, goruntime.GOARCH, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}))
+		builtinClient, err := builtins.NewLocalClient(runConfig.RootDir, goruntime.GOOS, goruntime.GOARCH, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}))
 		if err != nil {
 			logger.Error(err.Error())
 			return CmdConfig{}, err
@@ -94,7 +96,7 @@ func (l *LocalExecutor) Cmd(ctx context.Context, runConfig LocalRunConfig) (CmdC
 		if err != nil {
 			return CmdConfig{}, err
 		}
-		return CmdConfig{cmd: cmd}, nil
+		return CmdConfig{cmd: cmd, closer: builtinClient.Closer}, nil
 	}
 	entrypoint, err := entrypointFrom(runConfig.File)
 	if err != nil && err != definitions.ErrNoEntrypoint {
@@ -116,6 +118,7 @@ func (l *LocalExecutor) Cmd(ctx context.Context, runConfig LocalRunConfig) (CmdC
 		ParamValues: runConfig.ParamValues,
 		KindOptions: runConfig.KindOptions,
 		TaskSlug:    runConfig.Slug,
+		RootDir:     runConfig.RootDir,
 	})
 	if err != nil {
 		return CmdConfig{}, err
