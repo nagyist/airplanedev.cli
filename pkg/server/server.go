@@ -76,6 +76,7 @@ func NewRouter(state *state.State) *mux.Router {
 			"x-airplane-client-kind",
 			"x-airplane-client-version",
 			"x-airplane-client-source",
+			"idempotency-key",
 		}),
 	))
 
