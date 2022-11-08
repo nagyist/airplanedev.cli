@@ -38,9 +38,18 @@ type Server struct {
 	state *state.State
 }
 
+const containerAddress = "0.0.0.0"
+const loopbackAddress = "127.0.0.1"
+
 // address returns the TCP address that the API server listens on.
-func address(port int) string {
-	return fmt.Sprintf("127.0.0.1:%d", port)
+func address(port int, expose bool) string {
+	var addr string
+	if expose {
+		addr = containerAddress
+	} else {
+		addr = loopbackAddress
+	}
+	return fmt.Sprintf("%s:%d", addr, port)
 }
 
 var corsOrigins = []string{
@@ -91,18 +100,22 @@ type Options struct {
 	RemoteClient   api.APIClient
 	RemoteEnv      libapi.Env
 	UseFallbackEnv bool
-	Port           int
-	Executor       dev.Executor
-	DevConfig      *conf.DevConfig
-	Dir            string
-	AuthInfo       api.AuthInfoResponse
-	Discoverer     *discover.Discoverer
+
+	Port int
+	// Expose is used to bind the server to the default route (0.0.0.0) so that it can be accessed outside a container.
+	Expose bool
+
+	Executor   dev.Executor
+	DevConfig  *conf.DevConfig
+	Dir        string
+	AuthInfo   api.AuthInfoResponse
+	Discoverer *discover.Discoverer
 }
 
 // newServer returns a new HTTP server with API routes
-func newServer(router *mux.Router, state *state.State, port int) *Server {
+func newServer(router *mux.Router, state *state.State, port int, expose bool) *Server {
 	srv := &http.Server{
-		Addr:    address(port),
+		Addr:    address(port, expose),
 		Handler: router,
 	}
 	router.Handle("/shutdown", ShutdownHandler(srv))
@@ -154,7 +167,7 @@ func Start(opts Options) (*Server, error) {
 	}
 
 	r := NewRouter(state)
-	s := newServer(r, state, opts.Port)
+	s := newServer(r, state, opts.Port, opts.Expose)
 
 	go func() {
 		if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {

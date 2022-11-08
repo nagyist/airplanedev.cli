@@ -96,6 +96,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		DevConfig:      cfg.devConfig,
 		Executor:       localExecutor,
 		Port:           cfg.port,
+		Expose:         cfg.sandbox,
 		Dir:            absoluteDir,
 		AuthInfo:       authInfo,
 		Discoverer:     d,
