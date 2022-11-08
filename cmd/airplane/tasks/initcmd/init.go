@@ -63,6 +63,7 @@ func GetConfig(client *api.Client, root *cli.Config) config {
 type newTaskInfo struct {
 	name       string
 	kind       build.TaskKind
+	kindName   string
 	entrypoint string
 }
 
@@ -182,8 +183,38 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		}
 
 		var err error
-		def, err = definitions.NewDefinition_0_3(cfg.newTaskInfo.name,
-			utils.MakeSlug(cfg.newTaskInfo.name), cfg.newTaskInfo.kind, cfg.newTaskInfo.entrypoint)
+		slug := utils.MakeSlug(cfg.newTaskInfo.name)
+		if cfg.newTaskInfo.kind == build.TaskKindBuiltin {
+			switch cfg.newTaskInfo.kindName {
+			case "GraphQL":
+				def, err = definitions.NewBuiltinDefinition_0_3(
+					cfg.newTaskInfo.name,
+					slug,
+					&definitions.GraphQLDefinition_0_3{
+						Operation: `query get_user {
+  user(id: $id) {
+    id
+	name
+	email
+  }
+}`,
+						Variables: map[string]interface{}{
+							"id": 1,
+						},
+						RetryFailures: true,
+					},
+				)
+			default:
+				return errors.Errorf("don't know how to initialize task kind=builtin name=%s", cfg.newTaskInfo.kindName)
+			}
+		} else {
+			def, err = definitions.NewDefinition_0_3(
+				cfg.newTaskInfo.name,
+				slug,
+				cfg.newTaskInfo.kind,
+				cfg.newTaskInfo.entrypoint,
+			)
+		}
 		if err != nil {
 			return err
 		}
@@ -678,6 +709,7 @@ var allKindsByName = map[string]build.TaskKind{
 	"Shell":      build.TaskKindShell,
 	"SQL":        build.TaskKindSQL,
 	"REST":       build.TaskKindREST,
+	"GraphQL":    build.TaskKindBuiltin,
 }
 
 // Determines the set of kind names that are eligible for use as tasks.
@@ -685,6 +717,7 @@ var allKindsByName = map[string]build.TaskKind{
 var supportedTaskKindNames = []string{
 	"SQL",
 	"REST",
+	"GraphQL",
 	"Node",
 	"Python",
 	"Shell",
@@ -748,6 +781,7 @@ func promptForNewTask(file string, info *newTaskInfo, inline bool, workflow bool
 	); err != nil {
 		return err
 	}
+	info.kindName = selectedKindName
 	info.kind = allKindsByName[selectedKindName]
 	if info.kind == "" {
 		return errors.Errorf("Unknown kind selected: %q", selectedKindName)
