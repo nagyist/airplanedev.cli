@@ -52,7 +52,6 @@ func TestExecute(t *testing.T) {
 		server.NewRouter(&state.State{
 			RemoteClient: &api.MockClient{},
 			Executor:     mockExecutor,
-			Port:         1234,
 			Runs:         store,
 			TaskConfigs: state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{
 				slug: {
@@ -144,7 +143,6 @@ func TestExecuteBuiltin(t *testing.T) {
 		server.NewRouter(&state.State{
 			RemoteClient: &api.MockClient{},
 			Executor:     mockExecutor,
-			Port:         1234,
 			Runs:         store,
 			TaskConfigs: state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{
 				slug: {

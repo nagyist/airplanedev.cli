@@ -37,7 +37,6 @@ type State struct {
 	// Directory from which tasks and views were discovered
 	Dir      string
 	Executor dev.Executor
-	Port     int
 
 	Runs *runsStore
 	// Mapping from task slug to task config

@@ -210,17 +210,19 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	logger.Log("")
 	studioURL := fmt.Sprintf("%s/studio?host=http://localhost:%d&__env=%s", appURL, cfg.port, remoteEnv.Slug)
 	logger.Log("Started studio session at %s (^C to quit)", logger.Blue(studioURL))
-	logger.Log("Press ENTER to open the studio in the browser.")
-	logger.Log("")
 
 	// Execute the flow to open the studio in the browser in a separate goroutine so fmt.Scanln doesn't capture
 	// termination signals.
-	go func() {
-		fmt.Scanln()
-		if ok := utils.Open(studioURL); !ok {
-			logger.Log("Something went wrong. Try running the command with the --debug flag for more details.")
-		}
-	}()
+	if !cfg.sandbox {
+		logger.Log("Press ENTER to open the studio in the browser.")
+		logger.Log("")
+		go func() {
+			fmt.Scanln()
+			if ok := utils.Open(studioURL); !ok {
+				logger.Log("Something went wrong. Try running the command with the --debug flag for more details.")
+			}
+		}()
+	}
 
 	// Wait for termination signal (e.g. Ctrl+C)
 	<-stop

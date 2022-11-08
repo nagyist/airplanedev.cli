@@ -38,7 +38,7 @@ type Server struct {
 	state *state.State
 }
 
-// address returns the TCP address that the api server listens on
+// address returns the TCP address that the API server listens on.
 func address(port int) string {
 	return fmt.Sprintf("127.0.0.1:%d", port)
 }
@@ -99,9 +99,9 @@ type Options struct {
 }
 
 // newServer returns a new HTTP server with API routes
-func newServer(router *mux.Router, state *state.State) *Server {
+func newServer(router *mux.Router, state *state.State, port int) *Server {
 	srv := &http.Server{
-		Addr:    address(state.Port),
+		Addr:    address(port),
 		Handler: router,
 	}
 	router.Handle("/shutdown", ShutdownHandler(srv))
@@ -139,7 +139,6 @@ func Start(opts Options) (*Server, error) {
 		RemoteEnv:      opts.RemoteEnv,
 		UseFallbackEnv: opts.UseFallbackEnv,
 		Executor:       opts.Executor,
-		Port:           opts.Port,
 		Runs:           state.NewRunStore(),
 		TaskConfigs:    state.NewStore[string, discover.TaskConfig](nil),
 		AppCondition:   state.NewStore[string, state.AppCondition](nil),
@@ -154,7 +153,7 @@ func Start(opts Options) (*Server, error) {
 	}
 
 	r := NewRouter(state)
-	s := newServer(r, state)
+	s := newServer(r, state, opts.Port)
 
 	go func() {
 		if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
