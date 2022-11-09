@@ -49,7 +49,7 @@ func (d GraphQLDefinition_0_3) getFunctionSpecification() (builtins.FunctionSpec
 	}, nil
 }
 
-func (d GraphQLDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest) error {
+func (d GraphQLDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, isBundle bool) error {
 	collection, err := getResourceIDsBySlugAndName(ctx, client)
 	if err != nil {
 		return err

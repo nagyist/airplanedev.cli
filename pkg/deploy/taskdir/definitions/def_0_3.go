@@ -5,7 +5,9 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"fmt"
 	"os"
+	"path"
 	"strings"
 	"text/template"
 
@@ -50,7 +52,7 @@ type Definition_0_3 struct {
 var _ DefinitionInterface = &Definition_0_3{}
 
 type taskKind_0_3 interface {
-	fillInUpdateTaskRequest(context.Context, api.IAPIClient, *api.UpdateTaskRequest) error
+	fillInUpdateTaskRequest(context.Context, api.IAPIClient, *api.UpdateTaskRequest, build.BuildConfig, bool) error
 	hydrateFromTask(context.Context, api.IAPIClient, *api.Task) error
 	setEntrypoint(string) error
 	setAbsoluteEntrypoint(string) error
@@ -73,7 +75,7 @@ type ImageDefinition_0_3 struct {
 	EnvVars    api.TaskEnv `json:"envVars,omitempty"`
 }
 
-func (d *ImageDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest) error {
+func (d *ImageDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
 	if d.Image != "" {
 		req.Image = &d.Image
 	}
@@ -151,8 +153,17 @@ type NodeDefinition_0_3 struct {
 	absoluteEntrypoint string `json:"-"`
 }
 
-func (d *NodeDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest) error {
+func (d *NodeDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
 	req.Env = d.EnvVars
+	if forBundle {
+		req.Command = []string{"node"}
+		req.Arguments = []string{
+			"/airplane/.airplane/dist/universal-shim.js",
+			path.Join("/airplane/.airplane/", bc["entrypoint"].(string)),
+			bc["entrypointFunc"].(string),
+			"{{JSON.stringify(params)}}",
+		}
+	}
 	return nil
 }
 
@@ -251,8 +262,17 @@ type PythonDefinition_0_3 struct {
 	absoluteEntrypoint string `json:"-"`
 }
 
-func (d *PythonDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest) error {
+func (d *PythonDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
 	req.Env = d.EnvVars
+	if forBundle {
+		req.Command = []string{"python"}
+		req.Arguments = []string{
+			"/airplane/.airplane/shim.py",
+			path.Join("/airplane/", bc["entrypoint"].(string)),
+			bc["entrypointFunc"].(string),
+			"{{JSON.stringify(params)}}",
+		}
+	}
 	return nil
 }
 
@@ -334,8 +354,21 @@ type ShellDefinition_0_3 struct {
 	absoluteEntrypoint string `json:"-"`
 }
 
-func (d *ShellDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest) error {
+func (d *ShellDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
 	req.Env = d.EnvVars
+	if forBundle {
+		req.Command = []string{"bash"}
+		req.Arguments = []string{
+			".airplane/shim.sh",
+			fmt.Sprintf("./%s", bc["entrypoint"].(string)),
+		}
+		// Pass slug={{slug}} as an array to the shell task
+		for _, param := range req.Parameters {
+			req.Arguments = append(req.Arguments, fmt.Sprintf("%s={{params.%s}}", param.Slug, param.Slug))
+		}
+		req.InterpolationMode = pointers.String("jst")
+	}
+
 	return nil
 }
 
@@ -440,7 +473,7 @@ func (d *SQLDefinition_0_3) GetQuery() (string, error) {
 	return d.entrypointContents, nil
 }
 
-func (d *SQLDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest) error {
+func (d *SQLDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
 	collection, err := getResourceIDsBySlugAndName(ctx, client)
 	if err != nil {
 		return err
@@ -603,7 +636,7 @@ type RESTDefinition_0_3 struct {
 	Configs       []string               `json:"configs,omitempty"`
 }
 
-func (d *RESTDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest) error {
+func (d *RESTDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
 	collection, err := getResourceIDsBySlugAndName(ctx, client)
 	if err != nil {
 		return err
@@ -1172,7 +1205,7 @@ func (d Definition_0_3) taskKind() (taskKind_0_3, error) {
 	}
 }
 
-func (d Definition_0_3) GetUpdateTaskRequest(ctx context.Context, client api.IAPIClient) (api.UpdateTaskRequest, error) {
+func (d Definition_0_3) GetUpdateTaskRequest(ctx context.Context, client api.IAPIClient, forBundle bool) (api.UpdateTaskRequest, error) {
 	req := api.UpdateTaskRequest{
 		Slug:        d.Slug,
 		Name:        d.Name,
@@ -1210,7 +1243,11 @@ func (d Definition_0_3) GetUpdateTaskRequest(ctx context.Context, client api.IAP
 
 	req.ExecuteRules.DisallowSelfApprove = pointers.Bool(!d.AllowSelfApprovals.Value())
 
-	if err := d.addKindSpecificsToUpdateTaskRequest(ctx, client, &req); err != nil {
+	bc, err := d.GetBuildConfig()
+	if err != nil {
+		return api.UpdateTaskRequest{}, err
+	}
+	if err := d.addKindSpecificsToUpdateTaskRequest(ctx, client, &req, bc, forBundle); err != nil {
 		return api.UpdateTaskRequest{}, err
 	}
 
@@ -1238,7 +1275,7 @@ func (d Definition_0_3) addResourcesToUpdateTaskRequest(ctx context.Context, cli
 	return nil
 }
 
-func (d Definition_0_3) addKindSpecificsToUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest) error {
+func (d Definition_0_3) addKindSpecificsToUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
 	kind, options, err := d.GetKindAndOptions()
 	if err != nil {
 		return err
@@ -1262,7 +1299,7 @@ func (d Definition_0_3) addKindSpecificsToUpdateTaskRequest(ctx context.Context,
 	if err != nil {
 		return err
 	}
-	if err := taskKind.fillInUpdateTaskRequest(ctx, client, req); err != nil {
+	if err := taskKind.fillInUpdateTaskRequest(ctx, client, req, bc, forBundle); err != nil {
 		return err
 	}
 	return nil

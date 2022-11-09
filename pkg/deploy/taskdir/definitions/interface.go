@@ -48,7 +48,7 @@ type DefinitionInterface interface {
 
 	GetRuntime() build.TaskRuntime
 	UpgradeJST() error
-	GetUpdateTaskRequest(ctx context.Context, client api.IAPIClient) (api.UpdateTaskRequest, error)
+	GetUpdateTaskRequest(ctx context.Context, client api.IAPIClient, forBundle bool) (api.UpdateTaskRequest, error)
 	SetWorkdir(taskroot, workdir string) error
 
 	GetSchedules() map[string]api.Schedule

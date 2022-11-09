@@ -1145,6 +1145,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 		definition Definition_0_3
 		request    api.UpdateTaskRequest
 		resources  []api.Resource
+		isBundle   bool
 	}{
 		{
 			name: "python task",
@@ -1159,6 +1160,46 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 			request: api.UpdateTaskRequest{
 				Name:        "Test Task",
 				Slug:        "test_task",
+				Description: "A task for testing",
+				Configs:     &[]api.ConfigAttachment{},
+				Parameters:  []api.Parameter{},
+				Resources:   map[string]string{},
+				Kind:        build.TaskKindPython,
+				KindOptions: build.KindOptions{
+					"entrypoint": "main.py",
+				},
+				ExecuteRules: api.UpdateExecuteRulesRequest{
+					DisallowSelfApprove: pointers.Bool(false),
+					RequireRequests:     pointers.Bool(false),
+				},
+				Timeout: 3600,
+			},
+		},
+		{
+			name:     "python task from bundle",
+			isBundle: true,
+			definition: Definition_0_3{
+				Name:        "Test Task",
+				Slug:        "test_task",
+				Description: "A task for testing",
+				Python: &PythonDefinition_0_3{
+					Entrypoint: "main.py",
+				},
+				buildConfig: build.BuildConfig{
+					"entrypointFunc": "my_func",
+					"entrypoint":     "main.py",
+				},
+			},
+			request: api.UpdateTaskRequest{
+				Name:    "Test Task",
+				Slug:    "test_task",
+				Command: []string{"python"},
+				Arguments: []string{
+					"/airplane/.airplane/shim.py",
+					"/airplane/main.py",
+					"my_func",
+					"{{JSON.stringify(params)}}",
+				},
 				Description: "A task for testing",
 				Configs:     &[]api.ConfigAttachment{},
 				Parameters:  []api.Parameter{},
@@ -1203,6 +1244,46 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 			},
 		},
 		{
+			name:     "node task from bundle",
+			isBundle: true,
+			definition: Definition_0_3{
+				Name: "Node Task",
+				Slug: "node_task",
+				Node: &NodeDefinition_0_3{
+					Entrypoint:  "main.ts",
+					NodeVersion: "14",
+				},
+				buildConfig: build.BuildConfig{
+					"entrypointFunc": "default",
+					"entrypoint":     "main.ts",
+				},
+			},
+			request: api.UpdateTaskRequest{
+				Name:    "Node Task",
+				Slug:    "node_task",
+				Command: []string{"node"},
+				Arguments: []string{
+					"/airplane/.airplane/dist/universal-shim.js",
+					"/airplane/.airplane/main.ts",
+					"default",
+					"{{JSON.stringify(params)}}",
+				},
+				Parameters: []api.Parameter{},
+				Resources:  map[string]string{},
+				Configs:    &[]api.ConfigAttachment{},
+				Kind:       build.TaskKindNode,
+				KindOptions: build.KindOptions{
+					"entrypoint":  "main.ts",
+					"nodeVersion": "14",
+				},
+				ExecuteRules: api.UpdateExecuteRulesRequest{
+					DisallowSelfApprove: pointers.Bool(false),
+					RequireRequests:     pointers.Bool(false),
+				},
+				Timeout: 3600,
+			},
+		},
+		{
 			name: "shell task",
 			definition: Definition_0_3{
 				Name: "Shell Task",
@@ -1226,6 +1307,51 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					RequireRequests:     pointers.Bool(false),
 				},
 				Timeout: 3600,
+			},
+		},
+		{
+			name:     "shell task from bundle",
+			isBundle: true,
+			definition: Definition_0_3{
+				Name: "Shell Task",
+				Slug: "shell_task",
+				Shell: &ShellDefinition_0_3{
+					Entrypoint: "main.sh",
+				},
+				Parameters: []ParameterDefinition_0_3{
+					{Slug: "one", Name: "One", Type: "shorttext"},
+					{Slug: "two", Name: "Two", Type: "boolean"},
+				},
+				buildConfig: build.BuildConfig{
+					"entrypoint": "main.sh",
+				},
+			},
+			request: api.UpdateTaskRequest{
+				Name:    "Shell Task",
+				Slug:    "shell_task",
+				Command: []string{"bash"},
+				Arguments: []string{
+					".airplane/shim.sh",
+					"./main.sh",
+					"one={{params.one}}",
+					"two={{params.two}}",
+				},
+				Parameters: []api.Parameter{
+					{Slug: "one", Name: "One", Type: "string"},
+					{Slug: "two", Name: "Two", Type: "boolean"},
+				},
+				Resources: map[string]string{},
+				Configs:   &[]api.ConfigAttachment{},
+				Kind:      build.TaskKindShell,
+				KindOptions: build.KindOptions{
+					"entrypoint": "main.sh",
+				},
+				ExecuteRules: api.UpdateExecuteRulesRequest{
+					DisallowSelfApprove: pointers.Bool(false),
+					RequireRequests:     pointers.Bool(false),
+				},
+				InterpolationMode: pointers.String("jst"),
+				Timeout:           3600,
 			},
 		},
 		{
@@ -1713,7 +1839,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 			client := &mock.MockClient{
 				Resources: test.resources,
 			}
-			req, err := test.definition.GetUpdateTaskRequest(ctx, client)
+			req, err := test.definition.GetUpdateTaskRequest(ctx, client, test.isBundle)
 			assert.NoError(err)
 			assert.Equal(test.request, req)
 		})
