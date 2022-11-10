@@ -16,7 +16,9 @@ import (
 	"sort"
 
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
+	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/pkg/errors"
 )
@@ -173,4 +175,13 @@ func SuggestKind(ext string) (build.TaskKind, error) {
 		return runtime.Kind(), nil
 	}
 	return "", errors.New("No kind to suggest")
+}
+
+func RootForNonBuiltRuntime(path string) (string, error) {
+	configPath, found := fsx.Find(path, config.FileName)
+	if found {
+		return configPath, nil
+	}
+	fmt.Println("hi", path)
+	return filepath.Dir(path), nil
 }

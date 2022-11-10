@@ -30,7 +30,6 @@ const (
 	NodeBuildType   BuildType = "node"
 	ViewBuildType   BuildType = "view"
 	PythonBuildType BuildType = "python"
-	DockerBuildType BuildType = "docker"
 	ShellBuildType  BuildType = "shell"
 	// NoneBuildType indicates that the entity should not be built.
 	NoneBuildType BuildType = "none"
@@ -74,9 +73,6 @@ var AllBuildTypeVersions = map[BuildType][]BuildTypeVersion{
 		BuildTypeVersionPython38,
 		BuildTypeVersionPython39,
 		BuildTypeVersionPython310,
-		BuildTypeVersionUnspecified,
-	},
-	DockerBuildType: {
 		BuildTypeVersionUnspecified,
 	},
 	ShellBuildType: {

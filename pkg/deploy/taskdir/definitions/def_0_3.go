@@ -136,7 +136,7 @@ func (d *ImageDefinition_0_3) getResourceAttachments() map[string]string {
 }
 
 func (d *ImageDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
-	return build.DockerBuildType, build.BuildTypeVersionUnspecified, build.BuildBaseNone
+	return build.NoneBuildType, build.BuildTypeVersionUnspecified, build.BuildBaseNone
 }
 
 func (d *ImageDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {

@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path/filepath"
 	goruntime "runtime"
 	"strings"
 
@@ -77,7 +76,7 @@ func (r Runtime) Workdir(path string) (string, error) {
 
 // Root implementation.
 func (r Runtime) Root(path string) (string, error) {
-	return filepath.Dir(path), nil
+	return runtime.RootForNonBuiltRuntime(path)
 }
 
 func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, err error) {
