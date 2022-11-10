@@ -34,7 +34,7 @@ type Runtime struct{}
 
 // PrepareRun implementation.
 func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runtime.PrepareRunOptions) (rexprs []string, rcloser io.Closer, rerr error) {
-	builtinClient, err := builtins.NewLocalClient(opts.RootDir, goruntime.GOOS, goruntime.GOARCH, logger)
+	builtinClient, err := builtins.NewLocalClient(opts.WorkingDir, goruntime.GOOS, goruntime.GOARCH, logger)
 	if err != nil {
 		logger.Warning(err.Error())
 		return nil, nil, err

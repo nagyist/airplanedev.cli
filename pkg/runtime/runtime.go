@@ -104,9 +104,8 @@ type PrepareRunOptions struct {
 	//
 	// It should be an absolute path.
 	Path string
-	// RootDir is the working directory the local run is being executed in
-	RootDir string
-
+	// WorkingDir is the working directory the local run is being executed in
+	WorkingDir string
 	// ParamValues specifies the user-provided parameter values to
 	// execute this run with.
 	ParamValues Values

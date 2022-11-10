@@ -22,7 +22,7 @@ var supportedOS = map[string]bool{"darwin": true, "linux": true}
 var supportedArch = map[string]bool{"amd64": true, "arm64": true}
 
 const (
-	checksumFileName  = "checksum.txt"
+	checksumFileName  = "builtins-checksum.txt"
 	builtinsGCSBucket = "airplane-builtins-prod-a1a046b"
 )
 
@@ -84,18 +84,22 @@ func NewLocalClient(root string, opSystem string, arch string, logger logger.Log
 	}
 	fileName := fmt.Sprintf("builtins-%s-%s", opSystem, arch)
 
-	_, builtinDir, closer, err := airplane_directory.CreateTaskDir(root, "builtins")
+	// put builtins directly under the .airplane dir
+	airplaneDir, err := airplane_directory.CreateAirplaneDir(root)
 	if err != nil {
-		return nil, errors.Wrap(err, "creating builtins directory")
+		return nil, errors.Wrap(err, "creating .airplane directory for builtins")
 	}
+	// we don't want to clean up builtin binaries, so return an empty noopCloser
+	noOpCloser := airplane_directory.CloseFunc(func() error { return nil })
+
 	client := &LocalBuiltinClient{
 		fileName:     fileName,
 		client:       storageClient,
-		directory:    builtinDir,
-		checksumPath: filepath.Join(builtinDir, checksumFileName),
-		binaryPath:   filepath.Join(builtinDir, fileName),
+		directory:    airplaneDir,
+		checksumPath: filepath.Join(airplaneDir, checksumFileName),
+		binaryPath:   filepath.Join(airplaneDir, fileName),
 		logger:       logger,
-		Closer:       closer,
+		Closer:       noOpCloser,
 	}
 	_, err = client.install()
 	if err != nil {
