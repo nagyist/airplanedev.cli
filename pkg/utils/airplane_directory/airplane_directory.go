@@ -40,6 +40,9 @@ func CreateTaskDir(root string, slug string) (airplaneDir string, taskDir string
 	// Create a .airplane/{task_slug}/ subdirectory for this task.
 	taskDir = filepath.Join(airplaneDir, slug)
 	if err := os.Mkdir(taskDir, os.ModeDir|0777); err != nil {
+		// Don't error if a task-specific subdirectory already exists. We don't clear the subdirectory's contents here
+		// since this could cause unknown behavior if multiple runs of a given task are occurring in parallel. Instead,
+		// we rely on the runtime-specific implementation of PrepareRun to overwrite the existing shim, etc.
 		if !os.IsExist(err) {
 			return "", "", closer, errors.Wrap(err, "creating task subdirectory")
 		}
