@@ -185,6 +185,8 @@ func (d *NodeDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAP
 	if v, ok := t.KindOptions["base"]; ok {
 		if sv, ok := v.(build.BuildBase); ok {
 			d.Base = sv
+		} else if sv, ok := v.(string); ok {
+			d.Base = build.BuildBase(sv)
 		} else {
 			return errors.Errorf("expected string base, got %T instead", v)
 		}
@@ -287,6 +289,8 @@ func (d *PythonDefinition_0_3) hydrateFromTask(ctx context.Context, client api.I
 	if v, ok := t.KindOptions["base"]; ok {
 		if sv, ok := v.(build.BuildBase); ok {
 			d.Base = sv
+		} else if sv, ok := v.(string); ok {
+			d.Base = build.BuildBase(sv)
 		} else {
 			return errors.Errorf("expected string base, got %T instead", v)
 		}
