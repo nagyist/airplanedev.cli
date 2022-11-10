@@ -93,7 +93,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			IsBuiltin:    isBuiltin,
 			AuthInfo:     state.AuthInfo,
 			LogBroker:    run.LogBroker,
-			RootDir:      state.Dir,
+			WorkingDir:   state.Dir,
 		}
 		resourceAttachments := map[string]string{}
 		mergedResources, err := resource.MergeRemoteResources(ctx, state)

@@ -197,7 +197,7 @@ func HandleMissingTask(cfg config, l logger.LoggerWithLoader, createdTasks *map[
 		}
 
 		l.Log("Creating task...")
-		utr, err := def.GetUpdateTaskRequest(ctx, cfg.client)
+		utr, err := def.GetUpdateTaskRequest(ctx, cfg.client, false)
 		if err != nil {
 			return nil, err
 		}

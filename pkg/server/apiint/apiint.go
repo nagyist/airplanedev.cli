@@ -499,7 +499,7 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (Ge
 	response := GetRunResponse{Run: run}
 
 	if run.TaskRevision.Def != nil {
-		utr, err := run.TaskRevision.Def.GetUpdateTaskRequest(ctx, state.LocalClient)
+		utr, err := run.TaskRevision.Def.GetUpdateTaskRequest(ctx, state.LocalClient, false)
 		if err != nil {
 			logger.Error("Encountered error while getting task info: %v", err)
 			return GetRunResponse{}, errors.Errorf("error getting task %s", run.TaskRevision.Def.GetSlug())

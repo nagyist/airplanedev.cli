@@ -349,7 +349,7 @@ More information: https://apn.sh/jst-upgrade`)
 		}
 	}
 
-	utr, err := tc.Def.GetUpdateTaskRequest(ctx, d.cfg.client)
+	utr, err := tc.Def.GetUpdateTaskRequest(ctx, d.cfg.client, false)
 	if err != nil {
 		return api.DeployTask{}, err
 	}
