@@ -235,3 +235,7 @@ func (mc *MockClient) EvaluateTemplate(ctx context.Context, req libapi.EvaluateT
 func (mc *MockClient) GetPermissions(ctx context.Context, taskSlug string, actions []string) (res GetPermissionsResponse, err error) {
 	panic("not implemented")
 }
+
+func (mc *MockClient) GenerateSignedURLs(ctx context.Context, envSlug string) (res GenerateSignedURLsResponse, err error) {
+	panic("not implemented")
+}

@@ -307,6 +307,10 @@ type CreateDeploymentRequest struct {
 	EnvSlug     string         `json:"envSlug"`
 }
 
+type GenerateSignedURLsResponse struct {
+	SignedURLs []string `json:"signedURLs"`
+}
+
 type CancelDeploymentRequest struct {
 	ID string `json:"id"`
 }

@@ -108,6 +108,8 @@ type APIClient interface {
 	CancelDeployment(ctx context.Context, req CancelDeploymentRequest) error
 	DeploymentURL(deploymentID string, envSlug string) string
 
+	GenerateSignedURLs(ctx context.Context, envSlug string) (res GenerateSignedURLsResponse, err error)
+
 	GetView(ctx context.Context, req libapi.GetViewRequest) (libapi.View, error)
 	CreateView(ctx context.Context, req libapi.CreateViewRequest) (libapi.View, error)
 	CreateDemoDB(ctx context.Context, name string) (string, error)
@@ -556,6 +558,13 @@ func (c Client) GetPermissions(ctx context.Context, taskSlug string, actions []s
 	err = c.do(ctx, "GET", encodeQueryString("/permissions/get", url.Values{
 		"task_slug": []string{taskSlug},
 		"actions":   actions,
+	}), nil, &res)
+	return
+}
+
+func (c Client) GenerateSignedURLs(ctx context.Context, envSlug string) (res GenerateSignedURLsResponse, err error) {
+	err = c.do(ctx, "GET", encodeQueryString("/uploads/generateSignedURLs", url.Values{
+		"envSlug": []string{envSlug},
 	}), nil, &res)
 	return
 }

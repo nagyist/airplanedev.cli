@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -28,6 +29,9 @@ type config struct {
 	client      *api.Client
 	template    string
 	resetDemoDB bool
+	download    bool
+	workspace   string
+	envSlug     string
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -45,12 +49,29 @@ func New(c *cli.Config) *cobra.Command {
 			return login.EnsureLoggedIn(cmd.Root().Context(), c)
 		}),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(cfg.workspace) == 0 {
+				wd, err := os.Getwd()
+				if err != nil {
+					return err
+				}
+				cfg.workspace = wd
+			}
+
 			return run(cmd.Root().Context(), cfg)
 		},
 	}
 
 	cmd.Flags().StringVarP(&cfg.template, "template", "t", "", "Path of a template to initialize from in the format github.com/org/repo/path/to/template or path/to/template (in the airplanedev/templates repository)")
 	cmd.Flags().BoolVar(&cfg.resetDemoDB, "reset-demo-db", false, "Resets the SQL DB resource [Demo DB] to its original state")
+	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
+	cmd.Flags().BoolVar(&cfg.download, "download", false, "Download remote code of entity. Currently downloads a team's entire library of deployed code.")
+	if err := cmd.Flags().MarkHidden("download"); err != nil {
+		logger.Debug("marking --download as hidden: %s", err)
+	}
+	cmd.Flags().StringVar(&cfg.workspace, "workspace", "", "Directory in which to download remote code into.")
+	if err := cmd.Flags().MarkHidden("workspace"); err != nil {
+		logger.Debug("marking --workspace as hidden: %s", err)
+	}
 
 	return cmd
 }
@@ -68,6 +89,10 @@ var orderedInitOptions = []string{
 const templateGallery = "https://docs.airplane.dev/templates"
 
 func run(ctx context.Context, cfg config) error {
+	if cfg.download {
+		return initializeCodeWorkspace(ctx, cfg)
+	}
+
 	if cfg.resetDemoDB {
 		resourceID, err := cfg.client.ResetDemoDB(ctx)
 		if err != nil {
