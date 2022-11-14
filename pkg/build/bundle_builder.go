@@ -194,6 +194,7 @@ func (b *BundleBuilder) Build(ctx context.Context, bundleBuildID, version string
 		if err := (&resp).Unmarshal(dt); err != nil {
 			continue
 		}
+
 		for _, v := range resp.GetVertexes() {
 			fmt.Fprintln(os.Stderr, v.Name)
 			if v.Cached {
@@ -202,6 +203,9 @@ func (b *BundleBuilder) Build(ctx context.Context, bundleBuildID, version string
 			if v.Error != "" {
 				fmt.Fprintln(os.Stderr, v.Error)
 			}
+		}
+		for _, l := range resp.GetLogs() {
+			fmt.Fprintln(os.Stderr, string(l.GetMsg()))
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -272,12 +276,13 @@ func (b *BundleBuilder) authconfigs() map[string]types.AuthConfig {
 func BuildBundleDockerfile(c BundleDockerfileConfig) (string, error) {
 	switch c.BuildContext.Type {
 	case NodeBuildType:
-		// TODO: pipe in build args
 		return nodeBundle(c.Root, c.BuildContext, c.Options, c.BuildArgKeys, c.FilesToBuild, c.FilesToDiscover)
 	case ShellBuildType:
 		return shellBundle(c.Root)
 	case ViewBuildType:
 		return viewBundle(c.Root, c.BuildContext, c.Options, c.FilesToBuild, c.FilesToDiscover)
+	case PythonBuildType:
+		return pythonBundle(c.Root, c.BuildContext, c.Options, c.BuildArgKeys, c.FilesToDiscover)
 	default:
 		return "", errors.Errorf("build: unknown build type %v", c.BuildContext.Type)
 	}

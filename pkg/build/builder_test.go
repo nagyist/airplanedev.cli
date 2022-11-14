@@ -129,6 +129,16 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 							})
 							require.True(strings.Contains(string(out), testRun.SearchString), "unable to find %q in output:\n%s", test.SearchString, string(out))
 						}
+					case PythonBuildType:
+						for _, testRun := range test.BundleRuns {
+							out := runTask(t, ctx, client, runTaskConfig{
+								Image:       resp.ImageURL,
+								ParamValues: test.ParamValues,
+								Entrypoint:  []string{"python", "/airplane/.airplane/shim.py", path.Join("/airplane/", testRun.RelEntrypoint), testRun.ExportName},
+								Kind:        test.Kind,
+							})
+							require.True(strings.Contains(string(out), testRun.SearchString), "unable to find %q in output:\n%s", test.SearchString, string(out))
+						}
 					case ShellBuildType:
 						for _, testRun := range test.BundleRuns {
 							out := runTask(t, ctx, client, runTaskConfig{

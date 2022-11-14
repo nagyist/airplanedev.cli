@@ -1,0 +1,4 @@
+slug: noninlinetask
+name: noninlinetask
+python:
+  entrypoint: noninlinetask.py

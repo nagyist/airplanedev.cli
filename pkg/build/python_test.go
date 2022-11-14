@@ -18,7 +18,7 @@ func TestPythonBuilder(t *testing.T) {
 			},
 		},
 		{
-			Root: "python/slim",
+			Root: "python/simple",
 			Kind: TaskKindPython,
 			Options: KindOptions{
 				"shim":       "true",
@@ -64,6 +64,155 @@ func TestPythonBuilder(t *testing.T) {
 				"entrypoint": "foo/bar/main.py",
 			},
 			SearchString: "preinstall='hello from preinstall' postinstall='hello from postinstall'",
+		},
+	}
+
+	RunTests(t, ctx, tests)
+}
+
+func TestPythonBundleBuilder(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []Test{
+		{
+			Root: "python/simple",
+			Kind: TaskKindPython,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			ParamValues: map[string]interface{}{
+				"hello": "world",
+			},
+			BuildContext: BuildContext{
+				Type:    PythonBuildType,
+				Version: BuildTypeVersionPython37,
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.py",
+					SearchString:  "'hello': 'world'",
+				},
+			},
+		},
+		{
+			Root: "python/simple",
+			Kind: TaskKindPython,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			ParamValues: map[string]interface{}{
+				"hello": "world",
+			},
+			BuildContext: BuildContext{
+				Type:    PythonBuildType,
+				Version: BuildTypeVersionPython37,
+				Base:    BuildBaseSlim,
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.py",
+					SearchString:  "'hello': 'world'",
+				},
+			},
+		},
+		{
+			Root: "python/requirements",
+			Kind: TaskKindPython,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    PythonBuildType,
+				Version: BuildTypeVersionPython37,
+				Base:    BuildBaseSlim,
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.py",
+					SearchString:  "[1]",
+				},
+			},
+		},
+		{
+			Root: "python/installhooksviashell",
+			Kind: TaskKindPython,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    PythonBuildType,
+				Version: BuildTypeVersionPython37,
+				Base:    BuildBaseSlim,
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.py",
+					SearchString:  "preinstall='hello from preinstall' postinstall='hello from postinstall'",
+				},
+			},
+		},
+		{
+			Root: "python/installhooksviashellsubdirectory",
+			Kind: TaskKindPython,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    PythonBuildType,
+				Version: BuildTypeVersionPython37,
+				Base:    BuildBaseSlim,
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "foo/bar/main.py",
+					SearchString:  "preinstall='hello from preinstall' postinstall='hello from postinstall'",
+				},
+			},
+		},
+		{
+			Root: "python/bundle",
+			Kind: TaskKindPython,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			ParamValues: map[string]interface{}{
+				"name": "pikachu",
+			},
+			BuildContext: BuildContext{
+				Type:    PythonBuildType,
+				Version: BuildTypeVersionPython37,
+			},
+			FilesToDiscover: []string{
+				"rootInlineTask.airplane.py",
+				"subfolder/subfolderInlineTask.airplane.py",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "rootInlineTask.airplane.py",
+					ExportName:    "my_task",
+					SearchString:  "running:my_task",
+				},
+				{
+					RelEntrypoint: "rootInlineTask.airplane.py",
+					ExportName:    "my_task2",
+					SearchString:  "running:my_task2",
+				},
+				{
+					RelEntrypoint: "subfolder/subfolderInlineTask.airplane.py",
+					ExportName:    "my_task3",
+					SearchString:  "running:my_task3",
+				},
+				{
+					RelEntrypoint: "subfolder/noninlinetask.py",
+					SearchString:  "running:noninlinetask",
+				},
+			},
 		},
 	}
 

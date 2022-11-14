@@ -284,7 +284,6 @@ func TestInlineConfiguredTasks(t *testing.T) {
 				},
 				{
 					RelEntrypoint: "subfolder/nonInlineTask.js",
-					ExportName:    "default",
 					SearchString:  "running:non_inline_task",
 				},
 			},

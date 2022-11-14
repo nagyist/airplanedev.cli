@@ -156,11 +156,12 @@ type NodeDefinition_0_3 struct {
 func (d *NodeDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
 	req.Env = d.EnvVars
 	if forBundle {
+		entrypointFunc, _ := bc["entrypointFunc"].(string)
 		req.Command = []string{"node"}
 		req.Arguments = []string{
 			"/airplane/.airplane/dist/universal-shim.js",
 			path.Join("/airplane/.airplane/", bc["entrypoint"].(string)),
-			bc["entrypointFunc"].(string),
+			entrypointFunc,
 			"{{JSON.stringify(params)}}",
 		}
 	}
@@ -267,11 +268,12 @@ type PythonDefinition_0_3 struct {
 func (d *PythonDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
 	req.Env = d.EnvVars
 	if forBundle {
+		entrypointFunc, _ := bc["entrypointFunc"].(string)
 		req.Command = []string{"python"}
 		req.Arguments = []string{
 			"/airplane/.airplane/shim.py",
 			path.Join("/airplane/", bc["entrypoint"].(string)),
-			bc["entrypointFunc"].(string),
+			entrypointFunc,
 			"{{JSON.stringify(params)}}",
 		}
 	}

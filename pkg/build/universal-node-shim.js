@@ -12,10 +12,9 @@ async function main() {
   }
 
   const entrypoint = process.argv[2];
-  const entrypointFunc = process.argv[3];
+  const entrypointFunc = process.argv[3] || "default";
   const params = process.argv[4];
 
-  // TODO: needs environment variables to be set properly
   const task = require(entrypoint)[entrypointFunc];
 
   try {
