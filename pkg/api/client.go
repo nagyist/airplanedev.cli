@@ -512,6 +512,7 @@ type Prompt struct {
 	Reviewers   *PromptReviewers       `json:"reviewers"`
 	ConfirmText string                 `json:"confirmText"`
 	CancelText  string                 `json:"cancelText"`
+	Description string                 `json:"description"`
 }
 
 type PromptReviewers struct {
