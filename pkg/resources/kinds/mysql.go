@@ -1,6 +1,7 @@
 package kinds
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/url"
 
@@ -15,6 +16,12 @@ const SQLDriverMySQL SQLDriver = "mysql"
 
 func init() {
 	resources.RegisterBaseResourceFactory(ResourceKindMySQL, func() resources.Resource { return &MySQLResource{} })
+	if err := mysql.RegisterTLSConfig("skip-verify-tls10", &tls.Config{
+		MinVersion:         tls.VersionTLS10,
+		InsecureSkipVerify: true,
+	}); err != nil {
+		panic(fmt.Sprintf("error registering custom TLS %v", err))
+	}
 }
 
 type MySQLResource struct {
@@ -148,6 +155,11 @@ func dsnForMySQL(username, host, port, database, tls, password string) string {
 	cfg.Net = "tcp"
 	cfg.Addr = fmt.Sprintf("%s:%s", host, port)
 	cfg.DBName = database
+	if tls == "skip-verify" {
+		// Use a custom tls config that takes the config from skip-verify and adds
+		// on a minimum version of TLS 1.0. to support DBs using old TLS versions.
+		tls = "skip-verify-tls10"
+	}
 	cfg.TLSConfig = tls
 	cfg.Passwd = password
 	return cfg.FormatDSN()
