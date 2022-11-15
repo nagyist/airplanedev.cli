@@ -37,6 +37,7 @@ type Definition_0_3 struct {
 	REST    *RESTDefinition_0_3   `json:"rest,omitempty"`
 	Builtin *BuiltinTaskContainer `json:",inline,omitempty"`
 
+	Configs            []string                 `json:"configs,omitempty"`
 	Constraints        map[string]string        `json:"constraints,omitempty"`
 	RequireRequests    bool                     `json:"requireRequests,omitempty"`
 	AllowSelfApprovals DefaultTrueDefinition    `json:"allowSelfApprovals,omitempty"`
@@ -535,11 +536,6 @@ func (d *SQLDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAPI
 		}
 	}
 
-	d.Configs = make([]string, len(t.Configs))
-	for idx, config := range t.Configs {
-		d.Configs[idx] = config.NameTag
-	}
-
 	return nil
 }
 
@@ -716,11 +712,6 @@ func (d *RESTDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAP
 	}
 	if v, ok := t.KindOptions["retryFailures"]; ok {
 		d.RetryFailures = v
-	}
-
-	d.Configs = make([]string, len(t.Configs))
-	for idx, config := range t.Configs {
-		d.Configs[idx] = config.NameTag
 	}
 
 	return nil
@@ -1234,6 +1225,14 @@ func (d Definition_0_3) GetUpdateTaskRequest(ctx context.Context, client api.IAP
 		return api.UpdateTaskRequest{}, err
 	}
 
+	if len(d.Configs) > 0 {
+		configAttachments := make([]api.ConfigAttachment, len(d.Configs))
+		for i, configName := range d.Configs {
+			configAttachments[i] = api.ConfigAttachment{NameTag: configName}
+		}
+		req.Configs = &configAttachments
+	}
+
 	if len(d.Constraints) > 0 {
 		labels := []api.AgentLabel{}
 		for key, val := range d.Constraints {
@@ -1295,11 +1294,13 @@ func (d Definition_0_3) addKindSpecificsToUpdateTaskRequest(ctx context.Context,
 	}
 	req.Env = env
 
-	configAttachments, err := d.GetConfigAttachments()
-	if err != nil {
-		return err
+	if req.Configs == nil || len(*req.Configs) == 0 {
+		configAttachments, err := d.GetConfigAttachments()
+		if err != nil {
+			return err
+		}
+		req.Configs = &configAttachments
 	}
-	req.Configs = &configAttachments
 
 	taskKind, err := d.taskKind()
 	if err != nil {
@@ -1483,6 +1484,13 @@ func NewDefinitionFromTask_0_3(ctx context.Context, client api.IAPIClient, t api
 
 	if err := d.convertTaskKindFromTask(ctx, client, &t); err != nil {
 		return Definition_0_3{}, err
+	}
+
+	if len(t.Configs) > 0 {
+		d.Configs = make([]string, len(t.Configs))
+		for idx, config := range t.Configs {
+			d.Configs[idx] = config.NameTag
+		}
 	}
 
 	if !t.Constraints.IsEmpty() {

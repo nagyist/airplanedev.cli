@@ -153,7 +153,10 @@
                   "default": "auto",
                   "enum": ["auto", "readOnly", "readWrite", "none"]
                 },
-                "configs": { "$ref": "#/$defs/configs" }
+                "configs": {
+                  "$ref": "#/$defs/configs",
+                  "description": "(Deprecated) A list of config variables that this task can access. Use top-level `configs` instead."
+                }
               },
               "additionalProperties": false,
               "required": ["resource", "entrypoint"]
@@ -218,7 +221,10 @@
                   "description": "Retry the request if the server returns a 500, 502, 503, or 504 status code. Requests are always retried on 408 and 429 status codes. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
                   "type": ["boolean", "string"]
                 },
-                "configs": { "$ref": "#/$defs/configs" }
+                "configs": {
+                  "$ref": "#/$defs/configs",
+                  "description": "(Deprecated) A list of config variables that this task can access. Use top-level `configs` instead."
+                }
               },
               "additionalProperties": false,
               "required": ["resource", "method", "path", "bodyType"]
@@ -284,6 +290,7 @@
     "description": true,
     "parameters": true,
     "resources": true,
+    "configs": true,
     "constraints": true,
     "requireRequests": true,
     "allowSelfApprovals": true,
@@ -474,6 +481,7 @@
             }
           ]
         },
+        "configs": { "$ref": "#/$defs/configs" },
         "constraints": {
           "description": "Set label constraints to restrict this task to run only on agents with matching labels.",
           "examples": [{ "aws-region": "us-west-2" }],
