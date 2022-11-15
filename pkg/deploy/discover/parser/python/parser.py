@@ -1,10 +1,9 @@
-import ast
 import dataclasses
 import importlib.util
+import inspect
 import json
 import os
 import sys
-import traceback
 from typing import Any, Dict, List, Literal, Optional, Union
 
 
@@ -76,84 +75,86 @@ def as_def(obj: Any) -> Union[Any, Dict[str, Any]]:
 
 
 def extract_task_configs(files: List[str]) -> List[Def]:
-    configs: List[Def] = []
+    defs: List[Def] = []
 
     for file in files:
-        with open(file) as f:
-            tree = ast.parse(f.read(), filename=file)
-
         sys.path.append(os.path.dirname(file))
         spec = importlib.util.spec_from_file_location("airplane_task_import", file)
         assert spec is not None, f"Unable to import module {file}"
         assert spec.loader is not None, f"Unable to construct loader for module {file}"
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        for item in tree.body:
-            if isinstance(item, ast.FunctionDef) and hasattr(module, item.name):
-                func = getattr(module, item.name)
-                if hasattr(func, "__airplane"):
-                    conf = func.__airplane
-                    configs.append(
-                        Def(
-                            entrypointFunc=item.name,
-                            name=conf.name,
-                            slug=conf.slug,
-                            description=conf.description,
-                            parameters=[
-                                Param(
-                                    slug=param.slug,
-                                    name=param.name,
-                                    type=param.type,
-                                    description=param.description,
-                                    default=param.default,
-                                    required=param.required,
-                                    options=[
-                                        Option(label=o.label, value=o.value)
-                                        if hasattr(o, "label")
-                                        else o
-                                        for o in param.options or []
-                                    ],
-                                    regex=param.regex,
-                                )
-                                for param in conf.parameters
-                            ],
-                            resources={
-                                r.alias or r.slug: r.slug for r in conf.resources or []
-                            },
-                            constraints=conf.constraints,
-                            requireRequests=conf.require_requests,
-                            allowSelfApprovals=conf.allow_self_approvals,
-                            timeout=conf.timeout,
-                            runtime=conf.runtime,
-                            schedules={
-                                s.slug: Schedule(
-                                    name=s.name,
-                                    description=s.description,
-                                    cron=s.cron,
-                                    paramValues=s.param_values,
-                                )
-                                for s in conf.schedules or []
-                            },
-                            python=PythonDef(
-                                envVars={
-                                    e.name: EnvVar(
-                                        value=e.value,
-                                        config=e.config_var_name,
-                                    )
-                                    for e in conf.env_vars or []
-                                },
-                                entrypoint=file,
-                            ),
-                        )
-                    )
 
-    return configs
+        for name, obj in vars(module).items():
+            if callable(obj) and hasattr(obj, "__airplane"):
+                conf = obj.__airplane
+                # Only select tasks that were defined in the file, not imported.
+                if inspect.getabsfile(conf.func) != os.path.abspath(file):
+                    continue
+                defs.append(
+                    Def(
+                        entrypointFunc=name,
+                        name=conf.name,
+                        slug=conf.slug,
+                        description=conf.description,
+                        parameters=[
+                            Param(
+                                slug=param.slug,
+                                name=param.name,
+                                type=param.type,
+                                description=param.description,
+                                default=param.default,
+                                required=param.required,
+                                options=[
+                                    Option(label=o.label, value=o.value)
+                                    if hasattr(o, "label")
+                                    else o
+                                    for o in param.options or []
+                                ],
+                                regex=param.regex,
+                            )
+                            for param in conf.parameters
+                        ],
+                        resources={
+                            r.alias or r.slug: r.slug for r in conf.resources or []
+                        },
+                        constraints=conf.constraints,
+                        requireRequests=conf.require_requests,
+                        allowSelfApprovals=conf.allow_self_approvals,
+                        timeout=conf.timeout,
+                        runtime=conf.runtime,
+                        schedules={
+                            s.slug: Schedule(
+                                name=s.name,
+                                description=s.description,
+                                cron=s.cron,
+                                paramValues=s.param_values,
+                            )
+                            for s in conf.schedules or []
+                        },
+                        python=PythonDef(
+                            envVars={
+                                e.name: EnvVar(
+                                    value=e.value,
+                                    config=e.config_var_name,
+                                )
+                                for e in conf.env_vars or []
+                            },
+                            entrypoint=file,
+                        ),
+                    )
+                )
+
+    return defs
 
 
 def main() -> None:
     files = sys.argv[1:]
     task_configs = extract_task_configs(files)
-    print("EXTRACTED_ENTITY_CONFIGS:" + json.dumps([as_def(config) for config in task_configs]))
+    print(
+        "EXTRACTED_ENTITY_CONFIGS:"
+        + json.dumps([as_def(config) for config in task_configs])
+    )
 
 
 if __name__ == "__main__":

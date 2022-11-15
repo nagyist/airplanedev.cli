@@ -455,18 +455,21 @@ func TestDiscover(t *testing.T) {
 		},
 		{
 			name:  "python code definition",
-			paths: []string{"./fixtures/code_only_task_airplane.py"},
+			paths: []string{"./fixtures/taskInline/python/task_a_airplane.py"},
 			existingTasks: map[string]api.Task{
-				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+				"task_a": {ID: "tsk123", Slug: "task_a", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+				"task_b": {ID: "tsk123", Slug: "task_b", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+				"task_c": {ID: "tsk123", Slug: "task_c", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+				"task_d": {ID: "tsk123", Slug: "task_d", Kind: build.TaskKindPython, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
 					TaskID:         "tsk123",
-					TaskRoot:       fixturesPath,
-					TaskEntrypoint: fixturesPath + "/code_only_task_airplane.py",
+					TaskRoot:       fixturesPath + "/taskInline/python",
+					TaskEntrypoint: fixturesPath + "/taskInline/python/task_a_airplane.py",
 					Def: &definitions.Definition_0_3{
-						Name:    "Collatz Conjecture Step",
-						Slug:    "collatz",
+						Name:    "Task A",
+						Slug:    "task_a",
 						Timeout: definitions.NewDefaultTimeoutDefinition(3600),
 						Parameters: []definitions.ParameterDefinition_0_3{
 							{
@@ -481,7 +484,7 @@ func TestDiscover(t *testing.T) {
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
 						Python: &definitions.PythonDefinition_0_3{
 							EnvVars:    api.TaskEnv{},
-							Entrypoint: "code_only_task_airplane.py",
+							Entrypoint: "task_a_airplane.py",
 						},
 						Schedules: map[string]definitions.ScheduleDefinition_0_3{},
 					},
@@ -490,12 +493,140 @@ func TestDiscover(t *testing.T) {
 			},
 			buildConfigs: []build.BuildConfig{
 				{
-					"entrypoint":     "code_only_task_airplane.py",
-					"entrypointFunc": "collatz",
+					"entrypoint":     "task_a_airplane.py",
+					"entrypointFunc": "task_a",
 				},
 			},
 			absEntrypoints: []string{
-				fixturesPath + "/code_only_task_airplane.py",
+				fixturesPath + "/taskInline/python/task_a_airplane.py",
+			},
+		},
+		{
+			name:  "python code definition import",
+			paths: []string{"./fixtures/taskInline/python/task_b_airplane.py"},
+			existingTasks: map[string]api.Task{
+				"task_a": {ID: "tsk123", Slug: "task_a", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+				"task_b": {ID: "tsk123", Slug: "task_b", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+				"task_c": {ID: "tsk123", Slug: "task_c", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+				"task_d": {ID: "tsk123", Slug: "task_d", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+			},
+			expectedTaskConfigs: []TaskConfig{
+				{
+					TaskID:         "tsk123",
+					TaskRoot:       fixturesPath + "/taskInline/python",
+					TaskEntrypoint: fixturesPath + "/taskInline/python/task_b_airplane.py",
+					Def: &definitions.Definition_0_3{
+						Name:    "Task B",
+						Slug:    "task_b",
+						Timeout: definitions.NewDefaultTimeoutDefinition(3600),
+						Parameters: []definitions.ParameterDefinition_0_3{
+							{
+								Name:     "Num",
+								Slug:     "num",
+								Type:     "integer",
+								Required: definitions.NewDefaultTrueDefinition(true),
+								Options:  []definitions.OptionDefinition_0_3{},
+							},
+						},
+						Resources:          definitions.ResourceDefinition_0_3{Attachments: map[string]string{}},
+						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
+						Python: &definitions.PythonDefinition_0_3{
+							EnvVars:    api.TaskEnv{},
+							Entrypoint: "task_b_airplane.py",
+						},
+						Schedules: map[string]definitions.ScheduleDefinition_0_3{},
+					},
+					Source: ConfigSourceCode,
+				},
+			},
+			buildConfigs: []build.BuildConfig{
+				{
+					"entrypoint":     "task_b_airplane.py",
+					"entrypointFunc": "task_b",
+				},
+			},
+			absEntrypoints: []string{
+				fixturesPath + "/taskInline/python/task_b_airplane.py",
+			},
+		},
+		{
+			name:  "python code definition multiple import",
+			paths: []string{"./fixtures/taskInline/python/task_c_airplane.py"},
+			existingTasks: map[string]api.Task{
+				"task_a": {ID: "tsk123", Slug: "task_a", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+				"task_b": {ID: "tsk123", Slug: "task_b", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+				"task_c": {ID: "tsk123", Slug: "task_c", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+				"task_d": {ID: "tsk123", Slug: "task_d", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+			},
+			expectedTaskConfigs: []TaskConfig{
+				{
+					TaskID:         "tsk123",
+					TaskRoot:       fixturesPath + "/taskInline/python",
+					TaskEntrypoint: fixturesPath + "/taskInline/python/task_c_airplane.py",
+					Def: &definitions.Definition_0_3{
+						Name:    "Task C",
+						Slug:    "task_c",
+						Timeout: definitions.NewDefaultTimeoutDefinition(3600),
+						Parameters: []definitions.ParameterDefinition_0_3{
+							{
+								Name:     "Num",
+								Slug:     "num",
+								Type:     "integer",
+								Required: definitions.NewDefaultTrueDefinition(true),
+								Options:  []definitions.OptionDefinition_0_3{},
+							},
+						},
+						Resources:          definitions.ResourceDefinition_0_3{Attachments: map[string]string{}},
+						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
+						Python: &definitions.PythonDefinition_0_3{
+							EnvVars:    api.TaskEnv{},
+							Entrypoint: "task_c_airplane.py",
+						},
+						Schedules: map[string]definitions.ScheduleDefinition_0_3{},
+					},
+					Source: ConfigSourceCode,
+				},
+				{
+					TaskID:         "tsk123",
+					TaskRoot:       fixturesPath + "/taskInline/python",
+					TaskEntrypoint: fixturesPath + "/taskInline/python/task_c_airplane.py",
+					Def: &definitions.Definition_0_3{
+						Name:    "Task D",
+						Slug:    "task_d",
+						Timeout: definitions.NewDefaultTimeoutDefinition(3600),
+						Parameters: []definitions.ParameterDefinition_0_3{
+							{
+								Name:     "Num",
+								Slug:     "num",
+								Type:     "integer",
+								Required: definitions.NewDefaultTrueDefinition(true),
+								Options:  []definitions.OptionDefinition_0_3{},
+							},
+						},
+						Resources:          definitions.ResourceDefinition_0_3{Attachments: map[string]string{}},
+						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
+						Python: &definitions.PythonDefinition_0_3{
+							EnvVars:    api.TaskEnv{},
+							Entrypoint: "task_c_airplane.py",
+						},
+						Schedules: map[string]definitions.ScheduleDefinition_0_3{},
+					},
+					Source: ConfigSourceCode,
+				},
+			},
+			buildConfigs: []build.BuildConfig{
+				{
+					"entrypoint":     "task_c_airplane.py",
+					"entrypointFunc": "task_c",
+				},
+				{
+					"entrypoint":     "task_c_airplane.py",
+					"entrypointFunc": "task_d",
+				},
+			},
+			absEntrypoints: []string{
+				fixturesPath + "/taskInline/python/task_c_airplane.py",
+				fixturesPath + "/taskInline/python/task_c_airplane.py",
 			},
 		},
 		{
