@@ -132,8 +132,7 @@ func (f *AppWatcher) Watch(wd string) error {
 			case e := <-f.watcher.Event:
 				if !e.IsDir() && f.isValid(e.Path) {
 					event := toEvent(e)
-					err := f.callback(event)
-					if err != nil {
+					if err := f.callback(event); err != nil {
 						logger.Log("Error refreshing app in [%s]: %v", event.Path, err)
 					}
 				}

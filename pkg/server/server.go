@@ -21,6 +21,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/filewatcher"
 	"github.com/airplanedev/cli/pkg/server/state"
+	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
@@ -248,11 +249,11 @@ func ValidateTasks(ctx context.Context, resources map[string]env.ResourceWithEnv
 	}, nil
 }
 
-func (s *Server) DiscoverTasksAndViews(ctx context.Context, dir string) ([]discover.TaskConfig, []discover.ViewConfig, error) {
+func (s *Server) DiscoverTasksAndViews(ctx context.Context, paths ...string) ([]discover.TaskConfig, []discover.ViewConfig, error) {
 	if s.state.Discoverer == nil {
 		return []discover.TaskConfig{}, []discover.ViewConfig{}, errors.New("discoverer not initialized")
 	}
-	taskConfigs, viewConfigs, err := s.state.Discoverer.Discover(ctx, dir)
+	taskConfigs, viewConfigs, err := s.state.Discoverer.Discover(ctx, paths...)
 	if err != nil {
 		return []discover.TaskConfig{}, []discover.ViewConfig{}, errors.Wrap(err, "discovering tasks and views")
 	}
@@ -288,10 +289,26 @@ func (s *Server) ReloadApps(ctx context.Context, path string, wd string, e filew
 		}
 	} else {
 		reload = func() {
-			taskConfigs, viewConfigs, err := s.DiscoverTasksAndViews(ctx, path)
+			pathsToDiscover := []string{path}
+			// Refresh any tasks and views that have the modified entrypoint.
+			for _, tC := range s.state.TaskConfigs.Items() {
+				if tC.TaskEntrypoint == path {
+					pathsToDiscover = append(pathsToDiscover, tC.Def.GetDefnFilePath())
+				}
+			}
+
+			for _, vC := range s.state.ViewConfigs.Items() {
+				if vC.Def.Entrypoint == path {
+					pathsToDiscover = append(pathsToDiscover, vC.Def.DefnFilePath)
+				}
+			}
+			pathsToDiscover = utils.UniqueStrings(pathsToDiscover)
+
+			taskConfigs, viewConfigs, err := s.DiscoverTasksAndViews(ctx, pathsToDiscover...)
 			if err != nil {
 				logger.Error(err.Error())
 			}
+
 			_, err = s.RegisterTasksAndViews(ctx, DiscoverOpts{
 				Tasks:        taskConfigs,
 				Views:        viewConfigs,
@@ -358,7 +375,7 @@ func (s *Server) RegisterTasksAndViews(ctx context.Context, opts DiscoverOpts) (
 		return dev_errors.RegistrationWarnings{}, errors.Wrap(err, "validating task")
 	}
 	if opts.OverwriteAll {
-		// clear existing tasks, task errorrs, and views
+		// clear existing tasks, task errors, and views
 		s.state.TaskConfigs.ReplaceItems(map[string]discover.TaskConfig{})
 		s.state.AppCondition.ReplaceItems(map[string]state.AppCondition{})
 		s.state.ViewConfigs.ReplaceItems(map[string]discover.ViewConfig{})
