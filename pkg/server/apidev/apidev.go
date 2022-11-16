@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -34,6 +35,8 @@ func AttachDevRoutes(r *mux.Router, s *state.State) {
 	r.Handle("/version", handlers.Handler(s, GetVersionHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/list", handlers.Handler(s, ListEntrypointsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/files/list", handlers.Handler(s, ListFilesHandler)).Methods("GET", "OPTIONS")
+
 	r.Handle("/startView/{view_slug}", handlers.Handler(s, StartViewHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/logs/{run_id}", handlers.HandlerSSE(s, LogsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/tasks/errors", handlers.Handler(s, GetTaskErrorsHandler)).Methods("GET", "OPTIONS")
@@ -82,8 +85,8 @@ const (
 	AppKindView = "view"
 )
 
-// AppMetadata represents metadata for a task or view.
-type AppMetadata struct {
+// EntityMetadata represents metadata for a task or view.
+type EntityMetadata struct {
 	Name    string            `json:"name"`
 	Slug    string            `json:"slug"`
 	Kind    AppKind           `json:"kind"`
@@ -91,15 +94,15 @@ type AppMetadata struct {
 }
 
 type ListEntrypointsHandlerResponse struct {
-	Entrypoints       map[string][]AppMetadata `json:"entrypoints"`
-	RemoteEntrypoints []AppMetadata            `json:"remoteEntrypoints"`
+	Entrypoints       map[string][]EntityMetadata `json:"entrypoints"`
+	RemoteEntrypoints []EntityMetadata            `json:"remoteEntrypoints"`
 }
 
 // ListEntrypointsHandler handles requests to the /dev/list endpoint. It generates a mapping from entrypoint relative to
 // the dev server root to the list of tasks and views that use that entrypoint.
 func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Request) (ListEntrypointsHandlerResponse, error) {
-	entrypoints := make(map[string][]AppMetadata)
-	remoteEntrypoints := make([]AppMetadata, 0)
+	entrypoints := make(map[string][]EntityMetadata)
+	remoteEntrypoints := make([]EntityMetadata, 0)
 
 	for slug, taskConfig := range state.TaskConfigs.Items() {
 		absoluteEntrypoint := taskConfig.TaskEntrypoint
@@ -113,9 +116,9 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 			return ListEntrypointsHandlerResponse{}, errors.Wrap(err, "getting relative path to task")
 		}
 		if _, ok := entrypoints[ep]; !ok {
-			entrypoints[ep] = make([]AppMetadata, 0, 1)
+			entrypoints[ep] = make([]EntityMetadata, 0, 1)
 		}
-		entrypoints[ep] = append(entrypoints[ep], AppMetadata{
+		entrypoints[ep] = append(entrypoints[ep], EntityMetadata{
 			Name:    taskConfig.Def.GetName(),
 			Slug:    slug,
 			Kind:    AppKindTask,
@@ -131,9 +134,9 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 			return ListEntrypointsHandlerResponse{}, errors.Wrap(err, "getting relative path to view")
 		}
 		if _, ok := entrypoints[ep]; !ok {
-			entrypoints[ep] = make([]AppMetadata, 0, 1)
+			entrypoints[ep] = make([]EntityMetadata, 0, 1)
 		}
-		entrypoints[ep] = append(entrypoints[ep], AppMetadata{
+		entrypoints[ep] = append(entrypoints[ep], EntityMetadata{
 			Name: viewConfig.Def.Name,
 			Slug: slug,
 			Kind: AppKindView,
@@ -148,7 +151,7 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 		}
 
 		for _, task := range res.Tasks {
-			remoteEntrypoints = append(remoteEntrypoints, AppMetadata{
+			remoteEntrypoints = append(remoteEntrypoints, EntityMetadata{
 				Name:    task.Name,
 				Slug:    task.Slug,
 				Kind:    AppKindTask,
@@ -161,6 +164,96 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 		Entrypoints:       entrypoints,
 		RemoteEntrypoints: remoteEntrypoints,
 	}, nil
+}
+
+type FileNode struct {
+	Path     string           `json:"path"`
+	Entities []EntityMetadata `json:"entities"`
+	Children []*FileNode      `json:"children"`
+}
+
+type ListFilesResponse struct {
+	Root *FileNode `json:"root"`
+}
+
+var ignoredDirs = map[string]struct{}{
+	".airplane":      {},
+	".airplane-view": {},
+	"node_modules":   {},
+	"__pycache__":    {},
+	"venv":           {},
+}
+
+// ListFilesHandler handles requests to the /dev/list endpoint. It generates a mapping from entrypoint relative to
+// the dev server root to the list of tasks and views that use that entrypoint.
+func ListFilesHandler(ctx context.Context, state *state.State, r *http.Request) (ListFilesResponse, error) {
+	// Track entities per file, which we'll use to show entities in the UI.
+	filepathToEntities := make(map[string][]EntityMetadata, 0)
+	for slug, taskConfig := range state.TaskConfigs.Items() {
+		defnFilePath := taskConfig.Def.GetDefnFilePath()
+		if _, ok := filepathToEntities[defnFilePath]; !ok {
+			filepathToEntities[defnFilePath] = make([]EntityMetadata, 0, 1)
+		}
+		filepathToEntities[defnFilePath] = append(filepathToEntities[defnFilePath], EntityMetadata{
+			Name:    taskConfig.Def.GetName(),
+			Slug:    slug,
+			Kind:    AppKindTask,
+			Runtime: taskConfig.Def.GetRuntime(),
+		})
+	}
+
+	for slug, viewConfig := range state.ViewConfigs.Items() {
+		defnFilePath := viewConfig.Def.DefnFilePath
+		if _, ok := filepathToEntities[defnFilePath]; !ok {
+			filepathToEntities[defnFilePath] = make([]EntityMetadata, 0, 1)
+		}
+		filepathToEntities[defnFilePath] = append(filepathToEntities[defnFilePath], EntityMetadata{
+			Name: viewConfig.Def.Name,
+			Slug: slug,
+			Kind: AppKindView,
+		})
+	}
+
+	// Track all file tree nodes. We'll use this to build the file tree. Inspired by https://github.com/marcinwyszynski/directory_tree
+	nodes := make(map[string]*FileNode)
+	if err := filepath.Walk(state.Dir,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			// Ignore non-user-facing directories.
+			if info.IsDir() {
+				base := filepath.Base(path)
+				if _, ok := ignoredDirs[base]; ok {
+					return filepath.SkipDir
+				}
+			}
+
+			nodes[path] = &FileNode{
+				Path:     path,
+				Entities: filepathToEntities[path],
+				Children: make([]*FileNode, 0),
+			}
+			return nil
+		},
+	); err != nil {
+		return ListFilesResponse{}, err
+	}
+
+	// Construct directory tree.
+	var root *FileNode
+	for path, node := range nodes {
+		parentDir := filepath.Dir(path)
+		parent, ok := nodes[parentDir]
+		if ok {
+			parent.Children = append(parent.Children, node)
+		} else {
+			root = node
+		}
+	}
+
+	return ListFilesResponse{Root: root}, nil
 }
 
 type CreateRunResponse struct {

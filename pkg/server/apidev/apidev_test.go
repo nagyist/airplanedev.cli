@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"path/filepath"
 	"testing"
 
 	"github.com/airplanedev/cli/pkg/api"
@@ -101,7 +102,7 @@ func TestListEntrypoints(t *testing.T) {
 	var resp apidev.ListEntrypointsHandlerResponse
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
-	require.Equal(map[string][]apidev.AppMetadata{
+	require.Equal(map[string][]apidev.EntityMetadata{
 		"my_task.ts": {
 			{
 				Name: "My task",
@@ -117,7 +118,7 @@ func TestListEntrypoints(t *testing.T) {
 			},
 		},
 	}, resp.Entrypoints)
-	require.Equal([]apidev.AppMetadata{
+	require.Equal([]apidev.EntityMetadata{
 		{
 			Name:    "Foo",
 			Slug:    "fooslug",
@@ -125,4 +126,100 @@ func TestListEntrypoints(t *testing.T) {
 			Runtime: build.TaskRuntimeStandard,
 		},
 	}, resp.RemoteEntrypoints)
+}
+
+func TestListFilesHandler(t *testing.T) {
+	require := require.New(t)
+
+	root := "../fixtures/root"
+	absoluteDir, err := filepath.Abs(root)
+	require.NoError(err)
+
+	taskSlug := "my_task"
+	taskDefinition := &definitions.Definition_0_3{
+		Name: "My task",
+		Slug: taskSlug,
+		Node: &definitions.NodeDefinition_0_3{
+			Entrypoint:  "my_task.airplane.ts",
+			NodeVersion: "18",
+		},
+	}
+	taskDefFileName := filepath.Join(absoluteDir, "my_task.airplane.ts")
+	taskDefinition.SetDefnFilePath(taskDefFileName)
+
+	viewSlug := "my_view"
+	viewDefFileName := filepath.Join(absoluteDir, "my_view.view.tsx")
+	viewDefinition := definitions.ViewDefinition{
+		Name:         "My view",
+		Entrypoint:   "my_view.view.tsx",
+		Slug:         viewSlug,
+		DefnFilePath: viewDefFileName,
+	}
+
+	h := test_utils.GetHttpExpect(
+		context.Background(),
+		t,
+		server.NewRouter(&state.State{
+			TaskConfigs: state.NewStore(map[string]discover.TaskConfig{
+				taskSlug: {
+					TaskID:         "tsk123",
+					TaskRoot:       ".",
+					TaskEntrypoint: "my_task.airplane.ts",
+					Def:            taskDefinition,
+					Source:         discover.ConfigSourceDefn,
+				},
+			}),
+			ViewConfigs: state.NewStore(map[string]discover.ViewConfig{
+				viewSlug: {
+					Def:    viewDefinition,
+					Source: discover.ConfigSourceDefn,
+				},
+			}),
+			Dir: absoluteDir,
+		}),
+	)
+
+	body := h.GET("/dev/files/list").
+		Expect().
+		Status(http.StatusOK).Body()
+
+	var resp apidev.ListFilesResponse
+	err = json.Unmarshal([]byte(body.Raw()), &resp)
+	require.NoError(err)
+	require.Equal(&apidev.FileNode{
+		Path: absoluteDir,
+		Children: []*apidev.FileNode{
+			{
+				Path: taskDefFileName,
+				Entities: []apidev.EntityMetadata{
+					{
+						Name: "My task",
+						Slug: "my_task",
+						Kind: apidev.AppKindTask,
+					},
+				},
+				Children: []*apidev.FileNode{},
+			},
+			{
+				Path: viewDefFileName,
+				Entities: []apidev.EntityMetadata{
+					{
+						Name: "My view",
+						Slug: "my_view",
+						Kind: apidev.AppKindView,
+					},
+				},
+				Children: []*apidev.FileNode{},
+			},
+			{
+				Path: filepath.Join(absoluteDir, "subdir"),
+				Children: []*apidev.FileNode{
+					{
+						Path:     filepath.Join(absoluteDir, "subdir/subfile"),
+						Children: []*apidev.FileNode{},
+					},
+				},
+			},
+		},
+	}, resp.Root)
 }
