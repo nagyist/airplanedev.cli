@@ -182,6 +182,5 @@ func RootForNonBuiltRuntime(path string) (string, error) {
 	if found {
 		return configPath, nil
 	}
-	fmt.Println("hi", path)
 	return filepath.Dir(path), nil
 }
