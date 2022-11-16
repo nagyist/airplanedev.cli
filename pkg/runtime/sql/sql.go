@@ -3,7 +3,6 @@ package sql
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -38,15 +37,6 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		logger.Warning(err.Error())
 		return nil, nil, err
 	}
-
-	// Reload the sql entrypoint here. This supports changing the sql file without
-	// hot reloading the definition.
-	query, err := os.ReadFile(opts.Path)
-	if err != nil {
-		return nil, nil, fmt.Errorf("unable to read sql file %s: %v", opts.Path, err)
-	}
-	opts.KindOptions["query"] = string(query)
-
 	req, err := builtins.MarshalRequest("airplane:sql_query", opts.KindOptions)
 	if err != nil {
 		return nil, nil, errors.New("invalid builtin request")
