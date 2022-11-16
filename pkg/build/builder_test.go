@@ -232,7 +232,9 @@ func runTask(t *testing.T, ctx context.Context, dclient *client.Client, c runTas
 	logs, err := io.ReadAll(dlog.NewReader(logr, dlog.Options{
 		AppendNewline: true,
 	}))
+	//nolint:forbidigo
 	fmt.Println("Output logs")
+	//nolint:forbidigo
 	fmt.Println(string(logs))
 	require.NoError(err)
 

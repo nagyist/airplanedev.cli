@@ -69,6 +69,7 @@ func esbuildUserFiles(rootDir string) error {
 		External: externals,
 	})
 	for _, e := range res.Errors {
+		//nolint:forbidigo
 		fmt.Printf("esbuild(error): %v\n", e)
 	}
 

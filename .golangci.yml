@@ -15,13 +15,11 @@ linters:
     - tenv
     - bidichk
     - errchkjson
+    - bodyclose
+    - noctx
+    - rowserrcheck
+    - sqlclosecheck
+    - forbidigo
 
-    # The following checks don't work with go1.18 (yet).
-    # TODO: Re-enable them when https://github.com/golangci/golangci-lint/issues/2649
-    # is resolved.
-    #
-    # - bodyclose
+    # Re-enable and fix errors
     # - contextcheck
-    # - noctx
-    # - rowserrcheck
-    # - sqlclosecheck
