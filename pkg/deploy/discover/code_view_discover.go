@@ -117,6 +117,8 @@ func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 		}
 	}
 
+	d.DefnFilePath = pm.AbsEntrypoint
+
 	return &ViewConfig{
 		ID:     view.ID,
 		Def:    d,

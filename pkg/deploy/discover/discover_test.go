@@ -500,6 +500,7 @@ func TestDiscover(t *testing.T) {
 			absEntrypoints: []string{
 				fixturesPath + "/taskInline/python/task_a_airplane.py",
 			},
+			defnFilePaths: []string{fixturesPath + "/taskInline/python/task_a_airplane.py"},
 		},
 		{
 			name:  "python code definition import",
@@ -548,6 +549,7 @@ func TestDiscover(t *testing.T) {
 			absEntrypoints: []string{
 				fixturesPath + "/taskInline/python/task_b_airplane.py",
 			},
+			defnFilePaths: []string{fixturesPath + "/taskInline/python/task_b_airplane.py"},
 		},
 		{
 			name:  "python code definition multiple import",
@@ -628,6 +630,10 @@ func TestDiscover(t *testing.T) {
 				fixturesPath + "/taskInline/python/task_c_airplane.py",
 				fixturesPath + "/taskInline/python/task_c_airplane.py",
 			},
+			defnFilePaths: []string{
+				fixturesPath + "/taskInline/python/task_c_airplane.py",
+				fixturesPath + "/taskInline/python/task_c_airplane.py",
+			},
 		},
 		{
 			name:  "node code definition",
@@ -667,6 +673,7 @@ func TestDiscover(t *testing.T) {
 			absEntrypoints: []string{
 				fixturesPath + "/taskInline/codeOnlyTask.airplane.ts",
 			},
+			defnFilePaths: []string{fixturesPath + "/taskInline/codeOnlyTask.airplane.ts"},
 		},
 		{
 			name:  "node code definition with an esm dep",
@@ -706,6 +713,7 @@ func TestDiscover(t *testing.T) {
 			absEntrypoints: []string{
 				fixturesPath + "/taskInlineEsm/codeOnlyTask.airplane.ts",
 			},
+			defnFilePaths: []string{fixturesPath + "/taskInlineEsm/codeOnlyTask.airplane.ts"},
 		},
 		{
 			name:  "view code definition",
@@ -717,10 +725,11 @@ func TestDiscover(t *testing.T) {
 				{
 					ID: "view123",
 					Def: definitions.ViewDefinition{
-						Name:        "My View",
-						Slug:        "my_view",
-						Description: "my description",
-						Entrypoint:  fixturesPath + "/viewInline/myView/myView.view.tsx",
+						Name:         "My View",
+						Slug:         "my_view",
+						Description:  "my description",
+						Entrypoint:   fixturesPath + "/viewInline/myView/myView.view.tsx",
+						DefnFilePath: fixturesPath + "/viewInline/myView/myView.view.tsx",
 					},
 					Root:   fixturesPath,
 					Source: ConfigSourceCode,
@@ -740,10 +749,11 @@ func TestDiscover(t *testing.T) {
 				{
 					ID: "view123",
 					Def: definitions.ViewDefinition{
-						Name:        "My View",
-						Slug:        "my_view",
-						Description: "my description",
-						Entrypoint:  fixturesPath + "/viewInline-with-tasks/myView/myView.view.tsx",
+						Name:         "My View",
+						Slug:         "my_view",
+						Description:  "my description",
+						Entrypoint:   fixturesPath + "/viewInline-with-tasks/myView/myView.view.tsx",
+						DefnFilePath: fixturesPath + "/viewInline-with-tasks/myView/myView.view.tsx",
 					},
 					Root:   fixturesPath,
 					Source: ConfigSourceCode,
@@ -776,6 +786,7 @@ func TestDiscover(t *testing.T) {
 			absEntrypoints: []string{
 				fixturesPath + "/viewInline-with-tasks/myView/myView.view.tsx",
 			},
+			defnFilePaths: []string{fixturesPath + "/viewInline-with-tasks/myView/myView.view.tsx"},
 		},
 		{
 			name:  "view code definition - airplane.tsx",
@@ -787,10 +798,11 @@ func TestDiscover(t *testing.T) {
 				{
 					ID: "view123",
 					Def: definitions.ViewDefinition{
-						Name:        "My View",
-						Slug:        "my_view",
-						Description: "hi",
-						Entrypoint:  fixturesPath + "/viewInline-airplanetsx/myView/myView.airplane.tsx",
+						Name:         "My View",
+						Slug:         "my_view",
+						Description:  "hi",
+						Entrypoint:   fixturesPath + "/viewInline-airplanetsx/myView/myView.airplane.tsx",
+						DefnFilePath: fixturesPath + "/viewInline-airplanetsx/myView/myView.airplane.tsx",
 					},
 					Root:   fixturesPath,
 					Source: ConfigSourceCode,

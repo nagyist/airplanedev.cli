@@ -264,5 +264,8 @@ func ConstructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPat
 	if err := def.SetBuildVersionBase(pathMetadata.BuildVersion, pathMetadata.BuildBase); err != nil {
 		return nil, err
 	}
+
+	def.SetDefnFilePath(pathMetadata.AbsEntrypoint)
+
 	return &def, nil
 }
