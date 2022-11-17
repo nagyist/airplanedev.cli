@@ -295,6 +295,7 @@ type BuildContext = build.BuildContext
 
 type DeployBundle struct {
 	UploadID     string       `json:"uploadID"`
+	Name         string       `json:"name"`
 	TargetFiles  []string     `json:"targetFiles"`
 	BuildContext BuildContext `json:"buildContext"`
 }

@@ -50,7 +50,7 @@ func TestDeploy(t *testing.T) {
 			desc: "deploys one bundle",
 			bundles: []bundlediscover.Bundle{
 				{
-					RootPath:     "myRoot",
+					RootPath:     "path/to/myRoot",
 					TargetPaths:  []string{"myPath"},
 					BuildType:    build.NodeBuildType,
 					BuildVersion: build.BuildTypeVersionNode16,
@@ -62,6 +62,7 @@ func TestDeploy(t *testing.T) {
 					Bundles: []api.DeployBundle{
 						{
 							UploadID:    "uploadID",
+							Name:        "myRoot",
 							TargetFiles: []string{"myPath"},
 							BuildContext: api.BuildContext{
 								Type:    build.NodeBuildType,
@@ -92,6 +93,7 @@ func TestDeploy(t *testing.T) {
 					Bundles: []api.DeployBundle{
 						{
 							UploadID:    "uploadID",
+							Name:        "myRoot",
 							TargetFiles: []string{"myPath"},
 							BuildContext: api.BuildContext{
 								Type:    build.NodeBuildType,
@@ -100,6 +102,7 @@ func TestDeploy(t *testing.T) {
 						},
 						{
 							UploadID:    "uploadID",
+							Name:        "myRoot2",
 							TargetFiles: []string{"myPath", "myPath2"},
 						},
 					},
@@ -130,7 +133,7 @@ func TestDeploy(t *testing.T) {
 			bundles: []bundlediscover.Bundle{{RootPath: "myRoot"}},
 			deploys: []api.CreateDeploymentRequest{
 				{
-					Bundles: []api.DeployBundle{{UploadID: "uploadID"}},
+					Bundles: []api.DeployBundle{{UploadID: "uploadID", Name: "myRoot"}},
 					EnvSlug: "myEnv",
 				},
 			},
@@ -146,7 +149,7 @@ func TestDeploy(t *testing.T) {
 			changedFiles: []string{"myRoot/some/sub/file"},
 			deploys: []api.CreateDeploymentRequest{
 				{
-					Bundles: []api.DeployBundle{{UploadID: "uploadID"}},
+					Bundles: []api.DeployBundle{{UploadID: "uploadID", Name: "myRoot"}},
 				},
 			},
 		},
@@ -156,7 +159,7 @@ func TestDeploy(t *testing.T) {
 			gitRepo: mockRepo,
 			deploys: []api.CreateDeploymentRequest{
 				{
-					Bundles: []api.DeployBundle{{UploadID: "uploadID"}},
+					Bundles: []api.DeployBundle{{UploadID: "uploadID", Name: "myRoot"}},
 					GitMetadata: api.GitMetadata{
 						CommitHash:          "6ecf0ef2c2dffb796033e5a02219af86ec6584e5",
 						Ref:                 "master",
@@ -178,7 +181,7 @@ func TestDeploy(t *testing.T) {
 			},
 			deploys: []api.CreateDeploymentRequest{
 				{
-					Bundles: []api.DeployBundle{{UploadID: "uploadID"}},
+					Bundles: []api.DeployBundle{{UploadID: "uploadID", Name: "myRoot"}},
 					GitMetadata: api.GitMetadata{
 						CommitHash:          "6ecf0ef2c2dffb796033e5a02219af86ec6584e5",
 						Ref:                 "master",

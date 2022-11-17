@@ -85,6 +85,7 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 		}
 		bundleToDeploy := api.DeployBundle{
 			UploadID:    uploadIDs[b.RootPath],
+			Name:        filepath.Base(b.RootPath),
 			TargetFiles: b.TargetPaths,
 			BuildContext: api.BuildContext{
 				Type:    b.BuildType,
