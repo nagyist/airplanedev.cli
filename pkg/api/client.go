@@ -65,6 +65,9 @@ type TaskMetadata struct {
 	ID         string `json:"id"`
 	Slug       string `json:"slug"`
 	IsArchived bool   `json:"isArchived"`
+	// IsLocal is true if the task is local in the editor, false if it's a
+	// task that's already deployed.
+	IsLocal bool `json:"isLocal"`
 }
 
 type CreateBuildUploadRequest struct {
@@ -457,6 +460,9 @@ type View struct {
 	Description string     `json:"description"`
 	CreatedBy   string     `json:"createdBy"`
 	CreatedAt   time.Time  `json:"createdAt"`
+	// IsLocal is true if the view is local in the editor, false if it's a
+	// view that's already deployed.
+	IsLocal bool `json:"isLocal"`
 }
 
 type GetViewRequest struct {
