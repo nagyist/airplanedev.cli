@@ -186,40 +186,38 @@ func TestListFilesHandler(t *testing.T) {
 	var resp apidev.ListFilesResponse
 	err = json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
-	require.Equal(&apidev.FileNode{
-		Path: absoluteDir,
-		Children: []*apidev.FileNode{
-			{
-				Path: taskDefFileName,
-				Entities: []apidev.EntityMetadata{
-					{
-						Name: "My task",
-						Slug: "my_task",
-						Kind: apidev.AppKindTask,
-					},
+	require.Equal(absoluteDir, resp.Root.Path)
+	require.ElementsMatch([]*apidev.FileNode{
+		{
+			Path: taskDefFileName,
+			Entities: []apidev.EntityMetadata{
+				{
+					Name: "My task",
+					Slug: "my_task",
+					Kind: apidev.AppKindTask,
 				},
-				Children: []*apidev.FileNode{},
 			},
-			{
-				Path: viewDefFileName,
-				Entities: []apidev.EntityMetadata{
-					{
-						Name: "My view",
-						Slug: "my_view",
-						Kind: apidev.AppKindView,
-					},
+			Children: []*apidev.FileNode{},
+		},
+		{
+			Path: viewDefFileName,
+			Entities: []apidev.EntityMetadata{
+				{
+					Name: "My view",
+					Slug: "my_view",
+					Kind: apidev.AppKindView,
 				},
-				Children: []*apidev.FileNode{},
 			},
-			{
-				Path: filepath.Join(absoluteDir, "subdir"),
-				Children: []*apidev.FileNode{
-					{
-						Path:     filepath.Join(absoluteDir, "subdir/subfile"),
-						Children: []*apidev.FileNode{},
-					},
+			Children: []*apidev.FileNode{},
+		},
+		{
+			Path: filepath.Join(absoluteDir, "subdir"),
+			Children: []*apidev.FileNode{
+				{
+					Path:     filepath.Join(absoluteDir, "subdir/subfile"),
+					Children: []*apidev.FileNode{},
 				},
 			},
 		},
-	}, resp.Root)
+	}, resp.Root.Children)
 }

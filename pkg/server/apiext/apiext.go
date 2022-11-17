@@ -47,6 +47,8 @@ func AttachExternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/prompts/create", handlers.HandlerWithBody(state, CreatePromptHandler)).Methods("POST", "OPTIONS")
 
 	r.Handle("/permissions/get", handlers.Handler(state, GetPermissionsHandler)).Methods("GET", "OPTIONS")
+
+	r.Handle("/hosts/web", handlers.Handler(state, WebHostHandler)).Methods("GET", "OPTIONS")
 }
 
 type ExecuteTaskRequest struct {
@@ -279,25 +281,60 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (de
 
 // GetTaskMetadataHandler handles requests to the /v0/tasks/metadata endpoint. It generates a deterministic task ID for
 // each task found locally, and its primary purpose is to ensure that the task discoverer does not error.
+// If a task is not local, it tries the fallback environment, so that local views
+// can route correctly to the correct URL.
 func GetTaskMetadataHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.TaskMetadata, error) {
 	slug := r.URL.Query().Get("slug")
+	_, ok := state.TaskConfigs.Get(slug)
+	isBuiltin := builtins.IsBuiltinTaskSlug(slug)
+	// Neither builtin or local, we try using the fallback env first, but we
+	// default to returning a dummy task if it's not found.
+	if !isBuiltin && !ok {
+		if state.UseFallbackEnv {
+			resp, err := state.RemoteClient.GetTaskMetadata(ctx, slug)
+			if err != nil {
+				logger.Debug("Received error %s from remote task metadata, falling back to default", err)
+			} else {
+				return resp, nil
+			}
+		}
+	}
 	return libapi.TaskMetadata{
-		ID:   fmt.Sprintf("tsk-%s", slug),
-		Slug: slug,
+		ID:      fmt.Sprintf("tsk-%s", slug),
+		Slug:    slug,
+		IsLocal: true,
 	}, nil
 }
 
 // GetViewHandler handles requests to the /v0/views/get endpoint. It generates a deterministic view ID for each view
 // found locally, and its primary purpose is to ensure that the view discoverer does not error.
+// If a view is not local, it tries the fallback environment, so that local views
+// can route correctly to the correct URL.
 func GetViewHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.View, error) {
 	slug := r.URL.Query().Get("slug")
 	if slug == "" {
 		return libapi.View{}, errors.New("slug cannot be empty")
 	}
 
+	_, ok := state.ViewConfigs.Get(slug)
+	// Not local, we try using the fallback env first, but we default to returning a dummy view if it's not found.
+	if !ok {
+		if state.UseFallbackEnv {
+			resp, err := state.RemoteClient.GetView(ctx, libapi.GetViewRequest{
+				Slug: slug,
+			})
+			if err != nil {
+				logger.Debug("Received error %s from remote view, falling back to default", err)
+			} else {
+				return resp, nil
+			}
+		}
+	}
+
 	return libapi.View{
-		ID:   fmt.Sprintf("vew-%s", slug),
-		Slug: r.URL.Query().Get("slug"),
+		ID:      fmt.Sprintf("vew-%s", slug),
+		Slug:    r.URL.Query().Get("slug"),
+		IsLocal: true,
 	}, nil
 }
 
@@ -557,4 +594,8 @@ func GetPermissionsHandler(ctx context.Context, state *state.State, r *http.Requ
 	}
 
 	return state.RemoteClient.GetPermissions(ctx, taskSlug, actions)
+}
+
+func WebHostHandler(ctx context.Context, state *state.State, r *http.Request) (string, error) {
+	return state.RemoteClient.GetWebHost(ctx)
 }

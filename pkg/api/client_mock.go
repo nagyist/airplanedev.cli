@@ -239,3 +239,7 @@ func (mc *MockClient) GetPermissions(ctx context.Context, taskSlug string, actio
 func (mc *MockClient) GenerateSignedURLs(ctx context.Context, envSlug string) (res GenerateSignedURLsResponse, err error) {
 	panic("not implemented")
 }
+
+func (mc *MockClient) GetWebHost(ctx context.Context) (res string, err error) {
+	panic("not implemented")
+}
