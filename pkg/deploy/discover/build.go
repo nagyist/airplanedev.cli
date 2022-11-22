@@ -56,7 +56,7 @@ func esbuildUserFiles(rootDir string) error {
 
 	res := esbuild.Build(esbuild.BuildOptions{
 		EntryPoints: files,
-		Outdir:      filepath.Join(rootDir, ".airplane"),
+		Outdir:      filepath.Join(rootDir, ".airplane", "discover"),
 		Outbase:     rootDir,
 		Write:       true,
 
@@ -89,7 +89,7 @@ func compiledFilePath(rootDir, file string) (string, error) {
 	if err != nil {
 		return "", errors.New("unable to determine relative path of view from root")
 	}
-	compiledJSPath := filepath.Join(rootDir, ".airplane", relPathFromRoot)
+	compiledJSPath := filepath.Join(rootDir, ".airplane", "discover", relPathFromRoot)
 	compiledJSPath = strings.TrimSuffix(compiledJSPath, filepath.Ext(compiledJSPath))
 	compiledJSPath = compiledJSPath + ".js"
 	return compiledJSPath, nil

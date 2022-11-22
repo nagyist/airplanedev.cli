@@ -46,7 +46,7 @@ func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 		return nil, nil
 	}
 	defer func() {
-		if err := os.RemoveAll(path.Join(pm.RootDir, ".airplane")); err != nil {
+		if err := os.RemoveAll(path.Join(pm.RootDir, ".airplane", "discover")); err != nil {
 			dd.Logger.Warning("unable to remove temporary directory: %s")
 		}
 	}()

@@ -157,7 +157,7 @@ func (c *CodeTaskDiscoverer) parseNodeDefinitions(ctx context.Context, file stri
 		return nil, nil
 	}
 	defer func() {
-		if err := os.RemoveAll(path.Join(pm.RootDir, ".airplane")); err != nil {
+		if err := os.RemoveAll(path.Join(pm.RootDir, ".airplane", "discover")); err != nil {
 			c.Logger.Warning("unable to remove temporary directory: %s")
 		}
 	}()
