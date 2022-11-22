@@ -162,7 +162,10 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		return errors.Errorf("Unable to open: %s", cfg.fileOrDir)
 	}
 
-	localExecutor := &dev.LocalExecutor{}
+	localExecutor, err := dev.NewLocalExecutor(filepath.Dir(cfg.fileOrDir))
+	if err != nil {
+		return errors.Wrap(err, "creating local executor")
+	}
 	localClient := &api.Client{
 		Host:   fmt.Sprintf("127.0.0.1:%d", cfg.port),
 		Token:  cfg.root.Client.Token,

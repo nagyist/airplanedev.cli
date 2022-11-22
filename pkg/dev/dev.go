@@ -43,7 +43,20 @@ type Executor interface {
 }
 
 // LocalExecutor is an implementation of Executor that runs task code locally.
-type LocalExecutor struct{}
+type LocalExecutor struct {
+	BuiltinsClient *builtins.LocalBuiltinClient
+}
+
+func NewLocalExecutor(workingDir string) (Executor, error) {
+	builtinsClient, err := builtins.NewLocalClient(workingDir, goruntime.GOOS, goruntime.GOARCH, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}))
+	if err != nil {
+		return nil, err
+	}
+
+	return &LocalExecutor{
+		BuiltinsClient: builtinsClient,
+	}, nil
+}
 
 // LocalRunConfig is a struct that contains the necessary configs for running a task locally.
 type LocalRunConfig struct {
@@ -83,20 +96,15 @@ var LogIDGen IDGenerator
 // Cmd returns the command needed to execute the task locally
 func (l *LocalExecutor) Cmd(ctx context.Context, runConfig LocalRunConfig) (CmdConfig, error) {
 	if runConfig.IsBuiltin {
-		builtinClient, err := builtins.NewLocalClient(runConfig.WorkingDir, goruntime.GOOS, goruntime.GOARCH, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}))
-		if err != nil {
-			logger.Error(err.Error())
-			return CmdConfig{}, err
-		}
 		req, err := builtins.MarshalRequest(runConfig.Slug, runConfig.ParamValues)
 		if err != nil {
 			return CmdConfig{}, errors.New("invalid builtin request")
 		}
-		cmd, err := builtinClient.Cmd(ctx, req)
+		cmd, err := l.BuiltinsClient.Cmd(ctx, req)
 		if err != nil {
 			return CmdConfig{}, err
 		}
-		return CmdConfig{cmd: cmd, closer: builtinClient.Closer}, nil
+		return CmdConfig{cmd: cmd, closer: l.BuiltinsClient.Closer}, nil
 	}
 	entrypoint, err := entrypointFrom(runConfig.File)
 	if err != nil && err != definitions.ErrNoEntrypoint {
