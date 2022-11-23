@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path"
+	"sync"
 
 	"github.com/airplanedev/archiver"
 	"github.com/airplanedev/lib/pkg/api"
@@ -23,14 +24,14 @@ type apiArchiver struct {
 	uploader Uploader
 
 	uploadArchiveSingleFlightGroup singleflight.Group
-	uploadedArchives               map[string]string
+	uploadedArchives               sync.Map
 }
 
 var _ Archiver = &apiArchiver{}
 
 func NewAPIArchiver(logger logger.Logger, client api.IAPIClient, uploader Uploader) Archiver {
 	return &apiArchiver{
-		uploadedArchives: make(map[string]string),
+		uploadedArchives: sync.Map{},
 		logger:           logger,
 		client:           client,
 		uploader:         uploader,
@@ -66,10 +67,10 @@ type uploadRes struct {
 
 func (d *apiArchiver) uploadArchive(ctx context.Context, archivePath, rootPath string) (uploadRes, error) {
 	// Check if anyone has uploaded an archive for this path.
-	uid, ok := d.uploadedArchives[rootPath]
+	uid, ok := d.uploadedArchives.Load(rootPath)
 	if ok {
 		// Somebody has already uploaded the path. Re-use the upload ID.
-		return uploadRes{uploadID: uid}, nil
+		return uploadRes{uploadID: uid.(string)}, nil
 	}
 
 	archive, err := os.OpenFile(archivePath, os.O_RDONLY, 0)
@@ -98,7 +99,7 @@ func (d *apiArchiver) uploadArchive(ctx context.Context, archivePath, rootPath s
 	uploadID := upload.Upload.ID
 
 	// Populate the cache so that we can reuse the upload.
-	d.uploadedArchives[rootPath] = uploadID
+	d.uploadedArchives.Store(rootPath, uploadID)
 
 	return uploadRes{uploadID: uploadID, sizeBytes: sizeBytes}, nil
 }
