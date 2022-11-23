@@ -6,12 +6,11 @@ maintsx=$3
 
 for entrypoint in $entrypoints; do
     # Make a directory for each entrypoint. The directory is the entrypoint without the extension.
-    dir=${entrypoint%.*}
-    mkdir -p "./views/${dir}"
+    mkdir -p "${entrypoint}"
 
     # Create an index.html file for each entrypoint.
-    cp $indexhtml "./views/${dir}"
+    cp $indexhtml "${entrypoint}"
 
     # Create a main.tsx file for each entrypoint. Replace {{.Entrypoint}} with /src/path/to/entrypoint
-    sed -e "s|{{.Entrypoint}}|\/src\/$entrypoint|" $maintsx > "./views/${dir}/main.tsx"
+    sed -e "s|{{.Entrypoint}}|\/src\/$entrypoint|" $maintsx > "${entrypoint}/main.tsx"
 done

@@ -358,14 +358,10 @@ func ViteConfigString() (string, error) {
 }
 
 func UniversalViteConfigString(entrypoints []string) (string, error) {
-	entrypointDirs := make([]string, len(entrypoints))
-	for i, e := range entrypoints {
-		entrypointDirs[i] = strings.TrimSuffix(e, filepath.Ext(e))
-	}
 	return applyTemplate(universalViteConfigTemplateStr, struct {
 		Entrypoints []string
 	}{
-		Entrypoints: entrypointDirs,
+		Entrypoints: entrypoints,
 	})
 }
 
