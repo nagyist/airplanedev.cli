@@ -9,6 +9,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
 func GetHttpExpect(ctx context.Context, t *testing.T, router *mux.Router) *httpexpect.Expect {
 	return httpexpect.WithConfig(httpexpect.Config{
 		Reporter: httpexpect.NewAssertReporter(t),

@@ -221,3 +221,55 @@ func TestListFilesHandler(t *testing.T) {
 		},
 	}, resp.Root.Children)
 }
+
+func TestGetFileHandler(t *testing.T) {
+	require := require.New(t)
+
+	root := "../fixtures/root/subdir"
+	absoluteDir, err := filepath.Abs(root)
+	require.NoError(err)
+
+	h := test_utils.GetHttpExpect(
+		context.Background(),
+		t,
+		server.NewRouter(&state.State{
+			Dir: absoluteDir,
+		}),
+	)
+
+	subfilePath := filepath.Join(absoluteDir, "subfile")
+
+	// Valid path
+	body := h.GET("/dev/files/get").
+		WithQuery("path", subfilePath).
+		Expect().
+		Status(http.StatusOK).Body()
+
+	var resp apidev.GetFileResponse
+	err = json.Unmarshal([]byte(body.Raw()), &resp)
+	require.NoError(err)
+	require.Equal("Test\n", resp.Content)
+
+	// Nonexistent path
+	nonexistentPath := filepath.Join(absoluteDir, "nonexistent")
+	body = h.GET("/dev/files/get").
+		WithQuery("path", nonexistentPath).
+		Expect().
+		Status(http.StatusInternalServerError).Body()
+
+	var errResp test_utils.ErrorResponse
+	err = json.Unmarshal([]byte(body.Raw()), &errResp)
+	require.NoError(err)
+	require.Contains(errResp.Error, "no such file or directory")
+
+	// Path outside dev root
+	pathOutsideRoot := filepath.Join(absoluteDir, "../my_task.airplane.ts")
+	body = h.GET("/dev/files/get").
+		WithQuery("path", pathOutsideRoot).
+		Expect().
+		Status(http.StatusInternalServerError).Body()
+
+	err = json.Unmarshal([]byte(body.Raw()), &errResp)
+	require.NoError(err)
+	require.Contains(errResp.Error, "path is outside dev root")
+}

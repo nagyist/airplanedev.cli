@@ -34,8 +34,10 @@ func AttachDevRoutes(r *mux.Router, s *state.State) {
 	r.Handle("/info", handlers.Handler(s, GetInfoHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/version", handlers.Handler(s, GetVersionHandler)).Methods("GET", "OPTIONS")
 
+	// TODO: Remove this endpoint once the studio UI is updated to use /dev/files/list
 	r.Handle("/list", handlers.Handler(s, ListEntrypointsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/files/list", handlers.Handler(s, ListFilesHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/files/get", handlers.Handler(s, GetFileHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/startView/{view_slug}", handlers.Handler(s, StartViewHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/logs/{run_id}", handlers.HandlerSSE(s, LogsHandler)).Methods("GET", "OPTIONS")
@@ -184,8 +186,8 @@ var ignoredDirs = map[string]struct{}{
 	"venv":           {},
 }
 
-// ListFilesHandler handles requests to the /dev/list endpoint. It generates a mapping from entrypoint relative to
-// the dev server root to the list of tasks and views that use that entrypoint.
+// ListFilesHandler handles requests to the /dev/files/list endpoint. It generates a tree of all files under the dev
+// server root, with entities that are declared in each file.
 func ListFilesHandler(ctx context.Context, state *state.State, r *http.Request) (ListFilesResponse, error) {
 	// Track entities per file, which we'll use to show entities in the UI.
 	filepathToEntities := make(map[string][]EntityMetadata, 0)
@@ -254,6 +256,31 @@ func ListFilesHandler(ctx context.Context, state *state.State, r *http.Request) 
 	}
 
 	return ListFilesResponse{Root: root}, nil
+}
+
+type GetFileResponse struct {
+	Content string `json:"content"`
+}
+
+// GetFileHandler returns the contents of the file at the requested location. Path is the absolute path to the file,
+// irrespective of the dev server root.
+func GetFileHandler(ctx context.Context, state *state.State, r *http.Request) (GetFileResponse, error) {
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		return GetFileResponse{}, errors.New("path is required")
+	}
+
+	// Ensure the path is within the dev server root.
+	if !strings.HasPrefix(path, state.Dir) {
+		return GetFileResponse{}, errors.New("path is outside dev root")
+	}
+
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return GetFileResponse{}, errors.Wrap(err, "reading file")
+	}
+
+	return GetFileResponse{Content: string(contents)}, nil
 }
 
 type CreateRunResponse struct {
