@@ -11,6 +11,7 @@ import (
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/utils/logger"
+	"github.com/airplanedev/lib/pkg/utils/pointers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,7 +35,9 @@ func TestDiscover(t *testing.T) {
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"taskWithComment"},
-					BuildType:   build.NodeBuildType,
+					BuildContext: build.BuildContext{
+						Type: build.NodeBuildType,
+					},
 				},
 			},
 		},
@@ -43,25 +46,36 @@ func TestDiscover(t *testing.T) {
 			paths: []string{"./fixtures/tasksWithDefn"},
 			expectedBundles: []Bundle{
 				{
-					RootPath:     fixturesPath,
-					TargetPaths:  []string{"tasksWithDefn"},
-					BuildType:    build.NodeBuildType,
-					BuildVersion: build.BuildTypeVersionNode14,
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"tasksWithDefn"},
+					BuildContext: build.BuildContext{
+						Type:    build.NodeBuildType,
+						Version: build.BuildTypeVersionNode14,
+					},
 				},
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"tasksWithDefn"},
-					BuildType:   build.PythonBuildType,
+					BuildContext: build.BuildContext{
+						Type: build.PythonBuildType,
+						EnvVars: map[string]build.EnvVarValue{
+							"baz": {Value: pointers.String("quz")},
+						},
+					},
 				},
 				{
-					RootPath:    path.Join(fixturesPath),
+					RootPath:    fixturesPath,
 					TargetPaths: []string{"tasksWithDefn"},
-					BuildType:   build.ShellBuildType,
+					BuildContext: build.BuildContext{
+						Type: build.ShellBuildType,
+					},
 				},
 				{
-					RootPath:    path.Join(fixturesPath),
+					RootPath:    fixturesPath,
 					TargetPaths: []string{"tasksWithDefn"},
-					BuildType:   build.NoneBuildType,
+					BuildContext: build.BuildContext{
+						Type: build.NoneBuildType,
+					},
 				},
 			},
 		},
@@ -72,12 +86,16 @@ func TestDiscover(t *testing.T) {
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"inlineTasks"},
-					BuildType:   build.NodeBuildType,
+					BuildContext: build.BuildContext{
+						Type: build.NodeBuildType,
+					},
 				},
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"inlineTasks"},
-					BuildType:   build.PythonBuildType,
+					BuildContext: build.BuildContext{
+						Type: build.PythonBuildType,
+					},
 				},
 			},
 		},
@@ -86,11 +104,29 @@ func TestDiscover(t *testing.T) {
 			paths: []string{"./fixtures/inlineTasksVersion"},
 			expectedBundles: []Bundle{
 				{
-					RootPath:     path.Join(fixturesPath, "inlineTasksVersion"),
-					TargetPaths:  []string{"."},
-					BuildType:    build.NodeBuildType,
-					BuildVersion: build.BuildTypeVersionNode16,
-					BuildBase:    build.BuildBaseSlim,
+					RootPath:    path.Join(fixturesPath, "inlineTasksVersion"),
+					TargetPaths: []string{"."},
+					BuildContext: build.BuildContext{
+						Type:    build.NodeBuildType,
+						Version: build.BuildTypeVersionNode16,
+						Base:    build.BuildBaseSlim,
+					},
+				},
+			},
+		},
+		{
+			desc:  "inline task with env vars",
+			paths: []string{"./fixtures/inlineTaskWithEnvVars"},
+			expectedBundles: []Bundle{
+				{
+					RootPath:    path.Join(fixturesPath, "inlineTaskWithEnvVars"),
+					TargetPaths: []string{"."},
+					BuildContext: build.BuildContext{
+						Type: build.NodeBuildType,
+						EnvVars: map[string]build.EnvVarValue{
+							"foo": {Value: pointers.String("bar")},
+						},
+					},
 				},
 			},
 		},
@@ -101,8 +137,9 @@ func TestDiscover(t *testing.T) {
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"nonbuildtask"},
-					BuildType:   build.NoneBuildType,
-				},
+					BuildContext: build.BuildContext{
+						Type: build.NoneBuildType,
+					}},
 			},
 		},
 		{
@@ -112,13 +149,17 @@ func TestDiscover(t *testing.T) {
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"nonbuildtasknested"},
-					BuildType:   build.NoneBuildType,
+					BuildContext: build.BuildContext{
+						Type: build.NoneBuildType,
+					},
 				},
 				{
-					RootPath:     fixturesPath,
-					TargetPaths:  []string{"nonbuildtasknested/nested/nested"},
-					BuildType:    build.NodeBuildType,
-					BuildVersion: build.BuildTypeVersionNode18,
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"nonbuildtasknested/nested/nested"},
+					BuildContext: build.BuildContext{
+						Type:    build.NodeBuildType,
+						Version: build.BuildTypeVersionNode18,
+					},
 				},
 			},
 		},
@@ -129,7 +170,9 @@ func TestDiscover(t *testing.T) {
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"viewWithDefn"},
-					BuildType:   build.ViewBuildType,
+					BuildContext: build.BuildContext{
+						Type: build.ViewBuildType,
+					},
 				},
 			},
 		},
@@ -140,12 +183,15 @@ func TestDiscover(t *testing.T) {
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"viewInline"},
-					BuildType:   build.ViewBuildType,
-				},
+					BuildContext: build.BuildContext{
+						Type: build.ViewBuildType,
+					}},
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"viewInline"},
-					BuildType:   build.NodeBuildType,
+					BuildContext: build.BuildContext{
+						Type: build.NodeBuildType,
+					},
 				},
 			},
 		},
@@ -156,13 +202,15 @@ func TestDiscover(t *testing.T) {
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"viewAndTaskInline"},
-					BuildType:   build.NodeBuildType,
-				},
+					BuildContext: build.BuildContext{
+						Type: build.NodeBuildType,
+					}},
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"viewAndTaskInline"},
-					BuildType:   build.ViewBuildType,
-				},
+					BuildContext: build.BuildContext{
+						Type: build.ViewBuildType,
+					}},
 			},
 		},
 		{
@@ -170,10 +218,12 @@ func TestDiscover(t *testing.T) {
 			paths: []string{"./fixtures/tasksWithDefn/defn.js"},
 			expectedBundles: []Bundle{
 				{
-					RootPath:     fixturesPath,
-					TargetPaths:  []string{"tasksWithDefn/defn.js"},
-					BuildType:    build.NodeBuildType,
-					BuildVersion: build.BuildTypeVersionNode14,
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"tasksWithDefn/defn.js"},
+					BuildContext: build.BuildContext{
+						Type:    build.NodeBuildType,
+						Version: build.BuildTypeVersionNode14,
+					},
 				},
 			},
 		},
@@ -184,29 +234,39 @@ func TestDiscover(t *testing.T) {
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"inlineTasks"},
-					BuildType:   build.NodeBuildType,
+					BuildContext: build.BuildContext{
+						Type: build.NodeBuildType,
+					},
 				},
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"inlineTasks", "tasksWithDefn"},
-					BuildType:   build.PythonBuildType,
+					BuildContext: build.BuildContext{
+						Type: build.PythonBuildType,
+						EnvVars: map[string]build.EnvVarValue{
+							"baz": {Value: pointers.String("quz")},
+						},
+					},
 				},
 				{
-					RootPath:     fixturesPath,
-					TargetPaths:  []string{"tasksWithDefn", "tasksWithDefn/defn.task.yaml"},
-					BuildType:    build.NodeBuildType,
-					BuildVersion: build.BuildTypeVersionNode14,
-				},
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"tasksWithDefn", "tasksWithDefn/defn.task.yaml"},
+					BuildContext: build.BuildContext{
+						Type:    build.NodeBuildType,
+						Version: build.BuildTypeVersionNode14,
+					}},
 				{
-					RootPath:    path.Join(fixturesPath),
+					RootPath:    fixturesPath,
 					TargetPaths: []string{"tasksWithDefn"},
-					BuildType:   build.ShellBuildType,
-				},
+					BuildContext: build.BuildContext{
+						Type: build.ShellBuildType,
+					}},
 				{
-					RootPath:    path.Join(fixturesPath),
+					RootPath:    fixturesPath,
 					TargetPaths: []string{"tasksWithDefn"},
-					BuildType:   build.NoneBuildType,
-				},
+					BuildContext: build.BuildContext{
+						Type: build.NoneBuildType,
+					}},
 			},
 		},
 		{
@@ -214,11 +274,12 @@ func TestDiscover(t *testing.T) {
 			paths: []string{"./fixtures/nestedTask"},
 			expectedBundles: []Bundle{
 				{
-					RootPath:     fixturesPath,
-					TargetPaths:  []string{"nestedTask"},
-					BuildType:    build.NodeBuildType,
-					BuildVersion: build.BuildTypeVersionNode16,
-				},
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"nestedTask"},
+					BuildContext: build.BuildContext{
+						Type:    build.NodeBuildType,
+						Version: build.BuildTypeVersionNode16,
+					}},
 			},
 		},
 		{
@@ -228,8 +289,9 @@ func TestDiscover(t *testing.T) {
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"multipleTasksSameRoot"},
-					BuildType:   build.NodeBuildType,
-				},
+					BuildContext: build.BuildContext{
+						Type: build.NodeBuildType,
+					}},
 			},
 		},
 		{
@@ -239,19 +301,23 @@ func TestDiscover(t *testing.T) {
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"multipleTasksSameRootDiffBuild"},
-					BuildType:   build.NodeBuildType,
-				},
-				{
-					RootPath:     fixturesPath,
-					TargetPaths:  []string{"multipleTasksSameRootDiffBuild"},
-					BuildType:    build.NodeBuildType,
-					BuildVersion: build.BuildTypeVersionNode16,
-				},
+					BuildContext: build.BuildContext{
+						Type: build.NodeBuildType,
+					}},
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"multipleTasksSameRootDiffBuild"},
-					BuildType:   build.NodeBuildType,
-					BuildBase:   build.BuildBaseSlim,
+					BuildContext: build.BuildContext{
+						Type:    build.NodeBuildType,
+						Version: build.BuildTypeVersionNode16,
+					}},
+				{
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"multipleTasksSameRootDiffBuild"},
+					BuildContext: build.BuildContext{
+						Type: build.NodeBuildType,
+						Base: build.BuildBaseSlim,
+					},
 				},
 			},
 		},
@@ -260,23 +326,26 @@ func TestDiscover(t *testing.T) {
 			paths: []string{"./fixtures/multipleTasksDiffRoot"},
 			expectedBundles: []Bundle{
 				{
-					RootPath:     fixturesPath,
-					TargetPaths:  []string{"multipleTasksDiffRoot"},
-					BuildType:    build.NodeBuildType,
-					BuildVersion: build.BuildTypeVersionNode14,
-				},
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"multipleTasksDiffRoot"},
+					BuildContext: build.BuildContext{
+						Type:    build.NodeBuildType,
+						Version: build.BuildTypeVersionNode14,
+					}},
 				{
-					RootPath:     path.Join(fixturesPath),
-					TargetPaths:  []string{"multipleTasksDiffRoot/nested"},
-					BuildType:    build.NodeBuildType,
-					BuildVersion: build.BuildTypeVersionNode14,
-				},
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"multipleTasksDiffRoot/nested"},
+					BuildContext: build.BuildContext{
+						Type:    build.NodeBuildType,
+						Version: build.BuildTypeVersionNode14,
+					}},
 				{
-					RootPath:     path.Join(fixturesPath),
-					TargetPaths:  []string{"multipleTasksDiffRoot/nested/nested"},
-					BuildType:    build.NodeBuildType,
-					BuildVersion: build.BuildTypeVersionNode14,
-				},
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"multipleTasksDiffRoot/nested/nested"},
+					BuildContext: build.BuildContext{
+						Type:    build.NodeBuildType,
+						Version: build.BuildTypeVersionNode14,
+					}},
 			},
 		},
 		{
@@ -327,7 +396,6 @@ func TestDiscover(t *testing.T) {
 			require.NoError(err)
 
 			assert.ElementsMatch(tC.expectedBundles, bundles)
-
 		})
 	}
 }

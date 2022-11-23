@@ -1,6 +1,8 @@
 package build
 
-import "golang.org/x/exp/slices"
+import (
+	"golang.org/x/exp/slices"
+)
 
 // KindOptions are part of the task definition, supplied by the user.
 type KindOptions map[string]interface{}
@@ -84,9 +86,14 @@ var AllBuildTypeVersions = map[BuildType][]BuildTypeVersion{
 }
 
 type BuildContext struct {
-	Type    BuildType        `json:"type"`
-	Version BuildTypeVersion `json:"version"`
-	Base    BuildBase        `json:"base"`
+	Type    BuildType              `json:"type"`
+	Version BuildTypeVersion       `json:"version"`
+	Base    BuildBase              `json:"base"`
+	EnvVars map[string]EnvVarValue `json:"envVars"`
+}
+type EnvVarValue struct {
+	Value  *string `json:"value,omitempty"`
+	Config *string `json:"config,omitempty"`
 }
 
 func (b BuildContext) Valid() bool {

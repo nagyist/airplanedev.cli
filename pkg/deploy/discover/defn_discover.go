@@ -118,7 +118,7 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 	}
 	tc.TaskID = metadata.ID
 
-	root, _, _, _, err := setBuildVersionAndWorkingDir(file, def)
+	root, _, err := setBuildVersionAndWorkingDir(file, def)
 	if err != nil {
 		return nil, err
 	}
@@ -148,24 +148,24 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 	return []TaskConfig{tc}, nil
 }
 
-func (dd *DefnDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, build.BuildBase, error) {
+func (dd *DefnDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, build.BuildContext, error) {
 	if !definitions.IsTaskDef(file) {
 		siblingDef := searchTaskDefnInSibling(file)
 		if siblingDef != "" {
 			return dd.GetTaskRoot(ctx, siblingDef)
 		}
-		return "", "", "", "", nil
+		return "", build.BuildContext{}, nil
 	}
 
 	dir, err := taskdir.Open(file)
 	if err != nil {
-		return "", "", "", "", err
+		return "", build.BuildContext{}, err
 	}
 	defer dir.Close()
 
 	def, err := dir.ReadDefinition()
 	if err != nil {
-		return "", "", "", "", err
+		return "", build.BuildContext{}, err
 	}
 
 	return setBuildVersionAndWorkingDir(file, def)
@@ -175,41 +175,66 @@ func (dd *DefnDiscoverer) ConfigSource() ConfigSource {
 	return ConfigSourceDefn
 }
 
-func setBuildVersionAndWorkingDir(file string, def definitions.DefinitionInterface) (string, build.BuildType, build.BuildTypeVersion, build.BuildBase, error) {
+func setBuildVersionAndWorkingDir(file string, def definitions.DefinitionInterface) (string, build.BuildContext, error) {
 	entrypoint, err := def.GetAbsoluteEntrypoint()
 	if err == definitions.ErrNoEntrypoint {
 		absFile, err := filepath.Abs(file)
 		if err != nil {
-			return "", "", "", "", err
+			return "", build.BuildContext{}, err
 		}
 		entrypoint = absFile
 	} else if err != nil {
-		return "", "", "", "", err
+		return "", build.BuildContext{}, err
 	}
 	if err = fsx.AssertExistsAll(entrypoint); err != nil {
-		return "", "", "", "", err
+		return "", build.BuildContext{}, err
 	}
 	kind, _, err := def.GetKindAndOptions()
 	if err != nil {
-		return "", "", "", "", err
+		return "", build.BuildContext{}, err
 	}
 
 	taskPathMetadata, err := taskPathMetadata(entrypoint, kind)
 	if err != nil {
-		return "", "", "", "", err
+		return "", build.BuildContext{}, err
 	}
-	if err := def.SetBuildVersionBase(taskPathMetadata.BuildVersion, taskPathMetadata.BuildBase); err != nil {
-		return "", "", "", "", err
+	bc, err := taskBuildContext(taskPathMetadata.RootDir, taskPathMetadata.Runtime)
+	if err != nil {
+		return "", build.BuildContext{}, err
+	}
+	if err := def.SetBuildVersionBase(bc.Version, bc.Base); err != nil {
+		return "", build.BuildContext{}, err
 	}
 	if err := def.SetWorkdir(taskPathMetadata.RootDir, taskPathMetadata.WorkDir); err != nil {
-		return "", "", "", "", err
+		return "", build.BuildContext{}, err
 	}
 	// Recalculate the build types.
 	buildType, buildTypeVersion, buildBase, err := def.GetBuildType()
 	if err != nil {
-		return "", "", "", "", err
+		return "", build.BuildContext{}, err
 	}
-	return taskPathMetadata.RootDir, buildType, buildTypeVersion, buildBase, nil
+
+	envVarsFromDefn, err := def.GetEnv()
+	if err != nil {
+		return "", build.BuildContext{}, err
+	}
+	envVars := make(map[string]build.EnvVarValue)
+	for k, v := range bc.EnvVars {
+		envVars[k] = v
+	}
+	for k, v := range envVarsFromDefn {
+		envVars[k] = build.EnvVarValue(v)
+	}
+	if len(envVars) == 0 {
+		envVars = nil
+	}
+
+	return taskPathMetadata.RootDir, build.BuildContext{
+		Type:    buildType,
+		Version: buildTypeVersion,
+		Base:    buildBase,
+		EnvVars: envVars,
+	}, nil
 }
 
 func searchTaskDefnInSibling(file string) string {

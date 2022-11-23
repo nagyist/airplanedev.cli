@@ -103,9 +103,9 @@ func (c *CodeTaskDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([
 	return taskConfigs, nil
 }
 
-func (c *CodeTaskDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, build.BuildBase, error) {
+func (c *CodeTaskDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, build.BuildContext, error) {
 	if !deployutils.IsInlineAirplaneEntity(file) {
-		return "", "", "", "", nil
+		return "", build.BuildContext{}, nil
 	}
 
 	var kind build.TaskKind
@@ -118,13 +118,23 @@ func (c *CodeTaskDiscoverer) GetTaskRoot(ctx context.Context, file string) (stri
 		buildType = build.PythonBuildType
 	}
 	if kind == "" {
-		return "", "", "", "", nil
+		return "", build.BuildContext{}, nil
 	}
 	pm, err := taskPathMetadata(file, kind)
 	if err != nil {
-		return "", "", "", "", errors.Wrap(err, "unable to interpret task path metadata")
+		return "", build.BuildContext{}, errors.Wrap(err, "unable to interpret task path metadata")
 	}
-	return pm.RootDir, buildType, pm.BuildVersion, pm.BuildBase, nil
+	bc, err := taskBuildContext(pm.RootDir, pm.Runtime)
+	if err != nil {
+		return "", build.BuildContext{}, err
+	}
+
+	return pm.RootDir, build.BuildContext{
+		Type:    buildType,
+		Version: bc.Version,
+		Base:    bc.Base,
+		EnvVars: bc.EnvVars,
+	}, nil
 }
 
 func (c *CodeTaskDiscoverer) ConfigSource() ConfigSource {
@@ -149,6 +159,10 @@ func (c *CodeTaskDiscoverer) parseNodeDefinitions(ctx context.Context, file stri
 	pm, err := taskPathMetadata(file, build.TaskKindNode)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to interpret task path metadata")
+	}
+	bc, err := taskBuildContext(pm.RootDir, pm.Runtime)
+	if err != nil {
+		return nil, err
 	}
 
 	if err := esbuildUserFiles(pm.RootDir); err != nil {
@@ -179,7 +193,7 @@ func (c *CodeTaskDiscoverer) parseNodeDefinitions(ctx context.Context, file stri
 		nodeConfig := parsedTask["node"].(map[string]interface{})
 		nodeConfig["entrypoint"] = pm.RelEntrypoint
 
-		def, err := ConstructDefinition(parsedTask, pm)
+		def, err := ConstructDefinition(parsedTask, pm, bc)
 		if err != nil {
 			return nil, err
 		}
@@ -203,6 +217,10 @@ func (c *CodeTaskDiscoverer) parsePythonDefinitions(ctx context.Context, file st
 	if err != nil {
 		return nil, err
 	}
+	bc, err := taskBuildContext(pathMetadata.RootDir, pathMetadata.Runtime)
+	if err != nil {
+		return nil, err
+	}
 
 	var parsedDefinitions []ParsedDefinition
 	for _, parsedTask := range parsedConfigs {
@@ -211,7 +229,7 @@ func (c *CodeTaskDiscoverer) parsePythonDefinitions(ctx context.Context, file st
 		pythonConfig := parsedTask["python"].(map[string]interface{})
 		pythonConfig["entrypoint"] = pathMetadata.RelEntrypoint
 
-		def, err := ConstructDefinition(parsedTask, pathMetadata)
+		def, err := ConstructDefinition(parsedTask, pathMetadata, bc)
 		if err != nil {
 			return nil, err
 		}
@@ -225,7 +243,7 @@ func (c *CodeTaskDiscoverer) parsePythonDefinitions(ctx context.Context, file st
 	return parsedDefinitions, nil
 }
 
-func ConstructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPathMetadata) (definitions.DefinitionInterface, error) {
+func ConstructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPathMetadata, buildContext build.BuildContext) (definitions.DefinitionInterface, error) {
 	entrypointFunc, ok := parsedTask["entrypointFunc"].(string)
 	if !ok {
 		return nil, errors.New("expected 'entrypointFunc' key in parsed task")
@@ -261,7 +279,7 @@ func ConstructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPat
 	if err := def.SetAbsoluteEntrypoint(pathMetadata.AbsEntrypoint); err != nil {
 		return nil, err
 	}
-	if err := def.SetBuildVersionBase(pathMetadata.BuildVersion, pathMetadata.BuildBase); err != nil {
+	if err := def.SetBuildVersionBase(buildContext.Version, buildContext.Base); err != nil {
 		return nil, err
 	}
 

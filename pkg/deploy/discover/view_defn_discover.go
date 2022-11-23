@@ -36,7 +36,7 @@ func (dd *ViewDefnDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 		return nil, err
 	}
 
-	root, _, _, _, err := dd.GetViewRoot(ctx, file)
+	root, _, err := dd.GetViewRoot(ctx, file)
 	if err != nil {
 		return nil, err
 	}
@@ -78,19 +78,19 @@ func (dd *ViewDefnDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 	}, nil
 }
 
-func (dd *ViewDefnDiscoverer) GetViewRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, build.BuildBase, error) {
+func (dd *ViewDefnDiscoverer) GetViewRoot(ctx context.Context, file string) (string, build.BuildContext, error) {
 	if !definitions.IsViewDef(file) {
-		return "", "", "", "", nil
+		return "", build.BuildContext{}, nil
 	}
 
 	d, err := getViewDefinitionFromFile(file)
 	if err != nil {
-		return "", "", "", "", err
+		return "", build.BuildContext{}, err
 	}
 
 	root, err := filepath.Abs(filepath.Dir(file))
 	if err != nil {
-		return "", "", "", "", errors.Wrap(err, "getting absolute view definition root")
+		return "", build.BuildContext{}, errors.Wrap(err, "getting absolute view definition root")
 	}
 	if p, ok := fsx.Find(root, "package.json"); ok {
 		root = p
@@ -98,10 +98,19 @@ func (dd *ViewDefnDiscoverer) GetViewRoot(ctx context.Context, file string) (str
 
 	pm, err := taskPathMetadata(d.Entrypoint, build.TaskKindNode)
 	if err != nil {
-		return "", "", "", "", err
+		return "", build.BuildContext{}, err
+	}
+	bc, err := taskBuildContext(pm.RootDir, pm.Runtime)
+	if err != nil {
+		return "", build.BuildContext{}, err
 	}
 
-	return root, build.ViewBuildType, pm.BuildVersion, pm.BuildBase, nil
+	return root, build.BuildContext{
+		Type:    build.ViewBuildType,
+		Version: bc.Version,
+		Base:    bc.Base,
+		EnvVars: bc.EnvVars,
+	}, nil
 }
 
 func (dd *ViewDefnDiscoverer) ConfigSource() ConfigSource {

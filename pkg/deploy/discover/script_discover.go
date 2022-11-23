@@ -84,10 +84,10 @@ func (sd *ScriptDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]
 	}, nil
 }
 
-func (sd *ScriptDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, build.BuildType, build.BuildTypeVersion, build.BuildBase, error) {
+func (sd *ScriptDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, build.BuildContext, error) {
 	slug := runtime.Slug(file)
 	if slug == "" {
-		return "", "", "", "", nil
+		return "", build.BuildContext{}, nil
 	}
 
 	task, err := sd.Client.GetTask(ctx, api.GetTaskRequest{
@@ -97,32 +97,46 @@ func (sd *ScriptDiscoverer) GetTaskRoot(ctx context.Context, file string) (strin
 	if err != nil {
 		var merr *api.TaskMissingError
 		if !errors.As(err, &merr) {
-			return "", "", "", "", nil
+			return "", build.BuildContext{}, nil
 		}
 
 		sd.Logger.Warning(`Task with slug %s does not exist, skipping deployment.`, slug)
-		return "", "", "", "", nil
+		return "", build.BuildContext{}, nil
 	}
 	if task.IsArchived {
 		sd.Logger.Warning(`Task with slug %s is archived, skipping deployment.`, slug)
-		return "", "", "", "", nil
+		return "", build.BuildContext{}, nil
 	}
 
 	def, err := definitions.NewDefinitionFromTask(ctx, sd.Client, task)
 	if err != nil {
-		return "", "", "", "", err
-	}
-
-	buildType, buildTypeVersion, buildBase, err := def.GetBuildType()
-	if err != nil {
-		return "", "", "", "", err
+		return "", build.BuildContext{}, err
 	}
 
 	pathMetadata, err := taskPathMetadata(file, task.Kind)
 	if err != nil {
-		return "", "", "", "", err
+		return "", build.BuildContext{}, err
 	}
-	return pathMetadata.RootDir, buildType, buildTypeVersion, buildBase, nil
+
+	bc, err := taskBuildContext(pathMetadata.RootDir, pathMetadata.Runtime)
+	if err != nil {
+		return "", build.BuildContext{}, err
+	}
+	if err := def.SetBuildVersionBase(bc.Version, bc.Base); err != nil {
+		return "", build.BuildContext{}, err
+	}
+
+	buildType, buildTypeVersion, buildBase, err := def.GetBuildType()
+	if err != nil {
+		return "", build.BuildContext{}, err
+	}
+
+	return pathMetadata.RootDir, build.BuildContext{
+		Type:    buildType,
+		Version: buildTypeVersion,
+		Base:    buildBase,
+		EnvVars: bc.EnvVars,
+	}, nil
 }
 
 func (sd *ScriptDiscoverer) ConfigSource() ConfigSource {

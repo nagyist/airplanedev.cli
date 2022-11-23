@@ -37,9 +37,7 @@ type Bundle struct {
 	// e.g. the root path may contain 5 individual tasks, but the user may only
 	// want to deploy one of those tasks, specified by a single target path.
 	TargetPaths  []string
-	BuildType    build.BuildType
-	BuildVersion build.BuildTypeVersion
-	BuildBase    build.BuildBase
+	BuildContext build.BuildContext
 }
 
 // Discover recursively discovers Airplane bundles located within "paths".
@@ -54,16 +52,19 @@ func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]Bundle, e
 	for _, b := range discoveredBundles {
 		var alreadyAdded bool
 		for j, addedBundle := range dedupedBundles {
-			if addedBundle.RootPath == b.RootPath &&
-				b.BuildType == addedBundle.BuildType &&
-				b.BuildVersion == addedBundle.BuildVersion &&
-				b.BuildBase == addedBundle.BuildBase {
+			if equal(addedBundle, b) {
 				alreadyAdded = true
 				// The bundle was already added. Add its target paths if they don't exist.
 				for _, target := range b.TargetPaths {
 					if err := updateBundleWithTarget(&addedBundle, path.Join(addedBundle.RootPath, target)); err != nil {
 						return nil, err
 					}
+				}
+				for k, v := range b.BuildContext.EnvVars {
+					if addedBundle.BuildContext.EnvVars == nil {
+						addedBundle.BuildContext.EnvVars = make(map[string]build.EnvVarValue)
+					}
+					addedBundle.BuildContext.EnvVars[k] = v
 				}
 				dedupedBundles[j] = addedBundle
 			}
@@ -137,7 +138,7 @@ func (d *Discoverer) discoverHelper(ctx context.Context, paths ...string) ([]Bun
 		} else {
 			// We found a file.
 			for _, td := range d.TaskDiscoverers {
-				bundlePath, buildType, buildTypeVersion, buildBase, err := td.GetTaskRoot(ctx, p)
+				bundlePath, buildContext, err := td.GetTaskRoot(ctx, p)
 				if err != nil {
 					return nil, err
 				}
@@ -148,9 +149,7 @@ func (d *Discoverer) discoverHelper(ctx context.Context, paths ...string) ([]Bun
 
 				b := Bundle{
 					RootPath:     bundlePath,
-					BuildType:    buildType,
-					BuildVersion: buildTypeVersion,
-					BuildBase:    buildBase,
+					BuildContext: buildContext,
 				}
 				if err := updateBundleWithTarget(&b, p); err != nil {
 					return nil, err
@@ -158,7 +157,7 @@ func (d *Discoverer) discoverHelper(ctx context.Context, paths ...string) ([]Bun
 				bundles = append(bundles, b)
 			}
 			for _, td := range d.ViewDiscoverers {
-				bundlePath, buildType, buildTypeVersion, buildBase, err := td.GetViewRoot(ctx, p)
+				bundlePath, buildContext, err := td.GetViewRoot(ctx, p)
 				if err != nil {
 					return nil, err
 				}
@@ -169,9 +168,7 @@ func (d *Discoverer) discoverHelper(ctx context.Context, paths ...string) ([]Bun
 
 				bundle := Bundle{
 					RootPath:     bundlePath,
-					BuildType:    buildType,
-					BuildVersion: buildTypeVersion,
-					BuildBase:    buildBase,
+					BuildContext: buildContext,
 				}
 				bundles = append(bundles, bundle)
 				if err != nil {
@@ -210,4 +207,26 @@ func updateBundleWithTarget(b *Bundle, target string) error {
 		b.TargetPaths = append(b.TargetPaths, relPath)
 	}
 	return nil
+}
+
+func equal(b1, b2 Bundle) bool {
+	// If the two bundles have the same env var with a different value, they are not equal.
+	for k, v1 := range b1.BuildContext.EnvVars {
+		v2, ok := b2.BuildContext.EnvVars[k]
+		if ok {
+			if v1.Config != nil {
+				if v2.Config == nil || *v1.Config != *v2.Config {
+					return false
+				}
+			} else if v1.Value != nil {
+				if v2.Value == nil || *v1.Value != *v2.Value {
+					return false
+				}
+			}
+		}
+	}
+	return b1.RootPath == b2.RootPath &&
+		b2.BuildContext.Type == b1.BuildContext.Type &&
+		b2.BuildContext.Version == b1.BuildContext.Version &&
+		b2.BuildContext.Base == b1.BuildContext.Base
 }
