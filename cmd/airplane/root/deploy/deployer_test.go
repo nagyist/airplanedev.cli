@@ -50,11 +50,13 @@ func TestDeploy(t *testing.T) {
 			desc: "deploys one bundle",
 			bundles: []bundlediscover.Bundle{
 				{
-					RootPath:     "path/to/myRoot",
-					TargetPaths:  []string{"myPath"},
-					BuildType:    build.NodeBuildType,
-					BuildVersion: build.BuildTypeVersionNode16,
-					BuildBase:    build.BuildBaseSlim,
+					RootPath:    "path/to/myRoot",
+					TargetPaths: []string{"myPath"},
+					BuildContext: build.BuildContext{
+						Type:    build.NodeBuildType,
+						Version: build.BuildTypeVersionNode16,
+						Base:    build.BuildBaseSlim,
+					},
 				},
 			},
 			deploys: []api.CreateDeploymentRequest{
@@ -78,10 +80,12 @@ func TestDeploy(t *testing.T) {
 			desc: "deploys multiple bundles",
 			bundles: []bundlediscover.Bundle{
 				{
-					RootPath:     "myRoot",
-					TargetPaths:  []string{"myPath"},
-					BuildType:    build.NodeBuildType,
-					BuildVersion: build.BuildTypeVersionNode16,
+					RootPath:    "myRoot",
+					TargetPaths: []string{"myPath"},
+					BuildContext: build.BuildContext{
+						Type:    build.NodeBuildType,
+						Version: build.BuildTypeVersionNode16,
+					},
 				},
 				{
 					RootPath:    "myRoot2",

@@ -74,6 +74,7 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 	if err != nil {
 		return err
 	}
+	d.logger.Debug("Code upload complete")
 
 	var bundlesToDeploy []api.DeployBundle
 	gitRoots := make(map[string]bool)
@@ -82,16 +83,14 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 		repo, err = d.repoGetter.GetGitRepo(b.RootPath)
 		if err != nil {
 			d.logger.Debug("failed to get git repo for %s: %v", b.RootPath, err)
+		} else {
+			d.logger.Debug("discovered git repo for %s", b.RootPath)
 		}
 		bundleToDeploy := api.DeployBundle{
-			UploadID:    uploadIDs[b.RootPath],
-			Name:        filepath.Base(b.RootPath),
-			TargetFiles: b.TargetPaths,
-			BuildContext: api.BuildContext{
-				Type:    b.BuildType,
-				Version: b.BuildVersion,
-				Base:    b.BuildBase,
-			},
+			UploadID:     uploadIDs[b.RootPath],
+			Name:         filepath.Base(b.RootPath),
+			TargetFiles:  b.TargetPaths,
+			BuildContext: b.BuildContext,
 		}
 		bundlesToDeploy = append(bundlesToDeploy, bundleToDeploy)
 
@@ -128,6 +127,7 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 		if getGitRepoResp.OwnerName != "" {
 			gitMeta.RepositoryOwnerName = getGitRepoResp.OwnerName
 		}
+		d.logger.Debug("Gathered git metadata for %s", gitMeta.RepositoryName)
 	}
 
 	resp, err := d.cfg.Client.CreateDeployment(ctx, api.CreateDeploymentRequest{
@@ -159,8 +159,7 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 
 // tarAndUploadBatch concurrently tars and uploads bundles.
 func (d *deployer) tarAndUploadBatch(ctx context.Context, bundles []bundlediscover.Bundle) (map[string]string, error) {
-	uploadIDs := make(map[string]string)
-	var mu = sync.Mutex{}
+	var uploadIDs sync.Map
 	g, ctx := errgroup.WithContext(ctx)
 	for _, b := range bundles {
 		b := b
@@ -170,15 +169,22 @@ func (d *deployer) tarAndUploadBatch(ctx context.Context, bundles []bundlediscov
 			if err != nil {
 				return err
 			}
-			mu.Lock()
-			uploadIDs[b.RootPath] = uploadID
-			mu.Unlock()
+			_, ok := uploadIDs.Load(b.RootPath)
+			if !ok {
+				uploadIDs.Store(b.RootPath, uploadID)
+			}
 			return nil
 		})
 	}
 
 	groupErr := g.Wait()
-	return uploadIDs, groupErr
+
+	uploadIDsMap := make(map[string]string)
+	uploadIDs.Range(func(key, value interface{}) bool {
+		uploadIDsMap[key.(string)] = value.(string)
+		return true
+	})
+	return uploadIDsMap, groupErr
 }
 
 func (d *deployer) tarAndUpload(ctx context.Context, root string) (string, error) {
@@ -230,7 +236,7 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, bundles []bundledi
 
 	for _, b := range bundles {
 		d.logger.Log(logger.Bold(b.RootPath))
-		d.logger.Log("Type: %s %s", b.BuildType, b.BuildVersion)
+		d.logger.Log("Type: %s %s", b.BuildContext.Type, b.BuildContext.Version)
 		d.logger.Log("")
 	}
 }

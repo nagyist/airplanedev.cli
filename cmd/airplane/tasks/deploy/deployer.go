@@ -99,6 +99,7 @@ func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig
 		if err != nil {
 			return err
 		}
+		d.logger.Debug("Code upload complete")
 	}
 
 	var tasksToDeploy []api.DeployTask
@@ -108,6 +109,8 @@ func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig
 		repo, err = d.repoGetter.GetGitRepo(tc.TaskEntrypoint)
 		if err != nil {
 			d.logger.Debug("failed to get git repo for %s: %v", tc.TaskEntrypoint, err)
+		} else {
+			d.logger.Debug("discovered git repo for %s", tc.TaskEntrypoint)
 		}
 		taskToDeploy, err := d.getDeployTask(ctx, tc, uploadIDs[tc.TaskID], repo)
 		if err != nil {
@@ -130,6 +133,8 @@ func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig
 		repo, err = d.repoGetter.GetGitRepo(vc.Root)
 		if err != nil {
 			d.logger.Debug("failed to get git repo for %s: %v", vc.Root, err)
+		} else {
+			d.logger.Debug("discovered git repo for %s", vc.Root)
 		}
 
 		var filePath string
@@ -170,7 +175,7 @@ func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig
 
 		viewsToDeploy = append(viewsToDeploy, viewToDeploy)
 
-		// Get the root directory of the git repo with which the task is associated.
+		// Get the root directory of the git repo with which the view is associated.
 		var gitRoot string
 		if repo != nil {
 			w, err := repo.Worktree()
@@ -181,7 +186,7 @@ func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig
 		gitRoots[gitRoot] = true
 	}
 
-	// If tasks in a single deploy come from different git repos, we do not
+	// If entities in a single deploy come from different git repos, we do not
 	// include git information with the deploy.
 	mismatchedGitRepos := len(gitRoots) > 1
 	if mismatchedGitRepos {
@@ -203,6 +208,7 @@ func (d *deployer) Deploy(ctx context.Context, taskConfigs []discover.TaskConfig
 		if getGitRepoResp.OwnerName != "" {
 			gitMeta.RepositoryOwnerName = getGitRepoResp.OwnerName
 		}
+		d.logger.Debug("Gathered git metadata for %s", gitMeta.RepositoryName)
 	}
 
 	resp, err := d.cfg.client.CreateDeployment(ctx, api.CreateDeploymentRequest{
@@ -316,6 +322,7 @@ More information: https://apn.sh/jst-upgrade`)
 	if err != nil {
 		return api.DeployTask{}, err
 	}
+	d.logger.Debug("Ensured all config vars exist")
 
 	env, err := tc.Def.GetEnv()
 	if err != nil {
@@ -381,8 +388,7 @@ More information: https://apn.sh/jst-upgrade`)
 
 // tarAndUploadBatch concurrently tars and uploads configs that need building.
 func (d *deployer) tarAndUploadBatch(ctx context.Context, taskConfigs []discover.TaskConfig, viewConfigs []discover.ViewConfig) (map[string]string, error) {
-	uploadIDs := make(map[string]string)
-	var mu = sync.Mutex{}
+	var uploadIDs sync.Map
 	g, ctx := errgroup.WithContext(ctx)
 	for _, tc := range taskConfigs {
 		tc := tc
@@ -403,9 +409,11 @@ func (d *deployer) tarAndUploadBatch(ctx context.Context, taskConfigs []discover
 			if err != nil {
 				return err
 			}
-			mu.Lock()
-			uploadIDs[tc.TaskID] = uploadID
-			mu.Unlock()
+			_, ok := uploadIDs.Load(tc.TaskID)
+			if !ok {
+				uploadIDs.Store(tc.TaskID, uploadID)
+			}
+
 			return nil
 		})
 	}
@@ -417,15 +425,22 @@ func (d *deployer) tarAndUploadBatch(ctx context.Context, taskConfigs []discover
 			if err != nil {
 				return err
 			}
-			mu.Lock()
-			uploadIDs[ac.ID] = uploadID
-			mu.Unlock()
+			_, ok := uploadIDs.Load(ac.ID)
+			if !ok {
+				uploadIDs.Store(ac.ID, uploadID)
+			}
 			return nil
 		})
 	}
 
 	groupErr := g.Wait()
-	return uploadIDs, groupErr
+
+	uploadIDsMap := make(map[string]string)
+	uploadIDs.Range(func(key, value interface{}) bool {
+		uploadIDsMap[key.(string)] = value.(string)
+		return true
+	})
+	return uploadIDsMap, groupErr
 }
 
 func (d *deployer) tarAndUpload(ctx context.Context, slug, root string) (string, error) {
