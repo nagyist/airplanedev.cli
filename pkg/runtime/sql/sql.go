@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	goruntime "runtime"
 	"strings"
 
 	"github.com/airplanedev/lib/pkg/build"
@@ -32,20 +31,18 @@ type Runtime struct{}
 
 // PrepareRun implementation.
 func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runtime.PrepareRunOptions) (rexprs []string, rcloser io.Closer, rerr error) {
-	builtinClient, err := builtins.NewLocalClient(opts.WorkingDir, goruntime.GOOS, goruntime.GOARCH, logger)
-	if err != nil {
-		logger.Warning(err.Error())
-		return nil, nil, err
+	if opts.BuiltinsClient == nil {
+		return nil, nil, errors.New("builtins are not supported on this machine")
 	}
 	req, err := builtins.MarshalRequest("airplane:sql_query", opts.KindOptions)
 	if err != nil {
 		return nil, nil, errors.New("invalid builtin request")
 	}
-	cmd, err := builtinClient.CmdString(ctx, req)
+	cmd, err := opts.BuiltinsClient.CmdString(ctx, req)
 	if err != nil {
 		return nil, nil, err
 	}
-	return cmd, builtinClient.Closer, nil
+	return cmd, opts.BuiltinsClient.Closer, nil
 }
 
 // Generate implementation.

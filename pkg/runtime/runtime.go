@@ -16,6 +16,7 @@ import (
 	"sort"
 
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/builtins"
 	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
@@ -116,6 +117,9 @@ type PrepareRunOptions struct {
 	KindOptions build.KindOptions
 
 	TaskSlug string
+
+	// Optional builtin client for runtimes that need it (SQL, Rest, builtin).
+	BuiltinsClient *builtins.LocalBuiltinClient
 }
 
 // Runtimes is a collection of registered runtimes.
