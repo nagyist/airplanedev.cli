@@ -56,11 +56,7 @@ func NewDefaultTimeoutDefinition(value int) DefaultTimeoutDefinition {
 }
 
 func (d DefaultTimeoutDefinition) Value() int {
-	if d.value == 0 {
-		return 3600
-	} else {
-		return d.value
-	}
+	return d.value
 }
 
 func (d *DefaultTimeoutDefinition) UnmarshalJSON(b []byte) error {
@@ -73,5 +69,5 @@ func (d DefaultTimeoutDefinition) MarshalJSON() ([]byte, error) {
 }
 
 func (d DefaultTimeoutDefinition) IsZero() bool {
-	return d.Value() == 3600
+	return d.Value() == 0
 }

@@ -93,6 +93,7 @@ resources:
   db: demo_db
 python:
   entrypoint: hello_world.py
+timeout: 3600
 schedules:
   every_midnight:
     name: Every Midnight
@@ -125,6 +126,7 @@ var jsonWithDefault = []byte(
 	"python": {
 		"entrypoint": "hello_world.py"
 	},
+	"timeout": 3600,
 	"schedules": {
 		"every_midnight": {
 			"name": "Every Midnight",
@@ -193,6 +195,7 @@ var defWithDefault = Definition_0_3{
 	Python: &PythonDefinition_0_3{
 		Entrypoint: "hello_world.py",
 	},
+	Timeout:   DefaultTimeoutDefinition{3600},
 	Resources: ResourceDefinition_0_3{Attachments: map[string]string{"db": "demo_db"}},
 	Schedules: map[string]ScheduleDefinition_0_3{
 		"every_midnight": {
@@ -301,6 +304,7 @@ timeout: 300
 }
 
 func TestDefinitionUnmarshal_0_3(t *testing.T) {
+
 	for _, test := range []struct {
 		name     string
 		format   DefFormat
@@ -1171,7 +1175,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
-				Timeout: 3600,
+				Timeout: 0,
 			},
 		},
 		{
@@ -1211,7 +1215,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
-				Timeout: 3600,
+				Timeout: 0,
 			},
 		},
 		{
@@ -1239,7 +1243,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
-				Timeout: 3600,
+				Timeout: 0,
 			},
 		},
 		{
@@ -1279,7 +1283,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
-				Timeout: 3600,
+				Timeout: 0,
 			},
 		},
 		{
@@ -1305,7 +1309,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
-				Timeout: 3600,
+				Timeout: 0,
 			},
 		},
 		{
@@ -1350,7 +1354,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					RequireRequests:     pointers.Bool(false),
 				},
 				InterpolationMode: pointers.String("jst"),
-				Timeout:           3600,
+				Timeout:           0,
 			},
 		},
 		{
@@ -1378,7 +1382,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
-				Timeout: 3600,
+				Timeout: 0,
 			},
 		},
 		{
@@ -1417,7 +1421,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
-				Timeout: 3600,
+				Timeout: 0,
 			},
 			resources: []api.Resource{
 				{
@@ -1453,7 +1457,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(true),
 					RequireRequests:     pointers.Bool(true),
 				},
-				Timeout: 3600,
+				Timeout: 0,
 			},
 		},
 		{
@@ -1483,7 +1487,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
-				Timeout: 3600,
+				Timeout: 0,
 			},
 		},
 		{
@@ -1716,7 +1720,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
-				Timeout: 3600,
+				Timeout: 0,
 			},
 		},
 		{
@@ -1763,7 +1767,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
-				Timeout: 3600,
+				Timeout: 0,
 			},
 			resources: []api.Resource{
 				{
@@ -1821,7 +1825,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
 				},
-				Timeout: 3600,
+				Timeout: 0,
 			},
 			resources: []api.Resource{
 				{
