@@ -23,6 +23,8 @@ var (
 		"airplane":        true,
 		"@airplane/views": true,
 		"lodash-es":       true,
+		"p-limit":         true,
+		"p-retry":         true,
 	}
 
 	installHookScripts = []string{
