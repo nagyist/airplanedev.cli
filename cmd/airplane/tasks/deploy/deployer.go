@@ -575,6 +575,26 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, taskConfigs []disc
 	return nil
 }
 
+func ignoreTimeoutInYAML(oldTimeout int, newTaskYAML []byte) ([]byte, error) {
+	// For standard tasks, the default timeout gets validated and applied in the API.
+	// If the user doesn't define the timeout in the yaml, it shows up as a diff every time
+	// of "-timeout: 3600". We want to ignore this case since
+	// an undefined (zero) timeout for standard tasks is equivalent to the default timeout.
+	newDef := definitions.Definition_0_3{}
+	if err := newDef.Unmarshal(definitions.DefFormatYAML, newTaskYAML); err != nil {
+		return nil, err
+	}
+	defaultTimeout := 3600
+	if oldTimeout == defaultTimeout && newDef.Timeout.IsZero() {
+		newDef.Timeout = definitions.NewDefaultTimeoutDefinition(defaultTimeout)
+	}
+	yamlWithoutTimeout, err := newDef.Marshal(definitions.DefFormatYAML)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error marshalling new task definition")
+	}
+	return yamlWithoutTimeout, err
+}
+
 func (d *deployer) getDefinitionDiff(ctx context.Context, taskConfig discover.TaskConfig, isNew bool) ([]string, error) {
 	if isNew {
 		return []string{"(new task)"}, nil
@@ -609,6 +629,11 @@ func (d *deployer) getDefinitionDiff(ctx context.Context, taskConfig discover.Ta
 	newYAML, err := taskConfig.Def.Marshal(definitions.DefFormatYAML)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error marshalling new task definition")
+	}
+	if oldDef.Runtime == libBuild.TaskRuntimeStandard {
+		if newYAML, err = ignoreTimeoutInYAML(oldDef.Timeout.Value(), newYAML); err != nil {
+			return nil, err
+		}
 	}
 	newYAMLStr := string(newYAML)
 	newLabel := fmt.Sprintf("b/%s", defPath)
