@@ -28,8 +28,7 @@ func TestInlineMinimal(t *testing.T) {
         "python": {
           "entrypoint": "test_airplane.py"
         },
-        "allowSelfApprovals": false,
-        "timeout": 3600
+        "allowSelfApprovals": false
       }`
 
 	var def *definitions.Definition_0_3

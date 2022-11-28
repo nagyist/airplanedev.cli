@@ -297,7 +297,7 @@ import airplane
     {{- else}}
     allow_self_approvals=False,
     {{- end}}
-    {{- if ne .Timeout 3600}}
+    {{- if and (ne .Timeout 3600) (gt .Timeout 0) }}
     timeout={{.Timeout}},
     {{- end}}
     {{- if .Constraints}}
