@@ -17,6 +17,7 @@ type MockClient struct {
 	Resources             []libapi.Resource
 	Configs               []Config
 	Envs                  map[string]libapi.Env
+	Users                 map[string]User
 }
 
 var _ APIClient = &MockClient{}
@@ -242,4 +243,12 @@ func (mc *MockClient) GenerateSignedURLs(ctx context.Context, envSlug string) (r
 
 func (mc *MockClient) GetWebHost(ctx context.Context) (res string, err error) {
 	panic("not implemented")
+}
+
+func (mc *MockClient) GetUser(ctx context.Context, userID string) (res GetUserResponse, err error) {
+	if user, ok := mc.Users[userID]; !ok {
+		return GetUserResponse{}, errors.Errorf("user with id %s does not exist", userID)
+	} else {
+		return GetUserResponse{User: user}, nil
+	}
 }

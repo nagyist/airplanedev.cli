@@ -126,6 +126,8 @@ type APIClient interface {
 	ListFlags(ctx context.Context) (ListFlagsResponse, error)
 
 	GetWebHost(ctx context.Context) (string, error)
+
+	GetUser(ctx context.Context, userID string) (GetUserResponse, error)
 }
 
 var _ APIClient = Client{}
@@ -573,6 +575,13 @@ func (c Client) GenerateSignedURLs(ctx context.Context, envSlug string) (res Gen
 
 func (c Client) GetWebHost(ctx context.Context) (webHost string, err error) {
 	err = c.do(ctx, "GET", "/hosts/web", nil, &webHost)
+	return
+}
+
+func (c Client) GetUser(ctx context.Context, userID string) (res GetUserResponse, err error) {
+	err = c.do(ctx, "GET", encodeQueryString("/users/get", url.Values{
+		"userID": []string{userID},
+	}), nil, &res)
 	return
 }
 

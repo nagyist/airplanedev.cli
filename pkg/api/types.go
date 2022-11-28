@@ -382,3 +382,14 @@ type GetPermissionsResponse struct {
 type ListFlagsResponse struct {
 	Flags map[string]string `json:"flags"`
 }
+
+type User struct {
+	ID        string  `json:"userID" db:"id"`
+	Email     string  `json:"email" db:"email"`
+	Name      string  `json:"name" db:"name"`
+	AvatarURL *string `json:"avatarURL" db:"avatar_url"`
+}
+
+type GetUserResponse struct {
+	User User `json:"user"`
+}

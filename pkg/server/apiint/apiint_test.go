@@ -232,3 +232,41 @@ func TestListRuns(t *testing.T) {
 		require.EqualValues(resp.Runs[i], testRuns[len(testRuns)-i-1])
 	}
 }
+
+func TestGetUser(t *testing.T) {
+	require := require.New(t)
+	avatarURL := "https://www.gravatar.com/avatar?d=mp"
+	user := api.User{
+		ID:        "usr1234",
+		Email:     "test@airplane.dev",
+		Name:      "Air Plane",
+		AvatarURL: &avatarURL,
+	}
+	h := test_utils.GetHttpExpect(
+		context.Background(),
+		t,
+		server.NewRouter(&state.State{
+			RemoteClient: &api.MockClient{
+				Users: map[string]api.User{"usr1234": user},
+			},
+		}),
+	)
+	var resp api.GetUserResponse
+	body := h.GET("/i/users/get").
+		WithQuery("userID", "usr1234").
+		Expect().
+		Status(http.StatusOK).Body()
+	err := json.Unmarshal([]byte(body.Raw()), &resp)
+	require.NoError(err)
+	require.Equal(user, resp.User)
+
+	// Nonexistent return user id should return default user
+	body = h.GET("/i/users/get").
+		WithQuery("userID", "usr2345").
+		Expect().
+		Status(http.StatusOK).Body()
+	err = json.Unmarshal([]byte(body.Raw()), &resp)
+	require.NoError(err)
+	require.Equal(apiint.DefaultUser("usr2345"), resp.User)
+
+}

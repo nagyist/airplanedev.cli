@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
@@ -460,27 +461,27 @@ func GetDescendantsHandler(ctx context.Context, state *state.State, r *http.Requ
 	}, nil
 }
 
-type User struct {
-	ID        string  `json:"userID" db:"id"`
-	Email     string  `json:"email" db:"email"`
-	Name      string  `json:"name" db:"name"`
-	AvatarURL *string `json:"avatarURL" db:"avatar_url"`
-}
-
-type GetUserResponse struct {
-	User User `json:"user"`
-}
-
-func GetUserHandler(ctx context.Context, state *state.State, r *http.Request) (GetUserResponse, error) {
+func GetUserHandler(ctx context.Context, state *state.State, r *http.Request) (api.GetUserResponse, error) {
 	userID := r.URL.Query().Get("userID")
-	// Set avatar to anonymous silhouette
-	gravatarURL := "https://www.gravatar.com/avatar?d=mp"
-	return GetUserResponse{
-		User: User{
+	if userID == "" {
+		return api.GetUserResponse{}, errors.New("userID cannot be empty")
+	}
+
+	resp, err := state.RemoteClient.GetUser(ctx, userID)
+	if err != nil {
+		logger.Debug("error getting user: %v", err)
+		return api.GetUserResponse{
+			User: DefaultUser(userID),
+		}, nil
+	}
+
+	user := resp.User
+	return api.GetUserResponse{
+		User: api.User{
 			ID:        userID,
-			Email:     "hello@airplane.dev",
-			Name:      "Airplane studio",
-			AvatarURL: &gravatarURL,
+			Email:     user.Email,
+			Name:      user.Name,
+			AvatarURL: user.AvatarURL,
 		},
 	}, nil
 }
