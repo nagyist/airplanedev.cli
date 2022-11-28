@@ -87,17 +87,13 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		Client:  localClient,
 	}
 
-	localExecutor, err := dev.NewLocalExecutor(absoluteDir)
-	if err != nil {
-		return errors.Wrap(err, "creating local executor")
-	}
 	apiServer, err := server.Start(server.Options{
 		LocalClient:    localClient,
 		RemoteClient:   cfg.root.Client,
 		RemoteEnv:      remoteEnv,
 		UseFallbackEnv: cfg.useFallbackEnv,
 		DevConfig:      cfg.devConfig,
-		Executor:       localExecutor,
+		Executor:       dev.NewLocalExecutor(absoluteDir),
 		Port:           cfg.port,
 		Expose:         cfg.sandbox,
 		Dir:            absoluteDir,

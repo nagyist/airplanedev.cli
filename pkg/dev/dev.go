@@ -47,15 +47,18 @@ type LocalExecutor struct {
 	BuiltinsClient *builtins.LocalBuiltinClient
 }
 
-func NewLocalExecutor(workingDir string) (Executor, error) {
-	builtinsClient, err := builtins.NewLocalClient(workingDir, goruntime.GOOS, goruntime.GOARCH, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}))
+func NewLocalExecutor(workingDir string) Executor {
+	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{})
+	builtinsClient, err := builtins.NewLocalClient(workingDir, goruntime.GOOS, goruntime.GOARCH, l)
 	if err != nil {
-		return nil, err
+		l.Error(err.Error())
+		l.Warning("Local builtin execution is not supported on this machine. Builtin executions will error.")
+		builtinsClient = nil
 	}
 
 	return &LocalExecutor{
 		BuiltinsClient: builtinsClient,
-	}, nil
+	}
 }
 
 // LocalRunConfig is a struct that contains the necessary configs for running a task locally.
@@ -96,6 +99,10 @@ var LogIDGen IDGenerator
 // Cmd returns the command needed to execute the task locally
 func (l *LocalExecutor) Cmd(ctx context.Context, runConfig LocalRunConfig) (CmdConfig, error) {
 	if runConfig.IsBuiltin {
+		if l.BuiltinsClient == nil {
+			return CmdConfig{}, errors.New("builtins are not supported on this machine")
+		}
+
 		req, err := builtins.MarshalRequest(runConfig.Slug, runConfig.ParamValues)
 		if err != nil {
 			return CmdConfig{}, errors.New("invalid builtin request")
@@ -122,11 +129,12 @@ func (l *LocalExecutor) Cmd(ctx context.Context, runConfig LocalRunConfig) (CmdC
 	}
 
 	cmds, closer, err := r.PrepareRun(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), runtime.PrepareRunOptions{
-		Path:        entrypoint,
-		ParamValues: runConfig.ParamValues,
-		KindOptions: runConfig.KindOptions,
-		TaskSlug:    runConfig.Slug,
-		WorkingDir:  runConfig.WorkingDir,
+		Path:           entrypoint,
+		ParamValues:    runConfig.ParamValues,
+		KindOptions:    runConfig.KindOptions,
+		TaskSlug:       runConfig.Slug,
+		WorkingDir:     runConfig.WorkingDir,
+		BuiltinsClient: l.BuiltinsClient,
 	})
 	if err != nil {
 		return CmdConfig{}, err
