@@ -488,6 +488,7 @@ func CreatePromptHandler(ctx context.Context, state *state.State, r *http.Reques
 		ConfirmText: req.ConfirmText,
 		CancelText:  req.CancelText,
 		CreatedAt:   time.Now(),
+		Description: req.Description,
 	}
 
 	if _, err := state.Runs.Update(runID, func(run *dev.LocalRun) error {
