@@ -246,7 +246,7 @@ func toPythonTypeVar(paramType string, paramValue interface{}) (string, error) {
 				date.Year(), date.Month(), date.Day(),
 			), nil
 		} else if paramType == "datetime" {
-			dt, err := time.Parse("2006-01-02T15:04:05Z", v)
+			dt, err := time.Parse(time.RFC3339, v)
 			if err != nil {
 				return "", errors.Wrap(err, "unable to parse datetime")
 			}
