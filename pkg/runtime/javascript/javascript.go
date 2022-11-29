@@ -141,7 +141,7 @@ export default airplane.{{ .SDKMethod }}(
 		{{- if not .AllowSelfApprovals}}
 		allowSelfApprovals: false,
 		{{- end}}
-		{{- if ne .Timeout 3600}}
+		{{- if and (ne .Timeout 3600) (gt .Timeout 0) }}
 		timeout: {{.Timeout}},
 		{{- end}}
 		{{- if .Constraints}}
