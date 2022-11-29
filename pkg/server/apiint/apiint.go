@@ -3,22 +3,20 @@ package apiint
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
-	res "github.com/airplanedev/cli/pkg/resource"
+	"github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/resources"
+	libresources "github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/resources/conversion"
 	"github.com/airplanedev/lib/pkg/resources/kind_configs"
 	"github.com/gorilla/mux"
@@ -54,27 +52,27 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 }
 
 type CreateResourceRequest struct {
-	Name           string                 `json:"name"`
-	Slug           string                 `json:"slug"`
-	Kind           resources.ResourceKind `json:"kind"`
-	ExportResource resources.Resource     `json:"resource"`
+	Name           string                    `json:"name"`
+	Slug           string                    `json:"slug"`
+	Kind           libresources.ResourceKind `json:"kind"`
+	ExportResource libresources.Resource     `json:"resource"`
 }
 
 func (r *CreateResourceRequest) UnmarshalJSON(buf []byte) error {
 	var raw struct {
-		Name           string                 `json:"name"`
-		Slug           string                 `json:"slug"`
-		Kind           resources.ResourceKind `json:"kind"`
-		ExportResource map[string]interface{} `json:"resource"`
+		Name           string                    `json:"name"`
+		Slug           string                    `json:"slug"`
+		Kind           libresources.ResourceKind `json:"kind"`
+		ExportResource map[string]interface{}    `json:"resource"`
 	}
 	if err := json.Unmarshal(buf, &raw); err != nil {
 		return err
 	}
 
-	var export resources.Resource
+	var export libresources.Resource
 	var err error
 	if raw.ExportResource != nil {
-		export, err = resources.GetResource(resources.ResourceKind(raw.Kind), raw.ExportResource)
+		export, err = libresources.GetResource(libresources.ResourceKind(raw.Kind), raw.ExportResource)
 		if err != nil {
 			return err
 		}
@@ -116,9 +114,9 @@ func CreateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 		return CreateResourceResponse{}, errors.Wrap(err, "computing precalculated fields")
 	}
 
-	id := conf.GenerateLocalResourceID(resourceSlug)
 	resource := req.ExportResource
-	if err := resource.UpdateBaseResource(resources.BaseResource{
+	id := utils.GenerateID(utils.DevResourcePrefix)
+	if err := resource.UpdateBaseResource(libresources.BaseResource{
 		ID:   id,
 		Slug: resourceSlug,
 		Kind: req.Kind,
@@ -170,11 +168,11 @@ type ListResourcesResponse struct {
 
 // ListResourcesHandler handles requests to the /i/resources/list endpoint
 func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Request) (ListResourcesResponse, error) {
-	resources := make([]APIResourceWithEnv, 0)
+	resourcesWithEnv := make([]APIResourceWithEnv, 0)
 	for slug, r := range state.DevConfig.Resources {
-		resources = append(resources, APIResourceWithEnv{
+		resourcesWithEnv = append(resourcesWithEnv, APIResourceWithEnv{
 			Resource: libapi.Resource{
-				ID:                r.Resource.ID(),
+				ID:                r.Resource.GetID(),
 				Name:              r.Resource.GetName(),
 				Slug:              slug,
 				Kind:              libapi.ResourceKind(r.Resource.Kind()),
@@ -187,14 +185,14 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 		})
 	}
 
-	remoteResources, err := res.ListRemoteResources(ctx, state)
+	remoteResources, err := resources.ListRemoteResources(ctx, state)
 	if err == nil {
 		for _, r := range remoteResources {
 			// This is purely so we can display remote resource information in the local dev studio. The remote list
 			// resources endpoint doesn't return CanUseResource or CanUpdateResource, and so we set them to true here.
 			r.CanUseResource = true
 			r.CanUpdateResource = true
-			resources = append(resources, APIResourceWithEnv{
+			resourcesWithEnv = append(resourcesWithEnv, APIResourceWithEnv{
 				Resource: r,
 				Remote:   true,
 				Env:      state.RemoteEnv,
@@ -205,34 +203,34 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 	}
 
 	return ListResourcesResponse{
-		Resources: resources,
+		Resources: resourcesWithEnv,
 	}, nil
 }
 
 type UpdateResourceRequest struct {
-	ID             string                 `json:"id"`
-	Slug           string                 `json:"slug"`
-	Name           string                 `json:"name"`
-	Kind           resources.ResourceKind `json:"kind"`
-	ExportResource resources.Resource     `json:"resource"`
+	ID             string                    `json:"id"`
+	Slug           string                    `json:"slug"`
+	Name           string                    `json:"name"`
+	Kind           libresources.ResourceKind `json:"kind"`
+	ExportResource libresources.Resource     `json:"resource"`
 }
 
 func (r *UpdateResourceRequest) UnmarshalJSON(buf []byte) error {
 	var raw struct {
-		ID             string                 `json:"id"`
-		Slug           string                 `json:"slug"`
-		Name           string                 `json:"name"`
-		Kind           resources.ResourceKind `json:"kind"`
-		ExportResource map[string]interface{} `json:"resource"`
+		ID             string                    `json:"id"`
+		Slug           string                    `json:"slug"`
+		Name           string                    `json:"name"`
+		Kind           libresources.ResourceKind `json:"kind"`
+		ExportResource map[string]interface{}    `json:"resource"`
 	}
 	if err := json.Unmarshal(buf, &raw); err != nil {
 		return err
 	}
 
-	var export resources.Resource
+	var export libresources.Resource
 	var err error
 	if raw.ExportResource != nil {
-		export, err = resources.GetResource(resources.ResourceKind(raw.Kind), raw.ExportResource)
+		export, err = libresources.GetResource(libresources.ResourceKind(raw.Kind), raw.ExportResource)
 		if err != nil {
 			return err
 		}
@@ -256,10 +254,10 @@ func UpdateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 	// Check if resource exists in dev config file.
 	var foundResource bool
 	var oldSlug string
-	var resource resources.Resource
+	var resource libresources.Resource
 	for configSlug, configResource := range state.DevConfig.Resources {
 		// We can't rely on the slug for existence since it may have changed.
-		if configResource.Resource.ID() == req.ID {
+		if configResource.Resource.GetID() == req.ID {
 			foundResource = true
 			resource = configResource.Resource
 			oldSlug = configSlug
@@ -270,14 +268,10 @@ func UpdateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 		return UpdateResourceResponse{}, errors.Errorf("resource with slug %s not found in dev config file", req.Slug)
 	}
 
-	// Set a new resource ID based on the new slug.
-	newResourceID := fmt.Sprintf("res-%s", req.Slug)
-
 	if err := resource.Update(req.ExportResource); err != nil {
 		return UpdateResourceResponse{}, errors.Wrap(err, "updating resource")
 	}
-	if err := resource.UpdateBaseResource(resources.BaseResource{
-		ID:   newResourceID,
+	if err := resource.UpdateBaseResource(libresources.BaseResource{
 		Slug: req.Slug,
 		Name: req.Name,
 	}); err != nil {
@@ -296,7 +290,7 @@ func UpdateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 	}
 
 	return UpdateResourceResponse{
-		ResourceID: newResourceID,
+		ResourceID: resource.GetID(),
 	}, nil
 }
 
@@ -308,20 +302,17 @@ type DeleteResourceRequest struct {
 // The web app does utilize the response of the resource deletion handler.
 func DeleteResourceHandler(ctx context.Context, state *state.State, r *http.Request, req DeleteResourceRequest) (struct{}, error) {
 	id := req.ID
-	resourceSlug, err := res.SlugFromID(id)
-	if err != nil {
-		return struct{}{}, err
+
+	for _, r := range state.DevConfig.Resources {
+		if r.Resource.GetID() == id {
+			if err := state.DevConfig.RemoveResource(r.Resource.GetSlug()); err != nil {
+				return struct{}{}, errors.Wrap(err, "removing resource from dev config")
+			}
+			return struct{}{}, nil
+		}
 	}
 
-	if _, ok := state.DevConfig.Resources[resourceSlug]; !ok {
-		return struct{}{}, errors.Errorf("resource with id %s does not exist in dev config file", id)
-	}
-
-	if err := state.DevConfig.RemoveResource(resourceSlug); err != nil {
-		return struct{}{}, errors.Wrap(err, "setting resource")
-	}
-
-	return struct{}{}, nil
+	return struct{}{}, errors.Errorf("resource with id %s does not exist in dev config file", id)
 }
 
 type IsResourceSlugAvailableResponse struct {
@@ -333,7 +324,7 @@ func IsResourceSlugAvailableHandler(ctx context.Context, state *state.State, r *
 	slug := r.URL.Query().Get("slug")
 	configResource, ok := state.DevConfig.Resources[slug]
 	return IsResourceSlugAvailableResponse{
-		Available: !ok || configResource.Resource.ID() == r.URL.Query().Get("id"),
+		Available: !ok || configResource.Resource.GetID() == r.URL.Query().Get("id"),
 	}, nil
 }
 

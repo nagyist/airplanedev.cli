@@ -13,6 +13,9 @@ var seededRandMu sync.Mutex
 const CharsetAlphaLowercase = "abcdefghijklmnopqrstuvwxyz"
 const CharsetLowercaseNumeric = "abcdefghijklmnopqrstuvwxyz0123456789"
 
+const DevRunPrefix = "devrun"
+const DevResourcePrefix = "devres"
+
 func GenerateID(prefix string) string {
 	return prefix + RandomString(10, CharsetLowercaseNumeric)
 }

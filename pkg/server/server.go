@@ -14,7 +14,7 @@ import (
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/resource"
+	"github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/server/apidev"
 	"github.com/airplanedev/cli/pkg/server/apiext"
 	"github.com/airplanedev/cli/pkg/server/apiint"
@@ -193,7 +193,7 @@ func supportsLocalExecution(name string, entrypoint string, kind build.TaskKind)
 
 // ValidateTasks returns any dev errors about tasks, such as whether local dev is supported
 // and whether resources are attached
-func ValidateTasks(ctx context.Context, resources map[string]env.ResourceWithEnv, taskConfigs []discover.TaskConfig) (dev_errors.RegistrationWarnings, error) {
+func ValidateTasks(ctx context.Context, resourcesWithEnv map[string]env.ResourceWithEnv, taskConfigs []discover.TaskConfig) (dev_errors.RegistrationWarnings, error) {
 	unsupportedApps := map[string]dev_errors.AppError{}
 	var unattachedResources []dev_errors.UnattachedResource
 	taskErrors := map[string][]dev_errors.AppError{}
@@ -222,7 +222,7 @@ func ValidateTasks(ctx context.Context, resources map[string]env.ResourceWithEnv
 			return dev_errors.RegistrationWarnings{}, errors.Wrap(err, "getting resource attachments")
 		}
 		for _, ref := range resourceAttachments {
-			if _, ok := resource.LookupResource(resources, ref); !ok {
+			if _, ok := resources.LookupResource(resourcesWithEnv, ref); !ok {
 				missingResources = append(missingResources, ref)
 			}
 		}
@@ -366,7 +366,7 @@ type DiscoverOpts struct {
 // state. Task registration must occur after the local dev server has started because the task discoverer hits the
 // /v0/tasks/getMetadata endpoint.
 func (s *Server) RegisterTasksAndViews(ctx context.Context, opts DiscoverOpts) (dev_errors.RegistrationWarnings, error) {
-	mergedResources, err := resource.MergeRemoteResources(ctx, s.state)
+	mergedResources, err := resources.MergeRemoteResources(ctx, s.state)
 	if err != nil {
 		return dev_errors.RegistrationWarnings{}, errors.Wrap(err, "merging local and remote resources")
 	}

@@ -13,7 +13,7 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
-	"github.com/airplanedev/cli/pkg/resource"
+	"github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/apiext"
 	"github.com/airplanedev/cli/pkg/server/apiint"
@@ -22,7 +22,7 @@ import (
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
-	"github.com/airplanedev/lib/pkg/resources"
+	libresources "github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/resources/kinds"
 	"github.com/stretchr/testify/require"
 )
@@ -39,7 +39,7 @@ func TestListResources(t *testing.T) {
 				Resources: map[string]env.ResourceWithEnv{
 					"db": {
 						Resource: &kinds.PostgresResource{
-							BaseResource: resources.BaseResource{
+							BaseResource: libresources.BaseResource{
 								ID:   "r-1",
 								Slug: "db",
 								Kind: kinds.ResourceKindPostgres,
@@ -49,7 +49,7 @@ func TestListResources(t *testing.T) {
 					},
 					"slack": {
 						Resource: &kinds.SlackResource{
-							BaseResource: resources.BaseResource{
+							BaseResource: libresources.BaseResource{
 								ID:   "r-2",
 								Slug: "slack",
 								Kind: kinds.ResourceKindSlack,
@@ -63,7 +63,7 @@ func TestListResources(t *testing.T) {
 				Resources: []libapi.Resource{
 					{
 						ID:             "res0",
-						Slug:           resource.DemoDBSlug,
+						Slug:           resources.DemoDBSlug,
 						Kind:           libapi.ResourceKind(kinds.ResourceKindPostgres),
 						ExportResource: &kinds.PostgresResource{},
 					},
@@ -91,7 +91,7 @@ func TestListResources(t *testing.T) {
 			Kind: libapi.ResourceKind(kinds.ResourceKindSlack),
 		},
 		{
-			Slug: resource.DemoDBSlug,
+			Slug: resources.DemoDBSlug,
 			ID:   "res0",
 			Kind: libapi.ResourceKind(kinds.ResourceKindPostgres),
 		},
@@ -99,7 +99,7 @@ func TestListResources(t *testing.T) {
 
 	require.Equal(len(expected), len(resp.Resources))
 
-	// sort so we can compare- since resources are stored as a map
+	// sort so we can compare, since resources are stored as a map
 	sort.Slice(resp.Resources, func(i, j int) bool {
 		return resp.Resources[i].ID < resp.Resources[j].ID
 	})

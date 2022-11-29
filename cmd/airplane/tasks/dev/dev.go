@@ -19,7 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/params"
-	"github.com/airplanedev/cli/pkg/resource"
+	"github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
@@ -233,7 +233,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	if err != nil {
 		return err
 	}
-	resources, err := resource.GenerateAliasToResourceMap(
+	aliasToResource, err := resources.GenerateAliasToResourceMap(
 		ctx,
 		nil,
 		resourceAttachments,
@@ -259,19 +259,19 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	configVars := configs.MaterializeConfigs(attachedConfigs, cfg.devConfig.ConfigVars)
 
 	localRunConfig := dev.LocalRunConfig{
-		ID:           dev.GenerateRunID(),
-		Name:         taskConfig.Def.GetName(),
-		Kind:         kind,
-		KindOptions:  kindOptions,
-		ParamValues:  paramValues,
-		LocalClient:  localClient,
-		RemoteClient: cfg.root.Client,
-		File:         cfg.fileOrDir,
-		Slug:         taskConfig.Def.GetSlug(),
-		EnvVars:      envVars,
-		Resources:    resources,
-		ConfigVars:   configVars,
-		PrintLogs:    true,
+		ID:              dev.GenerateRunID(),
+		Name:            taskConfig.Def.GetName(),
+		Kind:            kind,
+		KindOptions:     kindOptions,
+		ParamValues:     paramValues,
+		LocalClient:     localClient,
+		RemoteClient:    cfg.root.Client,
+		File:            cfg.fileOrDir,
+		Slug:            taskConfig.Def.GetSlug(),
+		EnvVars:         envVars,
+		AliasToResource: aliasToResource,
+		ConfigVars:      configVars,
+		PrintLogs:       true,
 	}
 	_, err = localExecutor.Execute(ctx, localRunConfig)
 	if err != nil {

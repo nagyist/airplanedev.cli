@@ -11,7 +11,6 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/resources/kinds"
@@ -120,7 +119,6 @@ func run(ctx context.Context, cfg config) error {
 	serializedResource["kind"] = cfg.kind
 	serializedResource["slug"] = cfg.slug
 	serializedResource["name"] = cfg.name
-	serializedResource["id"] = conf.GenerateLocalResourceID(cfg.slug)
 
 	// Iterate over resource struct fields and dynamically prompt user for input.
 	// Resource factories return a pointer to an external resource struct, and so we dereference by calling Elem().

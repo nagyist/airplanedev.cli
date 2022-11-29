@@ -11,7 +11,7 @@ import (
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
-	"github.com/airplanedev/cli/pkg/resource"
+	"github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
@@ -98,7 +98,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			WorkingDir:   state.Dir,
 		}
 		resourceAttachments := map[string]string{}
-		mergedResources, err := resource.MergeRemoteResources(ctx, state)
+		mergedResources, err := resources.MergeRemoteResources(ctx, state)
 		if err != nil {
 			return dev.LocalRun{}, errors.Wrap(err, "merging local and remote resources")
 		}
@@ -117,14 +117,14 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 
 			var foundResource bool
 			for slug, res := range mergedResources {
-				if res.Resource.ID() == resourceID {
+				if res.Resource.GetID() == resourceID {
 					resourceAttachments[builtinAlias] = slug
 					foundResource = true
 				}
 			}
 
 			if !foundResource {
-				if resourceID == resource.SlackID {
+				if resourceID == resources.SlackID {
 					return dev.LocalRun{}, errors.New("Your team has not configured Slack. Please visit https://docs.airplane.dev/platform/slack-integration#connect-to-slack to authorize Slack to perform actions in your workspace.")
 				}
 				return dev.LocalRun{}, errors.Errorf("Resource with id %s not found in dev config file or remotely.", resourceID)
@@ -167,7 +167,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			runConfig.ConfigVars = configs.MaterializeConfigs(attachedConfigs, state.DevConfig.ConfigVars)
 			run.TaskRevision = localTaskConfig
 		}
-		resources, err := resource.GenerateAliasToResourceMap(
+		aliasToResourceMap, err := resources.GenerateAliasToResourceMap(
 			ctx,
 			state,
 			resourceAttachments,
@@ -176,8 +176,8 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		if err != nil {
 			return dev.LocalRun{}, errors.Wrap(err, "generating alias to resource map")
 		}
-		runConfig.Resources = resources
-		run.Resources = resource.GenerateResourceAliasToID(resources)
+		runConfig.AliasToResource = aliasToResourceMap
+		run.Resources = resources.GenerateResourceAliasToID(aliasToResourceMap)
 		run.CreatedAt = start
 		run.ParamValues = req.ParamValues
 		run.Parameters = &parameters
@@ -537,7 +537,7 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 	resources := make([]libapi.Resource, 0, len(state.DevConfig.RawResources))
 	for slug, r := range state.DevConfig.Resources {
 		resources = append(resources, libapi.Resource{
-			ID:                r.Resource.ID(),
+			ID:                r.Resource.GetID(),
 			Slug:              slug,
 			Kind:              libapi.ResourceKind(r.Resource.Kind()),
 			ExportResource:    r.Resource,
@@ -553,7 +553,7 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 
 // ListResourceMetadataHandler handles requests to the /v0/resources/listMetadata endpoint
 func ListResourceMetadataHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.ListResourceMetadataResponse, error) {
-	mergedResources, err := resource.MergeRemoteResources(ctx, state)
+	mergedResources, err := resources.MergeRemoteResources(ctx, state)
 	if err != nil {
 		return libapi.ListResourceMetadataResponse{}, errors.Wrap(err, "merging local and remote resources")
 	}

@@ -1,4 +1,4 @@
-package resource
+package resources
 
 import (
 	"context"
@@ -18,7 +18,6 @@ const slackSlug = "team_slack"
 // This is not guaranteed to be the slug of the demo db, but should be in all cases where demo db creation doesn't
 // fail during team creation.
 const DemoDBSlug = "demo_db"
-const DemoDBName = "[Demo DB]"
 
 var defaultRemoteResourceSlugs = []string{DemoDBSlug}
 var defaultRemoteVirtualResourceSlugs = []string{slackSlug}
@@ -171,12 +170,4 @@ func GenerateResourceAliasToID(aliasToResource map[string]resources.Resource) ma
 		resourceAliasToID[alias] = resource.GetID()
 	}
 	return resourceAliasToID
-}
-
-func SlugFromID(id string) (string, error) {
-	if len(id) <= 4 {
-		return "", errors.New("id must be of the form res-{slug}")
-	}
-
-	return id[4:], nil
 }

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/airplanedev/cli/pkg/dev/env"
-	"github.com/airplanedev/lib/pkg/resources"
+	libresources "github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/resources/kinds"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
@@ -124,15 +124,18 @@ func TestDevConfig(t *testing.T) {
 		assert.NoError(err)
 		assert.Equal(configs, cfg.ConfigVars)
 		// reading from the dev config should generate the ID into RawResources
-		postgres["id"] = "res-db"
+		id := cfg.RawResources[0]["id"].(string)
+		assert.Contains(id, "devres")
+		delete(cfg.RawResources[0], "id") // clear the ID so we can compare the rest of the resource
+
 		assert.Equal(configResources, cfg.RawResources)
 		assert.Equal(map[string]env.ResourceWithEnv{
 			"db": {
 				Resource: &kinds.PostgresResource{
-					BaseResource: resources.BaseResource{
+					BaseResource: libresources.BaseResource{
 						Kind: kinds.ResourceKindPostgres,
 						Slug: "db",
-						ID:   "res-db",
+						ID:   id,
 					},
 					Username: "postgres",
 					Password: "password",

@@ -79,7 +79,8 @@ type LocalRunConfig struct {
 	RemoteClient api.APIClient
 
 	// Mapping from alias to resource
-	Resources map[string]resources.Resource
+	AliasToResource map[string]resources.Resource
+
 	IsBuiltin bool
 	LogBroker logs.LogBroker
 	PrintLogs bool
@@ -450,7 +451,7 @@ func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error
 	}
 	env = append(env, fmt.Sprintf("AIRPLANE_TOKEN=%s", token))
 
-	serialized, err := json.Marshal(config.Resources)
+	serialized, err := json.Marshal(config.AliasToResource)
 	if err != nil {
 		return nil, errors.Wrap(err, "marshaling resources")
 	}
@@ -463,7 +464,7 @@ func interpolate(ctx context.Context, cfg LocalRunConfig, value any) (any, error
 		Value:       value,
 		RunID:       cfg.ID,
 		Env:         devenv.NewLocalEnv(),
-		Resources:   cfg.Resources,
+		Resources:   cfg.AliasToResource,
 		Configs:     cfg.ConfigVars,
 		ParamValues: cfg.ParamValues,
 	})

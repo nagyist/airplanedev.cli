@@ -11,8 +11,6 @@ import (
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 )
 
-const RunPrefix = "devrun"
-
 type LocalRun struct {
 	RunID            string                 `json:"runID"`
 	Status           api.RunStatus          `json:"status"`
@@ -59,5 +57,5 @@ func NewLocalRun() *LocalRun {
 }
 
 func GenerateRunID() string {
-	return utils.GenerateID(RunPrefix)
+	return utils.GenerateID(utils.DevRunPrefix)
 }

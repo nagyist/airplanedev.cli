@@ -18,10 +18,11 @@ import (
 	"github.com/airplanedev/cli/pkg/server/apiext"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/server/test_utils"
+	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
-	"github.com/airplanedev/lib/pkg/resources"
+	libresources "github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/resources/kinds"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -78,14 +79,14 @@ func TestExecute(t *testing.T) {
 			"entrypoint":  "my_task.ts",
 			"nodeVersion": "18",
 		},
-		ParamValues:  paramValues,
-		File:         "my_task.ts",
-		Slug:         slug,
-		ConfigVars:   map[string]string{},
-		EnvVars:      map[string]string{},
-		RemoteClient: &api.MockClient{},
-		Resources:    map[string]resources.Resource{},
-		LogBroker:    logBroker,
+		ParamValues:     paramValues,
+		File:            "my_task.ts",
+		Slug:            slug,
+		ConfigVars:      map[string]string{},
+		EnvVars:         map[string]string{},
+		RemoteClient:    &api.MockClient{},
+		AliasToResource: map[string]libresources.Resource{},
+		LogBroker:       logBroker,
 	}
 	mockExecutor.On("Execute", mock.Anything, runConfig).Return(nil)
 	body := h.POST("/v0/tasks/execute").
@@ -99,7 +100,7 @@ func TestExecute(t *testing.T) {
 	var resp dev.LocalRun
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
-	require.True(strings.HasPrefix(resp.RunID, dev.RunPrefix))
+	require.True(strings.HasPrefix(resp.RunID, utils.DevRunPrefix))
 
 	run, found := store.Get(resp.RunID)
 	require.True(found)
@@ -127,11 +128,12 @@ func TestExecuteBuiltin(t *testing.T) {
 
 	logBroker := logs.NewDevLogBroker()
 	store := state.NewRunStore()
+	resourceID := utils.GenerateID(utils.DevResourcePrefix)
 	dbResource := kinds.PostgresResource{
-		BaseResource: resources.BaseResource{
+		BaseResource: libresources.BaseResource{
 			Kind: kinds.ResourceKindPostgres,
 			Slug: "database",
-			ID:   "res-database",
+			ID:   resourceID,
 		},
 		Username: "postgres",
 		Password: "password",
@@ -170,7 +172,7 @@ func TestExecuteBuiltin(t *testing.T) {
 		ParamValues:  paramValues,
 		Slug:         slug,
 		RemoteClient: &api.MockClient{},
-		Resources: map[string]resources.Resource{
+		AliasToResource: map[string]libresources.Resource{
 			"db": &dbResource,
 		},
 		IsBuiltin: true,
@@ -182,7 +184,7 @@ func TestExecuteBuiltin(t *testing.T) {
 		WithJSON(apiext.ExecuteTaskRequest{
 			Slug:        slug,
 			ParamValues: paramValues,
-			Resources:   map[string]string{"db": "res-database"},
+			Resources:   map[string]string{"db": resourceID},
 		}).
 		Expect().
 		Status(http.StatusOK).Body()
@@ -190,7 +192,7 @@ func TestExecuteBuiltin(t *testing.T) {
 	var resp dev.LocalRun
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
-	require.True(strings.HasPrefix(resp.RunID, dev.RunPrefix))
+	require.True(strings.HasPrefix(resp.RunID, utils.DevRunPrefix))
 
 	run, found := store.Get(resp.RunID)
 	require.True(found)

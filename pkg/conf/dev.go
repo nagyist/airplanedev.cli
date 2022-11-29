@@ -2,7 +2,6 @@ package conf
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -10,7 +9,8 @@ import (
 
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/lib/pkg/resources"
+	"github.com/airplanedev/cli/pkg/utils"
+	libresources "github.com/airplanedev/lib/pkg/resources"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
@@ -46,7 +46,7 @@ func NewDevConfig(path string) *DevConfig {
 // updateRawResources needs to be called whenever Resources is mutated, to keep RawResources in sync
 // the caller of updateRawResources should have the lock on the DevConfig
 func (d *DevConfig) updateRawResources() error {
-	resourceList := make([]resources.Resource, 0, len(d.RawResources))
+	resourceList := make([]libresources.Resource, 0, len(d.RawResources))
 
 	for _, r := range d.Resources {
 		resourceList = append(resourceList, r.Resource)
@@ -71,7 +71,7 @@ func (d *DevConfig) updateRawResources() error {
 }
 
 // SetResource updates a resource in the dev config file, creating it if necessary.
-func (d *DevConfig) SetResource(slug string, r resources.Resource) error {
+func (d *DevConfig) SetResource(slug string, r libresources.Resource) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -201,9 +201,9 @@ func readDevConfig(path string) (*DevConfig, error) {
 		}
 
 		// generate the resource ID so the dev config file doesn't need to have it
-		r["id"] = GenerateLocalResourceID(slugStr)
+		r["id"] = utils.GenerateID(utils.DevResourcePrefix)
 
-		res, err := resources.GetResource(resources.ResourceKind(kindStr), r)
+		res, err := libresources.GetResource(libresources.ResourceKind(kindStr), r)
 		if err != nil {
 			return nil, errors.Wrap(err, "getting resource from raw resource")
 		}
@@ -217,10 +217,6 @@ func readDevConfig(path string) (*DevConfig, error) {
 	cfg.Path = path
 
 	return cfg, nil
-}
-
-func GenerateLocalResourceID(slug string) string {
-	return fmt.Sprintf("res-%s", slug)
 }
 
 func writeDevConfig(config *DevConfig) error {
