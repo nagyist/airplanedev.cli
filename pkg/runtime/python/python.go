@@ -277,7 +277,9 @@ var inlineCode = template.Must(template.New("py").Funcs(template.FuncMap{
 {{end}}
 {{- if .NeedsOptionalImport }}from typing import Optional
 {{end}}
+{{- if or .NeedsDatetimeImport .NeedsOptionalImport}}
 import airplane
+{{- else }}import airplane{{- end }}
 {{if .Parameters }}from typing_extensions import Annotated
 {{end}}
 
@@ -289,12 +291,8 @@ import airplane
     {{- end}}
     {{- if .RequireRequests}}
     require_requests=True,
-    {{- else}}
-    require_requests=False,
     {{- end}}
-    {{- if .AllowSelfApprovals}}
-    allow_self_approvals=True,
-    {{- else}}
+    {{- if not .AllowSelfApprovals}}
     allow_self_approvals=False,
     {{- end}}
     {{- if and (ne .Timeout 3600) (gt .Timeout 0) }}

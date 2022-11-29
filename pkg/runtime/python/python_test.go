@@ -27,8 +27,7 @@ func TestInlineMinimal(t *testing.T) {
         "resources": null,
         "python": {
           "entrypoint": "test_airplane.py"
-        },
-        "allowSelfApprovals": false
+        }
       }`
 
 	var def *definitions.Definition_0_3
@@ -37,15 +36,12 @@ func TestInlineMinimal(t *testing.T) {
 
 	out, _, err := Runtime{}.GenerateInline(def)
 	require.NoError(err)
-	require.Equal(string(out), `
-import airplane
+	require.Equal(string(out), `import airplane
 
 
 @airplane.task(
     slug="inline_python_full3",
     name="Inline python full3",
-    require_requests=False,
-    allow_self_approvals=False,
 )
 def inline_python_full3():
     data = [
@@ -391,7 +387,8 @@ func TestInlineEveryType(t *testing.T) {
         "constraints": {
           "mta": "false"
         },
-        "allowSelfApprovals": true,
+        "allowSelfApprovals": false,
+        "requireRequests": true,
         "timeout": 60,
         "schedules": {
           "every_midnight": {
@@ -441,8 +438,8 @@ from typing_extensions import Annotated
     slug="inline_python_full2",
     name="Inline python full2",
     description="Tests all parameter types for inline python.",
-    require_requests=False,
-    allow_self_approvals=True,
+    require_requests=True,
+    allow_self_approvals=False,
     timeout=60,
     constraints={
         "mta": "false",
