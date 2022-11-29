@@ -55,8 +55,8 @@ func ValidateInput(param libapi.Parameter, in string) error {
 			return errors.New("expected to be formatted as '2016-01-02'")
 		}
 	case libapi.TypeDatetime:
-		if _, err := time.Parse("2006-01-02T15:04:05Z", in); err != nil {
-			return errors.New("expected to be formatted as '2016-01-02T15:04:05Z'")
+		if _, err := time.Parse(time.RFC3339, in); err != nil {
+			return errors.Errorf("expected to be formatted as '%s'", time.RFC3339)
 		}
 		return nil
 	}
