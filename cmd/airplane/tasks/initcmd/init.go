@@ -883,12 +883,13 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 			return errors.Wrap(err, "getting working directory")
 		}
 
-		if err := node.CreatePackageJSON(cwd, node.PackageJSONOptions{
+		packageJSONDir, err := node.CreatePackageJSON(cwd, node.PackageJSONOptions{
 			Dependencies: node.NodeDependencies{
 				Dependencies:    []string{"airplane"},
 				DevDependencies: []string{"@types/node"},
 			},
-		}); err != nil {
+		})
+		if err != nil {
 			return err
 		}
 
@@ -905,8 +906,8 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 				return err
 			}
 		}
-
-		if err := node.CreateTaskTSConfig(); err != nil {
+		// Create/update tsconfig in the same directory as the package.json file
+		if err := node.CreateTaskTSConfig(packageJSONDir); err != nil {
 			return err
 		}
 		return nil

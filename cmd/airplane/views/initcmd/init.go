@@ -104,10 +104,6 @@ func createViewScaffolding(ctx context.Context, cfg *config) error {
 	if err := createEntrypoint(*cfg); err != nil {
 		return err
 	}
-	if err := node.CreateViewTSConfig(); err != nil {
-		return err
-	}
-
 	cwd, err := os.Getwd()
 	if err != nil {
 		return errors.Wrap(err, "getting working directory")
@@ -116,12 +112,17 @@ func createViewScaffolding(ctx context.Context, cfg *config) error {
 	if fsx.Exists(filepath.Join(cwd, cfg.viewDir, "package.json")) {
 		packageJSONDir = filepath.Join(cwd, cfg.viewDir)
 	}
-	if err := node.CreatePackageJSON(packageJSONDir, node.PackageJSONOptions{
+	packageJSONDir, err = node.CreatePackageJSON(packageJSONDir, node.PackageJSONOptions{
 		Dependencies: node.NodeDependencies{
 			Dependencies:    []string{"@airplane/views", "react", "react-dom"},
 			DevDependencies: []string{"@types/react", "@types/react-dom", "typescript"},
 		},
-	}); err != nil {
+	})
+	if err != nil {
+		return err
+	}
+	// Create/update tsconfig in the same directory as the package.json file
+	if err := node.CreateViewTSConfig(packageJSONDir); err != nil {
 		return err
 	}
 
