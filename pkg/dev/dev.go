@@ -441,8 +441,8 @@ func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error
 	// - AIRPLANE_TRIGGER_ID
 	// because there is no requester, session, task revision, or triggers in the context of local dev.
 	env = append(env,
-		fmt.Sprintf("AIRPLANE_ENV_ID=%s", devenv.LocalEnvID),
-		fmt.Sprintf("AIRPLANE_ENV_SLUG=%s", devenv.LocalEnvID),
+		fmt.Sprintf("AIRPLANE_ENV_ID=%s", devenv.StudioEnvID),
+		fmt.Sprintf("AIRPLANE_ENV_SLUG=%s", devenv.StudioEnvID),
 		fmt.Sprintf("AIRPLANE_RUN_ID=%s", config.ID),
 		fmt.Sprintf("AIRPLANE_PARENT_RUN_ID=%s", pointers.ToString(config.ParentRunID)),
 		fmt.Sprintf("AIRPLANE_RUNNER_EMAIL=%s", runnerEmail),

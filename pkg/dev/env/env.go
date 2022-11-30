@@ -6,7 +6,7 @@ import (
 	"github.com/airplanedev/lib/pkg/resources"
 )
 
-const LocalEnvID = "local"
+const StudioEnvID = "studio"
 
 // ResourceWithEnv store information about a resource and whether it's remote.
 type ResourceWithEnv struct {
@@ -24,9 +24,14 @@ type ConfigWithEnv struct {
 
 // NewLocalEnv returns a new environment struct with special, local fields.
 func NewLocalEnv() libapi.Env {
+	return NewStudioEnv("Local")
+}
+
+// NewStudioEnv returns a new environment struct with studio-specific fields.
+func NewStudioEnv(name string) libapi.Env {
 	return libapi.Env{
-		ID:   LocalEnvID,
-		Slug: LocalEnvID,
-		Name: "Local",
+		ID:   StudioEnvID,
+		Slug: StudioEnvID,
+		Name: name,
 	}
 }

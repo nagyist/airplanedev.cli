@@ -71,6 +71,7 @@ func GetInfoHandler(ctx context.Context, s *state.State, r *http.Request) (Studi
 		fallbackEnv = &s.RemoteEnv
 	}
 
+	// TODO: Fix default env and host for remote studio.
 	return StudioInfo{
 		Workspace:   s.Dir,
 		DefaultEnv:  env.NewLocalEnv(),
