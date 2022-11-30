@@ -15,7 +15,7 @@ import (
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/bep/debounce"
-	lrucache "github.com/hashicorp/golang-lru"
+	lrucache "github.com/hashicorp/golang-lru/v2"
 	"github.com/pkg/errors"
 )
 
@@ -50,8 +50,9 @@ type State struct {
 	//Debouncer returns the debouncing function for a given key
 	Debouncer DebounceStore
 
-	DevConfig    *conf.DevConfig
-	ViteContexts *lrucache.Cache
+	DevConfig *conf.DevConfig
+	// ViteContexts is an in-memory cache that maps view slugs to vite contexts.
+	ViteContexts *lrucache.Cache[string, ViteContext]
 	Logger       logger.Logger
 
 	AuthInfo     api.AuthInfoResponse

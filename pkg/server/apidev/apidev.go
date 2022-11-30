@@ -12,7 +12,6 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev/env"
-	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/state"
@@ -305,12 +304,7 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 
 	viteContext, ok := s.ViteContexts.Get(viewSlug)
 	if ok {
-		contextObj, ok := viteContext.(state.ViteContext)
-		if !ok {
-			logger.Error("expected vite context from context cache")
-			return StartViewResponse{}, errors.New("Could not obtain vite process")
-		}
-		return StartViewResponse{ViteServer: contextObj.ServerURL}, nil
+		return StartViewResponse{ViteServer: viteContext.ServerURL}, nil
 	}
 
 	viewConfig, ok := s.ViewConfigs.Get(viewSlug)

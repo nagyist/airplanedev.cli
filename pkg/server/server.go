@@ -28,7 +28,7 @@ import (
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	lrucache "github.com/hashicorp/golang-lru"
+	lrucache "github.com/hashicorp/golang-lru/v2"
 	"github.com/pkg/errors"
 )
 
@@ -128,12 +128,7 @@ func newServer(router *mux.Router, state *state.State, port int, expose bool) *S
 
 // Start starts and returns a new instance of the Airplane API server.
 func Start(opts Options) (*Server, error) {
-	onEvict := func(key interface{}, value interface{}) {
-		viteContext, ok := value.(state.ViteContext)
-		if !ok {
-			logger.Error("expected vite context from context cache")
-		}
-
+	onEvict := func(key string, viteContext state.ViteContext) {
 		if err := viteContext.Process.Kill(); err != nil {
 			logger.Error(fmt.Sprintf("could not shutdown existing vite process: %v", err))
 		}

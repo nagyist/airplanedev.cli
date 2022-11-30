@@ -23,7 +23,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/gosimple/slug v1.13.1
 	github.com/hashicorp/go-retryablehttp v0.7.1
-	github.com/hashicorp/golang-lru v0.6.0
+	github.com/hashicorp/golang-lru/v2 v2.0.1
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/joho/godotenv v1.4.0
 	github.com/kr/text v0.2.0
