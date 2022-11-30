@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
@@ -19,16 +20,17 @@ var DefaultDevConfigFileName = "airplane.dev.yaml"
 
 // DevConfig represents an airplane dev configuration.
 type DevConfig struct {
-	// Configs contains all of the config variables.
-	ConfigVars map[string]string `json:"configVars" yaml:"configVars"`
-
 	// RawResources is a list of resources that represents what the user sees in the dev config file.
 	RawResources []map[string]interface{} `json:"resources" yaml:"resources"`
+	// Configs is a map of config variables in the format that the user sees in the dev config file.
+	RawConfigVars map[string]string `json:"configVars" yaml:"configVars"`
+
+	// Resources is a mapping from slug to external resource.
+	Resources  map[string]env.ResourceWithEnv `json:"-" yaml:"-"`
+	ConfigVars map[string]env.ConfigWithEnv   `json:"-" yaml:"-"`
 
 	// Path is the location that the dev config file was loaded from and where updates will be written to.
 	Path string `json:"-" yaml:"-"`
-	// Resources is a mapping from slug to external resource.
-	Resources map[string]env.ResourceWithEnv `json:"-" yaml:"-"`
 
 	mu sync.Mutex
 }
@@ -36,10 +38,11 @@ type DevConfig struct {
 // NewDevConfig returns a default dev config.
 func NewDevConfig(path string) *DevConfig {
 	return &DevConfig{
-		ConfigVars:   map[string]string{},
-		RawResources: []map[string]interface{}{},
-		Resources:    map[string]env.ResourceWithEnv{},
-		Path:         path,
+		RawConfigVars: map[string]string{},
+		RawResources:  []map[string]interface{}{},
+		ConfigVars:    map[string]env.ConfigWithEnv{},
+		Resources:     map[string]env.ResourceWithEnv{},
+		Path:          path,
 	}
 }
 
@@ -114,20 +117,15 @@ func (d *DevConfig) RemoveResource(slug string) error {
 	return nil
 }
 
-// RemoveConfigVar deletes the config from the dev config file, if it exists.
-func (d *DevConfig) RemoveConfigVar(key string) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	if _, ok := d.ConfigVars[key]; !ok {
-		return errors.Errorf("Config variable `%s` not found in dev config file", key)
+// updateRawConfigs needs to be called whenever ConfigVars is mutated to keep RawConfigVars in sync
+// the caller of updateRawConfigs should have the lock on the DevConfig
+func (d *DevConfig) updateRawConfigs() error {
+	configMap := make(map[string]string, len(d.ConfigVars))
+	for _, c := range d.ConfigVars {
+		configMap[c.Name] = c.Value
 	}
 
-	delete(d.ConfigVars, key)
-	if err := writeDevConfig(d); err != nil {
-		return err
-	}
-
-	logger.Log("Deleted config variable `%q` from dev config file.", key)
+	d.RawConfigVars = configMap
 	return nil
 }
 
@@ -135,16 +133,53 @@ func (d *DevConfig) RemoveConfigVar(key string) error {
 func (d *DevConfig) SetConfigVar(key string, value string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if d.ConfigVars == nil {
-		d.ConfigVars = map[string]string{}
+	if cfg, ok := d.ConfigVars[key]; ok {
+		cfg.Value = value
+		d.ConfigVars[key] = cfg
+	} else {
+		d.ConfigVars[key] = env.ConfigWithEnv{
+			Config: api.Config{
+				ID:       utils.GenerateID(utils.DevConfigPrefix),
+				Name:     key,
+				Value:    value,
+				IsSecret: false,
+			},
+			Remote: false,
+			Env:    env.NewLocalEnv(),
+		}
 	}
-	d.ConfigVars[key] = value
-	err := writeDevConfig(d)
-	if err != nil {
+
+	if err := d.updateRawConfigs(); err != nil {
+		return errors.Wrap(err, "updating raw configs")
+	}
+
+	if err := writeDevConfig(d); err != nil {
 		return err
 	}
 
-	logger.Log("Successfully wrote config variable `%q` to dev config file.", key)
+	logger.Log("Successfully wrote config variable %q to dev config file.", key)
+	return nil
+}
+
+// RemoveConfigVar deletes the config from the dev config file, if it exists.
+func (d *DevConfig) RemoveConfigVar(key string) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if _, ok := d.ConfigVars[key]; !ok {
+		return errors.Errorf("Config variable %q not found in dev config file", key)
+	}
+
+	delete(d.ConfigVars, key)
+
+	if err := d.updateRawConfigs(); err != nil {
+		return errors.Wrap(err, "updating raw configs")
+	}
+
+	if err := writeDevConfig(d); err != nil {
+		return err
+	}
+
+	logger.Log("Deleted config variable %q from dev config file.", key)
 	return nil
 }
 
@@ -156,6 +191,7 @@ func (d *DevConfig) LoadConfigFile() error {
 	if err != nil {
 		return err
 	}
+	d.RawConfigVars = config.RawConfigVars
 	d.ConfigVars = config.ConfigVars
 	d.RawResources = config.RawResources
 	d.Resources = config.Resources
@@ -178,6 +214,7 @@ func readDevConfig(path string) (*DevConfig, error) {
 		return nil, errors.Wrap(err, "unmarshal config")
 	}
 
+	// Load in resources
 	slugToResource := map[string]env.ResourceWithEnv{}
 	for _, r := range cfg.RawResources {
 		kind, ok := r["kind"]
@@ -200,20 +237,41 @@ func readDevConfig(path string) (*DevConfig, error) {
 			return nil, errors.Errorf("expected slug type to be string, got %T", slug)
 		}
 
-		// generate the resource ID so the dev config file doesn't need to have it
-		r["id"] = utils.GenerateID(utils.DevResourcePrefix)
-
 		res, err := libresources.GetResource(libresources.ResourceKind(kindStr), r)
 		if err != nil {
 			return nil, errors.Wrap(err, "getting resource from raw resource")
 		}
+
+		// generate the resource ID so the dev config file doesn't need to have it
+		if err := res.UpdateBaseResource(libresources.BaseResource{
+			ID: utils.GenerateID(utils.DevResourcePrefix),
+		}); err != nil {
+			return nil, errors.Wrap(err, "updating base resource")
+		}
+
 		slugToResource[slugStr] = env.ResourceWithEnv{
 			Resource: res,
 			Remote:   false,
 		}
 	}
-
 	cfg.Resources = slugToResource
+
+	// Load in configs
+	nameToConfig := make(map[string]env.ConfigWithEnv, len(cfg.RawConfigVars))
+	for name, value := range cfg.RawConfigVars {
+		nameToConfig[name] = env.ConfigWithEnv{
+			Config: api.Config{
+				ID:       utils.GenerateID(utils.DevConfigPrefix),
+				Name:     name,
+				Value:    value,
+				IsSecret: false,
+			},
+			Remote: false,
+			Env:    env.NewLocalEnv(),
+		}
+	}
+	cfg.ConfigVars = nameToConfig
+
 	cfg.Path = path
 
 	return cfg, nil

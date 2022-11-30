@@ -1,6 +1,7 @@
 package env
 
 import (
+	"github.com/airplanedev/cli/pkg/api"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/resources"
 )
@@ -13,6 +14,12 @@ type ResourceWithEnv struct {
 	Resource resources.Resource
 	// Whether the resource's configuration is remote or local.
 	Remote bool
+}
+
+type ConfigWithEnv struct {
+	api.Config
+	Remote bool       `json:"remote"`
+	Env    libapi.Env `json:"env"`
 }
 
 // NewLocalEnv returns a new environment struct with special, local fields.

@@ -13,6 +13,7 @@ var seededRandMu sync.Mutex
 const CharsetAlphaLowercase = "abcdefghijklmnopqrstuvwxyz"
 const CharsetLowercaseNumeric = "abcdefghijklmnopqrstuvwxyz0123456789"
 
+const DevConfigPrefix = "devcfg"
 const DevRunPrefix = "devrun"
 const DevResourcePrefix = "devres"
 

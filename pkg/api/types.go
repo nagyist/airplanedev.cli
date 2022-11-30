@@ -231,6 +231,7 @@ type SetConfigRequest struct {
 
 // Config represents a config var.
 type Config struct {
+	ID       string `json:"configID"`
 	Name     string `json:"name" yaml:"name"`
 	Tag      string `json:"tag" yaml:"tag"`
 	Value    string `json:"value" yaml:"value"`

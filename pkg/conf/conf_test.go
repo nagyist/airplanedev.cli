@@ -5,7 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev/env"
+	"github.com/airplanedev/cli/pkg/utils"
 	libresources "github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/resources/kinds"
 	"github.com/pkg/errors"
@@ -98,7 +100,7 @@ func TestDevConfig(t *testing.T) {
 	t.Run("write and read", func(t *testing.T) {
 		var assert = require.New(t)
 		var dir = tempdir(t)
-		var path = filepath.Join(dir, "dev.yaml")
+		var path = filepath.Join(dir, DefaultDevConfigFileName)
 
 		configs := map[string]string{
 			"CONFIG_VAR": "value",
@@ -114,19 +116,18 @@ func TestDevConfig(t *testing.T) {
 			postgres,
 		}
 		err := writeDevConfig(&DevConfig{
-			ConfigVars:   configs,
-			Path:         path,
-			RawResources: configResources,
+			RawConfigVars: configs,
+			Path:          path,
+			RawResources:  configResources,
 		})
 		assert.NoError(err)
 
 		cfg, err := readDevConfig(path)
 		assert.NoError(err)
-		assert.Equal(configs, cfg.ConfigVars)
-		// reading from the dev config should generate the ID into RawResources
-		id := cfg.RawResources[0]["id"].(string)
-		assert.Contains(id, "devres")
-		delete(cfg.RawResources[0], "id") // clear the ID so we can compare the rest of the resource
+
+		for _, r := range cfg.Resources {
+			assert.Contains(r.Resource.GetID(), utils.DevResourcePrefix)
+		}
 
 		assert.Equal(configResources, cfg.RawResources)
 		assert.Equal(map[string]env.ResourceWithEnv{
@@ -135,7 +136,7 @@ func TestDevConfig(t *testing.T) {
 					BaseResource: libresources.BaseResource{
 						Kind: kinds.ResourceKindPostgres,
 						Slug: "db",
-						ID:   id,
+						ID:   cfg.Resources["db"].Resource.GetID(), // Do not compare ID
 					},
 					Username: "postgres",
 					Password: "password",
@@ -143,5 +144,24 @@ func TestDevConfig(t *testing.T) {
 				Remote: false,
 			},
 		}, cfg.Resources)
+
+		assert.Equal(configs, cfg.RawConfigVars)
+		// clear the ID so we can compare the rest of the config var
+		for name, c := range cfg.ConfigVars {
+			assert.Contains(c.ID, utils.DevConfigPrefix)
+			c.ID = ""
+			cfg.ConfigVars[name] = c
+		}
+		assert.Equal(map[string]env.ConfigWithEnv{
+			"CONFIG_VAR": {
+				Config: api.Config{
+					Name:     "CONFIG_VAR",
+					Value:    "value",
+					IsSecret: false,
+				},
+				Remote: false,
+				Env:    env.NewLocalEnv(),
+			},
+		}, cfg.ConfigVars)
 	})
 }

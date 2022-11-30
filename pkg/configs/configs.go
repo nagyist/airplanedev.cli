@@ -3,6 +3,7 @@ package configs
 import (
 	"strings"
 
+	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/lib/pkg/api"
 	"github.com/pkg/errors"
 )
@@ -36,14 +37,14 @@ func JoinName(nameTag NameTag) string {
 }
 
 // MaterializeConfigAttachments returns the configs that are attached to a task
-func MaterializeConfigAttachments(attachments []api.ConfigAttachment, configs map[string]string) (map[string]string, error) {
+func MaterializeConfigAttachments(attachments []api.ConfigAttachment, configs map[string]env.ConfigWithEnv) (map[string]string, error) {
 	configAttachments := map[string]string{}
 	for _, a := range attachments {
 		if _, ok := configs[a.NameTag]; !ok {
 			return nil, errors.Errorf("config %s not defined in airplane.dev.yaml", a.NameTag)
 		}
 
-		configAttachments[a.NameTag] = configs[a.NameTag]
+		configAttachments[a.NameTag] = configs[a.NameTag].Value
 	}
 	return configAttachments, nil
 }

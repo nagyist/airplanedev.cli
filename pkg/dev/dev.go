@@ -80,7 +80,7 @@ type LocalRunConfig struct {
 	AliasToResource map[string]resources.Resource
 
 	ConfigAttachments []libapi.ConfigAttachment
-	ConfigVars        map[string]string
+	ConfigVars        map[string]devenv.ConfigWithEnv
 	EnvVars           libapi.TaskEnv
 
 	IsBuiltin bool
@@ -310,16 +310,16 @@ func GetKindAndOptions(taskConfig discover.TaskConfig) (build.TaskKind, build.Ki
 	return kind, kindOptions, nil
 }
 
-func MaterializeEnvVars(taskEnvVars libapi.TaskEnv, configVars map[string]string) (map[string]string, error) {
+func MaterializeEnvVars(taskEnvVars libapi.TaskEnv, configVars map[string]devenv.ConfigWithEnv) (map[string]string, error) {
 	envVars := map[string]string{}
 	for key, envVar := range taskEnvVars {
 		if envVar.Value != nil {
 			envVars[key] = *envVar.Value
 		} else if envVar.Config != nil {
-			if configVal, ok := configVars[*envVar.Config]; !ok {
+			if configVar, ok := configVars[*envVar.Config]; !ok {
 				return nil, errors.Errorf("config %s not defined in airplane.dev.yaml (referenced by env var %s)", *envVar.Config, key)
 			} else {
-				envVars[key] = configVal
+				envVars[key] = configVar.Value
 			}
 		}
 	}

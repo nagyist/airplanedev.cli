@@ -49,6 +49,11 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/tasks/get", handlers.Handler(state, GetTaskInfoHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/users/get", handlers.Handler(state, GetUserHandler)).Methods("GET", "OPTIONS")
+
+	r.Handle("/configs/get", handlers.Handler(state, GetConfigHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/configs/upsert", handlers.HandlerWithBody(state, UpsertConfigHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/configs/delete", handlers.HandlerWithBody(state, DeleteConfigHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/configs/list", handlers.Handler(state, ListConfigsHandler)).Methods("GET", "OPTIONS")
 }
 
 type CreateResourceRequest struct {
@@ -570,4 +575,72 @@ func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request
 	req.Kind = kind
 	req.KindOptions = options
 	return req, nil
+}
+
+type GetConfigResponse struct {
+	Config env.ConfigWithEnv `json:"config"`
+}
+
+func GetConfigHandler(ctx context.Context, state *state.State, r *http.Request) (GetConfigResponse, error) {
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		return GetConfigResponse{}, errors.New("id cannot be empty")
+	}
+
+	for _, c := range state.DevConfig.ConfigVars {
+		if c.ID == id {
+			return GetConfigResponse{
+				Config: c,
+			}, nil
+		}
+	}
+
+	return GetConfigResponse{}, errors.Errorf("config with id %s not found", id)
+}
+
+type UpsertConfigRequest struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+func UpsertConfigHandler(ctx context.Context, state *state.State, r *http.Request, req UpsertConfigRequest) (struct{}, error) {
+	if err := state.DevConfig.SetConfigVar(req.Name, req.Value); err != nil {
+		return struct{}{}, errors.Wrap(err, "setting config var")
+	}
+
+	return struct{}{}, nil
+}
+
+type DeleteConfigRequest struct {
+	ID string `json:"configID"`
+}
+
+func DeleteConfigHandler(ctx context.Context, state *state.State, r *http.Request, req DeleteConfigRequest) (struct{}, error) {
+	for _, c := range state.DevConfig.ConfigVars {
+		if c.ID == req.ID {
+			if err := state.DevConfig.RemoveConfigVar(c.Name); err != nil {
+				return struct{}{}, errors.Wrap(err, "deleting config var")
+			}
+			return struct{}{}, nil
+		}
+	}
+
+	return struct{}{}, errors.Errorf("config with id %s not found", req.ID)
+}
+
+type ListConfigsResponse struct {
+	Configs []env.ConfigWithEnv `json:"configs"`
+}
+
+func ListConfigsHandler(ctx context.Context, state *state.State, r *http.Request) (ListConfigsResponse, error) {
+	configs := make([]env.ConfigWithEnv, 0, len(state.DevConfig.ConfigVars))
+	for _, cfg := range state.DevConfig.ConfigVars {
+		configs = append(configs, cfg)
+	}
+
+	// TODO: List remote configs
+
+	return ListConfigsResponse{
+		Configs: configs,
+	}, nil
 }
