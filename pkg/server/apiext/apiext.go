@@ -77,6 +77,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 	run.ParentID = parentID
 
 	runID := dev.GenerateRunID()
+	run.ID = runID
 	run.RunID = runID
 
 	localTaskConfig, ok := state.TaskConfigs.Get(req.Slug)
@@ -242,6 +243,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		}
 
 		run.Remote = true
+		run.ID = resp.RunID
 		run.RunID = resp.RunID
 		state.Runs.Add(req.Slug, resp.RunID, run)
 		return run, nil
@@ -266,6 +268,7 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (de
 		remoteRun := resp.Run
 
 		return dev.LocalRun{
+			ID:          runID,
 			RunID:       runID,
 			Status:      remoteRun.Status,
 			CreatedAt:   remoteRun.CreatedAt,

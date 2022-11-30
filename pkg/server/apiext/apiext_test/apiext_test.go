@@ -207,7 +207,7 @@ func TestGetRun(t *testing.T) {
 
 	runID := "run1234"
 	runstore := state.NewRunStore()
-	runstore.Add("task1", runID, dev.LocalRun{Status: api.RunSucceeded, RunID: runID})
+	runstore.Add("task1", runID, dev.LocalRun{Status: api.RunSucceeded, RunID: runID, ID: runID})
 	h := test_utils.GetHttpExpect(
 		context.Background(),
 		t,
@@ -226,6 +226,7 @@ func TestGetRun(t *testing.T) {
 	require.NoError(err)
 
 	require.Equal(runID, resp.RunID)
+	require.Equal(runID, resp.ID)
 	require.Equal(api.RunSucceeded, resp.Status)
 }
 

@@ -12,6 +12,9 @@ import (
 )
 
 type LocalRun struct {
+	ID string `json:"id"`
+	// TODO: Remove this from the struct - it's only used because we return a LocalRun in the `/v0/tasks/execute`
+	// endpoint, but we should be returning different response types between that and `/v0/runs/get`.
 	RunID            string                 `json:"runID"`
 	Status           api.RunStatus          `json:"status"`
 	Outputs          api.Outputs            `json:"outputs"`
