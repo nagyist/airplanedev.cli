@@ -45,6 +45,7 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/runs/get", handlers.Handler(state, GetRunHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/getDescendants", handlers.Handler(state, GetDescendantsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/list", handlers.Handler(state, ListRunsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/cancel", handlers.HandlerWithBody(state, CancelRunHandler)).Methods("POST", "OPTIONS")
 
 	r.Handle("/tasks/get", handlers.Handler(state, GetTaskInfoHandler)).Methods("GET", "OPTIONS")
 
@@ -509,6 +510,25 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (Ge
 		}
 	}
 	return response, nil
+}
+
+type CancelRunRequest struct {
+	RunID string `json:"runID"`
+}
+
+func CancelRunHandler(ctx context.Context, state *state.State, r *http.Request, req CancelRunRequest) (struct{}, error) {
+	_, err := state.Runs.Update(req.RunID, func(run *dev.LocalRun) error {
+		if run.Status.IsTerminal() {
+			return errors.Errorf("cannot cancel run %s (state is already terminal)", run.RunID)
+		}
+		run.CancelFn()
+		run.Status = api.RunCancelled
+		cancelTime := time.Now()
+		run.CancelledAt = &cancelTime
+		run.CancelledBy = run.CreatorID
+		return nil
+	})
+	return struct{}{}, err
 }
 
 type ListRunsResponse struct {

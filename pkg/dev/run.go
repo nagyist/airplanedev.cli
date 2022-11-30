@@ -19,6 +19,8 @@ type LocalRun struct {
 	CreatorID        string                 `json:"creatorID"`
 	SucceededAt      *time.Time             `json:"succeededAt"`
 	FailedAt         *time.Time             `json:"failedAt"`
+	CancelledAt      *time.Time             `json:"cancelledAt"`
+	CancelledBy      string                 `json:"cancelledBy"`
 	ParamValues      map[string]interface{} `json:"paramValues"`
 	Parameters       *libapi.Parameters     `json:"parameters"`
 	ParentID         string                 `json:"parentID"`
@@ -38,6 +40,7 @@ type LocalRun struct {
 	StdAPIRequest builtins.StdAPIRequest `json:"stdAPIRequest"`
 
 	// internal fields
+	CancelFn  func()         `json:"-"`
 	LogBroker logs.LogBroker `json:"-"`
 	Remote    bool           `json:"-"`
 }

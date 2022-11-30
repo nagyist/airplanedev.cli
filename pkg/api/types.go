@@ -247,6 +247,10 @@ const (
 	RunCancelled  RunStatus = "Cancelled"
 )
 
+func (r RunStatus) IsTerminal() bool {
+	return r == RunSucceeded || r == RunFailed || r == RunCancelled
+}
+
 // Run represents a run.
 type Run struct {
 	RunID       string     `json:"runID"`

@@ -178,6 +178,8 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		run.ParamValues = req.ParamValues
 		run.Parameters = &parameters
 		run.Status = api.RunActive
+		runCtx, fn := context.WithCancel(context.Background()) // Context used for cancelling a run.
+		run.CancelFn = fn
 		// if the user is authenticated in CLI, use their ID
 		if state.AuthInfo.User != nil {
 			run.CreatorID = state.AuthInfo.User.ID
@@ -186,7 +188,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 
 		// Use a new context while executing so the handler context doesn't cancel task execution
 		go func() {
-			outputs, err := state.Executor.Execute(context.Background(), runConfig)
+			outputs, err := state.Executor.Execute(runCtx, runConfig)
 			completedAt := time.Now()
 
 			status := api.RunSucceeded
@@ -196,12 +198,17 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			if err == nil {
 				succeededAt = &completedAt
 			} else {
-				status = api.RunFailed
-				failedAt = &completedAt
-				// If an error output isn't already set, set it here.
-				if outputs.V == nil {
-					outputs = api.Outputs{
-						V: ojson.NewObject().SetAndReturn("error", err.Error()),
+				runState, _ := state.Runs.Get(runID)
+				if runState.Status == api.RunCancelled {
+					status = api.RunCancelled
+				} else {
+					status = api.RunFailed
+					failedAt = &completedAt
+					// If an error output isn't already set, set it here.
+					if outputs.V == nil {
+						outputs = api.Outputs{
+							V: ojson.NewObject().SetAndReturn("error", err.Error()),
+						}
 					}
 				}
 			}
