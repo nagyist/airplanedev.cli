@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/configs"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
@@ -149,22 +148,19 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			if err != nil {
 				return dev.LocalRun{}, errors.Wrap(err, "getting resource attachments")
 			}
+			if runConfig.EnvVars, err = localTaskConfig.Def.GetEnv(); err != nil {
+				return dev.LocalRun{}, errors.Wrap(err, "getting task env vars")
+			}
+			if runConfig.ConfigAttachments, err = localTaskConfig.Def.GetConfigAttachments(); err != nil {
+				return dev.LocalRun{}, errors.Wrap(err, "getting attached configs")
+			}
 			parameters, err = localTaskConfig.Def.GetParameters()
 			if err != nil {
 				return dev.LocalRun{}, errors.Wrap(err, "getting parameters")
 			}
 			run.TaskID = req.Slug
 			run.TaskName = localTaskConfig.Def.GetName()
-			envVars, err := dev.MaterializeEnvVars(localTaskConfig, state.DevConfig)
-			if err != nil {
-				return dev.LocalRun{}, err
-			}
-			runConfig.EnvVars = envVars
-			attachedConfigs, err := localTaskConfig.Def.GetConfigAttachments()
-			if err != nil {
-				return dev.LocalRun{}, errors.Wrap(err, "getting attached configs")
-			}
-			runConfig.ConfigVars = configs.MaterializeConfigs(attachedConfigs, state.DevConfig.ConfigVars)
+			runConfig.ConfigVars = state.DevConfig.ConfigVars
 			run.TaskRevision = localTaskConfig
 		}
 		aliasToResourceMap, err := resources.GenerateAliasToResourceMap(

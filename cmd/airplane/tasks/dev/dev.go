@@ -15,7 +15,6 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
-	"github.com/airplanedev/cli/pkg/configs"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/params"
@@ -248,30 +247,30 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		return err
 	}
 
-	envVars, err := dev.MaterializeEnvVars(taskConfig, cfg.devConfig)
+	taskEnv, err := taskConfig.Def.GetEnv()
 	if err != nil {
 		return err
 	}
-	attachedConfigs, err := taskConfig.Def.GetConfigAttachments()
+	configAttachments, err := taskConfig.Def.GetConfigAttachments()
 	if err != nil {
 		return errors.Wrap(err, "getting attached configs")
 	}
-	configVars := configs.MaterializeConfigs(attachedConfigs, cfg.devConfig.ConfigVars)
 
 	localRunConfig := dev.LocalRunConfig{
-		ID:              dev.GenerateRunID(),
-		Name:            taskConfig.Def.GetName(),
-		Kind:            kind,
-		KindOptions:     kindOptions,
-		ParamValues:     paramValues,
-		LocalClient:     localClient,
-		RemoteClient:    cfg.root.Client,
-		File:            cfg.fileOrDir,
-		Slug:            taskConfig.Def.GetSlug(),
-		EnvVars:         envVars,
-		AliasToResource: aliasToResource,
-		ConfigVars:      configVars,
-		PrintLogs:       true,
+		ID:                dev.GenerateRunID(),
+		Name:              taskConfig.Def.GetName(),
+		Kind:              kind,
+		KindOptions:       kindOptions,
+		ParamValues:       paramValues,
+		LocalClient:       localClient,
+		RemoteClient:      cfg.root.Client,
+		File:              cfg.fileOrDir,
+		Slug:              taskConfig.Def.GetSlug(),
+		AliasToResource:   aliasToResource,
+		ConfigAttachments: configAttachments,
+		ConfigVars:        cfg.devConfig.ConfigVars,
+		EnvVars:           taskEnv,
+		PrintLogs:         true,
 	}
 	_, err = localExecutor.Execute(ctx, localRunConfig)
 	if err != nil {
@@ -284,7 +283,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		"task_name":       taskConfig.Def.GetName(),
 		"env_slug":        cfg.envSlug,
 		"num_params":      len(paramValues),
-		"num_config_vars": len(envVars),
+		"num_config_vars": len(taskEnv),
 	}, analytics.TrackOpts{
 		SkipSlack: true,
 	})

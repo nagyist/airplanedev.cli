@@ -19,6 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/server/test_utils"
 	"github.com/airplanedev/cli/pkg/utils"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
@@ -79,14 +80,13 @@ func TestExecute(t *testing.T) {
 			"entrypoint":  "my_task.ts",
 			"nodeVersion": "18",
 		},
-		ParamValues:     paramValues,
-		File:            "my_task.ts",
-		Slug:            slug,
-		ConfigVars:      map[string]string{},
-		EnvVars:         map[string]string{},
-		RemoteClient:    &api.MockClient{},
-		AliasToResource: map[string]libresources.Resource{},
-		LogBroker:       logBroker,
+		ParamValues:       paramValues,
+		File:              "my_task.ts",
+		Slug:              slug,
+		ConfigAttachments: []libapi.ConfigAttachment{},
+		RemoteClient:      &api.MockClient{},
+		AliasToResource:   map[string]libresources.Resource{},
+		LogBroker:         logBroker,
 	}
 	mockExecutor.On("Execute", mock.Anything, runConfig).Return(nil)
 	body := h.POST("/v0/tasks/execute").

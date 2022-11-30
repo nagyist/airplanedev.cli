@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/conf"
+	"github.com/airplanedev/cli/pkg/configs"
 	devenv "github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -71,8 +71,6 @@ type LocalRunConfig struct {
 	File        string
 	Slug        string
 	ParentRunID *string
-	EnvVars     map[string]string
-	ConfigVars  map[string]string
 	AuthInfo    api.AuthInfoResponse
 
 	LocalClient  *api.Client
@@ -80,6 +78,10 @@ type LocalRunConfig struct {
 
 	// Mapping from alias to resource
 	AliasToResource map[string]resources.Resource
+
+	ConfigAttachments []libapi.ConfigAttachment
+	ConfigVars        map[string]string
+	EnvVars           libapi.TaskEnv
 
 	IsBuiltin bool
 	LogBroker logs.LogBroker
@@ -151,8 +153,20 @@ func (l *LocalExecutor) Cmd(ctx context.Context, runConfig LocalRunConfig) (CmdC
 }
 
 func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api.Outputs, error) {
+	materializedEnvVars, err := MaterializeEnvVars(config.EnvVars, config.ConfigVars)
+	if err != nil {
+		return api.Outputs{}, err
+	}
+
+	configVars, err := configs.MaterializeConfigAttachments(config.ConfigAttachments, config.ConfigVars)
+	if err != nil {
+		return api.Outputs{}, err
+	}
+
+	baseInterpolateRequest := baseEvaluateTemplateRequest(config, configVars)
+
 	if config.KindOptions != nil {
-		interpolatedKindOptions, err := interpolate(ctx, config, config.KindOptions)
+		interpolatedKindOptions, err := interpolate(ctx, config.RemoteClient, baseInterpolateRequest, config.KindOptions)
 		if err != nil {
 			return api.Outputs{}, err
 		}
@@ -197,12 +211,13 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 			return api.Outputs{}, err
 		}
 
-		if len(config.EnvVars) > 0 {
-			envVars = config.EnvVars
+		if len(materializedEnvVars) > 0 {
+			envVars = materializedEnvVars
 		}
 
+		// Interpolate any JSTs in environment variables
 		if len(envVars) > 0 {
-			result, err := interpolate(ctx, config, envVars)
+			result, err := interpolate(ctx, config.RemoteClient, baseInterpolateRequest, envVars)
 			if err != nil {
 				return api.Outputs{}, err
 			}
@@ -295,20 +310,14 @@ func GetKindAndOptions(taskConfig discover.TaskConfig) (build.TaskKind, build.Ki
 	return kind, kindOptions, nil
 }
 
-func MaterializeEnvVars(taskConfig discover.TaskConfig, config *conf.DevConfig) (map[string]string, error) {
+func MaterializeEnvVars(taskEnvVars libapi.TaskEnv, configVars map[string]string) (map[string]string, error) {
 	envVars := map[string]string{}
-
-	taskEnvVars, err := taskConfig.Def.GetEnv()
-	if err != nil {
-		return nil, err
-	}
-
 	for key, envVar := range taskEnvVars {
 		if envVar.Value != nil {
 			envVars[key] = *envVar.Value
 		} else if envVar.Config != nil {
-			if configVal, ok := config.ConfigVars[*envVar.Config]; !ok {
-				logger.Warning("config %s is not defined in airplane.dev.yaml (referenced by env var %s)", *envVar.Config, key)
+			if configVal, ok := configVars[*envVar.Config]; !ok {
+				return nil, errors.Errorf("config %s not defined in airplane.dev.yaml (referenced by env var %s)", *envVar.Config, key)
 			} else {
 				envVars[key] = configVal
 			}
@@ -459,14 +468,24 @@ func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error
 	return env, nil
 }
 
-func interpolate(ctx context.Context, cfg LocalRunConfig, value any) (any, error) {
-	resp, err := cfg.RemoteClient.EvaluateTemplate(ctx, libapi.EvaluateTemplateRequest{
-		Value:       value,
+func baseEvaluateTemplateRequest(cfg LocalRunConfig, configVars map[string]string) libapi.EvaluateTemplateRequest {
+	return libapi.EvaluateTemplateRequest{
 		RunID:       cfg.ID,
 		Env:         devenv.NewLocalEnv(),
 		Resources:   cfg.AliasToResource,
-		Configs:     cfg.ConfigVars,
+		Configs:     configVars,
 		ParamValues: cfg.ParamValues,
+	}
+}
+
+func interpolate(ctx context.Context, remoteClient api.APIClient, baseRequest libapi.EvaluateTemplateRequest, value any) (any, error) {
+	resp, err := remoteClient.EvaluateTemplate(ctx, libapi.EvaluateTemplateRequest{
+		Value:       value,
+		RunID:       baseRequest.RunID,
+		Env:         baseRequest.Env,
+		Resources:   baseRequest.Resources,
+		Configs:     baseRequest.Configs,
+		ParamValues: baseRequest.ParamValues,
 	})
 	if err != nil {
 		var apiErr api.Error
