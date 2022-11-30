@@ -400,8 +400,23 @@ func getYarnLockPackageVersion(dir string, packageName string) (string, error) {
 		)
 	}
 
+	// If yarn has warnings (e.g., because of a missing package version), then it will output multiple
+	// lines in addition to the "tree" one that we want. Skip over the non-tree lines.
+	var treeLine string
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	for _, line := range lines {
+		if strings.Contains(line, `"type":"tree"`) {
+			treeLine = line
+			break
+		}
+	}
+
+	if treeLine == "" {
+		return "", fmt.Errorf("could not find package info in yarn output: %s", string(out))
+	}
+
 	results := yarnListResults{}
-	if err := json.Unmarshal(out, &results); err != nil {
+	if err := json.Unmarshal([]byte(treeLine), &results); err != nil {
 		return "", errors.Wrap(err, "parsing yarn list results")
 	}
 

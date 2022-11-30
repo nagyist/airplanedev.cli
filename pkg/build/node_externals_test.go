@@ -137,6 +137,13 @@ func TestGetYarnLockPackageVersion(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "3.1.0", version)
 
+	version, err = getYarnLockPackageVersion(
+		fixtures.Path(t, "node_externals/yarn_nopkgversion"),
+		"tslib",
+	)
+	require.NoError(t, err)
+	require.Equal(t, "2.4.1", version)
+
 	_, err = getYarnLockPackageVersion(
 		fixtures.Path(t, "node_externals/yarnworkspace"),
 		"non-existent-package",

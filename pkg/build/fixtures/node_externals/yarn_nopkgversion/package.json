@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "airplane": "0.2.21"
+  },
+  "devDependencies": {
+    "@types/node": "^18.11.9",
+    "prettier": "^2.7.1"
+  }
+}
