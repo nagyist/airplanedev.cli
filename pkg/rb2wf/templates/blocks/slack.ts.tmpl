@@ -1,0 +1,15 @@
+{{if .StartCondition}}
+if ({{.StartCondition}}) {
+  await airplane.slack.message(
+    {{jsStr .Channel}},
+    {{jsStr .Message}}
+  );
+} else {
+   console.log("Skipping over block because startCondition is false");
+}
+{{else}}
+await airplane.slack.message(
+  {{jsStr .Channel}},
+  {{jsStr .Message}}
+);
+{{end}}

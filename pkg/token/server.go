@@ -20,16 +20,15 @@ import (
 // context as it relies on it to shutdown in case a CLI
 // login attempt is canceled.
 //
-//   srv, err := token.NewServer(ctx)
+//	srv, err := token.NewServer(ctx)
 //
-//   select {
-//     case <-ctx.Done():
-//       print("login canceled")
-//     case token <- srv.Token():
-//       verify(token)
-//       save(token)
-//   }
-//
+//	select {
+//	  case <-ctx.Done():
+//	    print("login canceled")
+//	  case token <- srv.Token():
+//	    verify(token)
+//	    save(token)
+//	}
 type Server struct {
 	tokens          chan string
 	lstn            net.Listener

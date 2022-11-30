@@ -1,0 +1,19 @@
+{{if .StartCondition}}
+let {{.BlockSlug}}: any;
+
+if ({{.StartCondition}}) {
+  {{.BlockSlug}} = await airplane.mongodb.{{.Operation}}<any>(
+    "{{.DBSlug}}",
+    {{jsStr .Collection}},
+    {{jsObj .Options}},
+  );
+} else {
+   console.log("Skipping over block because startCondition is false");
+}
+{{else}}
+const {{.BlockSlug}} = await airplane.mongodb.{{.Operation}}<any>(
+  "{{.DBSlug}}",
+  {{jsStr .Collection}},
+  {{jsObj .Options}},
+);
+{{end}}

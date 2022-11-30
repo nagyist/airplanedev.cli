@@ -343,6 +343,7 @@ func TestConfigsCRUD(t *testing.T) {
 	require.Equal(cfg0, getResp.Config)
 
 	// Test update
+	//nolint: staticcheck
 	body = h.POST("/i/configs/upsert").
 		WithJSON(apiint.UpsertConfigRequest{Name: cfg0.Name, Value: "v2"}).
 		Expect().
@@ -367,6 +368,7 @@ func TestConfigsCRUD(t *testing.T) {
 	}, getResp2.Config)
 
 	// Test deleting
+	//nolint: staticcheck
 	body = h.POST("/i/configs/delete").
 		WithJSON(apiint.DeleteConfigRequest{ID: cfg0.ID}).
 		Expect().

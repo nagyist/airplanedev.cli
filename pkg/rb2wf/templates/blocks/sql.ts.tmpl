@@ -1,0 +1,27 @@
+{{if .StartCondition}}
+let {{.BlockSlug}}: any;
+
+if ({{.StartCondition}}) {
+  {{.BlockSlug}} = await airplane.sql.query<any>(
+    "{{.DBSlug}}",
+    {{jsStr .Query}},
+    {{if .QueryArgs -}}
+    {
+      args: {{jsObj .QueryArgs}}
+    }
+  {{end}}
+  );
+} else {
+   console.log("Skipping over block because startCondition is false");
+}
+{{else}}
+const {{.BlockSlug}} = await airplane.sql.query<any>(
+  "{{.DBSlug}}",
+  {{jsStr .Query}},
+  {{if .QueryArgs -}}
+  {
+    args: {{jsObj .QueryArgs}}
+  }
+  {{end}}
+);
+{{end}}

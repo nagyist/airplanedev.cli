@@ -1,0 +1,9 @@
+{{if .StartCondition}}
+if ({{.StartCondition}}) {
+  await airplane.display.markdown({{jsStr .Content}});
+} else {
+  console.log("Skipping over block because startCondition is false");
+}
+{{else}}
+await airplane.display.markdown({{jsStr .Content}});
+{{end}}

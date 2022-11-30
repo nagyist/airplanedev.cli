@@ -88,6 +88,75 @@ type GetOutputsResponse struct {
 	Outputs Outputs `json:"outputs"`
 }
 
+type GetRunbookResponse struct {
+	Runbook Runbook `json:"runbook"`
+}
+
+type Runbook struct {
+	ID              string            `json:"id"`
+	Name            string            `json:"name"`
+	Slug            string            `json:"slug"`
+	Parameters      libapi.Parameters `json:"parameters"`
+	TemplateSession TemplateSession   `json:"templateSession"`
+}
+
+type TemplateSession struct {
+	ID          string                    `json:"id"`
+	Configs     []libapi.ConfigAttachment `json:"configs"`
+	Constraints libapi.RunConstraints     `json:"constraints"`
+}
+
+type ListSessionBlocksResponse struct {
+	Blocks []SessionBlock `json:"blocks"`
+}
+
+type BlockKind string
+
+const (
+	BlockKindUnknown BlockKind = ""
+	BlockKindStdAPI  BlockKind = "stdapi"
+	BlockKindTask    BlockKind = "task"
+	BlockKindNote    BlockKind = "note"
+	BlockKindForm    BlockKind = "form"
+)
+
+type SessionBlock struct {
+	ID              string          `json:"id"`
+	BlockKind       string          `json:"kind"`
+	BlockKindConfig BlockKindConfig `json:"kindConfig"`
+	StartCondition  string          `json:"startCondition"`
+	Slug            string          `json:"slug"`
+}
+
+type BlockKindConfig struct {
+	StdAPI *BlockKindConfigStdAPI `json:"stdapi,omitempty"`
+	Task   *BlockKindConfigTask   `json:"task,omitempty"`
+	Note   *BlockKindConfigNote   `json:"note,omitempty"`
+	Form   *BlockKindConfigForm   `json:"form,omitempty"`
+}
+
+type BlockKindConfigNote struct {
+	// Content is only allowed to be either a `string` or `expressions.Template`
+	Content interface{} `json:"content"`
+}
+
+type BlockKindConfigStdAPI struct {
+	Namespace string            `json:"namespace"`
+	Name      string            `json:"name"`
+	Request   interface{}       `json:"request"`
+	Resources map[string]string `json:"resources"`
+}
+
+type BlockKindConfigTask struct {
+	TaskID      string                 `json:"taskID"`
+	ParamValues map[string]interface{} `json:"paramValues"`
+}
+
+type BlockKindConfigForm struct {
+	Parameters libapi.Parameters      `json:"parameters"`
+	ParamValue map[string]interface{} `json:"paramValues"`
+}
+
 // LogItem represents a log item.
 type LogItem struct {
 	Timestamp time.Time `json:"timestamp"`

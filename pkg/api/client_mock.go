@@ -10,14 +10,16 @@ import (
 )
 
 type MockClient struct {
-	Tasks                 map[string]libapi.Task
-	Views                 map[string]libapi.View
+	Configs               []Config
 	Deploys               []CreateDeploymentRequest
+	Envs                  map[string]libapi.Env
 	GetDeploymentResponse *Deployment
 	Resources             []libapi.Resource
-	Configs               []Config
-	Envs                  map[string]libapi.Env
+	Runbooks              map[string]Runbook
+	SessionBlocks         map[string][]SessionBlock
+	Tasks                 map[string]libapi.Task
 	Users                 map[string]User
+	Views                 map[string]libapi.View
 }
 
 var _ APIClient = &MockClient{}
@@ -26,6 +28,14 @@ func (mc *MockClient) GetTask(ctx context.Context, req libapi.GetTaskRequest) (r
 	task, ok := mc.Tasks[req.Slug]
 	if !ok {
 		return libapi.Task{}, &libapi.TaskMissingError{AppURL: "api/", Slug: req.Slug}
+	}
+	return task, nil
+}
+
+func (mc *MockClient) GetTaskByID(ctx context.Context, id string) (res libapi.Task, err error) {
+	task, ok := mc.Tasks[id]
+	if !ok {
+		return libapi.Task{}, errors.New("no task found")
 	}
 	return task, nil
 }
@@ -61,6 +71,26 @@ func (mc *MockClient) GetRun(ctx context.Context, id string) (res GetRunResponse
 
 func (mc *MockClient) GetOutputs(ctx context.Context, runID string) (res GetOutputsResponse, err error) {
 	panic("not implemented")
+}
+
+func (mc *MockClient) GetRunbook(ctx context.Context, runbookSlug string) (res GetRunbookResponse, err error) {
+	runbook, ok := mc.Runbooks[runbookSlug]
+	if !ok {
+		return GetRunbookResponse{}, errors.New("runbook not found")
+	}
+	return GetRunbookResponse{
+		Runbook: runbook,
+	}, nil
+}
+
+func (mc *MockClient) ListSessionBlocks(ctx context.Context, sessionID string) (res ListSessionBlocksResponse, err error) {
+	blocks, ok := mc.SessionBlocks[sessionID]
+	if !ok {
+		return ListSessionBlocksResponse{}, errors.New("blocks not found")
+	}
+	return ListSessionBlocksResponse{
+		Blocks: blocks,
+	}, nil
 }
 
 func (mc *MockClient) ListResources(ctx context.Context, envSlug string) (res libapi.ListResourcesResponse, err error) {
@@ -217,7 +247,9 @@ func (mc *MockClient) GetEnv(ctx context.Context, envSlug string) (libapi.Env, e
 
 func (mc *MockClient) GetResource(ctx context.Context, req GetResourceRequest) (res libapi.GetResourceResponse, err error) {
 	for _, r := range mc.Resources {
-		if r.Slug == req.Slug {
+		if r.Slug != "" && r.Slug == req.Slug {
+			return libapi.GetResourceResponse{Resource: r}, nil
+		} else if r.ID != "" && r.ID == req.ID {
 			return libapi.GetResourceResponse{Resource: r}, nil
 		}
 	}

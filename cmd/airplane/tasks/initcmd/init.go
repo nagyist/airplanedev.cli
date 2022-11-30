@@ -21,6 +21,7 @@ import (
 	"github.com/airplanedev/cli/pkg/flags/flagsiface"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/node"
+	"github.com/airplanedev/cli/pkg/rb2wf"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
@@ -40,10 +41,11 @@ import (
 )
 
 type config struct {
-	root   *cli.Config
-	client *api.Client
-	file   string
-	from   string
+	root        *cli.Config
+	client      *api.Client
+	file        string
+	from        string
+	fromRunbook string
 
 	codeOnly  bool
 	assumeYes bool
@@ -95,6 +97,7 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().StringVar(&cfg.from, "slug", "", "Slug of an existing task to generate from.")
 
 	cmd.Flags().StringVar(&cfg.from, "from", "", "Slug of an existing task to initialize.")
+	cmd.Flags().StringVar(&cfg.fromRunbook, "from-runbook", "", "Slug of an existing runbook to convert to a workflow. This implies --workflow and --inline.")
 	cmd.Flags().BoolVar(&cfg.codeOnly, "code-only", false, "True to skip creating a task definition file; only generates an entrypoint file.")
 	cmd.Flags().BoolVarP(&cfg.assumeYes, "yes", "y", false, "True to specify automatic yes to prompts.")
 	cmd.Flags().BoolVarP(&cfg.assumeNo, "no", "n", false, "True to specify automatic no to prompts.")
@@ -106,6 +109,9 @@ func New(c *cli.Config) *cobra.Command {
 		logger.Debug("error: %s", err)
 	}
 	if err := cmd.Flags().MarkHidden("inline"); err != nil {
+		logger.Debug("error: %s", err)
+	}
+	if err := cmd.Flags().MarkHidden("from-runbook"); err != nil {
 		logger.Debug("error: %s", err)
 	}
 
@@ -123,6 +129,9 @@ func Run(ctx context.Context, cfg config) error {
 	if cfg.codeOnly && cfg.from == "" {
 		return errors.New("Required flag(s) \"from\" not set")
 	}
+	if cfg.from != "" && cfg.fromRunbook != "" {
+		return errors.New("Cannot specify both --from and --from-runbook")
+	}
 
 	// workflows are also inline
 	cfg.inline = cfg.inline || cfg.workflow
@@ -135,7 +144,7 @@ func Run(ctx context.Context, cfg config) error {
 		return initWithExample(ctx, cfg)
 	}
 
-	if cfg.from == "" {
+	if cfg.from == "" && cfg.fromRunbook == "" {
 		// Prompt for new task information.
 		if err := promptForNewTask(cfg.file, &cfg.newTaskInfo, cfg.inline, cfg.workflow); err != nil {
 			return err
@@ -144,6 +153,10 @@ func Run(ctx context.Context, cfg config) error {
 
 	if cfg.codeOnly {
 		return initCodeOnly(ctx, cfg)
+	}
+
+	if cfg.fromRunbook != "" {
+		return initWorkflowFromRunbook(ctx, cfg)
 	}
 
 	return initWithTaskDef(ctx, cfg)
@@ -349,6 +362,43 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		kind:               kind,
 		isNew:              cfg.from == "",
 	})
+	return nil
+}
+
+func initWorkflowFromRunbook(ctx context.Context, cfg config) error {
+	var entrypoint string
+	var err error
+
+	if cfg.assumeYes && cfg.file != "" {
+		entrypoint = cfg.file
+	} else {
+		entrypoint, err = promptForEntrypoint(cfg.fromRunbook, build.TaskKindNode, entrypoint, cfg)
+		if err != nil {
+			return err
+		}
+	}
+
+	entrypointDir := filepath.Dir(entrypoint)
+	if err := os.MkdirAll(entrypointDir, 0744); err != nil {
+		return errors.Wrap(err, "creating output directory")
+	}
+
+	converter := rb2wf.NewRunbookConverter(
+		cfg.client,
+		entrypointDir,
+		filepath.Base(entrypoint),
+	)
+	err = converter.Convert(ctx, cfg.fromRunbook)
+	if err != nil {
+		return err
+	}
+
+	suggestNextSteps(suggestNextStepsRequest{
+		entrypoint: entrypoint,
+		kind:       build.TaskKindNode,
+		isNew:      true,
+	})
+
 	return nil
 }
 
@@ -596,7 +646,10 @@ func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint str
 	exts := runtime.SuggestExts(kind)
 	if defaultEntrypoint == "" {
 		defaultEntrypoint = slug
-		if kind == build.TaskKindNode && len(exts) > 1 {
+		if cfg.fromRunbook != "" {
+			// Workflows need to have a ".airplane.ts" extension since they use inline configs
+			defaultEntrypoint += ".airplane.ts"
+		} else if kind == build.TaskKindNode && len(exts) > 1 {
 			// Special case node tasks and make their extensions '.ts'
 			defaultEntrypoint += ".ts"
 		} else {

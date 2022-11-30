@@ -205,6 +205,7 @@ const docsUrl = "http://docs.airplane.dev/templates/templates.json"
 const defaultGitPrefix = "github.com/airplanedev/templates"
 
 func ListTemplates(ctx context.Context) ([]Template, error) {
+	//nolint: noctx
 	resp, err := http.Get(docsUrl)
 	if err != nil {
 		return []Template{}, errors.Wrap(err, "getting templates json")

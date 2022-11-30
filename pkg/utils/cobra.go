@@ -37,8 +37,9 @@ func WithParentPersistentPreRunE(f func(cmd *cobra.Command, args []string) error
 // as a Cobra flag.
 //
 // For example:
-//   var tv timeValue
-//   cmd.Flags().Var(&tv, "since", "Filters by created_at")
+//
+//	var tv timeValue
+//	cmd.Flags().Var(&tv, "since", "Filters by created_at")
 //
 // Which could be set as: `--since="2020-01-02T01:02:03"`
 //

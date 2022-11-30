@@ -1,0 +1,17 @@
+{{if .StartCondition}}
+let {{.BlockSlug}}: any;
+
+if ({{.StartCondition}}) {
+  {{.BlockSlug}} = await airplane.execute<any>(
+    "{{.TaskSlug}}",
+    {{jsObj .ParamValues}},
+  );
+} else {
+   console.log("Skipping over block because startCondition is false");
+}
+{{else}}
+const {{.BlockSlug}} = await airplane.execute<any>(
+  "{{.TaskSlug}}",
+  {{jsObj .ParamValues}},
+);
+{{end}}

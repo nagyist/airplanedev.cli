@@ -48,6 +48,7 @@ func downloadAndExtractBundle(workspace, url string) error {
 	defer os.RemoveAll(tarball.Name())
 
 	// Download from the signed URL.
+	//nolint: noctx
 	resp, err := http.Get(url)
 	if err != nil {
 		return errors.Wrap(err, "getting bundle data")
