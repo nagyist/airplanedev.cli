@@ -116,18 +116,18 @@ func CreateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 	}
 
 	if err := req.ExportResource.Calculate(); err != nil {
-		return CreateResourceResponse{}, errors.Wrap(err, "computing precalculated fields")
+		return CreateResourceResponse{}, errors.Wrap(err, "computing calculated fields")
 	}
 
 	resource := req.ExportResource
-	id := utils.GenerateID(utils.DevResourcePrefix)
+	id := utils.GenerateResourceID(resourceSlug)
 	if err := resource.UpdateBaseResource(libresources.BaseResource{
 		ID:   id,
 		Slug: resourceSlug,
 		Kind: req.Kind,
 		Name: req.Name,
 	}); err != nil {
-		return CreateResourceResponse{}, errors.Wrap(err, "updating base resoruce")
+		return CreateResourceResponse{}, errors.Wrap(err, "updating base resource")
 	}
 
 	if err := state.DevConfig.SetResource(resourceSlug, resource); err != nil {
@@ -235,7 +235,7 @@ func (r *UpdateResourceRequest) UnmarshalJSON(buf []byte) error {
 	var export libresources.Resource
 	var err error
 	if raw.ExportResource != nil {
-		export, err = libresources.GetResource(libresources.ResourceKind(raw.Kind), raw.ExportResource)
+		export, err = libresources.GetResource(raw.Kind, raw.ExportResource)
 		if err != nil {
 			return err
 		}
@@ -307,7 +307,6 @@ type DeleteResourceRequest struct {
 // The web app does utilize the response of the resource deletion handler.
 func DeleteResourceHandler(ctx context.Context, state *state.State, r *http.Request, req DeleteResourceRequest) (struct{}, error) {
 	id := req.ID
-
 	for _, r := range state.DevConfig.Resources {
 		if r.Resource.GetID() == id {
 			if err := state.DevConfig.RemoveResource(r.Resource.GetSlug()); err != nil {

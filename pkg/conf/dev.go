@@ -55,7 +55,7 @@ func (d *DevConfig) updateRawResources() error {
 		resourceList = append(resourceList, r.Resource)
 	}
 
-	// TODO: Use json.Marshal/Unmarshal once we've added yaml struct tags to external resource structs.
+	// TODO: Use yaml.Marshal/Unmarshal once we've added yaml struct tags to external resource structs.
 	buf, err := json.Marshal(resourceList)
 	if err != nil {
 		return errors.Wrap(err, "marshaling resources")
@@ -244,7 +244,7 @@ func readDevConfig(path string) (*DevConfig, error) {
 
 		// generate the resource ID so the dev config file doesn't need to have it
 		if err := res.UpdateBaseResource(libresources.BaseResource{
-			ID: utils.GenerateID(utils.DevResourcePrefix),
+			ID: utils.GenerateResourceID(slugStr),
 		}); err != nil {
 			return nil, errors.Wrap(err, "updating base resource")
 		}

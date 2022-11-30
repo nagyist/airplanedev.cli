@@ -21,6 +21,10 @@ func GenerateID(prefix string) string {
 	return prefix + RandomString(10, CharsetLowercaseNumeric)
 }
 
+func GenerateResourceID(slug string) string {
+	return DevResourcePrefix + slug
+}
+
 // RandomString returns a random string of given length using the given charset
 func RandomString(length int, charset string) string {
 	b := make([]byte, length)
