@@ -52,6 +52,8 @@ func (d *DevConfig) updateRawResources() error {
 	resourceList := make([]libresources.Resource, 0, len(d.RawResources))
 
 	for _, r := range d.Resources {
+		// Don't save calculated fields (e.g. DSN) to the dev config file.
+		r.Resource.ScrubCalculatedFields()
 		resourceList = append(resourceList, r.Resource)
 	}
 
@@ -68,6 +70,17 @@ func (d *DevConfig) updateRawResources() error {
 	for _, resource := range d.RawResources {
 		// hide the resource ID so it doesn't get marshaled into the dev config YAML
 		delete(resource, "id")
+	}
+
+	if err := writeDevConfig(d); err != nil {
+		return errors.Wrap(err, "writing dev config")
+	}
+
+	// Recompute calculated fields, since we need them for any tasks that use resources.
+	for _, resource := range d.Resources {
+		if err := resource.Resource.Calculate(); err != nil {
+			return errors.Wrap(err, "computing calculated resource fields")
+		}
 	}
 
 	return nil
@@ -87,9 +100,6 @@ func (d *DevConfig) SetResource(slug string, r libresources.Resource) error {
 		return errors.Wrap(err, "updating raw resources")
 	}
 
-	if err := writeDevConfig(d); err != nil {
-		return errors.Wrap(err, "writing dev config")
-	}
 	logger.Log("Wrote resource %s to dev config file at %s", slug, d.Path)
 
 	return nil
@@ -108,10 +118,6 @@ func (d *DevConfig) RemoveResource(slug string) error {
 
 	if err := d.updateRawResources(); err != nil {
 		return errors.Wrap(err, "updating raw resources")
-	}
-
-	if err := writeDevConfig(d); err != nil {
-		return errors.Wrap(err, "writing dev config")
 	}
 
 	return nil
@@ -247,6 +253,11 @@ func readDevConfig(path string) (*DevConfig, error) {
 			ID: utils.GenerateDevResourceID(slugStr),
 		}); err != nil {
 			return nil, errors.Wrap(err, "updating base resource")
+		}
+
+		// Compute calculated resource fields since we scrub them before saving the resource to the dev config file.
+		if err := res.Calculate(); err != nil {
+			return nil, errors.Wrap(err, "computing calculated resource fields")
 		}
 
 		slugToResource[slugStr] = env.ResourceWithEnv{

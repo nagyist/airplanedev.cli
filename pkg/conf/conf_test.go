@@ -110,6 +110,8 @@ func TestDevConfig(t *testing.T) {
 			"slug":     "db",
 			"username": "postgres",
 			"password": "password",
+			"port":     "5432",
+			"ssl":      "disable",
 			// no ID is written
 		}
 		configResources := []map[string]interface{}{
@@ -140,6 +142,9 @@ func TestDevConfig(t *testing.T) {
 					},
 					Username: "postgres",
 					Password: "password",
+					Port:     "5432",
+					SSLMode:  "disable",
+					DSN:      "postgres://postgres:password@:5432?sslmode=disable", // Calculated fields should be set
 				},
 				Remote: false,
 			},
