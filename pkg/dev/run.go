@@ -13,8 +13,10 @@ import (
 
 type LocalRun struct {
 	ID string `json:"id"`
-	// TODO: Remove this from the struct - it's only used because we return a LocalRun in the `/v0/tasks/execute`
-	// endpoint, but we should be returning different response types between that and `/v0/runs/get`.
+	// TODO: We return a LocalRun in both the external and internal runs/get endpoint.
+	// The external `/v0/runs/get` endpoint used by SDKs is supposed to return "id"
+	// but the internal `/i/runs/get` used in web expects "runID".
+	// They should return different response types to match airport.
 	RunID            string                 `json:"runID"`
 	Status           api.RunStatus          `json:"status"`
 	Outputs          api.Outputs            `json:"outputs"`

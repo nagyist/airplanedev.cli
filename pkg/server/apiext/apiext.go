@@ -68,11 +68,11 @@ func getRunIDFromToken(r *http.Request) (string, error) {
 }
 
 // ExecuteTaskHandler handles requests to the /v0/tasks/execute endpoint
-func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request, req ExecuteTaskRequest) (dev.LocalRun, error) {
+func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request, req ExecuteTaskRequest) (api.RunTaskResponse, error) {
 	run := *dev.NewLocalRun()
 	parentID, err := getRunIDFromToken(r)
 	if err != nil {
-		return run, err
+		return api.RunTaskResponse{}, err
 	}
 	run.ParentID = parentID
 
@@ -100,14 +100,14 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		resourceAttachments := map[string]string{}
 		mergedResources, err := resources.MergeRemoteResources(ctx, state)
 		if err != nil {
-			return dev.LocalRun{}, errors.Wrap(err, "merging local and remote resources")
+			return api.RunTaskResponse{}, errors.Wrap(err, "merging local and remote resources")
 		}
 		// Builtins have a specific alias in the form of "rest", "db", etc. that is required by the builtins binary,
 		// and so we need to manually generate resource attachments.
 		if isBuiltin {
 			// The SDK should provide us with exactly one resource for builtins.
 			if len(req.Resources) != 1 {
-				return dev.LocalRun{}, errors.Errorf("unable to determine resource required by builtin, there is not exactly one resource in request: %+v", req.Resources)
+				return api.RunTaskResponse{}, errors.Errorf("unable to determine resource required by builtin, there is not exactly one resource in request: %+v", req.Resources)
 			}
 
 			// Get the only entry in the request resource map.
@@ -125,21 +125,21 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 
 			if !foundResource {
 				if resourceID == resources.SlackID {
-					return dev.LocalRun{}, errors.New("Your team has not configured Slack. Please visit https://docs.airplane.dev/platform/slack-integration#connect-to-slack to authorize Slack to perform actions in your workspace.")
+					return api.RunTaskResponse{}, errors.New("Your team has not configured Slack. Please visit https://docs.airplane.dev/platform/slack-integration#connect-to-slack to authorize Slack to perform actions in your workspace.")
 				}
-				return dev.LocalRun{}, errors.Errorf("Resource with id %s not found in dev config file or remotely.", resourceID)
+				return api.RunTaskResponse{}, errors.Errorf("Resource with id %s not found in dev config file or remotely.", resourceID)
 			}
 			run.IsStdAPI = true
 			stdapiReq, err := builtins.Request(req.Slug, req.ParamValues)
 			if err != nil {
-				return run, err
+				return api.RunTaskResponse{}, err
 			}
 			run.StdAPIRequest = stdapiReq
 			run.TaskName = req.Slug
 		} else if localTaskConfig.Def != nil {
 			kind, kindOptions, err := dev.GetKindAndOptions(localTaskConfig)
 			if err != nil {
-				return dev.LocalRun{}, err
+				return api.RunTaskResponse{}, err
 			}
 			runConfig.Kind = kind
 			runConfig.KindOptions = kindOptions
@@ -147,17 +147,17 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			runConfig.File = localTaskConfig.TaskEntrypoint
 			resourceAttachments, err = localTaskConfig.Def.GetResourceAttachments()
 			if err != nil {
-				return dev.LocalRun{}, errors.Wrap(err, "getting resource attachments")
+				return api.RunTaskResponse{}, errors.Wrap(err, "getting resource attachments")
 			}
 			if runConfig.EnvVars, err = localTaskConfig.Def.GetEnv(); err != nil {
-				return dev.LocalRun{}, errors.Wrap(err, "getting task env vars")
+				return api.RunTaskResponse{}, errors.Wrap(err, "getting task env vars")
 			}
 			if runConfig.ConfigAttachments, err = localTaskConfig.Def.GetConfigAttachments(); err != nil {
-				return dev.LocalRun{}, errors.Wrap(err, "getting attached configs")
+				return api.RunTaskResponse{}, errors.Wrap(err, "getting attached configs")
 			}
 			parameters, err = localTaskConfig.Def.GetParameters()
 			if err != nil {
-				return dev.LocalRun{}, errors.Wrap(err, "getting parameters")
+				return api.RunTaskResponse{}, errors.Wrap(err, "getting parameters")
 			}
 			run.TaskID = req.Slug
 			run.TaskName = localTaskConfig.Def.GetName()
@@ -171,7 +171,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			mergedResources,
 		)
 		if err != nil {
-			return dev.LocalRun{}, errors.Wrap(err, "generating alias to resource map")
+			return api.RunTaskResponse{}, errors.Wrap(err, "generating alias to resource map")
 		}
 		runConfig.AliasToResource = aliasToResourceMap
 		run.Resources = resources.GenerateResourceAliasToID(aliasToResourceMap)
@@ -226,7 +226,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		}()
 	} else {
 		if !state.UseFallbackEnv {
-			return dev.LocalRun{}, errors.Errorf("task with slug %s is not registered locally", req.Slug)
+			return api.RunTaskResponse{RunID: runID}, errors.Errorf("task with slug %s is not registered locally", req.Slug)
 		}
 
 		resp, err := state.RemoteClient.RunTask(ctx, api.RunTaskRequest{
@@ -236,9 +236,9 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		})
 		if err != nil {
 			if _, ok := err.(*libapi.TaskMissingError); ok {
-				return dev.LocalRun{}, errors.Errorf("task with slug %s is not registered locally or remotely", req.Slug)
+				return api.RunTaskResponse{RunID: runID}, errors.Errorf("task with slug %s is not registered locally or remotely", req.Slug)
 			} else {
-				return dev.LocalRun{}, err
+				return api.RunTaskResponse{RunID: runID}, err
 			}
 		}
 
@@ -246,10 +246,10 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		run.ID = resp.RunID
 		run.RunID = resp.RunID
 		state.Runs.Add(req.Slug, resp.RunID, run)
-		return run, nil
+		return api.RunTaskResponse{RunID: runID}, nil
 	}
 
-	return run, nil
+	return api.RunTaskResponse{RunID: runID}, nil
 }
 
 // GetRunHandler handles requests to the /v0/runs/get endpoint
