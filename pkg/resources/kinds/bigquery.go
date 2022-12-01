@@ -26,7 +26,7 @@ type BigQueryResource struct {
 	ProjectID      string `json:"projectId" mapstructure:"projectId"`
 	Location       string `json:"location" mapstructure:"location"`
 	DataSet        string `json:"dataSet" mapstructure:"dataSet"`
-	DSN            string `json:"dsn" mapstructure:"dsn"`
+	DSN            string `json:"dsn,omitempty" mapstructure:"dsn"`
 }
 
 var _ SQLResourceInterface = &BigQueryResource{}

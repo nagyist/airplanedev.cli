@@ -25,13 +25,13 @@ type SQLServerResource struct {
 	Database    string `json:"database" mapstructure:"database"`
 	Password    string `json:"password" mapstructure:"password"`
 	EncryptMode string `json:"encrypt" mapstructure:"encrypt"`
-	DSN         string `json:"dsn" mapstructure:"dsn"`
+	DSN         string `json:"dsn,omitempty" mapstructure:"dsn"`
 
 	// Optional SSH tunneling
-	SSHHost       string `json:"sshHost" mapstructure:"sshHost"`
-	SSHPort       string `json:"sshPort" mapstructure:"sshPort"`
-	SSHUsername   string `json:"sshUsername" mapstructure:"sshUsername"`
-	SSHPrivateKey string `json:"sshPrivateKey" mapstructure:"sshPrivateKey"`
+	SSHHost       string `json:"sshHost,omitempty" mapstructure:"sshHost"`
+	SSHPort       string `json:"sshPort,omitempty" mapstructure:"sshPort"`
+	SSHUsername   string `json:"sshUsername,omitempty" mapstructure:"sshUsername"`
+	SSHPrivateKey string `json:"sshPrivateKey,omitempty" mapstructure:"sshPrivateKey"`
 }
 
 var _ SQLResourceInterface = &SQLServerResource{}

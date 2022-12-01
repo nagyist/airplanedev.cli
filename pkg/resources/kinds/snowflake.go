@@ -26,7 +26,7 @@ type SnowflakeResource struct {
 	Role      string `json:"role" mapstructure:"role"`
 	Username  string `json:"username" mapstructure:"username"`
 	Password  string `json:"password" mapstructure:"password"`
-	DSN       string `json:"dsn" mapstructure:"dsn"`
+	DSN       string `json:"dsn,omitempty" mapstructure:"dsn"`
 }
 
 var _ SQLResourceInterface = &SnowflakeResource{}

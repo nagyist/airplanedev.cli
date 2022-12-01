@@ -20,9 +20,9 @@ type RESTResource struct {
 	resources.BaseResource `mapstructure:",squash" yaml:",inline"`
 
 	BaseURL       string            `json:"baseURL" mapstructure:"baseURL"`
-	Headers       map[string]string `json:"headers" mapstructure:"headers"`
-	SecretHeaders []string          `json:"secretHeaders" mapstructure:"secretHeaders"`
-	Auth          RESTAuth          `json:"auth" mapstructure:"-"`
+	Headers       map[string]string `json:"headers,omitempty" mapstructure:"headers"`
+	SecretHeaders []string          `json:"secretHeaders,omitempty" mapstructure:"secretHeaders"`
+	Auth          RESTAuth          `json:"auth,omitempty" mapstructure:"-"`
 }
 
 var _ resources.Resource = &RESTResource{}
@@ -44,7 +44,7 @@ type RESTAuthBasic struct {
 	Kind     RESTAuthKind      `json:"kind" mapstructure:"kind"`
 	Username *string           `json:"username,omitempty" mapstructure:"username,omitempty"`
 	Password *string           `json:"password,omitempty" mapstructure:"password,omitempty"`
-	Headers  map[string]string `json:"headers" mapstructure:"headers"`
+	Headers  map[string]string `json:"headers,omitempty" mapstructure:"headers"`
 }
 
 func RESTResourceFactory(serialized map[string]interface{}) (resources.Resource, error) {
