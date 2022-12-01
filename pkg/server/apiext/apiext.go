@@ -226,7 +226,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		}()
 	} else {
 		if !state.UseFallbackEnv {
-			return api.RunTaskResponse{RunID: runID}, errors.Errorf("task with slug %s is not registered locally", req.Slug)
+			return api.RunTaskResponse{}, errors.Errorf("task with slug %s is not registered locally", req.Slug)
 		}
 
 		resp, err := state.RemoteClient.RunTask(ctx, api.RunTaskRequest{
@@ -236,9 +236,9 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		})
 		if err != nil {
 			if _, ok := err.(*libapi.TaskMissingError); ok {
-				return api.RunTaskResponse{RunID: runID}, errors.Errorf("task with slug %s is not registered locally or remotely", req.Slug)
+				return api.RunTaskResponse{}, errors.Errorf("task with slug %s is not registered locally or remotely", req.Slug)
 			} else {
-				return api.RunTaskResponse{RunID: runID}, err
+				return api.RunTaskResponse{}, err
 			}
 		}
 
