@@ -34,6 +34,7 @@ import (
 	"github.com/airplanedev/ojson"
 	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -204,16 +205,17 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	cmd.Env = os.Environ()
 	// only non builtins have a runtime
 	if r != nil {
+		envVars := materializedEnvVars
+
 		// Load environment variables from .env files
-		// TODO: Remove support for .env files
-		envVars, err := getDevEnvVars(r, entrypoint)
+		// TODO: Deprecate support for .env files
+		dotEnvEnvVars, err := getDevEnvVars(r, entrypoint)
 		if err != nil {
 			return api.Outputs{}, err
 		}
 
-		if len(materializedEnvVars) > 0 {
-			envVars = materializedEnvVars
-		}
+		// Env vars declared in .env files take precedence to those declared in the task definition.
+		maps.Copy(envVars, dotEnvEnvVars)
 
 		// Interpolate any JSTs in environment variables
 		if len(envVars) > 0 {
