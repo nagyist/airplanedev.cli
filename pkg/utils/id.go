@@ -21,7 +21,11 @@ func GenerateID(prefix string) string {
 	return prefix + RandomString(10, CharsetLowercaseNumeric)
 }
 
-func GenerateResourceID(slug string) string {
+func GenerateDevConfigID(name string) string {
+	return DevConfigPrefix + name
+}
+
+func GenerateDevResourceID(slug string) string {
 	return DevResourcePrefix + slug
 }
 

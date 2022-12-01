@@ -139,7 +139,7 @@ func (d *DevConfig) SetConfigVar(key string, value string) error {
 	} else {
 		d.ConfigVars[key] = env.ConfigWithEnv{
 			Config: api.Config{
-				ID:       utils.GenerateID(utils.DevConfigPrefix),
+				ID:       utils.GenerateDevConfigID(key),
 				Name:     key,
 				Value:    value,
 				IsSecret: false,
@@ -244,7 +244,7 @@ func readDevConfig(path string) (*DevConfig, error) {
 
 		// generate the resource ID so the dev config file doesn't need to have it
 		if err := res.UpdateBaseResource(libresources.BaseResource{
-			ID: utils.GenerateResourceID(slugStr),
+			ID: utils.GenerateDevResourceID(slugStr),
 		}); err != nil {
 			return nil, errors.Wrap(err, "updating base resource")
 		}
@@ -261,7 +261,7 @@ func readDevConfig(path string) (*DevConfig, error) {
 	for name, value := range cfg.RawConfigVars {
 		nameToConfig[name] = env.ConfigWithEnv{
 			Config: api.Config{
-				ID:       utils.GenerateID(utils.DevConfigPrefix),
+				ID:       utils.GenerateDevConfigID(name),
 				Name:     name,
 				Value:    value,
 				IsSecret: false,

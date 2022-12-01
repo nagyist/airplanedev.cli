@@ -121,7 +121,7 @@ func CreateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 	}
 
 	resource := req.ExportResource
-	id := utils.GenerateResourceID(resourceSlug)
+	id := utils.GenerateDevResourceID(resourceSlug)
 	if err := resource.UpdateBaseResource(libresources.BaseResource{
 		ID:   id,
 		Slug: resourceSlug,
