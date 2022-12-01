@@ -99,6 +99,8 @@ type Resource interface {
 	Update(r Resource) error
 	// Calculate computes any precalculated fields on the resource.
 	Calculate() error
+	// ScrubCalculatedFields removes any calculated fields from the resource.
+	ScrubCalculatedFields()
 	// Validate returns an error if the resource is invalid.
 	Validate() error
 	// Kind returns the ResourceKind associated with this resource.
@@ -106,9 +108,6 @@ type Resource interface {
 	Kind() ResourceKind // TODO: Remove
 	// String returns a string representation of this resource.
 	String() string
-	// ID returns the resource's ID.
-	// Deprecated: Use GetID() instead
-	ID() string // TODO: Remove
 	// UpdateBaseResource updates the BaseResource.
 	UpdateBaseResource(r BaseResource) error
 }

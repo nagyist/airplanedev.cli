@@ -86,6 +86,10 @@ func (r *MySQLResource) Calculate() error {
 	return nil
 }
 
+func (r *MySQLResource) ScrubCalculatedFields() {
+	r.DSN = ""
+}
+
 func (r MySQLResource) Validate() error {
 	if r.Username == "" {
 		return resources.NewErrMissingResourceField("username")

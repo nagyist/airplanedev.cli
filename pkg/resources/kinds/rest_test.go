@@ -108,6 +108,10 @@ func TestRESTResource(t *testing.T) {
 	err = resource.Validate()
 	require.NoError(err)
 
+	// Scrub calculated fields
+	resource.ScrubCalculatedFields()
+	require.Empty(auth.Headers)
+
 	// Update the resource, but not the auth.
 	err = resource.Update(&RESTResource{
 		BaseResource: resources.BaseResource{

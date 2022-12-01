@@ -31,6 +31,7 @@ type RESTAuth interface {
 	scrubSensitiveData()
 	update(a RESTAuth) error
 	calculate() error
+	scrubCalculatedFields()
 }
 
 type RESTAuthKind string
@@ -142,6 +143,12 @@ func (r *RESTResource) Calculate() error {
 	return nil
 }
 
+func (r *RESTResource) ScrubCalculatedFields() {
+	if r.Auth != nil {
+		r.Auth.scrubCalculatedFields()
+	}
+}
+
 func (r RESTResource) Validate() error {
 	if r.BaseURL == "" {
 		return resources.NewErrMissingResourceField("baseURL")
@@ -219,4 +226,8 @@ func (a *RESTAuthBasic) calculate() error {
 		"Authorization": fmt.Sprintf("Basic %s", token),
 	}
 	return nil
+}
+
+func (a *RESTAuthBasic) scrubCalculatedFields() {
+	a.Headers = map[string]string{}
 }

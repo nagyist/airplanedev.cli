@@ -46,6 +46,8 @@ func (r *MongoDBResource) Calculate() error {
 	return nil
 }
 
+func (r *MongoDBResource) ScrubCalculatedFields() {}
+
 func (r MongoDBResource) Validate() error {
 	if r.ConnectionString == "" {
 		return resources.NewErrMissingResourceField("connectionString")

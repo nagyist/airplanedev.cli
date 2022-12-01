@@ -46,6 +46,10 @@ func (r *RedshiftResource) Calculate() error {
 	return nil
 }
 
+func (r *RedshiftResource) ScrubCalculatedFields() {
+	r.PostgresResource.ScrubCalculatedFields()
+}
+
 func (r RedshiftResource) Validate() error {
 	return r.PostgresResource.Validate()
 }

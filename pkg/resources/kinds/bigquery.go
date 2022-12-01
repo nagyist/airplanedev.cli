@@ -86,6 +86,10 @@ func (r *BigQueryResource) Calculate() error {
 	return nil
 }
 
+func (r *BigQueryResource) ScrubCalculatedFields() {
+	r.DSN = ""
+}
+
 func (r BigQueryResource) Validate() error {
 	// Legacy: Handle raw credentials coming in via credentials
 	if r.RawCredentials == "" && r.Credentials == "" {

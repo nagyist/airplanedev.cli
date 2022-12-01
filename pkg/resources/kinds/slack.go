@@ -31,6 +31,8 @@ func (r *SlackResource) Calculate() error {
 	return nil
 }
 
+func (r *SlackResource) ScrubCalculatedFields() {}
+
 func (r SlackResource) Validate() error {
 	if r.AccessToken == "" {
 		return resources.NewErrMissingResourceField("accessToken")

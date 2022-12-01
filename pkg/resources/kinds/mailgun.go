@@ -48,6 +48,8 @@ func (r *MailgunResource) Calculate() error {
 	return nil
 }
 
+func (r *MailgunResource) ScrubCalculatedFields() {}
+
 func (r MailgunResource) Validate() error {
 	if r.APIKey == "" {
 		return resources.NewErrMissingResourceField("apiKey")

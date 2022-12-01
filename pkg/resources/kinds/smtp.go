@@ -138,6 +138,8 @@ func (r *SMTPResource) Calculate() error {
 	return nil
 }
 
+func (r *SMTPResource) ScrubCalculatedFields() {}
+
 func (r SMTPResource) Validate() error {
 	if r.Hostname == "" {
 		return resources.NewErrMissingResourceField("hostname")

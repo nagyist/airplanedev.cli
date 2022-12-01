@@ -44,6 +44,8 @@ func (r *SendGridResource) Calculate() error {
 	return nil
 }
 
+func (r *SendGridResource) ScrubCalculatedFields() {}
+
 func (r SendGridResource) Validate() error {
 	if r.APIKey == "" {
 		return resources.NewErrMissingResourceField("apiKey")

@@ -78,6 +78,10 @@ func (r *PostgresResource) Calculate() error {
 	return nil
 }
 
+func (r *PostgresResource) ScrubCalculatedFields() {
+	r.DSN = ""
+}
+
 func (r PostgresResource) Validate() error {
 	if r.Username == "" {
 		return resources.NewErrMissingResourceField("username")

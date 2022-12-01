@@ -111,7 +111,7 @@ func getBaseDockerfileTemplate(root string) (dockerfileTemplate, workDir string,
 		workDir = "."
 	} else {
 		dockerfileTemplate = heredoc.Doc(`
-			FROM ubuntu:22.04
+			FROM ubuntu:22.10
 			# Install some common libraries
 			RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 				&& apt-get -y install --no-install-recommends \

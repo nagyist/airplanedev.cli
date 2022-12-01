@@ -46,6 +46,10 @@ func (r *GraphQLResource) Calculate() error {
 	return nil
 }
 
+func (r *GraphQLResource) ScrubCalculatedFields() {
+	r.RESTResource.ScrubCalculatedFields()
+}
+
 func (r GraphQLResource) Validate() error {
 	return r.RESTResource.Validate()
 }

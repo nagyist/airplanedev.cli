@@ -23,6 +23,7 @@ func TestMySQLResource(t *testing.T) {
 	}
 	err := resource.Calculate()
 	require.NoError(err)
+	require.Equal("mysql://username:password@hostname:5432/database?tls=skip-verify", resource.DSN)
 	err = resource.Validate()
 	require.NoError(err)
 
@@ -70,4 +71,8 @@ func TestMySQLResource(t *testing.T) {
 	require.NotEmpty(resource.DSN)
 	err = resource.Validate()
 	require.NoError(err)
+
+	// Scrub calculated fields.
+	resource.ScrubCalculatedFields()
+	require.Empty(resource.DSN)
 }

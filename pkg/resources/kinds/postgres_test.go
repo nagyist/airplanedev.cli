@@ -23,6 +23,7 @@ func TestPostgresResource(t *testing.T) {
 	}
 	err := resource.Calculate()
 	require.NoError(err)
+	require.Equal("postgres://username:password@hostname:5432/database?sslmode=require", resource.DSN)
 	err = resource.Validate()
 	require.NoError(err)
 
@@ -70,4 +71,8 @@ func TestPostgresResource(t *testing.T) {
 	require.NotEmpty(resource.DSN)
 	err = resource.Validate()
 	require.NoError(err)
+
+	// Scrub calculated fields.
+	resource.ScrubCalculatedFields()
+	require.Empty(resource.DSN)
 }

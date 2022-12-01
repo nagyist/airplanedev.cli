@@ -78,6 +78,10 @@ func (r *SQLServerResource) Calculate() error {
 	return nil
 }
 
+func (r *SQLServerResource) ScrubCalculatedFields() {
+	r.DSN = ""
+}
+
 func (r SQLServerResource) Validate() error {
 	if r.Username == "" {
 		return resources.NewErrMissingResourceField("username")

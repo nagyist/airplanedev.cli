@@ -69,6 +69,10 @@ func (r *SnowflakeResource) Calculate() error {
 	return nil
 }
 
+func (r *SnowflakeResource) ScrubCalculatedFields() {
+	r.DSN = ""
+}
+
 func (r SnowflakeResource) Validate() error {
 	if r.Account == "" {
 		return resources.NewErrMissingResourceField("account")
