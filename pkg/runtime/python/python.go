@@ -114,7 +114,8 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 	if bin == "" {
 		return nil, nil, errors.New("could not find python")
 	}
-	return []string{pythonBin(logger), filepath.Join(taskDir, "shim.py"), string(pv)}, closer, nil
+	// -u forces the stdout stream to be unbuffered, or else Python may buffer logs until the run completes.
+	return []string{pythonBin(logger), "-u", filepath.Join(taskDir, "shim.py"), string(pv)}, closer, nil
 }
 
 // pythonBin returns the first of python3 or python found on PATH, if any.
