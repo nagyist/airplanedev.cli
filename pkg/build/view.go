@@ -146,6 +146,7 @@ func view(root string, options KindOptions) (string, error) {
 
 		COPY . /airplane/src/
 		RUN /airplane/node_modules/.bin/vite build --outDir {{.OutDir}}
+		RUN yarn list --pattern @airplane/views | grep @airplane/views | sed "s/^.*@airplane\/views@\(.*\)$/\1/" > /airplane/{{.OutDir}}/.airplane-views-version
 
 		# Docker's minimal image - we just need an empty place to copy the build artifacts.
 		FROM scratch
@@ -340,6 +341,7 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		
 		# Copy in universal Vite config and build view
 		RUN {{.InlineViteConfig}} > vite.config.ts && /airplane/node_modules/.bin/vite build --outDir {{.OutDir}}
+		RUN yarn list --pattern @airplane/views | grep @airplane/views | sed "s/^.*@airplane\/views@\(.*\)$/\1/" > /airplane/{{.OutDir}}/.airplane-views-version
 
 		# Docker's minimal image - we just need an empty place to copy the build artifacts.
 		FROM scratch
