@@ -74,13 +74,11 @@ func New(c *cli.Config) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Initialize a task definition",
+		Short: "Initialize a new task",
 		Example: heredoc.Doc(`
+			$ airplane tasks init
 			$ airplane tasks init --from task_slug
-			$ airplane tasks init --from task_slug ./folder/my_task.js
-			$ airplane tasks init --from task_slug ./folder/my_task.task.json
 			$ airplane tasks init --from task_slug ./folder/my_task.task.yaml
-			$ airplane tasks init --from github.com/airplanedev/examples/node/hello-world-javascript/node_hello_world_js.task.yaml
 		`),
 		Args: cobra.MaximumNArgs(1),
 		PersistentPreRunE: utils.WithParentPersistentPreRunE(func(cmd *cobra.Command, args []string) error {
@@ -95,25 +93,26 @@ func New(c *cli.Config) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&cfg.from, "slug", "", "Slug of an existing task to generate from.")
+	if err := cmd.Flags().MarkHidden("slug"); err != nil {
+		logger.Debug("error: %s", err)
+	}
 
 	cmd.Flags().StringVar(&cfg.from, "from", "", "Slug of an existing task to initialize.")
 	cmd.Flags().StringVar(&cfg.fromRunbook, "from-runbook", "", "Slug of an existing runbook to convert to a workflow. This implies --workflow and --inline.")
+	if err := cmd.Flags().MarkHidden("from-runbook"); err != nil {
+		logger.Debug("error: %s", err)
+	}
+
 	cmd.Flags().BoolVar(&cfg.codeOnly, "code-only", false, "True to skip creating a task definition file; only generates an entrypoint file.")
 	cmd.Flags().BoolVarP(&cfg.assumeYes, "yes", "y", false, "True to specify automatic yes to prompts.")
 	cmd.Flags().BoolVarP(&cfg.assumeNo, "no", "n", false, "True to specify automatic no to prompts.")
 
 	cmd.Flags().BoolVar(&cfg.inline, "inline", false, "Generate inline config for custom tasks")
-	cmd.Flags().BoolVar(&cfg.workflow, "workflow", false, "Generate a workflow instead of a task. Implies --inline.")
-
-	if err := cmd.Flags().MarkHidden("slug"); err != nil {
-		logger.Debug("error: %s", err)
-	}
 	if err := cmd.Flags().MarkHidden("inline"); err != nil {
 		logger.Debug("error: %s", err)
 	}
-	if err := cmd.Flags().MarkHidden("from-runbook"); err != nil {
-		logger.Debug("error: %s", err)
-	}
+
+	cmd.Flags().BoolVar(&cfg.workflow, "workflow", false, "Generate a workflow instead of a task. Implies --inline.")
 
 	// Unhide this flag once we release environments.
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
@@ -183,7 +182,7 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		}
 
 		if cfg.inline && !isInlineSupportedKind(task.Kind) {
-			return errors.New("Inline config is only supported for Node and Python tasks.")
+			return errors.New("Inline config is only supported for JavaScript and Python tasks.")
 		}
 
 		def, err = definitions.NewDefinitionFromTask_0_3(ctx, cfg.client, task)
@@ -659,7 +658,7 @@ func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint str
 	if defaultEntrypoint == "" {
 		defaultEntrypoint = slug
 		if kind == build.TaskKindNode && len(exts) > 1 {
-			// Special case node tasks and make their extensions '.ts'
+			// Special case JavaScript tasks and make their extensions '.ts'
 			defaultEntrypoint += ".ts"
 		} else {
 			defaultEntrypoint += exts[0]
@@ -765,7 +764,6 @@ func createFolder(directory string) error {
 
 var allKindsByName = map[string]build.TaskKind{
 	"Docker":     build.TaskKindImage,
-	"Node":       build.TaskKindNode,
 	"JavaScript": build.TaskKindNode,
 	"Python":     build.TaskKindPython,
 	"Shell":      build.TaskKindShell,
@@ -777,11 +775,11 @@ var allKindsByName = map[string]build.TaskKind{
 // Determines the set of kind names that are eligible for use as tasks.
 // The ordering is important as it defines how they are shown in CLI prompts.
 var supportedTaskKindNames = []string{
+	"JavaScript",
+	"Python",
 	"SQL",
 	"REST",
 	"GraphQL",
-	"Node",
-	"Python",
 	"Shell",
 	"Docker",
 }
@@ -849,7 +847,7 @@ func promptForNewTask(file string, info *newTaskInfo, inline bool, workflow bool
 		return errors.Errorf("Unknown kind selected: %q", selectedKindName)
 	}
 	if inline && !isInlineSupportedKind(info.kind) {
-		return errors.New("Inline config is only supported for Node and Python tasks.")
+		return errors.New("Inline config is only supported for JavaScript and Python tasks.")
 	}
 
 	return nil
