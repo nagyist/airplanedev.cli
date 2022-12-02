@@ -23,6 +23,7 @@ import (
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/builtins"
+	deployconfig "github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
@@ -301,6 +302,40 @@ func MaterializeEnvVars(taskConfig discover.TaskConfig, config *conf.DevConfig) 
 	taskEnvVars, err := taskConfig.Def.GetEnv()
 	if err != nil {
 		return nil, err
+	}
+
+	// Add env vars from the airplane.yaml config file.
+	kind, _, err := taskConfig.Def.GetKindAndOptions()
+	if err != nil {
+		return nil, err
+	}
+	entrypoint, err := taskConfig.Def.GetAbsoluteEntrypoint()
+	if err != nil {
+		return nil, err
+	}
+	r, err := runtime.Lookup(entrypoint, kind)
+	if err != nil {
+		return nil, err
+	}
+	root, err := r.Root(entrypoint)
+	if err != nil {
+		return nil, err
+	}
+	configFilePath := filepath.Join(root, deployconfig.FileName)
+	hasExistingConfigFile := fsx.Exists(configFilePath)
+	if hasExistingConfigFile {
+		airplaneConfig, err := deployconfig.NewAirplaneConfigFromFile(configFilePath)
+		if err != nil {
+			return nil, err
+		}
+		for key, envVar := range airplaneConfig.EnvVars {
+			if _, ok := taskEnvVars[key]; !ok {
+				if taskEnvVars == nil {
+					taskEnvVars = make(libapi.TaskEnv)
+				}
+				taskEnvVars[key] = envVar
+			}
+		}
 	}
 
 	for key, envVar := range taskEnvVars {
