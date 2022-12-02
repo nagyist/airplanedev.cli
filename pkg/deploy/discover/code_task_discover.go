@@ -128,11 +128,16 @@ func (c *CodeTaskDiscoverer) GetTaskRoot(ctx context.Context, file string) (stri
 	if err != nil {
 		return "", build.BuildContext{}, err
 	}
+	base := bc.Base
+	if base == build.BuildBaseNone {
+		// Default to the slim base if otherwise unspecified.
+		base = build.BuildBaseSlim
+	}
 
 	return pm.RootDir, build.BuildContext{
 		Type:    buildType,
 		Version: bc.Version,
-		Base:    bc.Base,
+		Base:    base,
 		EnvVars: bc.EnvVars,
 	}, nil
 }

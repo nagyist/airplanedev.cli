@@ -88,6 +88,7 @@ func TestDiscover(t *testing.T) {
 					TargetPaths: []string{"inlineTasks"},
 					BuildContext: build.BuildContext{
 						Type: build.NodeBuildType,
+						Base: build.BuildBaseSlim,
 					},
 				},
 				{
@@ -95,6 +96,7 @@ func TestDiscover(t *testing.T) {
 					TargetPaths: []string{"inlineTasks"},
 					BuildContext: build.BuildContext{
 						Type: build.PythonBuildType,
+						Base: build.BuildBaseSlim,
 					},
 				},
 			},
@@ -126,6 +128,7 @@ func TestDiscover(t *testing.T) {
 						EnvVars: map[string]build.EnvVarValue{
 							"foo": {Value: pointers.String("bar")},
 						},
+						Base: build.BuildBaseSlim,
 					},
 				},
 			},
@@ -185,12 +188,14 @@ func TestDiscover(t *testing.T) {
 					TargetPaths: []string{"viewInline"},
 					BuildContext: build.BuildContext{
 						Type: build.ViewBuildType,
+						Base: build.BuildBaseSlim,
 					}},
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"viewInline"},
 					BuildContext: build.BuildContext{
 						Type: build.NodeBuildType,
+						Base: build.BuildBaseSlim,
 					},
 				},
 			},
@@ -204,12 +209,14 @@ func TestDiscover(t *testing.T) {
 					TargetPaths: []string{"viewAndTaskInline"},
 					BuildContext: build.BuildContext{
 						Type: build.NodeBuildType,
+						Base: build.BuildBaseSlim,
 					}},
 				{
 					RootPath:    fixturesPath,
 					TargetPaths: []string{"viewAndTaskInline"},
 					BuildContext: build.BuildContext{
 						Type: build.ViewBuildType,
+						Base: build.BuildBaseSlim,
 					}},
 			},
 		},
@@ -236,11 +243,20 @@ func TestDiscover(t *testing.T) {
 					TargetPaths: []string{"inlineTasks"},
 					BuildContext: build.BuildContext{
 						Type: build.NodeBuildType,
+						Base: build.BuildBaseSlim,
 					},
 				},
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"inlineTasks", "tasksWithDefn"},
+					TargetPaths: []string{"inlineTasks"},
+					BuildContext: build.BuildContext{
+						Type: build.PythonBuildType,
+						Base: build.BuildBaseSlim,
+					},
+				},
+				{
+					RootPath:    fixturesPath,
+					TargetPaths: []string{"tasksWithDefn"},
 					BuildContext: build.BuildContext{
 						Type: build.PythonBuildType,
 						EnvVars: map[string]build.EnvVarValue{
@@ -291,6 +307,7 @@ func TestDiscover(t *testing.T) {
 					TargetPaths: []string{"multipleTasksSameRoot"},
 					BuildContext: build.BuildContext{
 						Type: build.NodeBuildType,
+						Base: build.BuildBaseSlim,
 					}},
 			},
 		},
