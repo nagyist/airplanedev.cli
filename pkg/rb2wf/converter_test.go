@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -46,7 +47,7 @@ func TestConverter(t *testing.T) {
 		Configs: []api.Config{
 			{
 				Name:     "db",
-				Tag:      "db/dsn",
+				Tag:      "dbdsn",
 				Value:    "testValue",
 				IsSecret: true,
 			},
@@ -55,36 +56,36 @@ func TestConverter(t *testing.T) {
 			"test_runbook": {
 				ID:   "testID",
 				Name: "testRunbook",
-				Slug: "test_runbook",
+				Slug: "test_runbook_slug",
 				TemplateSession: api.TemplateSession{
 					ID: "testTemplateSession",
 					Configs: []libapi.ConfigAttachment{
 						{
-							NameTag: "db/dsn",
+							NameTag: "dbdsn",
 						},
 					},
 				},
 				Parameters: libapi.Parameters{
 					{
-						Slug:    "test_param",
+						Slug:    "test_param_slug",
 						Name:    "Test param",
 						Type:    "string",
 						Default: "512",
 					},
 					{
-						Slug:    "an_integer",
+						Slug:    "an_integer_slug",
 						Name:    "An integer",
 						Type:    "integer",
 						Default: 3,
 					},
 					{
-						Slug:    "a_date",
+						Slug:    "a_date_slug",
 						Name:    "A date",
 						Type:    "date",
 						Default: "2022-11-18",
 					},
 					{
-						Slug: "a_boolean",
+						Slug: "a_boolean_slug",
 						Name: "A boolean",
 						Type: "boolean",
 					},
@@ -103,7 +104,7 @@ func TestConverter(t *testing.T) {
 							ParamValues: map[string]interface{}{
 								"count": map[string]interface{}{
 									"__airplaneType": "template",
-									"raw":            "{{params.an_integer}}",
+									"raw":            "{{params.an_integer_slug}}",
 								},
 							},
 						},
@@ -117,7 +118,7 @@ func TestConverter(t *testing.T) {
 						Note: &api.BlockKindConfigNote{
 							Content: map[string]interface{}{
 								"__airplaneType": "template",
-								"raw":            "This is some content with a {{params.an_integer}}",
+								"raw":            "This is some content with a {{params.an_integer_slug}}",
 							},
 						},
 					},
@@ -138,7 +139,7 @@ func TestConverter(t *testing.T) {
 								"queryArgs": map[string]interface{}{
 									"user_count": map[string]interface{}{
 										"__airplaneType": "template",
-										"raw":            "{{params.an_integer}}",
+										"raw":            "{{params.an_integer_slug}}",
 									},
 								},
 							},
@@ -150,9 +151,9 @@ func TestConverter(t *testing.T) {
 				},
 				{
 					ID:             "restBlockID",
-					Slug:           "rest_block_id",
+					Slug:           "rest_block_slug",
 					BlockKind:      "stdapi",
-					StartCondition: "\"hello\" === params.test_param",
+					StartCondition: "\"hello\" === params.test_param_slug",
 					BlockKindConfig: api.BlockKindConfig{
 						StdAPI: &api.BlockKindConfigStdAPI{
 							Namespace: "rest",
@@ -184,7 +185,7 @@ func TestConverter(t *testing.T) {
 				},
 				{
 					ID:        "emailBlockID",
-					Slug:      "email_block_id",
+					Slug:      "email_block_slug",
 					BlockKind: "stdapi",
 					BlockKindConfig: api.BlockKindConfig{
 						StdAPI: &api.BlockKindConfigStdAPI{
@@ -224,7 +225,7 @@ func TestConverter(t *testing.T) {
 				},
 				{
 					ID:        "slackBlockID",
-					Slug:      "slack_block_id",
+					Slug:      "slack_block_slug",
 					BlockKind: "stdapi",
 					BlockKindConfig: api.BlockKindConfig{
 						StdAPI: &api.BlockKindConfigStdAPI{
@@ -242,7 +243,7 @@ func TestConverter(t *testing.T) {
 				},
 				{
 					ID:        "formBlockID",
-					Slug:      "form_block_id",
+					Slug:      "form_block_slug",
 					BlockKind: "form",
 					BlockKindConfig: api.BlockKindConfig{
 						Form: &api.BlockKindConfigForm{
@@ -265,11 +266,11 @@ func TestConverter(t *testing.T) {
 		Tasks: map[string]libapi.Task{
 			"testTaskID": {
 				ID:   "testTaskID",
-				Slug: "test_task",
+				Slug: "test_task_slug",
 				Parameters: libapi.Parameters{
 					{
 						Name: "count",
-						Slug: "count",
+						Slug: "count_slug",
 						Type: "integer",
 					},
 				},
@@ -280,6 +281,34 @@ func TestConverter(t *testing.T) {
 	tempDir, err := os.MkdirTemp("", "rb2wf")
 	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
+
+	// Copy the base files over to the temp directory and install the dependencies via yarn.
+	// During a normal run, this is handled in the CLI entrypoint before the converter is called.
+	err = filepath.Walk("fixtures/base", func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		relPath, err := filepath.Rel("fixtures/base", path)
+		if err != nil {
+			return err
+		}
+
+		fileContents, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		return os.WriteFile(filepath.Join(tempDir, relPath), fileContents, 0644)
+	})
+	require.NoError(t, err)
+
+	cmd := exec.Command("yarn")
+	cmd.Dir = tempDir
+	_, err = cmd.CombinedOutput()
+	require.NoError(t, err)
 
 	converterObj := NewRunbookConverter(client, tempDir, "test_entrypoint.ts")
 

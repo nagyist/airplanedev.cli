@@ -12,10 +12,12 @@ import (
 )
 
 const (
-	quoteStart   = "__airplaneQuoteStart__"
-	quoteEnd     = "__airplaneQuoteEnd__"
-	noQuoteStart = "__airplaneNoQuoteStart__"
-	noQuoteEnd   = "__airplaneNoQuoteEnd__"
+	backtickQuoteStart = "__airplaneBacktickQuoteStart__"
+	backtickQuoteEnd   = "__airplaneBacktickQuoteEnd__"
+	quoteStart         = "__airplaneQuoteStart__"
+	quoteEnd           = "__airplaneQuoteEnd__"
+	noQuoteStart       = "__airplaneNoQuoteStart__"
+	noQuoteEnd         = "__airplaneNoQuoteEnd__"
 )
 
 var (
@@ -59,18 +61,27 @@ func jsObj(obj interface{}) (string, error) {
 
 	result := string(resultBytes)
 
-	// Unquote back-ticked strings
+	// Convert quote placeholders to actual quotes
 	result = strings.ReplaceAll(result, fmt.Sprintf("\"%s", noQuoteStart), "")
 	result = strings.ReplaceAll(result, fmt.Sprintf("%s\"", noQuoteEnd), "")
-	result = strings.ReplaceAll(result, fmt.Sprintf("\"%s", quoteStart), "`")
-	result = strings.ReplaceAll(result, fmt.Sprintf("%s\"", quoteEnd), "`")
+	result = strings.ReplaceAll(result, fmt.Sprintf("\"%s", quoteStart), "\"")
+	result = strings.ReplaceAll(result, fmt.Sprintf("%s\"", quoteEnd), "\"")
+	result = strings.ReplaceAll(result, fmt.Sprintf("\"%s", backtickQuoteStart), "`")
+	result = strings.ReplaceAll(result, fmt.Sprintf("%s\"", backtickQuoteEnd), "`")
 	return result, nil
 }
 
 func jsStr(obj interface{}) (string, error) {
 	switch v := obj.(type) {
 	case templateValue:
-		return fmt.Sprintf("`%s`", v.toTemplate()), nil
+		templateContents := v.toTemplate()
+		if strings.Contains(templateContents, "${") {
+			// Use backtick quotes
+			return fmt.Sprintf("`%s`", templateContents), nil
+		}
+
+		// Use regular quotes
+		return fmt.Sprintf("\"%s\"", templateContents), nil
 	default:
 		return fmt.Sprintf("\"%v\"", obj), nil
 	}
@@ -97,11 +108,26 @@ func (t templateValue) MarshalJSON() ([]byte, error) {
 		), nil
 	}
 
+	templateContents := t.toTemplate()
+
+	if strings.Contains(templateContents, "${") {
+		// Need to use backtick quotes
+		return []byte(
+			fmt.Sprintf(
+				"\"%s%s%s\"",
+				backtickQuoteStart,
+				templateContents,
+				backtickQuoteEnd,
+			),
+		), nil
+	}
+
+	// Use regular quotes
 	return []byte(
 		fmt.Sprintf(
 			"\"%s%s%s\"",
 			quoteStart,
-			t.toTemplate(),
+			templateContents,
 			quoteEnd,
 		),
 	), nil

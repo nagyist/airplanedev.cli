@@ -81,7 +81,11 @@ type Client struct {
 type APIClient interface {
 	// GetTask fetches a task by slug. If the slug does not match a task, a *TaskMissingError is returned.
 	GetTask(ctx context.Context, req libapi.GetTaskRequest) (res libapi.Task, err error)
+
+	// GetTaskByID gets a task by ID.
+	// TODO: Add an ID into libapi.GetTaskRequest so that we can just use GetTask instead of having this too.
 	GetTaskByID(ctx context.Context, id string) (res libapi.Task, err error)
+
 	// GetTaskMetadata fetches a task's metadata by slug. If the slug does not match a task, a *TaskMissingError is returned.
 	GetTaskMetadata(ctx context.Context, slug string) (res libapi.TaskMetadata, err error)
 	ListTasks(ctx context.Context, envSlug string) (res ListTasksResponse, err error)

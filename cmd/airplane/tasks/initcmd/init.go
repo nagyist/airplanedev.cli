@@ -134,7 +134,7 @@ func Run(ctx context.Context, cfg config) error {
 	}
 
 	// workflows are also inline
-	cfg.inline = cfg.inline || cfg.workflow
+	cfg.inline = cfg.inline || cfg.workflow || cfg.fromRunbook != ""
 
 	if cfg.codeOnly && cfg.inline {
 		return errors.New("Cannot specify both --code-only and --inline")
@@ -381,6 +381,18 @@ func initWorkflowFromRunbook(ctx context.Context, cfg config) error {
 	entrypointDir := filepath.Dir(entrypoint)
 	if err := os.MkdirAll(entrypointDir, 0744); err != nil {
 		return errors.Wrap(err, "creating output directory")
+	}
+
+	// Create a definition that can be used to generate/update the package config.
+	def := definitions.Definition_0_3{
+		Node: &definitions.NodeDefinition_0_3{
+			NodeVersion: "18",
+			Base:        build.BuildBaseSlim,
+		},
+	}
+
+	if err := runKindSpecificInstallation(ctx, cfg, build.TaskKindNode, def); err != nil {
+		return err
 	}
 
 	converter := rb2wf.NewRunbookConverter(
@@ -646,10 +658,7 @@ func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint str
 	exts := runtime.SuggestExts(kind)
 	if defaultEntrypoint == "" {
 		defaultEntrypoint = slug
-		if cfg.fromRunbook != "" {
-			// Workflows need to have a ".airplane.ts" extension since they use inline configs
-			defaultEntrypoint += ".airplane.ts"
-		} else if kind == build.TaskKindNode && len(exts) > 1 {
+		if kind == build.TaskKindNode && len(exts) > 1 {
 			// Special case node tasks and make their extensions '.ts'
 			defaultEntrypoint += ".ts"
 		} else {

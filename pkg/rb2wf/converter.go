@@ -17,14 +17,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	airplaneSDKVersion = "0.2.21"
-)
-
 var (
-	//go:embed templates/blocks/display.ts.tmpl
-	displayTemplate string
-
 	//go:embed templates/blocks/email.ts.tmpl
 	emailTemplate string
 
@@ -37,13 +30,10 @@ var (
 	//go:embed templates/blocks/mongodb.ts.tmpl
 	mongoDBTemplate string
 
-	//go:embed static/.nvmrc
-	nvmConfig string
+	//go:embed templates/blocks/note.ts.tmpl
+	noteTemplate string
 
-	//go:embed templates/package.json.tmpl
-	packageTemplate string
-
-	//go:embed static/.prettierrc.js
+	//go:embed static/.prettierrc
 	prettierConfig string
 
 	//go:embed templates/blocks/rest.ts.tmpl
@@ -57,9 +47,6 @@ var (
 
 	//go:embed templates/blocks/task.ts.tmpl
 	taskTemplate string
-
-	//go:embed static/tsconfig.json
-	tsConfig string
 
 	//go:embed templates/blocks/unimplemented.ts.tmpl
 	unimplementedTemplate string
@@ -90,6 +77,9 @@ func (r *RunbookConverter) Convert(ctx context.Context, runbookSlug string) erro
 		return err
 	}
 
+	// TODO: Use template from
+	// https://github.com/airplanedev/lib/blob/main/pkg/runtime/javascript/javascript.go#L88
+	// for standard inline parameters (params, constraints, etc.).
 	workflowParams := map[string]map[string]interface{}{}
 	for _, param := range runbookInfo.runbook.Runbook.Parameters {
 		workflowParams[param.Slug] = map[string]interface{}{
@@ -165,7 +155,7 @@ func (r *RunbookConverter) Convert(ctx context.Context, runbookSlug string) erro
 		Resources:   resourceSlugs,
 		RunbookID:   runbookInfo.runbook.Runbook.ID,
 		RunbookSlug: runbookInfo.runbook.Runbook.Slug,
-		Slug:        fmt.Sprintf("%s_workflow", runbookInfo.runbook.Runbook.Slug),
+		Slug:        runbookInfo.runbook.Runbook.Slug,
 	})
 	if err != nil {
 		return err
@@ -174,30 +164,8 @@ func (r *RunbookConverter) Convert(ctx context.Context, runbookSlug string) erro
 		return err
 	}
 
-	logger.Step("Loading dependencies and formatting code")
-	packageStr, err := applyTemplate(packageTemplate, struct {
-		SDKVersion string
-	}{
-		SDKVersion: airplaneSDKVersion,
-	})
-	if err != nil {
-		return err
-	}
-	if err := r.writeFile(ctx, "package.json", packageStr); err != nil {
-		return err
-	}
-
-	if err := r.writeFile(ctx, ".prettierrc.js", prettierConfig); err != nil {
-		return err
-	}
-	if err := r.writeFile(ctx, ".nvmrc", nvmConfig); err != nil {
-		return err
-	}
-	if err := r.writeFile(ctx, "tsconfig.json", tsConfig); err != nil {
-		return err
-	}
-
-	if err := r.runYarn(ctx); err != nil {
+	logger.Step("Formatting code via prettier")
+	if err := r.writeFile(ctx, ".prettierrc", prettierConfig); err != nil {
 		return err
 	}
 	if err := r.runPrettier(ctx); err != nil {
@@ -273,23 +241,25 @@ func (r *RunbookConverter) blockToString(
 	} else if block.BlockKindConfig.Note != nil {
 		config := block.BlockKindConfig.Note
 
-		displayContent, err := interfaceToJSObj(config.Content, nil)
+		noteContent, err := interfaceToJSObj(config.Content, nil)
 		if err != nil {
 			return "", err
 		}
 
-		displayBlockStr, err := applyTemplate(displayTemplate, struct {
+		noteBlockStr, err := applyTemplate(noteTemplate, struct {
+			BlockSlug      string
 			Content        interface{}
 			StartCondition string
 		}{
-			Content:        displayContent,
+			BlockSlug:      block.Slug,
+			Content:        noteContent,
 			StartCondition: block.StartCondition,
 		})
 		if err != nil {
 			return "", err
 		}
 
-		return displayBlockStr, nil
+		return noteBlockStr, nil
 	} else if block.BlockKindConfig.StdAPI != nil {
 		config := block.BlockKindConfig.StdAPI
 
@@ -321,12 +291,14 @@ func (r *RunbookConverter) blockToString(
 			resourceID := firstValue(config.Resources)
 			resourceSlug := resources[resourceID].Slug
 			emailBlockStr, err := applyTemplate(emailTemplate, struct {
+				BlockSlug      string
 				Options        interface{}
 				Recipients     interface{}
 				ResourceSlug   string
 				Sender         interface{}
 				StartCondition string
 			}{
+				BlockSlug:      block.Slug,
 				Options:        options,
 				Recipients:     receipients,
 				ResourceSlug:   resourceSlug,
@@ -459,10 +431,12 @@ func (r *RunbookConverter) blockToString(
 			}
 
 			slackBlockStr, err := applyTemplate(slackTemplate, struct {
+				BlockSlug      string
 				Channel        interface{}
 				Message        interface{}
 				StartCondition string
 			}{
+				BlockSlug:      block.Slug,
 				Channel:        channel,
 				Message:        message,
 				StartCondition: block.StartCondition,
@@ -561,20 +535,8 @@ func (r *RunbookConverter) writeFile(
 	)
 }
 
-func (r *RunbookConverter) runYarn(ctx context.Context) error {
-	cmd := exec.Command("yarn")
-	cmd.Dir = r.outputDir
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		logger.Log("yarn output: %s", string(out))
-		return errors.Wrap(err, "running yarn")
-	}
-
-	return nil
-}
-
 func (r *RunbookConverter) runPrettier(ctx context.Context) error {
-	cmd := exec.Command("yarn", "prettier", "-w", "./*ts", "./*json")
+	cmd := exec.Command("npx", "--yes", "prettier", "-w", "./*ts")
 	cmd.Dir = r.outputDir
 	out, err := cmd.CombinedOutput()
 	if err != nil {
