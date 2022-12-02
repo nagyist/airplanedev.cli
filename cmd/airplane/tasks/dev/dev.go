@@ -15,14 +15,16 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
-	"github.com/airplanedev/cli/pkg/configs"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/params"
 	"github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/utils"
+	libapi "github.com/airplanedev/lib/pkg/api"
+	deployconfig "github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
+	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -248,30 +250,60 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		return err
 	}
 
-	envVars, err := dev.MaterializeEnvVars(taskConfig, cfg.devConfig)
+	taskEnv, err := taskConfig.Def.GetEnv()
 	if err != nil {
 		return err
 	}
-	attachedConfigs, err := taskConfig.Def.GetConfigAttachments()
+	// Add env vars from the airplane.yaml config file.
+	entrypoint, err := taskConfig.Def.GetAbsoluteEntrypoint()
+	if err != nil {
+		return err
+	}
+	r, err := runtime.Lookup(entrypoint, kind)
+	if err != nil {
+		return err
+	}
+	root, err := r.Root(entrypoint)
+	if err != nil {
+		return err
+	}
+	configFilePath := filepath.Join(root, deployconfig.FileName)
+	hasExistingConfigFile := fsx.Exists(configFilePath)
+	if hasExistingConfigFile {
+		airplaneConfig, err := deployconfig.NewAirplaneConfigFromFile(configFilePath)
+		if err != nil {
+			return err
+		}
+		for key, envVar := range airplaneConfig.EnvVars {
+			if _, ok := taskEnv[key]; !ok {
+				if taskEnv == nil {
+					taskEnv = make(libapi.TaskEnv)
+				}
+				taskEnv[key] = envVar
+			}
+		}
+	}
+
+	configAttachments, err := taskConfig.Def.GetConfigAttachments()
 	if err != nil {
 		return errors.Wrap(err, "getting attached configs")
 	}
-	configVars := configs.MaterializeConfigs(attachedConfigs, cfg.devConfig.ConfigVars)
 
 	localRunConfig := dev.LocalRunConfig{
-		ID:              dev.GenerateRunID(),
-		Name:            taskConfig.Def.GetName(),
-		Kind:            kind,
-		KindOptions:     kindOptions,
-		ParamValues:     paramValues,
-		LocalClient:     localClient,
-		RemoteClient:    cfg.root.Client,
-		File:            cfg.fileOrDir,
-		Slug:            taskConfig.Def.GetSlug(),
-		EnvVars:         envVars,
-		AliasToResource: aliasToResource,
-		ConfigVars:      configVars,
-		PrintLogs:       true,
+		ID:                dev.GenerateRunID(),
+		Name:              taskConfig.Def.GetName(),
+		Kind:              kind,
+		KindOptions:       kindOptions,
+		ParamValues:       paramValues,
+		LocalClient:       localClient,
+		RemoteClient:      cfg.root.Client,
+		File:              cfg.fileOrDir,
+		Slug:              taskConfig.Def.GetSlug(),
+		AliasToResource:   aliasToResource,
+		ConfigAttachments: configAttachments,
+		ConfigVars:        cfg.devConfig.ConfigVars,
+		EnvVars:           taskEnv,
+		PrintLogs:         true,
 	}
 	_, err = localExecutor.Execute(ctx, localRunConfig)
 	if err != nil {
@@ -284,7 +316,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		"task_name":       taskConfig.Def.GetName(),
 		"env_slug":        cfg.envSlug,
 		"num_params":      len(paramValues),
-		"num_config_vars": len(envVars),
+		"num_config_vars": len(taskEnv),
 	}, analytics.TrackOpts{
 		SkipSlack: true,
 	})

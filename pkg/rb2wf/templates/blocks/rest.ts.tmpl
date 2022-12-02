@@ -1,0 +1,25 @@
+{{if .StartCondition}}
+let {{.BlockSlug}}: any;
+
+if ({{.StartCondition}}) {
+  {{.BlockSlug}} = await airplane.rest.request<any>(
+    "{{.ResourceSlug}}",
+    {{jsStr .Method}},
+    {{jsStr .Path}},
+    {{if .Options -}}
+    {{jsObj .Options}}
+    {{end}}
+  );
+} else {
+   console.log("Skipping over '{{.BlockSlug}}' because startCondition is false");
+}
+{{else}}
+const {{.BlockSlug}} = await airplane.rest.request<any>(
+  "{{.ResourceSlug}}",
+  {{jsStr .Method}},
+  {{jsStr .Path}},
+  {{if .Options -}}
+  {{jsObj .Options}}
+  {{end}}
+);
+{{end}}

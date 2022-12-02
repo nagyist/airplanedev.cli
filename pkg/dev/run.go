@@ -12,6 +12,11 @@ import (
 )
 
 type LocalRun struct {
+	ID string `json:"id"`
+	// TODO: We return a LocalRun in both the external and internal runs/get endpoint.
+	// The external `/v0/runs/get` endpoint used by SDKs is supposed to return "id"
+	// but the internal `/i/runs/get` used in web expects "runID".
+	// They should return different response types to match airport.
 	RunID            string                 `json:"runID"`
 	Status           api.RunStatus          `json:"status"`
 	Outputs          api.Outputs            `json:"outputs"`
@@ -19,6 +24,8 @@ type LocalRun struct {
 	CreatorID        string                 `json:"creatorID"`
 	SucceededAt      *time.Time             `json:"succeededAt"`
 	FailedAt         *time.Time             `json:"failedAt"`
+	CancelledAt      *time.Time             `json:"cancelledAt"`
+	CancelledBy      string                 `json:"cancelledBy"`
 	ParamValues      map[string]interface{} `json:"paramValues"`
 	Parameters       *libapi.Parameters     `json:"parameters"`
 	ParentID         string                 `json:"parentID"`
@@ -38,6 +45,7 @@ type LocalRun struct {
 	StdAPIRequest builtins.StdAPIRequest `json:"stdAPIRequest"`
 
 	// internal fields
+	CancelFn  func()         `json:"-"`
 	LogBroker logs.LogBroker `json:"-"`
 	Remote    bool           `json:"-"`
 }

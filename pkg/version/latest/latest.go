@@ -51,6 +51,7 @@ func CheckLatest(ctx context.Context, userConfig *conf.UserConfig) bool {
 			Version: latest,
 			Updated: time.Now().UTC(),
 		}
+		//nolint: staticcheck
 		if err := conf.WriteDefaultUserConfig(*userConfig); err != nil {
 			// Do nothing
 		}

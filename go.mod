@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/airplanedev/lib v0.5.122
+	github.com/airplanedev/lib v0.5.124
 	github.com/airplanedev/ojson v0.1.0
 	github.com/airplanedev/trap v0.1.0
 	github.com/bep/debounce v1.2.1
@@ -23,7 +23,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/gosimple/slug v1.13.1
 	github.com/hashicorp/go-retryablehttp v0.7.1
-	github.com/hashicorp/golang-lru v0.6.0
+	github.com/hashicorp/golang-lru/v2 v2.0.1
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/joho/godotenv v1.4.0
 	github.com/kr/text v0.2.0
@@ -36,7 +36,7 @@ require (
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.1
-	golang.org/x/exp v0.0.0-20221114191408-850992195362
+	golang.org/x/exp v0.0.0-20221126150942-6ab00d035af9
 	golang.org/x/sync v0.1.0
 	golang.org/x/term v0.2.0
 	gopkg.in/yaml.v3 v3.0.1

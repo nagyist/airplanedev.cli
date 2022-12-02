@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sort"
 	"testing"
 	"time"
@@ -268,5 +270,115 @@ func TestGetUser(t *testing.T) {
 	err = json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
 	require.Equal(apiint.DefaultUser("usr2345"), resp.User)
+}
 
+func TestConfigsCRUD(t *testing.T) {
+	require := require.New(t)
+
+	dir, err := os.MkdirTemp("", "cli_test")
+	require.NoError(err)
+	path := filepath.Join(dir, "airplane.dev.yaml")
+
+	cfg0 := env.ConfigWithEnv{
+		Config: api.Config{
+			ID:       utils.GenerateID(utils.DevConfigPrefix),
+			Name:     "cv_0",
+			Value:    "v0",
+			IsSecret: false,
+		},
+		Remote: false,
+		Env:    env.NewLocalEnv(),
+	}
+
+	cfg1 := env.ConfigWithEnv{
+		Config: api.Config{
+			ID:       utils.GenerateID(utils.DevConfigPrefix),
+			Name:     "cv_0",
+			Value:    "v0",
+			IsSecret: false,
+		},
+		Remote: false,
+		Env:    env.NewLocalEnv(),
+	}
+
+	h := test_utils.GetHttpExpect(
+		context.Background(),
+		t,
+		server.NewRouter(&state.State{
+			DevConfig: &conf.DevConfig{
+				ConfigVars: map[string]env.ConfigWithEnv{
+					"cv_0": cfg0,
+					"cv_1": cfg1,
+				},
+				Path: path,
+			},
+		}),
+	)
+
+	// Test listing
+	var listResp apiint.ListConfigsResponse
+	body := h.GET("/i/configs/list").
+		Expect().
+		Status(http.StatusOK).Body()
+	err = json.Unmarshal([]byte(body.Raw()), &listResp)
+	require.NoError(err)
+	// sort so we can compare, since resources are stored as a map
+	expected := []env.ConfigWithEnv{cfg0, cfg1}
+	sort.Slice(expected, func(i, j int) bool {
+		return expected[i].ID < expected[j].ID
+	})
+	sort.Slice(listResp.Configs, func(i, j int) bool {
+		return listResp.Configs[i].ID < listResp.Configs[j].ID
+	})
+	require.Equal(expected, listResp.Configs)
+
+	// Test getting
+	var getResp apiint.GetConfigResponse
+	body = h.GET("/i/configs/get").
+		WithQuery("id", cfg0.ID).
+		Expect().
+		Status(http.StatusOK).Body()
+	err = json.Unmarshal([]byte(body.Raw()), &getResp)
+	require.NoError(err)
+	require.Equal(cfg0, getResp.Config)
+
+	// Test update
+	//nolint: staticcheck
+	body = h.POST("/i/configs/upsert").
+		WithJSON(apiint.UpsertConfigRequest{Name: cfg0.Name, Value: "v2"}).
+		Expect().
+		Status(http.StatusOK).Body()
+
+	var getResp2 apiint.GetConfigResponse
+	body = h.GET("/i/configs/get").
+		WithQuery("id", cfg0.ID).
+		Expect().
+		Status(http.StatusOK).Body()
+	err = json.Unmarshal([]byte(body.Raw()), &getResp2)
+	require.NoError(err)
+	require.Equal(env.ConfigWithEnv{
+		Config: api.Config{
+			ID:       cfg0.ID,
+			Name:     cfg0.Name,
+			Value:    "v2",
+			IsSecret: cfg0.IsSecret,
+		},
+		Remote: cfg0.Remote,
+		Env:    cfg0.Env,
+	}, getResp2.Config)
+
+	// Test deleting
+	//nolint: staticcheck
+	body = h.POST("/i/configs/delete").
+		WithJSON(apiint.DeleteConfigRequest{ID: cfg0.ID}).
+		Expect().
+		Status(http.StatusOK).Body()
+
+	var listResp2 apiint.ListConfigsResponse
+	body = h.GET("/i/configs/list").
+		Expect().
+		Status(http.StatusOK).Body()
+	err = json.Unmarshal([]byte(body.Raw()), &listResp2)
+	require.NoError(err)
+	require.Equal([]env.ConfigWithEnv{cfg1}, listResp2.Configs)
 }

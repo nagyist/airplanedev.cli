@@ -1,0 +1,23 @@
+{{if .StartCondition}}
+if ({{.StartCondition}}) {
+  await airplane.email.message(
+    "{{.ResourceSlug}}",
+    {{jsObj .Sender}},
+    {{jsObj .Recipients}},
+    {{if .Options -}}
+    {{jsObj .Options}}
+    {{end}}
+  );
+} else {
+   console.log("Skipping over '{{.BlockSlug}}' because startCondition is false");
+}
+{{else}}
+await airplane.email.message(
+  "{{.ResourceSlug}}",
+  {{jsObj .Sender}},
+  {{jsObj .Recipients}},
+  {{if .Options -}}
+  {{jsObj .Options}}
+  {{end}}
+);
+{{end}}

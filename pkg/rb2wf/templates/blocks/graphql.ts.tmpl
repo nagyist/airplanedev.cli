@@ -1,0 +1,19 @@
+{{if .StartCondition}}
+let {{.BlockSlug}}: any;
+
+if ({{.StartCondition}}) {
+  {{.BlockSlug}} = await airplane.graphql.request<any>(
+    "{{.ResourceSlug}}",
+    {{jsStr .Operation}},
+    {{jsObj .Options}},
+  );
+} else {
+   console.log("Skipping over '{{.BlockSlug}}' because startCondition is false");
+}
+{{else}}
+const {{.BlockSlug}} = await airplane.graphql.request<any>(
+  "{{.ResourceSlug}}",
+  {{jsStr .Operation}},
+  {{jsObj .Options}},
+);
+{{end}}

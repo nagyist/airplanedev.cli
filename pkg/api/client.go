@@ -81,6 +81,11 @@ type Client struct {
 type APIClient interface {
 	// GetTask fetches a task by slug. If the slug does not match a task, a *TaskMissingError is returned.
 	GetTask(ctx context.Context, req libapi.GetTaskRequest) (res libapi.Task, err error)
+
+	// GetTaskByID gets a task by ID.
+	// TODO: Add an ID into libapi.GetTaskRequest so that we can just use GetTask instead of having this too.
+	GetTaskByID(ctx context.Context, id string) (res libapi.Task, err error)
+
 	// GetTaskMetadata fetches a task's metadata by slug. If the slug does not match a task, a *TaskMissingError is returned.
 	GetTaskMetadata(ctx context.Context, slug string) (res libapi.TaskMetadata, err error)
 	ListTasks(ctx context.Context, envSlug string) (res ListTasksResponse, err error)
@@ -91,6 +96,8 @@ type APIClient interface {
 
 	GetRun(ctx context.Context, id string) (res GetRunResponse, err error)
 	GetOutputs(ctx context.Context, runID string) (res GetOutputsResponse, err error)
+	GetRunbook(ctx context.Context, runbookSlug string) (res GetRunbookResponse, err error)
+	ListSessionBlocks(ctx context.Context, sessionID string) (res ListSessionBlocksResponse, err error)
 
 	ListResources(ctx context.Context, envSlug string) (res libapi.ListResourcesResponse, err error)
 	ListResourceMetadata(ctx context.Context) (res libapi.ListResourceMetadataResponse, err error)
@@ -363,6 +370,23 @@ func (c Client) GetOutputs(ctx context.Context, runID string) (res GetOutputsRes
 	return
 }
 
+// GetRunbook returns the details of a runbook by slug.
+func (c Client) GetRunbook(ctx context.Context, runbookSlug string) (res GetRunbookResponse, err error) {
+	q := url.Values{"runbookSlug": []string{runbookSlug}}
+	err = c.do(ctx, "GET", "/runbooks/get?"+q.Encode(), nil, &res)
+	return
+}
+
+// GetOutputs returns the outputs by runID.
+func (c Client) ListSessionBlocks(ctx context.Context, sessionID string) (
+	res ListSessionBlocksResponse,
+	err error,
+) {
+	q := url.Values{"sessionID": []string{sessionID}}
+	err = c.do(ctx, "GET", "/sessions/listBlocks?"+q.Encode(), nil, &res)
+	return
+}
+
 // GetTask fetches a task by slug. If the slug does not match a task, a *TaskMissingError is returned.
 func (c Client) GetTask(ctx context.Context, req libapi.GetTaskRequest) (res libapi.Task, err error) {
 	err = c.do(ctx, "GET", encodeQueryString("/tasks/get", url.Values{
@@ -381,6 +405,22 @@ func (c Client) GetTask(ctx context.Context, req libapi.GetTaskRequest) (res lib
 		return
 	}
 	res.URL = c.TaskURL(res.Slug, req.EnvSlug)
+	return
+}
+
+func (c Client) GetTaskByID(ctx context.Context, id string) (res libapi.Task, err error) {
+	err = c.do(ctx, "GET", encodeQueryString("/tasks/get", url.Values{
+		"id": []string{id},
+	}), nil, &res)
+
+	if err, ok := err.(Error); ok && err.Code == 404 {
+		return res, &libapi.TaskMissingError{
+			AppURL: c.AppURL().String(),
+		}
+	}
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -654,7 +694,13 @@ func (c Client) do(ctx context.Context, method, path string, payload, reply inte
 	}
 
 	if reply != nil {
-		if err := json.NewDecoder(resp.Body).Decode(reply); err != nil {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+		logger.Debug("Response to %s: %s", url, string(body))
+
+		if err := json.Unmarshal(body, &reply); err != nil {
 			return errors.Wrapf(err, "api: %s %s - decoding json", method, url)
 		}
 	}

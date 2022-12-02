@@ -1,4 +1,4 @@
-//nolint: predeclared
+// nolint: predeclared
 package print
 
 import (

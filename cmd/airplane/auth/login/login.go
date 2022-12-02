@@ -156,6 +156,7 @@ func login(ctx context.Context, cfg config) error {
 	if err != nil {
 		return err
 	}
+	//nolint: contextcheck
 	defer srv.Close()
 
 	url := cfg.root.Client.LoginURL(srv.URL())

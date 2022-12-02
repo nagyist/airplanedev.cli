@@ -1,10 +1,11 @@
 package configs
 
 import (
-	"errors"
 	"strings"
 
+	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/lib/pkg/api"
+	"github.com/pkg/errors"
 )
 
 var ErrInvalidConfigName = errors.New("invalid config name")
@@ -35,11 +36,15 @@ func JoinName(nameTag NameTag) string {
 	return nameTag.Name + tagStr
 }
 
-// MaterializeConfigs returns the configs that are attached to a task
-func MaterializeConfigs(attached []api.ConfigAttachment, allConfigs map[string]string) map[string]string {
+// MaterializeConfigAttachments returns the configs that are attached to a task
+func MaterializeConfigAttachments(attachments []api.ConfigAttachment, configs map[string]env.ConfigWithEnv) (map[string]string, error) {
 	configAttachments := map[string]string{}
-	for _, a := range attached {
-		configAttachments[a.NameTag] = allConfigs[a.NameTag]
+	for _, a := range attachments {
+		if _, ok := configs[a.NameTag]; !ok {
+			return nil, errors.Errorf("config %s not defined in airplane.dev.yaml", a.NameTag)
+		}
+
+		configAttachments[a.NameTag] = configs[a.NameTag].Value
 	}
-	return configAttachments
+	return configAttachments, nil
 }

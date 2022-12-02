@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/conf"
+	"github.com/airplanedev/cli/pkg/configs"
 	devenv "github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -35,6 +35,7 @@ import (
 	"github.com/airplanedev/ojson"
 	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -72,8 +73,6 @@ type LocalRunConfig struct {
 	File        string
 	Slug        string
 	ParentRunID *string
-	EnvVars     map[string]string
-	ConfigVars  map[string]string
 	AuthInfo    api.AuthInfoResponse
 
 	LocalClient  *api.Client
@@ -81,6 +80,10 @@ type LocalRunConfig struct {
 
 	// Mapping from alias to resource
 	AliasToResource map[string]resources.Resource
+
+	ConfigAttachments []libapi.ConfigAttachment
+	ConfigVars        map[string]devenv.ConfigWithEnv
+	EnvVars           libapi.TaskEnv
 
 	IsBuiltin bool
 	LogBroker logs.LogBroker
@@ -152,8 +155,20 @@ func (l *LocalExecutor) Cmd(ctx context.Context, runConfig LocalRunConfig) (CmdC
 }
 
 func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api.Outputs, error) {
+	materializedEnvVars, err := MaterializeEnvVars(config.EnvVars, config.ConfigVars)
+	if err != nil {
+		return api.Outputs{}, err
+	}
+
+	configVars, err := configs.MaterializeConfigAttachments(config.ConfigAttachments, config.ConfigVars)
+	if err != nil {
+		return api.Outputs{}, err
+	}
+
+	baseInterpolateRequest := baseEvaluateTemplateRequest(config, configVars)
+
 	if config.KindOptions != nil {
-		interpolatedKindOptions, err := interpolate(ctx, config, config.KindOptions)
+		interpolatedKindOptions, err := interpolate(ctx, config.RemoteClient, baseInterpolateRequest, config.KindOptions)
 		if err != nil {
 			return api.Outputs{}, err
 		}
@@ -191,19 +206,21 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	cmd.Env = os.Environ()
 	// only non builtins have a runtime
 	if r != nil {
+		envVars := materializedEnvVars
+
 		// Load environment variables from .env files
-		// TODO: Remove support for .env files
-		envVars, err := getDevEnvVars(r, entrypoint)
+		// TODO: Deprecate support for .env files
+		dotEnvEnvVars, err := getDevEnvVars(r, entrypoint)
 		if err != nil {
 			return api.Outputs{}, err
 		}
 
-		if len(config.EnvVars) > 0 {
-			envVars = config.EnvVars
-		}
+		// Env vars declared in .env files take precedence to those declared in the task definition.
+		maps.Copy(envVars, dotEnvEnvVars)
 
+		// Interpolate any JSTs in environment variables
 		if len(envVars) > 0 {
-			result, err := interpolate(ctx, config, envVars)
+			result, err := interpolate(ctx, config.RemoteClient, baseInterpolateRequest, envVars)
 			if err != nil {
 				return api.Outputs{}, err
 			}
@@ -296,56 +313,16 @@ func GetKindAndOptions(taskConfig discover.TaskConfig) (build.TaskKind, build.Ki
 	return kind, kindOptions, nil
 }
 
-func MaterializeEnvVars(taskConfig discover.TaskConfig, config *conf.DevConfig) (map[string]string, error) {
+func MaterializeEnvVars(taskEnvVars libapi.TaskEnv, configVars map[string]devenv.ConfigWithEnv) (map[string]string, error) {
 	envVars := map[string]string{}
-
-	taskEnvVars, err := taskConfig.Def.GetEnv()
-	if err != nil {
-		return nil, err
-	}
-
-	// Add env vars from the airplane.yaml config file.
-	kind, _, err := taskConfig.Def.GetKindAndOptions()
-	if err != nil {
-		return nil, err
-	}
-	entrypoint, err := taskConfig.Def.GetAbsoluteEntrypoint()
-	if err != nil {
-		return nil, err
-	}
-	r, err := runtime.Lookup(entrypoint, kind)
-	if err != nil {
-		return nil, err
-	}
-	root, err := r.Root(entrypoint)
-	if err != nil {
-		return nil, err
-	}
-	configFilePath := filepath.Join(root, deployconfig.FileName)
-	hasExistingConfigFile := fsx.Exists(configFilePath)
-	if hasExistingConfigFile {
-		airplaneConfig, err := deployconfig.NewAirplaneConfigFromFile(configFilePath)
-		if err != nil {
-			return nil, err
-		}
-		for key, envVar := range airplaneConfig.EnvVars {
-			if _, ok := taskEnvVars[key]; !ok {
-				if taskEnvVars == nil {
-					taskEnvVars = make(libapi.TaskEnv)
-				}
-				taskEnvVars[key] = envVar
-			}
-		}
-	}
-
 	for key, envVar := range taskEnvVars {
 		if envVar.Value != nil {
 			envVars[key] = *envVar.Value
 		} else if envVar.Config != nil {
-			if configVal, ok := config.ConfigVars[*envVar.Config]; !ok {
-				logger.Warning("config %s is not defined in airplane.dev.yaml (referenced by env var %s)", *envVar.Config, key)
+			if configVar, ok := configVars[*envVar.Config]; !ok {
+				return nil, errors.Errorf("config %s not defined in airplane.dev.yaml (referenced by env var %s)", *envVar.Config, key)
 			} else {
-				envVars[key] = configVal
+				envVars[key] = configVar.Value
 			}
 		}
 	}
@@ -467,8 +444,8 @@ func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error
 	// - AIRPLANE_TRIGGER_ID
 	// because there is no requester, session, task revision, or triggers in the context of local dev.
 	env = append(env,
-		fmt.Sprintf("AIRPLANE_ENV_ID=%s", devenv.LocalEnvID),
-		fmt.Sprintf("AIRPLANE_ENV_SLUG=%s", devenv.LocalEnvID),
+		fmt.Sprintf("AIRPLANE_ENV_ID=%s", devenv.StudioEnvID),
+		fmt.Sprintf("AIRPLANE_ENV_SLUG=%s", devenv.StudioEnvID),
 		fmt.Sprintf("AIRPLANE_RUN_ID=%s", config.ID),
 		fmt.Sprintf("AIRPLANE_PARENT_RUN_ID=%s", pointers.ToString(config.ParentRunID)),
 		fmt.Sprintf("AIRPLANE_RUNNER_EMAIL=%s", runnerEmail),
@@ -494,14 +471,24 @@ func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error
 	return env, nil
 }
 
-func interpolate(ctx context.Context, cfg LocalRunConfig, value any) (any, error) {
-	resp, err := cfg.RemoteClient.EvaluateTemplate(ctx, libapi.EvaluateTemplateRequest{
-		Value:       value,
+func baseEvaluateTemplateRequest(cfg LocalRunConfig, configVars map[string]string) libapi.EvaluateTemplateRequest {
+	return libapi.EvaluateTemplateRequest{
 		RunID:       cfg.ID,
 		Env:         devenv.NewLocalEnv(),
 		Resources:   cfg.AliasToResource,
-		Configs:     cfg.ConfigVars,
+		Configs:     configVars,
 		ParamValues: cfg.ParamValues,
+	}
+}
+
+func interpolate(ctx context.Context, remoteClient api.APIClient, baseRequest libapi.EvaluateTemplateRequest, value any) (any, error) {
+	resp, err := remoteClient.EvaluateTemplate(ctx, libapi.EvaluateTemplateRequest{
+		Value:       value,
+		RunID:       baseRequest.RunID,
+		Env:         baseRequest.Env,
+		Resources:   baseRequest.Resources,
+		Configs:     baseRequest.Configs,
+		ParamValues: baseRequest.ParamValues,
 	})
 	if err != nil {
 		var apiErr api.Error
