@@ -251,11 +251,71 @@ func TestConverter(t *testing.T) {
 								{
 									Slug: "name",
 									Name: "Name",
-									Type: "string",
+									Type: libapi.TypeString,
+									Desc: "My description",
 									Default: map[string]interface{}{
 										"__airplaneType": "template",
 										"raw":            "Hello",
 									},
+								},
+								{
+									Slug:        "optional_param",
+									Name:        "optional param",
+									Type:        libapi.TypeString,
+									Constraints: libapi.Constraints{Optional: true},
+								},
+								{
+									Slug: "number_param",
+									Name: "number example",
+									Type: libapi.TypeInteger,
+								},
+								{
+									Slug: "float_param",
+									Name: "float example",
+									Type: libapi.TypeFloat,
+								},
+								{
+									Slug: "bool_example",
+									Name: "bool example",
+									Type: libapi.TypeBoolean,
+								},
+								{
+									Slug:        "option_dropdown",
+									Type:        libapi.TypeString,
+									Constraints: libapi.Constraints{Options: []libapi.ConstraintOption{{Label: "label1", Value: "value1"}}},
+								},
+								{
+									Slug:      "long_text",
+									Type:      libapi.TypeString,
+									Component: libapi.ComponentTextarea,
+								},
+								{
+									Slug: "date_example",
+									Type: libapi.TypeDate,
+								},
+								{
+									Slug: "datetime_example",
+									Type: libapi.TypeDatetime,
+								},
+								{
+									Slug:      "sql_param",
+									Name:      "sql example",
+									Type:      libapi.TypeString,
+									Component: libapi.ComponentEditorSQL,
+								},
+								{
+									Slug:        "regex_param",
+									Name:        "regex example",
+									Type:        libapi.TypeString,
+									Constraints: libapi.Constraints{Regex: "^airplane$"},
+								},
+								{
+									Slug: "file_is_ignored",
+									Type: libapi.TypeUpload,
+								},
+								{
+									Slug: "config_is_ignored",
+									Type: libapi.TypeConfigVar,
 								},
 							},
 						},

@@ -383,6 +383,8 @@ func (c Client) ListSessionBlocks(ctx context.Context, sessionID string) (
 	res ListSessionBlocksResponse,
 	err error,
 ) {
+	// TODO: list session blocks will error when unmarshaling if there is a template constraint
+	// in the parameter option, until the Parameter struct is updated in lib to match airport
 	q := url.Values{"sessionID": []string{sessionID}}
 	err = c.do(ctx, "GET", "/sessions/listBlocks?"+q.Encode(), nil, &res)
 	return

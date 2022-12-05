@@ -6,7 +6,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/airplanedev/lib/pkg/api"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/pkg/errors"
 )
@@ -184,13 +183,20 @@ func interfaceToJSObj(
 	return obj, nil
 }
 
-func typeToWorkflowType(apiType api.Type) string {
-	switch apiType {
-	case api.TypeString:
+func getParamType(paramType libapi.Type, component libapi.Component) string {
+	if component == libapi.ComponentEditorSQL {
+		return "sql"
+	} else if component == libapi.ComponentTextarea {
+		return "longtext"
+	} else if paramType == libapi.TypeString {
 		return "shorttext"
-	default:
-		return string(apiType)
+	} else if paramType == libapi.TypeInteger {
+		return "integer"
+	} else if paramType == libapi.TypeFloat {
+		return "float"
 	}
+	// date, datetime, bool are the same as their types
+	return string(paramType)
 }
 
 func firstValue(values map[string]string) string {

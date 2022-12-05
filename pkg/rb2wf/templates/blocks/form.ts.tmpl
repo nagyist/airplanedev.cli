@@ -1,0 +1,14 @@
+{{if .StartCondition}}
+
+if ({{.StartCondition}}) {
+  const {{.BlockSlug}} = await airplane.prompt(
+    {{jsObj .Params}},
+  );
+} else {
+  console.log("Skipping over '{{.BlockSlug}}' because startCondition is false");
+}
+{{else}}
+const {{.BlockSlug}} = await airplane.prompt(
+  {{jsObj .Params}},
+);
+{{end}}

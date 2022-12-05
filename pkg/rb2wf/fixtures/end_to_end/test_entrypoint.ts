@@ -115,38 +115,65 @@ export default airplane.workflow(
 
     await airplane.slack.message("notif-deploys-test", "Hello!");
 
-    // The conversion of this block type hasn't been implemented yet:
-    //
-    // {
-    //  "id": "formBlockID",
-    //  "kind": "form",
-    //  "kindConfig": {
-    //   "form": {
-    //    "parameters": {
-    //     "parameters": [
-    //      {
-    //       "name": "Name",
-    //       "slug": "name",
-    //       "type": "string",
-    //       "desc": "",
-    //       "component": "",
-    //       "default": {
-    //        "__airplaneType": "template",
-    //        "raw": "Hello"
-    //       },
-    //       "constraints": {
-    //        "optional": false,
-    //        "regex": ""
-    //       }
-    //      }
-    //     ]
-    //    },
-    //    "paramValues": null
-    //   }
-    //  },
-    //  "startCondition": "",
-    //  "slug": "form_block_slug"
-    // }
-    let form_block_slug: any;
+    const form_block_slug = await airplane.prompt({
+      name: {
+        name: "Name",
+        slug: "name",
+        type: "shorttext",
+        desc: "My description",
+        default: "Hello",
+        required: true,
+      },
+      optional_param: {
+        name: "optional param",
+        slug: "optional_param",
+        type: "shorttext",
+        required: false,
+      },
+      number_param: {
+        name: "number example",
+        slug: "number_param",
+        type: "integer",
+        required: true,
+      },
+      float_param: {
+        name: "float example",
+        slug: "float_param",
+        type: "float",
+        required: true,
+      },
+      bool_example: {
+        name: "bool example",
+        slug: "bool_example",
+        type: "boolean",
+        required: true,
+      },
+      option_dropdown: {
+        slug: "option_dropdown",
+        type: "shorttext",
+        required: true,
+        options: [{ label: "label1", value: "value1" }],
+      },
+      long_text: { slug: "long_text", type: "longtext", required: true },
+      date_example: { slug: "date_example", type: "date", required: true },
+      datetime_example: {
+        slug: "datetime_example",
+        type: "datetime",
+        required: true,
+      },
+      sql_param: {
+        name: "sql example",
+        slug: "sql_param",
+        type: "sql",
+        required: true,
+      },
+      regex_param: {
+        name: "regex example",
+        slug: "regex_param",
+        type: "shorttext",
+        required: true,
+        regex: "^airplane$",
+      },
+    });
   }
 );

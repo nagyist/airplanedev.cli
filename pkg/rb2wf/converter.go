@@ -14,6 +14,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/logger"
 	libapi "github.com/airplanedev/lib/pkg/api"
+	"github.com/airplanedev/ojson"
 	"github.com/pkg/errors"
 )
 
@@ -47,6 +48,9 @@ var (
 
 	//go:embed templates/blocks/task.ts.tmpl
 	taskTemplate string
+
+	//go:embed templates/blocks/form.ts.tmpl
+	formTemplate string
 
 	//go:embed templates/blocks/unimplemented.ts.tmpl
 	unimplementedTemplate string
@@ -85,7 +89,7 @@ func (r *RunbookConverter) Convert(ctx context.Context, runbookSlug string) erro
 		workflowParams[param.Slug] = map[string]interface{}{
 			"name": param.Name,
 			"slug": param.Slug,
-			"type": typeToWorkflowType(param.Type),
+			"type": getParamType(param.Type, param.Component),
 		}
 
 		if param.Default != nil {
@@ -203,12 +207,71 @@ func (r *RunbookConverter) getRunbookInfo(
 	}, nil
 }
 
+// PromptAPIParameter maps to the json struct for the prompt request
+type PromptAPIParameter struct {
+	Name     string      `json:"name,omitempty"`
+	Slug     string      `json:"slug"`
+	Type     string      `json:"type,omitempty"`
+	Desc     string      `json:"desc,omitempty"`
+	Default  interface{} `json:"default,omitempty"`
+	Required bool        `json:"required"`
+	Options  interface{} `json:"options,omitempty"`
+	Regex    string      `json:"regex,omitempty"`
+}
+
+// Config types and file uploads aren't supported in prompts yet.
+func isUnsupportedParamType(t libapi.Type) bool {
+	return t == libapi.TypeConfigVar || t == libapi.TypeUpload
+}
+
+// runbookParamsToPromptParams helps construct a map of prompt parameters
+// in the valid format of {slug: PromptAPIParameterJSONObj}
+func runbookParamsToPromptParams(params libapi.Parameters) (interface{}, error) {
+	o := ojson.NewObject()
+	for _, p := range params {
+		if isUnsupportedParamType(p.Type) {
+			logger.Warning("- Skipping unsupported parameter - %s parameter types are not supported: %s.", p.Type, p.Slug)
+			continue
+		}
+		defaultV, err := interfaceToJSObj(p.Default, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		formParam := PromptAPIParameter{
+			Name:     p.Name,
+			Slug:     p.Slug,
+			Desc:     p.Desc,
+			Type:     getParamType(p.Type, p.Component),
+			Default:  defaultV,
+			Required: !p.Constraints.Optional,
+			Regex:    p.Constraints.Regex,
+		}
+		if len(p.Constraints.Options) > 0 {
+			options, err := interfaceToJSObj(p.Constraints.Options, nil)
+			if err != nil {
+				return nil, err
+			}
+
+			// in the case that the options are a dropdown (and not ConstraintOptions), manually construct them
+			if _, ok := options.(templateValue); ok {
+				options = []interface{}{map[string]interface{}{"label": "", "value": options}}
+			}
+			if options != nil {
+				formParam.Options = options
+			}
+		}
+
+		o.Set(p.Slug, formParam)
+	}
+	return o, nil
+}
+
 func (r *RunbookConverter) blockToString(
 	ctx context.Context,
 	block api.SessionBlock,
 	resources map[string]libapi.Resource,
 ) (string, error) {
-	// TODO: Add support for form blocks.
 	if block.BlockKindConfig.Task != nil {
 		config := block.BlockKindConfig.Task
 		task, err := r.client.GetTaskByID(ctx, config.TaskID)
@@ -258,8 +321,30 @@ func (r *RunbookConverter) blockToString(
 		if err != nil {
 			return "", err
 		}
-
 		return noteBlockStr, nil
+	} else if block.BlockKindConfig.Form != nil {
+		config := block.BlockKindConfig.Form
+		blockParams, err := runbookParamsToPromptParams(config.Parameters)
+		if err != nil {
+			return "", err
+		}
+		formParams, err := interfaceToJSObj(blockParams, nil)
+		if err != nil {
+			return "", err
+		}
+		formBlockStr, err := applyTemplate(formTemplate, struct {
+			BlockSlug      string
+			Params         interface{}
+			StartCondition string
+		}{
+			BlockSlug:      block.Slug,
+			Params:         formParams,
+			StartCondition: block.StartCondition,
+		})
+		if err != nil {
+			return "", err
+		}
+		return formBlockStr, nil
 	} else if block.BlockKindConfig.StdAPI != nil {
 		config := block.BlockKindConfig.StdAPI
 
