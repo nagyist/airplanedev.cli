@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -28,6 +29,7 @@ import (
 	deployconfig "github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
+	"github.com/airplanedev/lib/pkg/runtime/javascript"
 	_ "github.com/airplanedev/lib/pkg/runtime/javascript"
 	_ "github.com/airplanedev/lib/pkg/runtime/python"
 	_ "github.com/airplanedev/lib/pkg/runtime/rest"
@@ -38,6 +40,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slices"
+	"gopkg.in/yaml.v3"
 )
 
 type config struct {
@@ -936,13 +939,13 @@ func apiTaskToRuntimeTask(task *libapi.Task) *runtime.Task {
 }
 
 func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.TaskKind, def definitions.Definition_0_3) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return errors.Wrap(err, "getting working directory")
+	}
+
 	switch kind {
 	case build.TaskKindNode:
-		cwd, err := os.Getwd()
-		if err != nil {
-			return errors.Wrap(err, "getting working directory")
-		}
-
 		packageJSONDir, err := node.CreatePackageJSON(cwd, node.PackageJSONOptions{
 			Dependencies: node.NodeDependencies{
 				Dependencies:    []string{"airplane"},
@@ -958,10 +961,18 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 			return err
 		}
 
+		runtime := javascript.Runtime{}
+		root, err := runtime.Root(cwd)
+		if err != nil {
+			return err
+		}
+
 		if cfg.root.Flagger.Bool(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), flagsiface.AirplaneConfg) {
-			if err := node.CreateOrUpdateAirplaneConfig(cwd, deployconfig.AirplaneConfig{
-				NodeVersion: nodeVersion,
-				Base:        buildBase,
+			if err := createOrUpdateAirplaneConfig(root, deployconfig.AirplaneConfig{
+				Javascript: deployconfig.JavaScriptConfig{
+					NodeVersion: string(nodeVersion),
+					Base:        string(buildBase),
+				},
 			}); err != nil {
 				return err
 			}
@@ -974,4 +985,66 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 	default:
 		return nil
 	}
+}
+
+// createOrUpdateAirplaneConfig creates or updates an existing airplane.yaml.
+func createOrUpdateAirplaneConfig(root string, cfg deployconfig.AirplaneConfig) error {
+	var existingConfig deployconfig.AirplaneConfig
+	var err error
+	existingConfigFilePath := filepath.Join(root, deployconfig.FileName)
+	hasExistingConfigFile := fsx.Exists(existingConfigFilePath)
+	if hasExistingConfigFile {
+		existingConfig, err = deployconfig.NewAirplaneConfigFromFile(existingConfigFilePath)
+		if err != nil {
+			return err
+		}
+	}
+
+	f, err := os.OpenFile(existingConfigFilePath, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+
+	return writeNewAirplaneConfig(f, getNewAirplaneConfigOptions{
+		cfg:               cfg,
+		existingConfig:    existingConfig,
+		hasExistingConfig: hasExistingConfigFile,
+	})
+}
+
+type getNewAirplaneConfigOptions struct {
+	cfg               deployconfig.AirplaneConfig
+	existingConfig    deployconfig.AirplaneConfig
+	hasExistingConfig bool
+}
+
+// writeNewAirplaneConfig is a helper called from createOrUpdateAirplaneConfig.
+func writeNewAirplaneConfig(writer io.Writer, opts getNewAirplaneConfigOptions) error {
+	if opts.hasExistingConfig {
+		existingBuf, _ := yaml.Marshal(&opts.existingConfig)
+		if string(existingBuf) != "{}\n" {
+			// The existing config is not empty. Don't update it, but possibly log
+			// some helpful hints.
+			if opts.cfg.Javascript.NodeVersion != "" && opts.existingConfig.Javascript.NodeVersion == "" {
+				logger.Warning("We recommend specifying a nodeVersion in your %s.", deployconfig.FileName)
+			}
+			return nil
+		}
+	}
+
+	buf, err := yaml.Marshal(&opts.cfg)
+	if err != nil {
+		return errors.Wrapf(err, "Error while Marshaling %s", deployconfig.FileName)
+	}
+
+	if _, err := writer.Write(buf); err != nil {
+		return errors.Wrapf(err, "writing %s", deployconfig.FileName)
+	}
+
+	if opts.hasExistingConfig {
+		logger.Step("Updated %s", deployconfig.FileName)
+	} else {
+		logger.Step("Created %s", deployconfig.FileName)
+	}
+	return nil
 }

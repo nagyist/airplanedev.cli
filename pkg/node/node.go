@@ -17,11 +17,8 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/build"
-	"github.com/airplanedev/lib/pkg/deploy/config"
-	"github.com/airplanedev/lib/pkg/runtime/javascript"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v3"
 )
 
 type NodeDependencies struct {
@@ -49,8 +46,8 @@ func CreatePackageJSON(directory string, packageJSONOptions PackageJSONOptions) 
 			selectedPackageJSONDir = packageJSONDirPath
 		} else {
 			opts := []string{
-				"Yes",
-				"No, create package.json in my working directory",
+				"Yes (recommended)",
+				"No, create a nested project in my working directory",
 			}
 			useExisting := opts[0]
 			var surveyResp string
@@ -60,7 +57,7 @@ func CreatePackageJSON(directory string, packageJSONOptions PackageJSONOptions) 
 			}
 			if err := survey.AskOne(
 				&survey.Select{
-					Message: fmt.Sprintf("Found existing package.json at %s. Use this to manage dependencies?", formattedPath),
+					Message: fmt.Sprintf("Found an existing project with package.json at %s. Use this project?", formattedPath),
 					Options: opts,
 					Default: useExisting,
 				},
@@ -83,75 +80,6 @@ func CreatePackageJSON(directory string, packageJSONOptions PackageJSONOptions) 
 	}
 
 	return selectedPackageJSONDir, addAllPackages(selectedPackageJSONDir, useYarn, packageJSONOptions.Dependencies)
-}
-
-// CreateOrUpdateAirplaneConfig creates or updates an existing airplane.config.yaml.
-func CreateOrUpdateAirplaneConfig(directory string, cfg config.AirplaneConfig) error {
-	var existingConfig config.AirplaneConfig
-	var existingConfigFilePath string
-	var err error
-	existingConfigFileDir, hasExistingConfigFile := fsx.Find(directory, config.FileName)
-	if hasExistingConfigFile {
-		existingConfigFilePath = filepath.Join(existingConfigFileDir, config.FileName)
-		existingConfig, err = config.NewAirplaneConfigFromFile(existingConfigFilePath)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Calculate node version
-	runtime := javascript.Runtime{}
-	root, err := runtime.Root(directory)
-	if err != nil {
-		return err
-	}
-	existingNodeVersion, err := runtime.Version(root)
-	if err != nil {
-		return err
-	}
-	correctNodeVersionSet := cfg.NodeVersion != "" && cfg.NodeVersion == existingNodeVersion
-
-	// Calculate build base
-	existingBuildBase := existingConfig.Base
-	correctBuildBaseSet := cfg.Base != "" && cfg.Base == existingBuildBase
-
-	if correctBuildBaseSet && correctNodeVersionSet {
-		// Correct values already set.
-		return nil
-	}
-
-	if cfg.NodeVersion != "" && existingNodeVersion != "" && cfg.NodeVersion != existingNodeVersion {
-		cfg.NodeVersion = existingConfig.NodeVersion
-		logger.Warning("Failed set Node.js version %s: conflicts with existing version %s", cfg.NodeVersion, existingNodeVersion)
-	} else if cfg.NodeVersion == "" {
-		cfg.NodeVersion = build.DefaultNodeVersion
-	}
-	if cfg.Base != "" && existingBuildBase != "" && cfg.Base != existingBuildBase {
-		cfg.Base = existingConfig.Base
-		logger.Warning("Failed set base %s: conflicts with existing base %s", cfg.Base, existingBuildBase)
-	}
-
-	pathToWrite := filepath.Join(root, config.FileName)
-	if hasExistingConfigFile {
-		pathToWrite = existingConfigFilePath
-	}
-
-	buf, err := yaml.Marshal(&cfg)
-	if err != nil {
-		fmt.Printf("Error while Marshaling. %v", err)
-	}
-
-	if err := os.WriteFile(pathToWrite, buf, 0644); err != nil {
-		return errors.Wrapf(err, "writing %s", config.FileName)
-	}
-
-	if hasExistingConfigFile {
-		logger.Step("Updated %s", config.FileName)
-	} else {
-		logger.Step("Created %s", config.FileName)
-	}
-	return nil
-
 }
 
 func addAllPackages(packageJSONDirPath string, useYarn bool, dependencies NodeDependencies) error {
