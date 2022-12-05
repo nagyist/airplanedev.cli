@@ -461,10 +461,11 @@ func (r Runtime) Workdir(path string) (string, error) {
 // Root implementation.
 func (r Runtime) Root(path string) (string, error) {
 	root, ok := fsx.Find(path, "requirements.txt")
-	if !ok {
-		return filepath.Dir(path), nil
+	if ok {
+		return root, nil
+
 	}
-	return root, nil
+	return runtime.RootForNonBuiltRuntime(path)
 }
 
 func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, err error) {

@@ -74,31 +74,6 @@ func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]Bundle, e
 		}
 	}
 
-	// If any of the bundles are children of other bundles, convert the child root to being == the parent root.
-	// This ensures that we are creating as few bundles as possible.
-	// In order to do this, we set the child root path to the parent root path and update the target paths to be relative
-	// to the new (higher up) root.
-	for _, b := range dedupedBundles {
-		for i, b2 := range dedupedBundles {
-			bIsParentOfB2, err := fsx.IsSubDirectory(b.RootPath, b2.RootPath)
-			if err != nil {
-				return nil, err
-			}
-			if bIsParentOfB2 {
-				b2RelFromb1, err := filepath.Rel(b.RootPath, b2.RootPath)
-				if err != nil {
-					return nil, err
-				}
-				b2.RootPath = b.RootPath
-				// Update the targets of b2 to be relative to the new root path.
-				for ti, target := range b2.TargetPaths {
-					b2.TargetPaths[ti] = path.Join(b2RelFromb1, target)
-				}
-				dedupedBundles[i] = b2
-			}
-		}
-	}
-
 	return dedupedBundles, nil
 }
 

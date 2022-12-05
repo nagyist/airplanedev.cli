@@ -157,8 +157,8 @@ func TestDiscover(t *testing.T) {
 					},
 				},
 				{
-					RootPath:    fixturesPath,
-					TargetPaths: []string{"nonbuildtasknested/nested/nested"},
+					RootPath:    path.Join(fixturesPath, "nonbuildtasknested/nested/nested"),
+					TargetPaths: []string{"."},
 					BuildContext: build.BuildContext{
 						Type:    build.NodeBuildType,
 						Version: build.BuildTypeVersionNode18,
@@ -350,15 +350,15 @@ func TestDiscover(t *testing.T) {
 						Version: build.BuildTypeVersionNode14,
 					}},
 				{
-					RootPath:    fixturesPath,
-					TargetPaths: []string{"multipleTasksDiffRoot/nested"},
+					RootPath:    path.Join(fixturesPath, "multipleTasksDiffRoot/nested"),
+					TargetPaths: []string{"."},
 					BuildContext: build.BuildContext{
 						Type:    build.NodeBuildType,
 						Version: build.BuildTypeVersionNode14,
 					}},
 				{
-					RootPath:    fixturesPath,
-					TargetPaths: []string{"multipleTasksDiffRoot/nested/nested"},
+					RootPath:    path.Join(fixturesPath, "multipleTasksDiffRoot/nested/nested"),
+					TargetPaths: []string{"."},
 					BuildContext: build.BuildContext{
 						Type:    build.NodeBuildType,
 						Version: build.BuildTypeVersionNode14,

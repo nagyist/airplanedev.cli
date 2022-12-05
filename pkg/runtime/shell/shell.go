@@ -139,7 +139,7 @@ func (r Runtime) Root(path string) (string, error) {
 			return root, nil
 		}
 	}
-	return filepath.Dir(path), nil
+	return runtime.RootForNonBuiltRuntime(path)
 }
 
 func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, err error) {

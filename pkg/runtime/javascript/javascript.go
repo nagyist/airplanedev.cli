@@ -280,8 +280,7 @@ func (r Runtime) Workdir(path string) (string, error) {
 		return p, nil
 	}
 
-	// Otherwise default to immediate directory of path
-	return filepath.Dir(path), nil
+	return runtime.RootForNonBuiltRuntime(path)
 }
 
 // Root picks which directory to use as the root of a task's code.
