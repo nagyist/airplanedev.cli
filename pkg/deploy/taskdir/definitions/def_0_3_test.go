@@ -1267,7 +1267,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 				Command: []string{"node"},
 				Arguments: []string{
 					"/airplane/.airplane/dist/universal-shim.js",
-					"/airplane/.airplane/main.ts",
+					"/airplane/.airplane/main.js",
 					"default",
 					"{{JSON.stringify(params)}}",
 				},

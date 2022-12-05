@@ -13,6 +13,7 @@ import (
 
 	"github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/pointers"
 	"github.com/alessio/shellescape"
 	"github.com/flynn/go-shlex"
@@ -158,17 +159,21 @@ func (d *NodeDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client
 	req.Env = d.EnvVars
 	if forBundle {
 		entrypointFunc, _ := bc["entrypointFunc"].(string)
+		entrypoint, _ := bc["entrypoint"].(string)
 		if req.Runtime == build.TaskRuntimeWorkflow {
 			req.Arguments = []string{
 				"{{JSON.stringify(params)}}",
-				bc["entrypoint"].(string),
+				entrypoint,
 				entrypointFunc,
 			}
 		} else {
+			entrypoint := path.Join("/airplane/.airplane/", entrypoint)
+			// Ensure that the entyrpoint is a .js file.
+			entrypoint = fsx.TrimExtension(entrypoint) + ".js"
 			req.Command = []string{"node"}
 			req.Arguments = []string{
 				"/airplane/.airplane/dist/universal-shim.js",
-				path.Join("/airplane/.airplane/", bc["entrypoint"].(string)),
+				entrypoint,
 				entrypointFunc,
 				"{{JSON.stringify(params)}}",
 			}

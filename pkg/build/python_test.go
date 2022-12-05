@@ -207,22 +207,22 @@ func TestPythonBundleBuilder(t *testing.T) {
 				Version: BuildTypeVersionPython37,
 			},
 			FilesToDiscover: []string{
-				"rootInlineTask.airplane.py",
-				"subfolder/subfolderInlineTask.airplane.py",
+				"rootInlineTask_airplane.py",
+				"subfolder/subfolderInlineTask_airplane.py",
 			},
 			BundleRuns: []BundleTestRun{
 				{
-					RelEntrypoint: "rootInlineTask.airplane.py",
+					RelEntrypoint: "rootInlineTask_airplane.py",
 					ExportName:    "my_task",
 					SearchString:  "running:my_task",
 				},
 				{
-					RelEntrypoint: "rootInlineTask.airplane.py",
+					RelEntrypoint: "rootInlineTask_airplane.py",
 					ExportName:    "my_task2",
 					SearchString:  "running:my_task2",
 				},
 				{
-					RelEntrypoint: "subfolder/subfolderInlineTask.airplane.py",
+					RelEntrypoint: "subfolder/subfolderInlineTask_airplane.py",
 					ExportName:    "my_task3",
 					SearchString:  "running:my_task3",
 				},
