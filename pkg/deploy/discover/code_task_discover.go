@@ -287,6 +287,24 @@ func ConstructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPat
 	if err := def.SetBuildVersionBase(buildContext.Version, buildContext.Base); err != nil {
 		return nil, err
 	}
+	envVars := make(api.TaskEnv)
+	envVarsFromDefn, err := def.GetEnv()
+	if err != nil {
+		return nil, err
+	}
+	// Calculate the full list of env vars. This is the env vars (from airplane config)
+	// plus the env vars from the task. Set this new list on the task def.
+	for k, v := range buildContext.EnvVars {
+		envVars[k] = api.EnvVarValue(v)
+	}
+	for k, v := range envVarsFromDefn {
+		envVars[k] = v
+	}
+	if len(envVars) > 0 {
+		if err := def.SetEnv(envVars); err != nil {
+			return nil, err
+		}
+	}
 
 	def.SetDefnFilePath(pathMetadata.AbsEntrypoint)
 

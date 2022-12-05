@@ -1,0 +1,4 @@
+javascript:
+  envVars:
+    ENV2: "2"
+    ENV3: "3"

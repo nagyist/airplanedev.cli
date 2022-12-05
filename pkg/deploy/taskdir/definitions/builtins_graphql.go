@@ -162,6 +162,9 @@ func (d GraphQLDefinition_0_3) getEntrypoint() (string, error) {
 func (d GraphQLDefinition_0_3) getEnv() (api.TaskEnv, error) {
 	return nil, nil
 }
+func (d GraphQLDefinition_0_3) setEnv(e api.TaskEnv) error {
+	return nil
+}
 
 func (d GraphQLDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
 	return nil

@@ -62,6 +62,7 @@ type taskKind_0_3 interface {
 	getKindOptions() (build.KindOptions, error)
 	getEntrypoint() (string, error)
 	getEnv() (api.TaskEnv, error)
+	setEnv(api.TaskEnv) error
 	getConfigAttachments() []api.ConfigAttachment
 	getResourceAttachments() map[string]string
 	getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase)
@@ -127,6 +128,10 @@ func (d *ImageDefinition_0_3) getEntrypoint() (string, error) {
 
 func (d *ImageDefinition_0_3) getEnv() (api.TaskEnv, error) {
 	return d.EnvVars, nil
+}
+func (d *ImageDefinition_0_3) setEnv(e api.TaskEnv) error {
+	d.EnvVars = e
+	return nil
 }
 
 func (d *ImageDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
@@ -248,6 +253,11 @@ func (d *NodeDefinition_0_3) getEnv() (api.TaskEnv, error) {
 	return d.EnvVars, nil
 }
 
+func (d *NodeDefinition_0_3) setEnv(e api.TaskEnv) error {
+	d.EnvVars = e
+	return nil
+}
+
 func (d *NodeDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
 	return []api.ConfigAttachment{}
 }
@@ -350,6 +360,11 @@ func (d *PythonDefinition_0_3) getEnv() (api.TaskEnv, error) {
 	return d.EnvVars, nil
 }
 
+func (d *PythonDefinition_0_3) setEnv(e api.TaskEnv) error {
+	d.EnvVars = e
+	return nil
+}
+
 func (d *PythonDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
 	return []api.ConfigAttachment{}
 }
@@ -433,6 +448,11 @@ func (d *ShellDefinition_0_3) getEntrypoint() (string, error) {
 
 func (d *ShellDefinition_0_3) getEnv() (api.TaskEnv, error) {
 	return d.EnvVars, nil
+}
+
+func (d *ShellDefinition_0_3) setEnv(e api.TaskEnv) error {
+	d.EnvVars = e
+	return nil
 }
 
 func (d *ShellDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
@@ -591,6 +611,10 @@ func (d *SQLDefinition_0_3) getEntrypoint() (string, error) {
 
 func (d *SQLDefinition_0_3) getEnv() (api.TaskEnv, error) {
 	return nil, nil
+}
+
+func (d *SQLDefinition_0_3) setEnv(e api.TaskEnv) error {
+	return nil
 }
 
 func (d *SQLDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
@@ -770,6 +794,9 @@ func (d *RESTDefinition_0_3) getEntrypoint() (string, error) {
 
 func (d *RESTDefinition_0_3) getEnv() (api.TaskEnv, error) {
 	return nil, nil
+}
+func (d *RESTDefinition_0_3) setEnv(e api.TaskEnv) error {
+	return nil
 }
 
 func (d *RESTDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
@@ -1396,6 +1423,14 @@ func (d *Definition_0_3) GetEnv() (api.TaskEnv, error) {
 		return nil, err
 	}
 	return taskKind.getEnv()
+}
+
+func (d *Definition_0_3) SetEnv(e api.TaskEnv) error {
+	taskKind, err := d.taskKind()
+	if err != nil {
+		return err
+	}
+	return taskKind.setEnv(e)
 }
 
 func (d *Definition_0_3) GetConfigAttachments() ([]api.ConfigAttachment, error) {

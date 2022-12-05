@@ -11,6 +11,7 @@ import (
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/logger"
+	"github.com/airplanedev/lib/pkg/utils/pointers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -714,6 +715,82 @@ func TestDiscover(t *testing.T) {
 				fixturesPath + "/taskInlineEsm/codeOnlyTask.airplane.ts",
 			},
 			defnFilePaths: []string{fixturesPath + "/taskInlineEsm/codeOnlyTask.airplane.ts"},
+		},
+		{
+			name:  "node code definition with env vars in code and in config file",
+			paths: []string{"./fixtures/envvars/codeOnlyTask.airplane.ts"},
+			existingTasks: map[string]api.Task{
+				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+			},
+			expectedTaskConfigs: []TaskConfig{
+				{
+					TaskID:         "tsk123",
+					TaskRoot:       fixturesPath + "/envvars",
+					TaskEntrypoint: fixturesPath + "/envvars/codeOnlyTask.airplane.ts",
+					Def: &definitions.Definition_0_3{
+						Name:       "Collatz Conjecture Step",
+						Slug:       "collatz",
+						Parameters: []definitions.ParameterDefinition_0_3{},
+						Node: &definitions.NodeDefinition_0_3{
+							Entrypoint: "codeOnlyTask.airplane.ts",
+							EnvVars: api.TaskEnv{
+								"ENV1": api.EnvVarValue{Value: pointers.String("1")},
+								"ENV2": api.EnvVarValue{Value: pointers.String("2")},
+								"ENV3": api.EnvVarValue{Value: pointers.String("3a")},
+							},
+						},
+					},
+					Source: ConfigSourceCode,
+				},
+			},
+			buildConfigs: []build.BuildConfig{
+				{
+					"entrypoint":     "codeOnlyTask.airplane.ts",
+					"entrypointFunc": "collatz",
+					"workdir":        "",
+				},
+			},
+			absEntrypoints: []string{
+				fixturesPath + "/envvars/codeOnlyTask.airplane.ts",
+			},
+			defnFilePaths: []string{fixturesPath + "/envvars/codeOnlyTask.airplane.ts"},
+		},
+		{
+			name:  "single defn with env vars in defn and in config file",
+			paths: []string{"./fixtures/envvars/defn.task.yaml"},
+			existingTasks: map[string]api.Task{
+				"my_task": {ID: "tsk123", Slug: "my_task", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+			},
+			expectedTaskConfigs: []TaskConfig{
+				{
+					TaskID:         "tsk123",
+					TaskRoot:       fixturesPath + "/envvars",
+					TaskEntrypoint: fixturesPath + "/envvars/single_task.js",
+					Def: &definitions.Definition_0_3{
+						Name:        "sunt in tempor eu",
+						Slug:        "my_task",
+						Description: "ut dolor sit officia ea",
+						Node: &definitions.NodeDefinition_0_3{
+							Entrypoint: "./single_task.js",
+							EnvVars: api.TaskEnv{
+								"ENV2": api.EnvVarValue{Value: pointers.String("2")},
+								"ENV3": api.EnvVarValue{Value: pointers.String("3a")},
+								"ENV5": api.EnvVarValue{Value: pointers.String("5")},
+							},
+						},
+					},
+					Source: ConfigSourceDefn,
+				},
+			},
+			buildConfigs: []build.BuildConfig{
+				{
+					"workdir": "",
+				},
+			},
+			absEntrypoints: []string{
+				fixturesPath + "/envvars/single_task.js",
+			},
+			defnFilePaths: []string{fixturesPath + "/envvars/defn.task.yaml"},
 		},
 		{
 			name:  "view code definition",

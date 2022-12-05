@@ -214,11 +214,14 @@ func setBuildVersionAndWorkingDir(file string, def definitions.DefinitionInterfa
 		return "", build.BuildContext{}, err
 	}
 
+	// Calculate the full list of env vars. This is the env vars (from airplane config)
+	// plus the env vars from the task. Set this new list on the task def
+	// and on the build context.
+	envVars := make(map[string]build.EnvVarValue)
 	envVarsFromDefn, err := def.GetEnv()
 	if err != nil {
 		return "", build.BuildContext{}, err
 	}
-	envVars := make(map[string]build.EnvVarValue)
 	for k, v := range bc.EnvVars {
 		envVars[k] = v
 	}
@@ -227,6 +230,14 @@ func setBuildVersionAndWorkingDir(file string, def definitions.DefinitionInterfa
 	}
 	if len(envVars) == 0 {
 		envVars = nil
+	} else {
+		newDefnEnvVars := make(api.TaskEnv, len(envVars))
+		for k, v := range envVars {
+			newDefnEnvVars[k] = api.EnvVarValue(v)
+		}
+		if err := def.SetEnv(newDefnEnvVars); err != nil {
+			return "", build.BuildContext{}, err
+		}
 	}
 
 	return taskPathMetadata.RootDir, build.BuildContext{
