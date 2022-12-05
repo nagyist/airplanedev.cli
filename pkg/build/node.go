@@ -30,11 +30,13 @@ type templateParams struct {
 	Base                             string
 	HasPackageJSON                   bool
 	UsesWorkspaces                   bool
-	InlineShim                       string
+	InlineTaskShim                   string
+	InlineWorkerShim                 string
 	InlineShimPackageJSON            string
+	InlineWorkflowShimPackageJSON    string
 	InlineWorkflowBundlerScript      string
 	InlineWorkflowInterceptorsScript string
-	InlineWorkflowShimScript         string
+	InlineWorkflowShim               string
 	IsWorkflow                       bool
 	NodeVersion                      string
 	ExternalFlags                    string
@@ -54,8 +56,6 @@ type templateParams struct {
 	// FilesToDiscover is a string of space-separated built js files to discover entity configs from.
 	// These files are the output of esbuild on FilesToBuild.
 	FilesToDiscover string
-	// InlineUniversalShim is installed to run any built entity in the image (imports entrypoint dynamically)
-	InlineUniversalShim string
 }
 
 // node creates a dockerfile for Node (typescript/javascript).
@@ -215,18 +215,18 @@ func node(
 
 	entrypointFunc, _ := options["entrypointFunc"].(string)
 	if isWorkflow {
-		cfg.InlineShim = inlineString(workerShim)
+		cfg.InlineTaskShim = inlineString(workerShim)
 		cfg.InlineWorkflowBundlerScript = inlineString(workflowBundlerScript)
 		cfg.InlineWorkflowInterceptorsScript = inlineString(workflowInterceptorsScript)
 
-		workflowShim, err := TemplateEntrypoint(workflowShimScript, NodeShimParams{
+		workflowShimTemplated, err := TemplateEntrypoint(workflowShim, NodeShimParams{
 			Entrypoint:     entrypoint,
 			EntrypointFunc: entrypointFunc,
 		})
 		if err != nil {
 			return "", err
 		}
-		cfg.InlineWorkflowShimScript = inlineString(workflowShim)
+		cfg.InlineWorkflowShim = inlineString(workflowShimTemplated)
 	} else {
 		shim, err := TemplatedNodeShim(NodeShimParams{
 			Entrypoint:     entrypoint,
@@ -235,7 +235,7 @@ func node(
 		if err != nil {
 			return "", err
 		}
-		cfg.InlineShim = inlineString(shim)
+		cfg.InlineTaskShim = inlineString(shim)
 	}
 
 	cfg.InstallCommand = makeInstallCommand(makeInstallCommandReq{
@@ -243,7 +243,6 @@ func node(
 		RootPackageJSON:   rootPackageJSON,
 		IsYarn:            isYarn,
 		HasPackageLock:    hasPackageLock,
-		IsWorkflow:        cfg.IsWorkflow,
 	})
 
 	// For safety purposes, we need to install from the full code if either (1) there are any
@@ -333,13 +332,13 @@ func node(
 		{{end}}
 
 		{{if .IsWorkflow}}
-		RUN {{.InlineWorkflowShimScript}} >> /airplane/.airplane/workflow-shim.js \
+		RUN {{.InlineWorkflowShim}} >> /airplane/.airplane/workflow-shim.js \
 			&& {{.InlineWorkflowInterceptorsScript}} >> /airplane/.airplane/workflow-interceptors.js \
 			&& {{.InlineWorkflowBundlerScript}} >> /airplane/.airplane/workflow-bundler.js
 		RUN node /airplane/.airplane/workflow-bundler.js
 		{{end}}
 
-		RUN {{.InlineShim}} > /airplane/.airplane/shim.js && \
+		RUN {{.InlineTaskShim}} > /airplane/.airplane/shim.js && \
 			esbuild /airplane/.airplane/shim.js \
 				--bundle \
 				--platform=node {{.ExternalFlags}} \
@@ -374,7 +373,7 @@ func GenShimPackageJSON(rootDir string, packageJSONs []string, isWorkflow bool) 
 	} else {
 		pjson = shimPackageJSON{
 			Dependencies: map[string]string{
-				"airplane": "^0.2.0",
+				"airplane": defaultSDKVersion,
 			},
 		}
 	}
@@ -449,7 +448,10 @@ var workflowBundlerScript string
 var workflowInterceptorsScript string
 
 //go:embed workflow/workflow-shim.js
-var workflowShimScript string
+var workflowShim string
+
+//go:embed workflow/universal-workflow-shim.js
+var universalWorkflowShim string
 
 type NodeShimParams struct {
 	Entrypoint     string
@@ -701,8 +703,6 @@ func nodeBundle(
 	pathPackageLock := filepath.Join(root, "package-lock.json")
 	hasPackageLock := fsx.AssertExistsAll(pathPackageLock) == nil
 
-	isWorkflow := isWorkflowRuntime(options)
-
 	var pkg PackageJSON
 	if hasPackageJSON {
 		pkg, err = ReadPackageJSON(rootPackageJSON)
@@ -738,20 +738,49 @@ func nodeBundle(
 		installCommand = airplaneConfig.Javascript.Install
 	}
 
+	type TaskImport struct {
+		CompiledFile string
+		UserFile     string
+	}
+
+	var taskImports []TaskImport
+	for _, file := range filesToBuild {
+		fileToBuildExt := filepath.Ext(file)
+		compiledFile := strings.TrimSuffix(file, fileToBuildExt) + ".js"
+		taskImports = append(taskImports, TaskImport{
+			CompiledFile: compiledFile,
+			UserFile:     file,
+		})
+	}
+
+	universalWorkflowShimTemplated, err := applyTemplate(universalWorkflowShim, struct {
+		Entrypoints []string
+		TaskImports []TaskImport
+	}{
+		Entrypoints: filesToBuild,
+		TaskImports: taskImports,
+	})
+	if err != nil {
+		return "", err
+	}
+
 	cfg := templateParams{
 		Workdir:        workdir,
 		HasPackageJSON: hasPackageJSON,
 		UsesWorkspaces: len(pkg.Workspaces.Workspaces) > 0,
 		// esbuild is relatively generous in the node versions it supports:
 		// https://esbuild.github.io/api/#target
-		NodeVersion:         string(buildContext.VersionOrDefault()),
-		PreInstallCommand:   preinstallCommand,
-		PostInstallCommand:  postInstallCommand,
-		PreInstallPath:      installHooks.PreInstallFilePath,
-		PostInstallPath:     installHooks.PostInstallFilePath,
-		Args:                makeArgsCommand(buildArgs),
-		IsWorkflow:          isWorkflow,
-		InlineUniversalShim: inlineString(universalNodeShim),
+		NodeVersion:                      string(buildContext.VersionOrDefault()),
+		PreInstallCommand:                preinstallCommand,
+		PostInstallCommand:               postInstallCommand,
+		PreInstallPath:                   installHooks.PreInstallFilePath,
+		PostInstallPath:                  installHooks.PostInstallFilePath,
+		Args:                             makeArgsCommand(buildArgs),
+		InlineTaskShim:                   inlineString(universalNodeShim),
+		InlineWorkerShim:                 inlineString(workerShim),
+		InlineWorkflowShim:               inlineString(universalWorkflowShimTemplated),
+		InlineWorkflowBundlerScript:      inlineString(workflowBundlerScript),
+		InlineWorkflowInterceptorsScript: inlineString(workflowInterceptorsScript),
 	}
 
 	// Generate a list of all of the files to build
@@ -813,12 +842,10 @@ func nodeBundle(
 		for _, dep := range deps {
 			flags = append(flags, fmt.Sprintf("--external:%s", dep))
 		}
-		if isWorkflow {
-			// Even if these are imported, we need to mark the root packages
-			// as external for esbuild to work properly. Esbuild doesn't
-			// care about repeats, so no need to dedupe.
-			flags = append(flags, "--external:@temporalio", "--external:@swc")
-		}
+		// Even if these are imported, we need to mark the root packages
+		// as external for esbuild to work properly. Esbuild doesn't
+		// care about repeats, so no need to dedupe.
+		flags = append(flags, "--external:@temporalio", "--external:@swc")
 
 		cfg.ExternalFlags = strings.Join(flags, " ")
 	}
@@ -833,18 +860,23 @@ func nodeBundle(
 		return "", err
 	}
 
-	pjson, err := GenShimPackageJSON(root, packageJSONs, isWorkflow)
+	pjson, err := GenShimPackageJSON(root, packageJSONs, false)
 	if err != nil {
 		return "", err
 	}
 	cfg.InlineShimPackageJSON = inlineString(string(pjson))
+
+	workflowpjson, err := GenShimPackageJSON(root, packageJSONs, true)
+	if err != nil {
+		return "", err
+	}
+	cfg.InlineWorkflowShimPackageJSON = inlineString(string(workflowpjson))
 
 	cfg.InstallCommand = makeInstallCommand(makeInstallCommandReq{
 		PkgInstallCommand: installCommand,
 		RootPackageJSON:   rootPackageJSON,
 		IsYarn:            isYarn,
 		HasPackageLock:    hasPackageLock,
-		IsWorkflow:        isWorkflow,
 	})
 
 	// For safety purposes, we need to install from the full code if either (1) there are any
@@ -860,7 +892,7 @@ func nodeBundle(
 
 	if len(filesToDiscover) > 0 {
 		// Generate parser and store on context
-		parserPath := path.Join(root, ".airplane-build-tools", "inlineParser.js")
+		parserPath := path.Join(root, ".airplane-build-tools", "inlineParser.cjs")
 		if err := os.MkdirAll(path.Dir(parserPath), 0755); err != nil {
 			return "", errors.Wrapf(err, "creating parser file")
 		}
@@ -883,7 +915,9 @@ func nodeBundle(
 	// Down the road, we may want to give customers more control over this build process
 	// in which case we could introduce an extra step for performing build commands.
 	return applyTemplate(heredoc.Doc(`
-		FROM {{.Base}}
+		FROM {{.Base}} as base
+		ENV NODE_ENV=production
+		WORKDIR /airplane{{.Workdir}}
 
 		{{if .UseSlimImage}}
 		RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
@@ -892,27 +926,11 @@ func nodeBundle(
 			&& apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 		{{end}}
 
-		ENV NODE_ENV=production
-		WORKDIR /airplane{{.Workdir}}
 		# Support setting BUILD_NPM_RC or BUILD_NPM_TOKEN to configure private registry auth
 		ARG BUILD_NPM_RC
 		ARG BUILD_NPM_TOKEN
 		RUN [ -z "${BUILD_NPM_RC}" ] || echo "${BUILD_NPM_RC}" > .npmrc
 		RUN [ -z "${BUILD_NPM_TOKEN}" ] || echo "//registry.npmjs.org/:_authToken=${BUILD_NPM_TOKEN}" > .npmrc
-		# qemu (on m1 at least) segfaults while looking up a UID/GID for running
-		# postinstall scripts. We run as root with --unsafe-perm instead, skipping
-		# that lookup. Possibly could fix by building for linux/arm on m1 instead
-		# of always building for linux/amd64.
-		RUN npm install -g esbuild@0.12 --unsafe-perm
-
-		# npm >= 7 will automatically install peer dependencies, even if they're satisfied by the root. This is
-		# problematic because we need the @airplane/workflow-runtime package to register the workflow runtime in the
-		# runtime map that is utilized by the user's code, and so we explicitly request legacy behavior in this
-		# instance, which does not install peer dependencies by default.
-		RUN mkdir -p /airplane/.airplane && \
-			cd /airplane/.airplane && \
-			{{.InlineShimPackageJSON}} > package.json && \
-			npm install --legacy-peer-deps
 
 		{{range .PackageCopyCmds}}
 		{{.}}
@@ -944,14 +962,55 @@ func nodeBundle(
 		RUN chmod +x airplane_postinstall.sh && ./airplane_postinstall.sh
 		{{end}}
 
-		{{if .IsWorkflow}}
-		RUN {{.InlineWorkflowShimScript}} >> /airplane/.airplane/workflow-shim.js \
+
+		FROM {{.Base}} as workflow-build
+		ENV NODE_ENV=production
+		WORKDIR /airplane{{.Workdir}}
+
+		RUN npm install -g esbuild@0.12 --unsafe-perm
+		
+		RUN mkdir -p /airplane/.airplane && \
+			cd /airplane/.airplane && \
+			{{.InlineWorkflowShimPackageJSON}} > package.json && \
+			npm install --legacy-peer-deps
+
+		COPY --from=base /airplane /airplane
+
+		RUN {{.InlineWorkerShim}} > /airplane/.airplane/universal-shim.js && \
+			esbuild /airplane/.airplane/universal-shim.js \
+				--bundle \
+				--platform=node {{.ExternalFlags}} \
+				--target=node{{.NodeVersion}} \
+				--outfile=/airplane/.airplane/dist/universal-shim.js
+
+		RUN {{.InlineWorkflowShim}} >> /airplane/.airplane/workflow-shim.js \
 			&& {{.InlineWorkflowInterceptorsScript}} >> /airplane/.airplane/workflow-interceptors.js \
 			&& {{.InlineWorkflowBundlerScript}} >> /airplane/.airplane/workflow-bundler.js
 		RUN node /airplane/.airplane/workflow-bundler.js
-		{{end}}
+		ENTRYPOINT ["node", "/airplane/.airplane/dist/universal-shim.js"]
 
-		RUN {{.InlineUniversalShim}} > /airplane/.airplane/universal-shim.js && \
+		FROM {{.Base}} as task-build
+		ENV NODE_ENV=production
+		WORKDIR /airplane{{.Workdir}}
+
+		# qemu (on m1 at least) segfaults while looking up a UID/GID for running
+		# postinstall scripts. We run as root with --unsafe-perm instead, skipping
+		# that lookup. Possibly could fix by building for linux/arm on m1 instead
+		# of always building for linux/amd64.
+		RUN npm install -g esbuild@0.12 --unsafe-perm
+
+		# npm >= 7 will automatically install peer dependencies, even if they're satisfied by the root. This is
+		# problematic because we need the @airplane/workflow-runtime package to register the workflow runtime in the
+		# runtime map that is utilized by the user's code, and so we explicitly request legacy behavior in this
+		# instance, which does not install peer dependencies by default.
+		RUN mkdir -p /airplane/.airplane && \
+			cd /airplane/.airplane && \
+			{{.InlineShimPackageJSON}} > package.json && \
+			npm install --legacy-peer-deps
+		
+		COPY --from=base /airplane /airplane
+
+		RUN {{.InlineTaskShim}} > /airplane/.airplane/universal-shim.js && \
 			esbuild /airplane/.airplane/universal-shim.js \
 				--bundle \
 				--platform=node {{.ExternalFlags}} \
@@ -970,7 +1029,7 @@ func nodeBundle(
 		# FilesToDiscover is the location of the output of the transpiled js files
 		# that should be discovered.
 		{{if .FilesToDiscover}}
-		RUN node /airplane/.airplane-build-tools/inlineParser.js {{.FilesToDiscover}}
+		RUN node /airplane/.airplane-build-tools/inlineParser.cjs {{.FilesToDiscover}}
 		{{end}}
 	`), cfg)
 }
@@ -998,7 +1057,6 @@ type makeInstallCommandReq struct {
 	RootPackageJSON   string
 	IsYarn            bool
 	HasPackageLock    bool
-	IsWorkflow        bool
 }
 
 func makeInstallCommand(req makeInstallCommandReq) string {
@@ -1022,10 +1080,8 @@ func makeInstallCommand(req makeInstallCommandReq) string {
 		// https://docs.npmjs.com/cli/v8/commands/npm-ci
 		installCommand = "npm ci --production"
 	}
-	if req.IsWorkflow {
-		// Remove large binaries for platforms that we aren't using
-		installCommand += " && rm -Rf /airplane/node_modules/@swc/core-linux-x64-musl /airplane/node_modules/@temporalio/core-bridge/releases/aarch64* /airplane/node_modules/@temporalio/core-bridge/releases/*windows* /airplane/node_modules/@temporalio/core-bridge/releases/*darwin*"
-	}
+	// Remove large binaries for platforms that we aren't using
+	installCommand += " && rm -Rf /airplane/node_modules/@swc/core-linux-x64-musl /airplane/node_modules/@temporalio/core-bridge/releases/aarch64* /airplane/node_modules/@temporalio/core-bridge/releases/*windows* /airplane/node_modules/@temporalio/core-bridge/releases/*darwin*"
 
 	return strings.ReplaceAll(installCommand, "\n", "\\n")
 }

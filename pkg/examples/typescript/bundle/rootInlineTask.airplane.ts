@@ -7,7 +7,7 @@ export default airplane.task(
         nodeVersion: "16",
     },
     () => {
-        airplane.setOutput("running:default_export_root_folder");
+        return "running:default_export_root_folder";
     }
 )
 
@@ -18,6 +18,6 @@ export const named = airplane.task(
         nodeVersion: "16",
     },
     () => {
-        airplane.setOutput("running:named_export_root_folder");
+        return "running:named_export_root_folder";
     }
 )

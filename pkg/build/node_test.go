@@ -256,7 +256,7 @@ func TestNodeBuilder(t *testing.T) {
 	RunTests(t, ctx, tests)
 }
 
-func TestInlineConfiguredTasks(t *testing.T) {
+func TestNodeBundleBuilder(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []Test{
@@ -295,6 +295,27 @@ func TestInlineConfiguredTasks(t *testing.T) {
 					RelEntrypoint: "subfolder/nonInlineTask.js",
 					SearchString:  "running:non_inline_task",
 				},
+			},
+		},
+		{
+			Root: "typescript/workflowbundle",
+			Options: KindOptions{
+				"shim":    "true",
+				"runtime": TaskRuntimeWorkflow,
+			},
+			Bundle: true,
+			Target: "workflow-build",
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToDiscover: []string{
+				"workflow.airplane.ts",
+				"nested/nested.airplane.ts",
+			},
+			FilesToBuild: []string{
+				"workflow.airplane.ts",
+				"nested/nested.airplane.ts",
 			},
 		},
 	}

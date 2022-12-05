@@ -158,12 +158,20 @@ func (d *NodeDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client
 	req.Env = d.EnvVars
 	if forBundle {
 		entrypointFunc, _ := bc["entrypointFunc"].(string)
-		req.Command = []string{"node"}
-		req.Arguments = []string{
-			"/airplane/.airplane/dist/universal-shim.js",
-			path.Join("/airplane/.airplane/", bc["entrypoint"].(string)),
-			entrypointFunc,
-			"{{JSON.stringify(params)}}",
+		if req.Runtime == build.TaskRuntimeWorkflow {
+			req.Arguments = []string{
+				"{{JSON.stringify(params)}}",
+				bc["entrypoint"].(string),
+				entrypointFunc,
+			}
+		} else {
+			req.Command = []string{"node"}
+			req.Arguments = []string{
+				"/airplane/.airplane/dist/universal-shim.js",
+				path.Join("/airplane/.airplane/", bc["entrypoint"].(string)),
+				entrypointFunc,
+				"{{JSON.stringify(params)}}",
+			}
 		}
 	}
 	return nil

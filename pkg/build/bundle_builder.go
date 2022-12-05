@@ -44,6 +44,9 @@ type BundleLocalConfig struct {
 	//
 	// If nil, Push will produce an error.
 	Auth *RegistryAuth
+
+	// Target is the docker target to build.
+	Target string
 }
 
 type BundleDockerfileConfig struct {
@@ -64,6 +67,7 @@ type BundleBuilder struct {
 	filesToDiscover []string
 	auth            *RegistryAuth
 	client          *client.Client
+	target          string
 }
 
 // New returns a new local builder with c.
@@ -96,6 +100,7 @@ func NewBundleBuilder(c BundleLocalConfig) (*BundleBuilder, *client.Client, erro
 		filesToDiscover: c.FilesToDiscover,
 		auth:            c.Auth,
 		client:          client,
+		target:          c.Target,
 	}, client, nil
 }
 
@@ -165,6 +170,7 @@ func (b *BundleBuilder) Build(ctx context.Context, bundleBuildID, version string
 		Platform:    "linux/amd64",
 		AuthConfigs: b.authconfigs(),
 		Version:     types.BuilderBuildKit,
+		Target:      b.target,
 	}
 
 	resp, err := b.client.ImageBuild(ctx, bc, opts)

@@ -47,6 +47,8 @@ type Test struct {
 	FilesToBuild    []string
 	FilesToDiscover []string
 	BundleRuns      []BundleTestRun
+	// Target is the docker target to build.
+	Target string
 
 	// TODO: pipe to actual build/container run etc. set increased timeout if times out
 }
@@ -80,6 +82,7 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 					Options:         test.Options,
 					FilesToBuild:    test.FilesToBuild,
 					FilesToDiscover: test.FilesToDiscover,
+					Target:          test.Target,
 				})
 			} else {
 				b, client, err = New(LocalConfig{
