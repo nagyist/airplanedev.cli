@@ -7,6 +7,8 @@ javascript:
     fromConfig:
       config: CONFIG
   base: slim
+  preinstall: preinstall
+  postinstall: postinstall
 python:
   envVars:
     fromValue: value3
@@ -15,3 +17,5 @@ python:
     fromConfig:
       config: CONFIG2
   base: full
+  preinstall: preinstall
+  postinstall: postinstall

@@ -20,24 +20,24 @@ const (
 var schemaStr string
 
 type JavaScriptConfig struct {
-	Base        string  `yaml:"base,omitempty"`
-	NodeVersion string  `yaml:"nodeVersion,omitempty"`
-	EnvVars     TaskEnv `yaml:"envVars,omitempty"`
-	Install     string  `yaml:"install,omitempty"`
-	PreInstall  string  `yaml:"preinstall,omitempty"`
-	PostInstall string  `yaml:"preinstall,omitempty"`
+	Base        string  `yaml:"base,omitempty" json:"base,omitempty"`
+	NodeVersion string  `yaml:"nodeVersion,omitempty" json:"nodeVersion,omitempty"`
+	EnvVars     TaskEnv `yaml:"envVars,omitempty" json:"envVars,omitempty"`
+	Install     string  `yaml:"install,omitempty" json:"install,omitempty"`
+	PreInstall  string  `yaml:"preinstall,omitempty" json:"preinstall,omitempty"`
+	PostInstall string  `yaml:"postinstall,omitempty" json:"postinstall,omitempty"`
 }
 
 type PythonConfig struct {
-	Base        string  `yaml:"base,omitempty"`
-	EnvVars     TaskEnv `yaml:"envVars,omitempty"`
-	PreInstall  string  `yaml:"preinstall,omitempty"`
-	PostInstall string  `yaml:"preinstall,omitempty"`
+	Base        string  `yaml:"base,omitempty" json:"base,omitempty"`
+	EnvVars     TaskEnv `yaml:"envVars,omitempty" json:"envVars,omitempty"`
+	PreInstall  string  `yaml:"preinstall,omitempty" json:"preinstall,omitempty"`
+	PostInstall string  `yaml:"postinstall,omitempty" json:"postinstall,omitempty"`
 }
 
 type AirplaneConfig struct {
-	Javascript JavaScriptConfig `yaml:"javascript,omitempty"`
-	Python     PythonConfig     `yaml:"python,omitempty"`
+	Javascript JavaScriptConfig `yaml:"javascript,omitempty" json:"javascript,omitempty"`
+	Python     PythonConfig     `yaml:"python,omitempty" json:"python,omitempty"`
 }
 
 func NewAirplaneConfigFromFile(fileOrDir string) (AirplaneConfig, error) {

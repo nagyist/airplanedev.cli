@@ -26,7 +26,9 @@ func TestNewAirplaneConfigFromFile(t *testing.T) {
 						"fromValue2": EnvVarValue{Value: pointers.String("value2")},
 						"fromConfig": EnvVarValue{Config: pointers.String("CONFIG")},
 					},
-					Base: "slim",
+					Base:        "slim",
+					PreInstall:  "preinstall",
+					PostInstall: "postinstall",
 				},
 				Python: PythonConfig{
 					EnvVars: TaskEnv{
@@ -34,7 +36,9 @@ func TestNewAirplaneConfigFromFile(t *testing.T) {
 						"fromValue2": EnvVarValue{Value: pointers.String("value4")},
 						"fromConfig": EnvVarValue{Config: pointers.String("CONFIG2")},
 					},
-					Base: "full",
+					Base:        "full",
+					PreInstall:  "preinstall",
+					PostInstall: "postinstall",
 				},
 			},
 		},
