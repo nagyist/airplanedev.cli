@@ -172,12 +172,20 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		return "", err
 	}
 
+	var filesToBuildWithoutExtension []string
+	for _, fileToBuild := range filesToBuild {
+		// We use the files without their extension to generate unique paths to a specific
+		// view of the bundle. See gen_view.sh for more information on how this is used.
+		filesToBuildWithoutExtension = append(filesToBuildWithoutExtension,
+			fsx.TrimExtension(fileToBuild))
+	}
+
 	mainTsxStr := mainTsxTemplateStr
 	indexHtmlStr, err := IndexHtmlString("Airplane")
 	if err != nil {
 		return "", err
 	}
-	viteConfigStr, err := UniversalViteConfigString(filesToBuild)
+	viteConfigStr, err := UniversalViteConfigString(filesToBuildWithoutExtension)
 	if err != nil {
 		return "", err
 	}
@@ -245,7 +253,7 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		esbuildFlags = append(esbuildFlags, fmt.Sprintf("--external:%s", dep))
 	}
 
-	directoryToBuildTo := ".airplane-build"
+	directoryToBuildTo := ".airplane"
 
 	// Generate a list of all of the files to discover
 	var discoverEntrypoints []string
@@ -275,37 +283,39 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 	}
 
 	cfg := struct {
-		Base               string
-		InstallCommand     string
-		OutDir             string
-		InlineMainTsx      string
-		InlineIndexHtml    string
-		InlineViteConfig   string
-		APIHost            string
-		InlinePackageJSON  string
-		EsbuildFlags       string
-		FilesToBuild       string
-		FilesToDiscover    string
-		DirectoryToBuildTo string
-		NodeVersion        string
+		Base                         string
+		InstallCommand               string
+		OutDir                       string
+		InlineMainTsx                string
+		InlineIndexHtml              string
+		InlineViteConfig             string
+		APIHost                      string
+		InlinePackageJSON            string
+		EsbuildFlags                 string
+		FilesToBuild                 string
+		FilesToBuildWithoutExtension string
+		FilesToDiscover              string
+		DirectoryToBuildTo           string
+		NodeVersion                  string
 	}{
 		Base: base,
 		// Because the install command is running in the context of a docker build, the yarn cache
 		// isn't used after the packages are installed, so we clean the cache to keep the image
 		// lean. This doesn't apply to Yarn v2 (specifically Plug'n'Play), which uses the cache
 		// directory for storing packages.
-		InstallCommand:     "yarn install --non-interactive && yarn cache clean",
-		OutDir:             "dist",
-		InlineMainTsx:      inlineString(mainTsxStr),
-		InlineIndexHtml:    inlineString(indexHtmlStr),
-		InlineViteConfig:   inlineString(viteConfigStr),
-		APIHost:            apiHost,
-		InlinePackageJSON:  inlineString(string(packageJSONByte)),
-		EsbuildFlags:       strings.Join(esbuildFlags, " "),
-		FilesToBuild:       strings.Join(filesToBuild, " "),
-		FilesToDiscover:    strings.Join(discoverEntrypoints, " "),
-		DirectoryToBuildTo: directoryToBuildTo,
-		NodeVersion:        nodeVersion,
+		InstallCommand:               "yarn install --non-interactive && yarn cache clean",
+		OutDir:                       "dist",
+		InlineMainTsx:                inlineString(mainTsxStr),
+		InlineIndexHtml:              inlineString(indexHtmlStr),
+		InlineViteConfig:             inlineString(viteConfigStr),
+		APIHost:                      apiHost,
+		InlinePackageJSON:            inlineString(string(packageJSONByte)),
+		EsbuildFlags:                 strings.Join(esbuildFlags, " "),
+		FilesToBuild:                 strings.Join(filesToBuild, " "),
+		FilesToBuildWithoutExtension: strings.Join(filesToBuildWithoutExtension, " "),
+		FilesToDiscover:              strings.Join(discoverEntrypoints, " "),
+		DirectoryToBuildTo:           directoryToBuildTo,
+		NodeVersion:                  nodeVersion,
 	}
 
 	return applyTemplate(heredoc.Doc(`
@@ -337,7 +347,7 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		{{end}}
 
 		# Generate index.html and main.tsx for each entrypoint.
-		RUN {{.InlineIndexHtml}} > index.html && {{.InlineMainTsx}} > main.tsx && .airplane-build-tools/gen_view.sh "{{.FilesToBuild}}" index.html main.tsx
+		RUN {{.InlineIndexHtml}} > index.html && {{.InlineMainTsx}} > main.tsx && .airplane-build-tools/gen_view.sh "{{.FilesToBuildWithoutExtension}}" index.html main.tsx
 		
 		# Copy in universal Vite config and build view
 		RUN {{.InlineViteConfig}} > vite.config.ts && /airplane/node_modules/.bin/vite build --outDir {{.OutDir}}

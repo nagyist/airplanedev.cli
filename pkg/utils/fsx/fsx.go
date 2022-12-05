@@ -89,3 +89,8 @@ func IsSubDirectory(parent, sub string) (bool, error) {
 	}
 	return false, nil
 }
+
+func TrimExtension(file string) string {
+	ext := filepath.Ext(file)
+	return strings.TrimSuffix(file, ext)
+}

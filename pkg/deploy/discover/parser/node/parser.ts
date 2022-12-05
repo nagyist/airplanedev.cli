@@ -44,6 +44,7 @@ type ViewDef = {
   slug: string;
   name: string;
   description?: string;
+  entrypoint: string;
 };
 
 type AirplaneConfigs = {
@@ -68,6 +69,7 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
             slug: config.slug,
             name: config.name,
             description: config.description,
+            entrypoint: file,
           });
         } else {
           const params: TaskParam[] = [];
