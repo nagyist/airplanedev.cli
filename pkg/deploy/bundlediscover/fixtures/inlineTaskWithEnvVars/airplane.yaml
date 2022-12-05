@@ -1,2 +1,3 @@
-envVars:
-  foo: bar
+javascript:
+  envVars:
+    foo: bar

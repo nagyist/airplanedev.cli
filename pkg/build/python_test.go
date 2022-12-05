@@ -65,6 +65,15 @@ func TestPythonBuilder(t *testing.T) {
 			},
 			SearchString: "preinstall='hello from preinstall' postinstall='hello from postinstall'",
 		},
+		{
+			Root: "python/installhooksviaairplaneconfig",
+			Kind: TaskKindPython,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "main.py",
+			},
+			SearchString: "preinstall='hello from preinstall' postinstall='hello from postinstall'",
+		},
 	}
 
 	RunTests(t, ctx, tests)
@@ -173,6 +182,15 @@ func TestPythonBundleBuilder(t *testing.T) {
 					SearchString:  "preinstall='hello from preinstall' postinstall='hello from postinstall'",
 				},
 			},
+		},
+		{
+			Root: "python/installhooksviaairplaneconfig",
+			Kind: TaskKindPython,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "main.py",
+			},
+			SearchString: "preinstall='hello from preinstall' postinstall='hello from postinstall'",
 		},
 		{
 			Root: "python/bundle",

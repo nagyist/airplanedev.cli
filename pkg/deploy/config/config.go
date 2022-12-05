@@ -5,10 +5,8 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"path/filepath"
 
-	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
-	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/goccy/go-yaml"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
@@ -21,13 +19,37 @@ const (
 //go:embed schema.json
 var schemaStr string
 
-type AirplaneConfig struct {
-	NodeVersion build.BuildTypeVersion `yaml:"nodeVersion,omitempty"`
-	EnvVars     api.TaskEnv            `yaml:"envVars,omitempty"`
-	Base        build.BuildBase        `yaml:"base,omitempty"`
+type JavaScriptConfig struct {
+	Base        string  `yaml:"base,omitempty"`
+	NodeVersion string  `yaml:"nodeVersion,omitempty"`
+	EnvVars     TaskEnv `yaml:"envVars,omitempty"`
+	Install     string  `yaml:"install,omitempty"`
+	PreInstall  string  `yaml:"preinstall,omitempty"`
+	PostInstall string  `yaml:"preinstall,omitempty"`
 }
 
-func NewAirplaneConfigFromFile(file string) (AirplaneConfig, error) {
+type PythonConfig struct {
+	Base        string  `yaml:"base,omitempty"`
+	EnvVars     TaskEnv `yaml:"envVars,omitempty"`
+	PreInstall  string  `yaml:"preinstall,omitempty"`
+	PostInstall string  `yaml:"preinstall,omitempty"`
+}
+
+type AirplaneConfig struct {
+	Javascript JavaScriptConfig `yaml:"javascript,omitempty"`
+	Python     PythonConfig     `yaml:"python,omitempty"`
+}
+
+func NewAirplaneConfigFromFile(fileOrDir string) (AirplaneConfig, error) {
+	file := fileOrDir
+	fileInfo, err := os.Stat(fileOrDir)
+	if err != nil {
+		return AirplaneConfig{}, err
+	}
+	if fileInfo.IsDir() {
+		file = filepath.Join(fileOrDir, FileName)
+	}
+
 	f, err := os.Open(file)
 	if err != nil {
 		return AirplaneConfig{}, errors.Wrap(err, "error opening config file")
@@ -59,7 +81,7 @@ func (c *AirplaneConfig) Unmarshal(buf []byte) error {
 	}
 
 	if !result.Valid() {
-		return errors.WithStack(definitions.ErrSchemaValidation{Errors: result.Errors()})
+		return errors.WithStack(ErrSchemaValidation{Errors: result.Errors()})
 	}
 
 	if err = json.Unmarshal(buf, &c); err != nil {

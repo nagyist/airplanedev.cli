@@ -2,15 +2,54 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Airplane Config",
   "properties": {
-    "envVars": { "$ref": "#/$defs/envVars" },
-    "nodeVersion": {
-      "description": "The version of Node to use.",
-      "enum": ["14", "16", "18"]
+    "javascript": {
+      "type": "object",
+      "properties": {
+        "envVars": { "$ref": "#/$defs/envVars" },
+        "nodeVersion": {
+          "description": "The version of Node to use.",
+          "enum": ["14", "16", "18"]
+        },
+        "base": {
+          "description": "The type of base image to use; if not specified, defaults to full.",
+          "enum": ["", "full", "slim"],
+          "default": ""
+        },
+        "install": {
+          "description": "A custom install command to run",
+          "examples": ["npm ci --include=dev"],
+          "type": "string"
+        },
+        "preinstall": {
+          "description": "A command to run before dependencies are installed",
+          "type": "string"
+        },
+        "postinstall": {
+          "description": "A command to run after dependencies are installed",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
     },
-    "base": {
-      "description": "The type of base image to use; if not specified, defaults to full.",
-      "enum": ["", "full", "slim"],
-      "default": ""
+    "python": {
+      "type": "object",
+      "properties": {
+        "envVars": { "$ref": "#/$defs/envVars" },
+        "base": {
+          "description": "The type of base image to use; if not specified, defaults to full.",
+          "enum": ["", "full", "slim"],
+          "default": ""
+        },
+        "preinstall": {
+          "description": "A command to run before dependencies are installed",
+          "type": "string"
+        },
+        "postinstall": {
+          "description": "A command to run after dependencies are installed",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false,

@@ -208,6 +208,15 @@ func TestNodeBuilder(t *testing.T) {
 			SearchString: "hello from preinstall",
 		},
 		{
+			Root: "typescript/installhooksviaairplaneconfig",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "main.ts",
+			},
+			SearchString: "hello from preinstall",
+		},
+		{
 			Root: "typescript/installhooksviashell",
 			Kind: TaskKindNode,
 			Options: KindOptions{

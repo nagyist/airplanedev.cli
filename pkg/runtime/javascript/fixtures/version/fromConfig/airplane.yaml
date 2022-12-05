@@ -1,1 +1,2 @@
-nodeVersion: "14"
+javascript:
+  nodeVersion: "14"

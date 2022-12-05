@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/discover/parser"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
@@ -101,9 +102,31 @@ func node(
 		}
 	}
 
+	var airplaneConfig config.AirplaneConfig
+	hasAirplaneConfig := fsx.Exists(filepath.Join(root, config.FileName))
+	if hasAirplaneConfig {
+		airplaneConfig, err = config.NewAirplaneConfigFromFile(root)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	// Install hooks can only exist in the task root for bundle builds
 	installHooks, err := GetInstallHooks(entrypoint, root)
 	if err != nil {
 		return "", err
+	}
+	preinstallCommand := pkg.Settings.PreInstallCommand
+	if preinstallCommand == "" {
+		preinstallCommand = airplaneConfig.Javascript.PreInstall
+	}
+	postInstallCommand := pkg.Settings.PostInstallCommand
+	if postInstallCommand == "" {
+		postInstallCommand = airplaneConfig.Javascript.PostInstall
+	}
+	installCommand := pkg.Settings.InstallCommand
+	if installCommand == "" {
+		installCommand = airplaneConfig.Javascript.Install
 	}
 
 	cfg := templateParams{
@@ -113,8 +136,8 @@ func node(
 		// esbuild is relatively generous in the node versions it supports:
 		// https://esbuild.github.io/api/#target
 		NodeVersion:        GetNodeVersion(options),
-		PreInstallCommand:  pkg.Settings.PreInstallCommand,
-		PostInstallCommand: pkg.Settings.PostInstallCommand,
+		PreInstallCommand:  preinstallCommand,
+		PostInstallCommand: postInstallCommand,
 		Args:               makeArgsCommand(buildArgs),
 		IsWorkflow:         isWorkflow,
 		PreInstallPath:     installHooks.PreInstallFilePath,
@@ -216,7 +239,7 @@ func node(
 	}
 
 	cfg.InstallCommand = makeInstallCommand(makeInstallCommandReq{
-		PkgInstallCommand: pkg.Settings.InstallCommand,
+		PkgInstallCommand: installCommand,
 		RootPackageJSON:   rootPackageJSON,
 		IsYarn:            isYarn,
 		HasPackageLock:    hasPackageLock,
@@ -688,10 +711,31 @@ func nodeBundle(
 		}
 	}
 
+	var airplaneConfig config.AirplaneConfig
+	hasAirplaneConfig := fsx.Exists(filepath.Join(root, config.FileName))
+	if hasAirplaneConfig {
+		airplaneConfig, err = config.NewAirplaneConfigFromFile(root)
+		if err != nil {
+			return "", err
+		}
+	}
+
 	// Install hooks can only exist in the task root for bundle builds
 	installHooks, err := GetInstallHooks("", root)
 	if err != nil {
 		return "", err
+	}
+	preinstallCommand := pkg.Settings.PreInstallCommand
+	if preinstallCommand == "" {
+		preinstallCommand = airplaneConfig.Javascript.PreInstall
+	}
+	postInstallCommand := pkg.Settings.PostInstallCommand
+	if postInstallCommand == "" {
+		postInstallCommand = airplaneConfig.Javascript.PostInstall
+	}
+	installCommand := pkg.Settings.InstallCommand
+	if installCommand == "" {
+		installCommand = airplaneConfig.Javascript.Install
 	}
 
 	cfg := templateParams{
@@ -701,8 +745,8 @@ func nodeBundle(
 		// esbuild is relatively generous in the node versions it supports:
 		// https://esbuild.github.io/api/#target
 		NodeVersion:         string(buildContext.VersionOrDefault()),
-		PreInstallCommand:   pkg.Settings.PreInstallCommand,
-		PostInstallCommand:  pkg.Settings.PostInstallCommand,
+		PreInstallCommand:   preinstallCommand,
+		PostInstallCommand:  postInstallCommand,
 		PreInstallPath:      installHooks.PreInstallFilePath,
 		PostInstallPath:     installHooks.PostInstallFilePath,
 		Args:                makeArgsCommand(buildArgs),
@@ -796,7 +840,7 @@ func nodeBundle(
 	cfg.InlineShimPackageJSON = inlineString(string(pjson))
 
 	cfg.InstallCommand = makeInstallCommand(makeInstallCommandReq{
-		PkgInstallCommand: pkg.Settings.InstallCommand,
+		PkgInstallCommand: installCommand,
 		RootPackageJSON:   rootPackageJSON,
 		IsYarn:            isYarn,
 		HasPackageLock:    hasPackageLock,

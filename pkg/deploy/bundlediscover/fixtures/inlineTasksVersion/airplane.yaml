@@ -1,1 +1,2 @@
-base: slim
+javascript:
+  base: slim

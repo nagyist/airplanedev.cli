@@ -25,16 +25,32 @@ func taskBuildContext(taskroot string, taskRuntime runtime.Interface) (build.Bui
 		}
 	}
 	envVars := make(map[string]build.EnvVarValue)
-	for k, v := range c.EnvVars {
-		envVars[k] = build.EnvVarValue(v)
+	switch taskRuntime.Kind() {
+	case build.TaskKindNode:
+		for k, v := range c.Javascript.EnvVars {
+			envVars[k] = build.EnvVarValue(v)
+		}
+	case build.TaskKindPython:
+		for k, v := range c.Python.EnvVars {
+			envVars[k] = build.EnvVarValue(v)
+		}
 	}
+
 	if len(envVars) == 0 {
 		envVars = nil
 	}
 
+	var base build.BuildBase
+	switch taskRuntime.Kind() {
+	case build.TaskKindNode:
+		base = build.BuildBase(c.Javascript.Base)
+	case build.TaskKindPython:
+		base = build.BuildBase(c.Python.Base)
+	}
+
 	return build.BuildContext{
 		Version: buildVersion,
-		Base:    c.Base,
+		Base:    base,
 		EnvVars: envVars,
 	}, nil
 }

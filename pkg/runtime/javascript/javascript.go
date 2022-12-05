@@ -355,8 +355,8 @@ func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, 
 	configPath, found := fsx.Find(rootPath, config.FileName)
 	if found {
 		c, err := config.NewAirplaneConfigFromFile(filepath.Join(configPath, config.FileName))
-		if err == nil && c.NodeVersion != "" {
-			return c.NodeVersion, nil
+		if err == nil && c.Javascript.NodeVersion != "" {
+			return build.BuildTypeVersion(c.Javascript.NodeVersion), nil
 		}
 	}
 

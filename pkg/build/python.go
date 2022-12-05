@@ -10,6 +10,7 @@ import (
 	"text/template"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/discover/parser"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
@@ -30,6 +31,18 @@ func python(
 	if err := fsx.AssertExistsAll(filepath.Join(root, entrypoint)); err != nil {
 		return "", err
 	}
+
+	var airplaneConfig config.AirplaneConfig
+	hasAirplaneConfig := fsx.Exists(filepath.Join(root, config.FileName))
+	if hasAirplaneConfig {
+		var err error
+		airplaneConfig, err = config.NewAirplaneConfigFromFile(root)
+		if err != nil {
+			return "", err
+		}
+	}
+	preinstallCommand := airplaneConfig.Python.PreInstall
+	postInstallCommand := airplaneConfig.Python.PostInstall
 
 	installHooks, err := GetInstallHooks(entrypoint, root)
 	if err != nil {
@@ -73,7 +86,9 @@ func python(
 
 		{{.Args}}
 
-		{{if .PreInstallPath}}
+		{{if .PreInstallCommand}}
+		RUN {{.PreInstallCommand}}
+		{{else if .PreInstallPath}}
 		COPY {{ .PreInstallPath }} airplane_preinstall.sh
 		RUN chmod +x airplane_preinstall.sh && ./airplane_preinstall.sh
 		{{end}}
@@ -87,7 +102,9 @@ func python(
 		RUN pip install -r requirements.txt
 		{{end}}
 
-		{{if .PostInstallPath}}
+		{{if .PostInstallCommand}}
+		RUN {{.PostInstallCommand}}
+		{{else if .PostInstallPath}}
 		COPY {{ .PostInstallPath }} airplane_postinstall.sh
 		RUN chmod +x airplane_postinstall.sh && ./airplane_postinstall.sh
 		{{end}}
@@ -98,21 +115,25 @@ func python(
 	`)
 
 	df, err := applyTemplate(dockerfile, struct {
-		Base            string
-		InlineShim      string
-		HasRequirements bool
-		HasPipConf      bool
-		Args            string
-		PreInstallPath  string
-		PostInstallPath string
+		Base               string
+		InlineShim         string
+		HasRequirements    bool
+		HasPipConf         bool
+		Args               string
+		PreInstallPath     string
+		PostInstallPath    string
+		PreInstallCommand  string
+		PostInstallCommand string
 	}{
-		Base:            v.String(),
-		InlineShim:      inlineString(shim),
-		HasRequirements: fsx.Exists(filepath.Join(root, "requirements.txt")),
-		HasPipConf:      fsx.Exists(filepath.Join(root, "pip.conf")),
-		Args:            argsCommand,
-		PreInstallPath:  installHooks.PreInstallFilePath,
-		PostInstallPath: installHooks.PostInstallFilePath,
+		Base:               v.String(),
+		InlineShim:         inlineString(shim),
+		HasRequirements:    fsx.Exists(filepath.Join(root, "requirements.txt")),
+		HasPipConf:         fsx.Exists(filepath.Join(root, "pip.conf")),
+		Args:               argsCommand,
+		PreInstallCommand:  preinstallCommand,
+		PostInstallCommand: postInstallCommand,
+		PreInstallPath:     installHooks.PreInstallFilePath,
+		PostInstallPath:    installHooks.PostInstallFilePath,
 	})
 	if err != nil {
 		return "", errors.Wrapf(err, "rendering dockerfile")
@@ -131,6 +152,18 @@ func pythonBundle(
 	if opts["shim"] != "true" {
 		return pythonLegacy(root, opts)
 	}
+
+	var airplaneConfig config.AirplaneConfig
+	hasAirplaneConfig := fsx.Exists(filepath.Join(root, config.FileName))
+	if hasAirplaneConfig {
+		var err error
+		airplaneConfig, err = config.NewAirplaneConfigFromFile(root)
+		if err != nil {
+			return "", err
+		}
+	}
+	preinstallCommand := airplaneConfig.Python.PreInstall
+	postInstallCommand := airplaneConfig.Python.PostInstall
 
 	// Install hooks can only exist in the task root for bundle builds
 	installHooks, err := GetInstallHooks("", root)
@@ -182,7 +215,9 @@ func pythonBundle(
 
 		{{.Args}}
 
-		{{if .PreInstallPath}}
+		{{if .PreInstallCommand}}
+		RUN {{.PreInstallCommand}}
+		{{else if .PreInstallPath}}
 		COPY {{ .PreInstallPath }} airplane_preinstall.sh
 		RUN chmod +x airplane_preinstall.sh && ./airplane_preinstall.sh
 		{{end}}
@@ -196,7 +231,9 @@ func pythonBundle(
 		RUN pip install -r requirements.txt
 		{{end}}
 
-		{{if .PostInstallPath}}
+		{{if .PostInstallCommand}}
+		RUN {{.PostInstallCommand}}
+		{{else if .PostInstallPath}}
 		COPY {{ .PostInstallPath }} airplane_postinstall.sh
 		RUN chmod +x airplane_postinstall.sh && ./airplane_postinstall.sh
 		{{end}}
@@ -210,23 +247,27 @@ func pythonBundle(
 	`)
 
 	df, err := applyTemplate(dockerfile, struct {
-		Base            string
-		InlineShim      string
-		HasRequirements bool
-		HasPipConf      bool
-		Args            string
-		PreInstallPath  string
-		PostInstallPath string
-		FilesToDiscover string
+		Base               string
+		InlineShim         string
+		HasRequirements    bool
+		HasPipConf         bool
+		Args               string
+		PreInstallPath     string
+		PostInstallPath    string
+		PreInstallCommand  string
+		PostInstallCommand string
+		FilesToDiscover    string
 	}{
-		Base:            v.String(),
-		InlineShim:      inlineString(shim),
-		HasRequirements: fsx.Exists(filepath.Join(root, "requirements.txt")),
-		HasPipConf:      fsx.Exists(filepath.Join(root, "pip.conf")),
-		Args:            argsCommand,
-		PreInstallPath:  installHooks.PreInstallFilePath,
-		PostInstallPath: installHooks.PostInstallFilePath,
-		FilesToDiscover: strings.Join(filesToDiscover, " "),
+		Base:               v.String(),
+		InlineShim:         inlineString(shim),
+		HasRequirements:    fsx.Exists(filepath.Join(root, "requirements.txt")),
+		HasPipConf:         fsx.Exists(filepath.Join(root, "pip.conf")),
+		Args:               argsCommand,
+		PreInstallPath:     installHooks.PreInstallFilePath,
+		PostInstallPath:    installHooks.PostInstallFilePath,
+		PreInstallCommand:  preinstallCommand,
+		PostInstallCommand: postInstallCommand,
+		FilesToDiscover:    strings.Join(filesToDiscover, " "),
 	})
 	if err != nil {
 		return "", errors.Wrapf(err, "rendering dockerfile")

@@ -1,0 +1,3 @@
+javascript:
+  preinstall: "echo 'I am overriden by package.json' > preinstall.txt"
+  postinstall: "yarn add prettier"
