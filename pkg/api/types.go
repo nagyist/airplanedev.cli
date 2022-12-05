@@ -302,6 +302,18 @@ type SetConfigRequest struct {
 	EnvSlug  string `json:"envSlug"`
 }
 
+// ListConfigsRequest represents a list configs request
+type ListConfigsRequest struct {
+	Names       []string `json:"names"`
+	ShowSecrets bool     `json:"showSecrets"`
+	EnvSlug     string   `json:"envSlug"`
+}
+
+// ListConfigsResponse represents a list configs response.
+type ListConfigsResponse struct {
+	Configs []Config `json:"configs"`
+}
+
 // Config represents a config var.
 type Config struct {
 	ID       string `json:"configID"`

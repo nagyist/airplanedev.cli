@@ -105,6 +105,7 @@ type APIClient interface {
 
 	SetConfig(ctx context.Context, req SetConfigRequest) (err error)
 	GetConfig(ctx context.Context, req GetConfigRequest) (res GetConfigResponse, err error)
+	ListConfigs(ctx context.Context, req ListConfigsRequest) (res ListConfigsResponse, err error)
 
 	GetRegistryToken(ctx context.Context) (res RegistryTokenResponse, err error)
 	CreateBuildUpload(ctx context.Context, req libapi.CreateBuildUploadRequest) (res libapi.CreateBuildUploadResponse, err error)
@@ -499,6 +500,16 @@ func (c Client) SetConfig(ctx context.Context, req SetConfigRequest) (err error)
 	err = c.do(ctx, "POST", encodeQueryString("/configs/set", url.Values{
 		"envSlug": []string{req.EnvSlug},
 	}), req, nil)
+	return
+}
+
+// ListConfigs returns a config by name and tag.
+func (c Client) ListConfigs(ctx context.Context, req ListConfigsRequest) (res ListConfigsResponse, err error) {
+	err = c.do(ctx, "GET", encodeQueryString("/configs/list", url.Values{
+		"names":       req.Names,
+		"showSecrets": []string{strconv.FormatBool(req.ShowSecrets)},
+		"envSlug":     []string{req.EnvSlug},
+	}), req, &res)
 	return
 }
 

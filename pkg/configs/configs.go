@@ -1,11 +1,14 @@
 package configs
 
 import (
+	"context"
 	"strings"
 
+	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev/env"
-	"github.com/airplanedev/lib/pkg/api"
+	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/maps"
 )
 
 var ErrInvalidConfigName = errors.New("invalid config name")
@@ -36,15 +39,44 @@ func JoinName(nameTag NameTag) string {
 	return nameTag.Name + tagStr
 }
 
-// MaterializeConfigAttachments returns the configs that are attached to a task
-func MaterializeConfigAttachments(attachments []api.ConfigAttachment, configs map[string]env.ConfigWithEnv) (map[string]string, error) {
-	configAttachments := map[string]string{}
-	for _, a := range attachments {
-		if _, ok := configs[a.NameTag]; !ok {
-			return nil, errors.Errorf("config %s not defined in airplane.dev.yaml", a.NameTag)
+// MergeRemoteConfigs merges the configs defined in the dev config file with remote configs from the fallback env passed
+// to the local dev server upon startup.
+func MergeRemoteConfigs(ctx context.Context, state *state.State) (map[string]env.ConfigWithEnv, error) {
+	mergedConfigs := make(map[string]env.ConfigWithEnv)
+	if state == nil {
+		return mergedConfigs, nil
+	}
+
+	if state.UseFallbackEnv {
+		maps.Copy(mergedConfigs, state.DevConfig.ConfigVars)
+
+		configs, err := ListRemoteConfigs(ctx, state)
+		if err != nil {
+			return nil, err
 		}
 
-		configAttachments[a.NameTag] = configs[a.NameTag].Value
+		for _, cfg := range configs {
+			if _, ok := mergedConfigs[cfg.Name]; !ok {
+				mergedConfigs[cfg.Name] = env.ConfigWithEnv{
+					Config: cfg,
+					Remote: true,
+					Env:    state.RemoteEnv,
+				}
+			}
+		}
+		return mergedConfigs, nil
+	} else {
+		return state.DevConfig.ConfigVars, nil
 	}
-	return configAttachments, nil
+}
+
+func ListRemoteConfigs(ctx context.Context, state *state.State) ([]api.Config, error) {
+	resp, err := state.RemoteClient.ListConfigs(ctx, api.ListConfigsRequest{
+		EnvSlug: state.RemoteEnv.Slug,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "listing remote configs")
+	}
+
+	return resp.Configs, nil
 }

@@ -264,6 +264,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		ParamValues:       paramValues,
 		LocalClient:       localClient,
 		RemoteClient:      cfg.root.Client,
+		UseFallbackEnv:    false,
 		File:              cfg.fileOrDir,
 		Slug:              taskConfig.Def.GetSlug(),
 		AliasToResource:   aliasToResource,

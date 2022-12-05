@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/configs"
 	devenv "github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -74,8 +73,9 @@ type LocalRunConfig struct {
 	ParentRunID *string
 	AuthInfo    api.AuthInfoResponse
 
-	LocalClient  *api.Client
-	RemoteClient api.APIClient
+	LocalClient    *api.Client
+	RemoteClient   api.APIClient
+	UseFallbackEnv bool
 
 	// Mapping from alias to resource
 	AliasToResource map[string]resources.Resource
@@ -154,12 +154,12 @@ func (l *LocalExecutor) Cmd(ctx context.Context, runConfig LocalRunConfig) (CmdC
 }
 
 func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api.Outputs, error) {
-	materializedEnvVars, err := MaterializeEnvVars(config.EnvVars, config.ConfigVars)
-	if err != nil {
-		return api.Outputs{}, err
-	}
-
-	configVars, err := configs.MaterializeConfigAttachments(config.ConfigAttachments, config.ConfigVars)
+	configVars, err := materializeConfigAttachments(
+		ctx,
+		config.RemoteClient,
+		config.ConfigAttachments, config.ConfigVars,
+		config.UseFallbackEnv,
+	)
 	if err != nil {
 		return api.Outputs{}, err
 	}
@@ -205,7 +205,16 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	cmd.Env = os.Environ()
 	// only non builtins have a runtime
 	if r != nil {
-		envVars := materializedEnvVars
+		envVars, err := materializeEnvVars(
+			ctx,
+			config.RemoteClient,
+			config.EnvVars,
+			config.ConfigVars,
+			config.UseFallbackEnv,
+		)
+		if err != nil {
+			return api.Outputs{}, err
+		}
 
 		// Load environment variables from .env files
 		// TODO: Deprecate support for .env files
@@ -213,7 +222,6 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 		if err != nil {
 			return api.Outputs{}, err
 		}
-
 		// Env vars declared in .env files take precedence to those declared in the task definition.
 		maps.Copy(envVars, dotEnvEnvVars)
 
@@ -312,20 +320,79 @@ func GetKindAndOptions(taskConfig discover.TaskConfig) (build.TaskKind, build.Ki
 	return kind, kindOptions, nil
 }
 
-func MaterializeEnvVars(taskEnvVars libapi.TaskEnv, configVars map[string]devenv.ConfigWithEnv) (map[string]string, error) {
+func materializeEnvVars(
+	ctx context.Context,
+	remoteClient api.APIClient,
+	taskEnvVars libapi.TaskEnv,
+	configVars map[string]devenv.ConfigWithEnv,
+	useFallbackEnv bool,
+) (map[string]string, error) {
 	envVars := map[string]string{}
 	for key, envVar := range taskEnvVars {
 		if envVar.Value != nil {
 			envVars[key] = *envVar.Value
 		} else if envVar.Config != nil {
 			if configVar, ok := configVars[*envVar.Config]; !ok {
-				return nil, errors.Errorf("config %s not defined in airplane.dev.yaml (referenced by env var %s)", *envVar.Config, key)
+				errMessage := fmt.Sprintf("Config var %s not defined in airplane.dev.yaml", *envVar.Config)
+				if useFallbackEnv {
+					errMessage += " or remotely in fallback env"
+				}
+				errMessage += fmt.Sprintf(" (referenced by env var %s). Please use the configs tab on the left to add it.", key)
+				return nil, errors.New(errMessage)
 			} else {
-				envVars[key] = configVar.Value
+				var err error
+				if envVars[key], err = getConfigValue(ctx, remoteClient, configVar); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
 	return envVars, nil
+}
+
+// materializeConfigAttachments returns the configs that are attached to a task
+func materializeConfigAttachments(
+	ctx context.Context,
+	remoteClient api.APIClient,
+	attachments []libapi.ConfigAttachment,
+	configs map[string]devenv.ConfigWithEnv,
+	useFallbackEnv bool,
+) (map[string]string, error) {
+	configAttachments := map[string]string{}
+	for _, a := range attachments {
+		cfg, ok := configs[a.NameTag]
+		if !ok {
+			errMessage := fmt.Sprintf("Config var %s not defined in airplane.dev.yaml", a.NameTag)
+			if useFallbackEnv {
+				errMessage += " or remotely in fallback env"
+			}
+			errMessage += ". Please use the configs tab on the left to add it."
+			return nil, errors.New(errMessage)
+		}
+
+		var err error
+		if configAttachments[a.NameTag], err = getConfigValue(ctx, remoteClient, cfg); err != nil {
+			return nil, err
+		}
+	}
+	return configAttachments, nil
+}
+
+func getConfigValue(ctx context.Context, remoteClient api.APIClient, config devenv.ConfigWithEnv) (string, error) {
+	if config.Remote && config.IsSecret {
+		resp, err := remoteClient.GetConfig(ctx, api.GetConfigRequest{
+			Name:       config.Name,
+			ShowSecret: true,
+			EnvSlug:    config.Env.Slug,
+		})
+		if err != nil {
+			return "", errors.Wrapf(err, "decrypting remote config %s", config.Name)
+		}
+
+		return resp.Config.Value, nil
+	}
+
+	return config.Value, nil
 }
 
 func scanLogLine(config LocalRunConfig, line string, mu *sync.Mutex, o *ojson.Value, chunks map[string]*strings.Builder) {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/configs"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
@@ -86,16 +87,17 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 	start := time.Now().UTC()
 	if isBuiltin || ok {
 		runConfig := dev.LocalRunConfig{
-			ID:           runID,
-			ParamValues:  req.ParamValues,
-			LocalClient:  state.LocalClient,
-			RemoteClient: state.RemoteClient,
-			Slug:         req.Slug,
-			ParentRunID:  pointers.String(parentID),
-			IsBuiltin:    isBuiltin,
-			AuthInfo:     state.AuthInfo,
-			LogBroker:    run.LogBroker,
-			WorkingDir:   state.Dir,
+			ID:             runID,
+			ParamValues:    req.ParamValues,
+			LocalClient:    state.LocalClient,
+			RemoteClient:   state.RemoteClient,
+			UseFallbackEnv: state.UseFallbackEnv,
+			Slug:           req.Slug,
+			ParentRunID:    pointers.String(parentID),
+			IsBuiltin:      isBuiltin,
+			AuthInfo:       state.AuthInfo,
+			LogBroker:      run.LogBroker,
+			WorkingDir:     state.Dir,
 		}
 		resourceAttachments := map[string]string{}
 		mergedResources, err := resources.MergeRemoteResources(ctx, state)
@@ -161,7 +163,10 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			}
 			run.TaskID = req.Slug
 			run.TaskName = localTaskConfig.Def.GetName()
-			runConfig.ConfigVars = state.DevConfig.ConfigVars
+			runConfig.ConfigVars, err = configs.MergeRemoteConfigs(ctx, state)
+			if err != nil {
+				return api.RunTaskResponse{}, errors.Wrap(err, "merging local and remote configs")
+			}
 			run.TaskRevision = localTaskConfig
 		}
 		aliasToResourceMap, err := resources.GenerateAliasToResourceMap(

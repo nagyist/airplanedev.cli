@@ -125,6 +125,10 @@ func (mc *MockClient) GetConfig(ctx context.Context, req GetConfigRequest) (res 
 	return GetConfigResponse{}, errors.Errorf("config %s does not exist", req.Name)
 }
 
+func (mc *MockClient) ListConfigs(ctx context.Context, req ListConfigsRequest) (res ListConfigsResponse, err error) {
+	return ListConfigsResponse{Configs: mc.Configs}, nil
+}
+
 func (mc *MockClient) TaskURL(slug string, envSlug string) string {
 	if envSlug != "" {
 		return fmt.Sprintf("api/t/%s?__env=%s", slug, envSlug)

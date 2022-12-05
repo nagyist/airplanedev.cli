@@ -183,9 +183,9 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	if cfg.useFallbackEnv {
 		logger.Log("Your fallback environment is set to %s.", logger.Bold(remoteEnv.Name))
 		logger.Log("- Any task not registered locally will execute in %s.", logger.Bold(remoteEnv.Name))
-		logger.Log("- Any resource not declared in your dev config will be loaded from %s.", logger.Bold(remoteEnv.Name))
+		logger.Log("- Any resource or config not declared in your dev config will be loaded from %s.", logger.Bold(remoteEnv.Name))
 	} else {
-		logger.Log("All tasks and resources must be available locally. You can configure a fallback environment via `--env`.")
+		logger.Log("All tasks, resources, and configs must be available locally. You can configure a fallback environment via `--env`.")
 	}
 
 	// Start watching for changes and reload apps, unless it's disabled.

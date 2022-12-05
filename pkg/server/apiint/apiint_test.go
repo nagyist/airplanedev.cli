@@ -293,8 +293,8 @@ func TestConfigsCRUD(t *testing.T) {
 	cfg1 := env.ConfigWithEnv{
 		Config: api.Config{
 			ID:       utils.GenerateID(utils.DevConfigPrefix),
-			Name:     "cv_0",
-			Value:    "v0",
+			Name:     "cv_1",
+			Value:    "v1",
 			IsSecret: false,
 		},
 		Remote: false,
@@ -381,4 +381,83 @@ func TestConfigsCRUD(t *testing.T) {
 	err = json.Unmarshal([]byte(body.Raw()), &listResp2)
 	require.NoError(err)
 	require.Equal([]env.ConfigWithEnv{cfg1}, listResp2.Configs)
+}
+
+func TestRemoteConfigs(t *testing.T) {
+	require := require.New(t)
+
+	cfg0 := env.ConfigWithEnv{
+		Config: api.Config{
+			ID:       utils.GenerateID(utils.DevConfigPrefix),
+			Name:     "cv_0",
+			Value:    "v0",
+			IsSecret: false,
+		},
+		Remote: false,
+		Env:    env.NewLocalEnv(),
+	}
+
+	cfg1 := env.ConfigWithEnv{
+		Config: api.Config{
+			ID:       utils.GenerateID(utils.DevConfigPrefix),
+			Name:     "cv_1",
+			Value:    "v1",
+			IsSecret: false,
+		},
+		Remote: false,
+		Env:    env.NewLocalEnv(),
+	}
+
+	remoteCfg := api.Config{
+		ID:       "cfg1234",
+		Name:     "remote_config",
+		Tag:      "",
+		Value:    "test",
+		IsSecret: false,
+	}
+
+	remoteEnv := libapi.Env{
+		ID:   "env1234",
+		Slug: "test",
+		Name: "test",
+	}
+
+	h := test_utils.GetHttpExpect(
+		context.Background(),
+		t,
+		server.NewRouter(&state.State{
+			DevConfig: &conf.DevConfig{
+				ConfigVars: map[string]env.ConfigWithEnv{
+					"cv_0": cfg0,
+					"cv_1": cfg1,
+				},
+			},
+			RemoteClient: &api.MockClient{
+				Configs: []api.Config{remoteCfg},
+			},
+			RemoteEnv:      remoteEnv,
+			UseFallbackEnv: true,
+		}),
+	)
+
+	// Test listing
+	var listResp apiint.ListConfigsResponse
+	body := h.GET("/i/configs/list").
+		Expect().
+		Status(http.StatusOK).Body()
+	err := json.Unmarshal([]byte(body.Raw()), &listResp)
+	require.NoError(err)
+	// sort so we can compare, since resources are stored as a map
+	expected := []env.ConfigWithEnv{cfg0, cfg1, {
+		Config: remoteCfg,
+		Remote: true,
+		Env:    remoteEnv,
+	}}
+	sort.Slice(expected, func(i, j int) bool {
+		return expected[i].ID < expected[j].ID
+	})
+	sort.Slice(listResp.Configs, func(i, j int) bool {
+		return listResp.Configs[i].ID < listResp.Configs[j].ID
+	})
+	require.Equal(expected, listResp.Configs)
 }

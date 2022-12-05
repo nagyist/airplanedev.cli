@@ -8,6 +8,7 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/configs"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -22,6 +23,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gosimple/slug"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/maps"
 )
 
 // AttachInternalAPIRoutes attaches a minimal subset of the internal Airplane API endpoints that are necessary for the
@@ -652,14 +654,25 @@ type ListConfigsResponse struct {
 }
 
 func ListConfigsHandler(ctx context.Context, state *state.State, r *http.Request) (ListConfigsResponse, error) {
-	configs := make([]env.ConfigWithEnv, 0, len(state.DevConfig.ConfigVars))
-	for _, cfg := range state.DevConfig.ConfigVars {
-		configs = append(configs, cfg)
+	configsWithEnv := maps.Values(state.DevConfig.ConfigVars)
+
+	// Append any remote configs, if a fallback environment is set
+	if state.UseFallbackEnv {
+		remoteConfigs, err := configs.ListRemoteConfigs(ctx, state)
+		if err == nil {
+			for _, cfg := range remoteConfigs {
+				configsWithEnv = append(configsWithEnv, env.ConfigWithEnv{
+					Config: cfg,
+					Remote: true,
+					Env:    state.RemoteEnv,
+				})
+			}
+		} else {
+			logger.Error("error fetching remote configs: %v", err)
+		}
 	}
 
-	// TODO: List remote configs
-
 	return ListConfigsResponse{
-		Configs: configs,
+		Configs: configsWithEnv,
 	}, nil
 }
