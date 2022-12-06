@@ -208,19 +208,19 @@ func (c Client) TaskURL(slug string, envSlug string) string {
 
 // AuthInfo responds with the currently authenticated details.
 func (c Client) AuthInfo(ctx context.Context) (res AuthInfoResponse, err error) {
-	err = c.do(ctx, "GET", "/auth/info", nil, &res)
+	err = c.get(ctx, "/auth/info", &res)
 	return
 }
 
 // GetRegistryToken responds with the registry token.
 func (c Client) GetRegistryToken(ctx context.Context) (res RegistryTokenResponse, err error) {
-	err = c.do(ctx, "POST", "/registry/getToken", nil, &res)
+	err = c.post(ctx, "/registry/getToken", nil, &res)
 	return
 }
 
 // CreateTask creates a task with the given request.
 func (c Client) CreateTask(ctx context.Context, req CreateTaskRequest) (res CreateTaskResponse, err error) {
-	err = c.do(ctx, "POST", encodeQueryString("/tasks/create", url.Values{
+	err = c.post(ctx, encodeQueryString("/tasks/create", url.Values{
 		"envSlug": []string{req.EnvSlug},
 	}), req, &res)
 	return
@@ -228,15 +228,15 @@ func (c Client) CreateTask(ctx context.Context, req CreateTaskRequest) (res Crea
 
 // UpdateTask updates a task with the given req.
 func (c Client) UpdateTask(ctx context.Context, req libapi.UpdateTaskRequest) (res UpdateTaskResponse, err error) {
-	err = c.do(ctx, "POST", "/tasks/update", req, &res)
+	err = c.post(ctx, "/tasks/update", req, &res)
 	return
 }
 
 // ListTasks lists all tasks.
 func (c Client) ListTasks(ctx context.Context, envSlug string) (res ListTasksResponse, err error) {
-	err = c.do(ctx, "GET", encodeQueryString("/tasks/list", url.Values{
+	err = c.get(ctx, encodeQueryString("/tasks/list", url.Values{
 		"envSlug": []string{envSlug},
-	}), nil, &res)
+	}), &res)
 	if err != nil {
 		return
 	}
@@ -247,7 +247,7 @@ func (c Client) ListTasks(ctx context.Context, envSlug string) (res ListTasksRes
 }
 
 func (c Client) ListFlags(ctx context.Context) (res ListFlagsResponse, err error) {
-	err = c.do(ctx, "GET", "/flags/list", nil, &res)
+	err = c.get(ctx, "/flags/list", &res)
 	if err != nil {
 		return
 	}
@@ -260,7 +260,7 @@ func (c Client) GetUniqueSlug(ctx context.Context, name, preferredSlug string) (
 		"name": []string{name},
 		"slug": []string{preferredSlug},
 	}
-	err = c.do(ctx, "GET", "/tasks/getUniqueSlug?"+q.Encode(), nil, &res)
+	err = c.get(ctx, "/tasks/getUniqueSlug?"+q.Encode(), &res)
 	return
 }
 
@@ -291,7 +291,7 @@ func (c Client) ListRuns(ctx context.Context, req ListRunsRequest) (ListRunsResp
 	for {
 		q.Set("page", strconv.FormatInt(int64(i), 10))
 		i++
-		if err := c.do(ctx, "GET", encodeQueryString("/runs/list", q), nil, &page); err != nil {
+		if err := c.get(ctx, encodeQueryString("/runs/list", q), &page); err != nil {
 			return ListRunsResponse{}, err
 		}
 		runs := page.Runs
@@ -317,7 +317,7 @@ func (c Client) ListRuns(ctx context.Context, req ListRunsRequest) (ListRunsResp
 // RunTask runs a task.
 func (c Client) RunTask(ctx context.Context, req RunTaskRequest) (RunTaskResponse, error) {
 	var res RunTaskResponse
-	if err := c.do(ctx, "POST", encodeQueryString("/tasks/execute", url.Values{
+	if err := c.post(ctx, encodeQueryString("/tasks/execute", url.Values{
 		"envSlug": []string{req.EnvSlug},
 	}), req, &res); err != nil {
 		if err, ok := err.(Error); ok && err.Code == 404 {
@@ -347,7 +347,7 @@ func (c Client) Watcher(ctx context.Context, req RunTaskRequest) (*Watcher, erro
 // GetRun returns a run by id.
 func (c Client) GetRun(ctx context.Context, id string) (res GetRunResponse, err error) {
 	q := url.Values{"runID": []string{id}}
-	err = c.do(ctx, "GET", "/runs/get?"+q.Encode(), nil, &res)
+	err = c.get(ctx, "/runs/get?"+q.Encode(), &res)
 	return
 }
 
@@ -360,21 +360,21 @@ func (c Client) GetLogs(ctx context.Context, runID, prevToken string) (res GetLo
 	if logger.EnableDebug {
 		q.Set("level", "debug")
 	}
-	err = c.do(ctx, "GET", "/runs/getLogs?"+q.Encode(), nil, &res)
+	err = c.get(ctx, "/runs/getLogs?"+q.Encode(), &res)
 	return
 }
 
 // GetOutputs returns the outputs by runID.
 func (c Client) GetOutputs(ctx context.Context, runID string) (res GetOutputsResponse, err error) {
 	q := url.Values{"runID": []string{runID}}
-	err = c.do(ctx, "GET", "/runs/getOutputs?"+q.Encode(), nil, &res)
+	err = c.get(ctx, "/runs/getOutputs?"+q.Encode(), &res)
 	return
 }
 
 // GetRunbook returns the details of a runbook by slug.
 func (c Client) GetRunbook(ctx context.Context, runbookSlug string) (res GetRunbookResponse, err error) {
 	q := url.Values{"runbookSlug": []string{runbookSlug}}
-	err = c.do(ctx, "GET", "/runbooks/get?"+q.Encode(), nil, &res)
+	err = c.get(ctx, "/runbooks/get?"+q.Encode(), &res)
 	return
 }
 
@@ -386,16 +386,16 @@ func (c Client) ListSessionBlocks(ctx context.Context, sessionID string) (
 	// TODO: list session blocks will error when unmarshaling if there is a template constraint
 	// in the parameter option, until the Parameter struct is updated in lib to match airport
 	q := url.Values{"sessionID": []string{sessionID}}
-	err = c.do(ctx, "GET", "/sessions/listBlocks?"+q.Encode(), nil, &res)
+	err = c.get(ctx, "/sessions/listBlocks?"+q.Encode(), &res)
 	return
 }
 
 // GetTask fetches a task by slug. If the slug does not match a task, a *TaskMissingError is returned.
 func (c Client) GetTask(ctx context.Context, req libapi.GetTaskRequest) (res libapi.Task, err error) {
-	err = c.do(ctx, "GET", encodeQueryString("/tasks/get", url.Values{
+	err = c.get(ctx, encodeQueryString("/tasks/get", url.Values{
 		"slug":    []string{req.Slug},
 		"envSlug": []string{req.EnvSlug},
-	}), nil, &res)
+	}), &res)
 
 	if err, ok := err.(Error); ok && err.Code == 404 {
 		return res, &libapi.TaskMissingError{
@@ -412,9 +412,9 @@ func (c Client) GetTask(ctx context.Context, req libapi.GetTaskRequest) (res lib
 }
 
 func (c Client) GetTaskByID(ctx context.Context, id string) (res libapi.Task, err error) {
-	err = c.do(ctx, "GET", encodeQueryString("/tasks/get", url.Values{
+	err = c.get(ctx, encodeQueryString("/tasks/get", url.Values{
 		"id": []string{id},
-	}), nil, &res)
+	}), &res)
 
 	if err, ok := err.(Error); ok && err.Code == 404 {
 		return res, &libapi.TaskMissingError{
@@ -429,9 +429,9 @@ func (c Client) GetTaskByID(ctx context.Context, id string) (res libapi.Task, er
 
 // GetTaskMetadata fetches a task's metadata by slug. If the slug does not match a task, a *TaskMissingError is returned.
 func (c Client) GetTaskMetadata(ctx context.Context, slug string) (res libapi.TaskMetadata, err error) {
-	err = c.do(ctx, "GET", encodeQueryString("/tasks/getMetadata", url.Values{
+	err = c.get(ctx, encodeQueryString("/tasks/getMetadata", url.Values{
 		"slug": []string{slug},
-	}), nil, &res)
+	}), &res)
 
 	if err, ok := err.(Error); ok && err.Code == 404 {
 		return res, &libapi.TaskMissingError{
@@ -445,10 +445,10 @@ func (c Client) GetTaskMetadata(ctx context.Context, slug string) (res libapi.Ta
 
 // GetView fetches a view. If the view does not exist, a *ViewMissingError is returned.
 func (c Client) GetView(ctx context.Context, req libapi.GetViewRequest) (res libapi.View, err error) {
-	err = c.do(ctx, "GET", encodeQueryString("/views/get", url.Values{
+	err = c.get(ctx, encodeQueryString("/views/get", url.Values{
 		"slug": []string{req.Slug},
 		"id":   []string{req.ID},
-	}), nil, &res)
+	}), &res)
 
 	if err, ok := err.(Error); ok && err.Code == 404 {
 		return res, &libapi.ViewMissingError{
@@ -461,7 +461,7 @@ func (c Client) GetView(ctx context.Context, req libapi.GetViewRequest) (res lib
 }
 
 func (c Client) CreateView(ctx context.Context, req libapi.CreateViewRequest) (res libapi.View, err error) {
-	err = c.do(ctx, "POST", "/views/create", req, &res)
+	err = c.post(ctx, "/views/create", req, &res)
 	return
 }
 
@@ -469,7 +469,7 @@ func (c Client) CreateDemoDB(ctx context.Context, name string) (string, error) {
 	reply := struct {
 		ResourceID string `json:"resourceID"`
 	}{}
-	err := c.do(ctx, "POST", "/resources/createDemoDB", CreateDemoDBRequest{
+	err := c.post(ctx, "/resources/createDemoDB", CreateDemoDBRequest{
 		Name: name,
 	}, &reply)
 	if err != nil {
@@ -482,7 +482,7 @@ func (c Client) ResetDemoDB(ctx context.Context) (string, error) {
 	reply := struct {
 		ResourceID string `json:"resourceID"`
 	}{}
-	err := c.do(ctx, "POST", "/resources/resetDemoDB", nil, &reply)
+	err := c.post(ctx, "/resources/resetDemoDB", nil, &reply)
 	if err != nil {
 		return "", err
 	}
@@ -491,7 +491,7 @@ func (c Client) ResetDemoDB(ctx context.Context) (string, error) {
 
 // GetConfig returns a config by name and tag.
 func (c Client) GetConfig(ctx context.Context, req GetConfigRequest) (res GetConfigResponse, err error) {
-	err = c.do(ctx, "POST", encodeQueryString("/configs/get", url.Values{
+	err = c.post(ctx, encodeQueryString("/configs/get", url.Values{
 		"envSlug": []string{req.EnvSlug},
 	}), req, &res)
 	return
@@ -499,7 +499,7 @@ func (c Client) GetConfig(ctx context.Context, req GetConfigRequest) (res GetCon
 
 // SetConfig sets a config, creating it if new and updating it if already exists.
 func (c Client) SetConfig(ctx context.Context, req SetConfigRequest) (err error) {
-	err = c.do(ctx, "POST", encodeQueryString("/configs/set", url.Values{
+	err = c.post(ctx, encodeQueryString("/configs/set", url.Values{
 		"envSlug": []string{req.EnvSlug},
 	}), req, nil)
 	return
@@ -507,54 +507,54 @@ func (c Client) SetConfig(ctx context.Context, req SetConfigRequest) (err error)
 
 // ListConfigs returns a config by name and tag.
 func (c Client) ListConfigs(ctx context.Context, req ListConfigsRequest) (res ListConfigsResponse, err error) {
-	err = c.do(ctx, "GET", encodeQueryString("/configs/list", url.Values{
+	err = c.get(ctx, encodeQueryString("/configs/list", url.Values{
 		"names":       req.Names,
 		"showSecrets": []string{strconv.FormatBool(req.ShowSecrets)},
 		"envSlug":     []string{req.EnvSlug},
-	}), req, &res)
+	}), &res)
 	return
 }
 
 // GetDeployment returns a deployment.
 func (c Client) GetDeployment(ctx context.Context, id string) (res Deployment, err error) {
 	q := url.Values{"id": []string{id}}
-	err = c.do(ctx, "GET", "/deployments/get?"+q.Encode(), nil, &res)
+	err = c.get(ctx, "/deployments/get?"+q.Encode(), &res)
 	return
 }
 
 // CreateBuildUpload creates an Airplane upload and returns metadata about it.
 func (c Client) CreateBuildUpload(ctx context.Context, req libapi.CreateBuildUploadRequest) (res libapi.CreateBuildUploadResponse, err error) {
-	err = c.do(ctx, "POST", "/builds/createUpload", req, &res)
+	err = c.post(ctx, "/builds/createUpload", req, &res)
 	return
 }
 
 // CreateAPIKey creates a new API key and returns data about it.
 func (c Client) CreateAPIKey(ctx context.Context, req CreateAPIKeyRequest) (res CreateAPIKeyResponse, err error) {
-	err = c.do(ctx, "POST", "/apiKeys/create", req, &res)
+	err = c.post(ctx, "/apiKeys/create", req, &res)
 	return
 }
 
 // ListAPIKeys lists API keys.
 func (c Client) ListAPIKeys(ctx context.Context) (res ListAPIKeysResponse, err error) {
-	err = c.do(ctx, "GET", "/apiKeys/list", nil, &res)
+	err = c.get(ctx, "/apiKeys/list", &res)
 	return
 }
 
 // DeleteAPIKey deletes an API key.
 func (c Client) DeleteAPIKey(ctx context.Context, req DeleteAPIKeyRequest) (err error) {
-	err = c.do(ctx, "POST", "/apiKeys/delete", req, nil)
+	err = c.post(ctx, "/apiKeys/delete", req, nil)
 	return
 }
 
 func (c Client) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) (res CreateDeploymentResponse, err error) {
-	err = c.do(ctx, "POST", encodeQueryString("/deployments/create", url.Values{
+	err = c.post(ctx, encodeQueryString("/deployments/create", url.Values{
 		"envSlug": []string{req.EnvSlug},
 	}), req, &res)
 	return
 }
 
 func (c Client) CancelDeployment(ctx context.Context, req CancelDeploymentRequest) error {
-	return c.do(ctx, "POST", "/deployments/cancel", req, nil)
+	return c.post(ctx, "/deployments/cancel", req, nil)
 }
 
 func (c Client) GetDeploymentLogs(ctx context.Context, deploymentID string, prevToken string) (res GetDeploymentLogsResponse, err error) {
@@ -567,29 +567,29 @@ func (c Client) GetDeploymentLogs(ctx context.Context, deploymentID string, prev
 	if prevToken != "" {
 		q.Set("prevToken", prevToken)
 	}
-	err = c.do(ctx, "GET", encodeQueryString("/deployments/getLogs", q), nil, &res)
+	err = c.get(ctx, encodeQueryString("/deployments/getLogs", q), &res)
 	return
 }
 
 func (c Client) ListResources(ctx context.Context, envSlug string) (res libapi.ListResourcesResponse, err error) {
-	err = c.do(ctx, "GET", encodeQueryString("/resources/list", url.Values{
+	err = c.get(ctx, encodeQueryString("/resources/list", url.Values{
 		"envSlug": []string{envSlug},
-	}), nil, &res)
+	}), &res)
 	return
 }
 
 func (c Client) ListResourceMetadata(ctx context.Context) (res libapi.ListResourceMetadataResponse, err error) {
-	err = c.do(ctx, "GET", "/resources/listMetadata", nil, &res)
+	err = c.get(ctx, "/resources/listMetadata", &res)
 	return
 }
 
 func (c Client) GetResource(ctx context.Context, req GetResourceRequest) (res libapi.GetResourceResponse, err error) {
-	err = c.do(ctx, "GET", encodeQueryString("/resources/get", url.Values{
+	err = c.get(ctx, encodeQueryString("/resources/get", url.Values{
 		"id":                   []string{req.ID},
 		"slug":                 []string{req.Slug},
 		"envSlug":              []string{req.EnvSlug},
 		"includeSensitiveData": []string{strconv.FormatBool(req.IncludeSensitiveData)},
-	}), nil, &res)
+	}), &res)
 	if err, ok := err.(Error); ok && err.Code == 404 {
 		return res, libapi.ResourceMissingError{
 			AppURL: c.AppURL().String(),
@@ -600,41 +600,41 @@ func (c Client) GetResource(ctx context.Context, req GetResourceRequest) (res li
 }
 
 func (c Client) GetEnv(ctx context.Context, envSlug string) (res libapi.Env, err error) {
-	err = c.do(ctx, "GET", encodeQueryString("/envs/get", url.Values{
+	err = c.get(ctx, encodeQueryString("/envs/get", url.Values{
 		"slug": []string{envSlug},
-	}), nil, &res)
+	}), &res)
 	return
 }
 
 func (c Client) EvaluateTemplate(ctx context.Context, req libapi.EvaluateTemplateRequest) (res libapi.EvaluateTemplateResponse, err error) {
-	err = c.do(ctx, "POST", "/templates/evaluate", req, &res)
+	err = c.post(ctx, "/templates/evaluate", req, &res)
 	return
 }
 
 func (c Client) GetPermissions(ctx context.Context, taskSlug string, actions []string) (res GetPermissionsResponse, err error) {
-	err = c.do(ctx, "GET", encodeQueryString("/permissions/get", url.Values{
+	err = c.get(ctx, encodeQueryString("/permissions/get", url.Values{
 		"task_slug": []string{taskSlug},
 		"actions":   actions,
-	}), nil, &res)
+	}), &res)
 	return
 }
 
 func (c Client) GenerateSignedURLs(ctx context.Context, envSlug string) (res GenerateSignedURLsResponse, err error) {
-	err = c.do(ctx, "GET", encodeQueryString("/uploads/generateSignedURLs", url.Values{
+	err = c.get(ctx, encodeQueryString("/uploads/generateSignedURLs", url.Values{
 		"envSlug": []string{envSlug},
-	}), nil, &res)
+	}), &res)
 	return
 }
 
 func (c Client) GetWebHost(ctx context.Context) (webHost string, err error) {
-	err = c.do(ctx, "GET", "/hosts/web", nil, &webHost)
+	err = c.get(ctx, "/hosts/web", &webHost)
 	return
 }
 
 func (c Client) GetUser(ctx context.Context, userID string) (res GetUserResponse, err error) {
-	err = c.do(ctx, "GET", encodeQueryString("/users/get", url.Values{
+	err = c.get(ctx, encodeQueryString("/users/get", url.Values{
 		"userID": []string{userID},
-	}), nil, &res)
+	}), &res)
 	return
 }
 
@@ -642,7 +642,19 @@ func (c Client) GetToken() string {
 	return c.Token
 }
 
-// Do sends a request with `method`, `path`, `payload` and `reply`.
+// get sends a GET request.
+func (c Client) get(ctx context.Context, path string, reply interface{}) error {
+	return c.do(ctx, http.MethodGet, path, nil, &reply)
+}
+
+// post sends a POST request.
+func (c Client) post(ctx context.Context, path string, payload, reply interface{}) error {
+	return c.do(ctx, http.MethodPost, path, payload, &reply)
+}
+
+// do sends a request with `method`, `path`, `payload` and `reply`.
+//
+// In general, you should call get() or post() instead.
 func (c Client) do(ctx context.Context, method, path string, payload, reply interface{}) error {
 	var url = c.scheme() + c.host() + "/v0" + path
 	var body io.Reader
@@ -681,29 +693,45 @@ func (c Client) do(ctx context.Context, method, path string, payload, reply inte
 	}
 
 	resp, err := client.Do(req)
+	if err != nil {
+		return errors.Wrapf(err, "api: %s %s", method, url)
+	}
 
 	if resp != nil {
 		defer func() {
 			if _, err := io.Copy(io.Discard, resp.Body); err != nil {
-				logger.Error("failed to read request body: %+v", err)
+				logger.Error("%s %s: failed to read request body: %+v", method, path, err)
 			}
 			resp.Body.Close()
 		}()
 	}
 
-	if err != nil {
-		return errors.Wrapf(err, "api: %s %s", method, url)
-	}
-
 	if resp.StatusCode >= 400 && resp.StatusCode < 600 {
-		var errt Error
+		errt := Error{
+			Code: resp.StatusCode,
+		}
 
-		if err := json.NewDecoder(resp.Body).Decode(&errt); err == nil {
-			errt.Code = resp.StatusCode
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			logger.Error("%s %s: failed to read response body: %+v", method, path, err)
 			return errt
 		}
 
-		return errors.Errorf("api: %s %s - %s", method, url, resp.Status)
+		contentType := resp.Header.Get("Content-Type")
+		if contentType == "application/json" {
+			var errResponse struct {
+				Message string `json:"message"`
+			}
+			if err := json.Unmarshal(body, &errResponse); err != nil {
+				logger.Error("%s %s: failed to deserialize JSON body from error response: %+v", method, path, err)
+			} else {
+				errt.Message = errResponse.Message
+			}
+		} else {
+			logger.Error("%s %s: response has unsupported Content-Type (%s) with body: %s", method, path, contentType, string(body))
+		}
+
+		return errt
 	}
 
 	if reply != nil {
@@ -711,7 +739,7 @@ func (c Client) do(ctx context.Context, method, path string, payload, reply inte
 		if err != nil {
 			return err
 		}
-		logger.Debug("Response to %s: %s", url, string(body))
+		logger.Debug("%s %s: responded with body: %s", method, path, string(body))
 
 		if err := json.Unmarshal(body, &reply); err != nil {
 			return errors.Wrapf(err, "api: %s %s - decoding json", method, url)
