@@ -14,12 +14,15 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/archive"
 	"github.com/airplanedev/lib/pkg/deploy/bundlediscover"
 	"github.com/dustin/go-humanize"
 	"github.com/go-git/go-git/v5"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type deployer struct {
@@ -226,17 +229,36 @@ func (d *deployer) filterBundlesByChangedFiles(ctx context.Context, bundles []bu
 }
 
 func (d *deployer) printPreDeploySummary(ctx context.Context, bundles []bundlediscover.Bundle) {
-	noun := "bundle"
-	if len(bundles) > 1 {
-		noun = fmt.Sprintf("%ss", noun)
-	}
-	if len(bundles) > 0 {
-		d.logger.Log("Deploying %v %v:\n", len(bundles), noun)
+	projects := make(map[string][]string)
+	for _, b := range bundles {
+		var typeName string
+		if b.BuildContext.Type != "" {
+			buildType := string(b.BuildContext.Type)
+			if b.BuildContext.Type == build.NoneBuildType {
+				buildType = "non code"
+			}
+			typeName += cases.Title(language.English, cases.Compact).String(buildType)
+			if b.BuildContext.Version != "" && b.BuildContext.Type != build.ViewBuildType {
+				typeName += " " + string(b.BuildContext.Version)
+			}
+		}
+		if b.BuildContext.Base != build.BuildBaseNone {
+			typeName += " " + string(b.BuildContext.Base)
+		}
+		projects[b.RootPath] = append(projects[b.RootPath], typeName)
 	}
 
-	for _, b := range bundles {
-		d.logger.Log(logger.Bold(b.RootPath))
-		d.logger.Log("Type: %s %s", b.BuildContext.Type, b.BuildContext.Version)
+	noun := "project"
+	if len(projects) > 1 {
+		noun = fmt.Sprintf("%ss", noun)
+	}
+	if len(projects) > 0 {
+		d.logger.Log("Deploying %v %v:\n", len(projects), noun)
+	}
+
+	for projectName, projectTypes := range projects {
+		d.logger.Log(logger.Bold(projectName))
+		d.logger.Log("Building for: %s", strings.Join(projectTypes, ", "))
 		d.logger.Log("")
 	}
 }
