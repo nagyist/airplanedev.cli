@@ -2,10 +2,10 @@ import airplane from "airplane";
 
 // Converted from runbook test_runbook_slug (id: testID)
 // via `airplane task init --from-runbook test_runbook_slug`
-export default airplane.workflow(
+export default airplane.task(
   {
     slug: "test_runbook_slug",
-    name: "testRunbook (workflow)",
+    name: "testRunbook (task)",
     parameters: {
       a_boolean_slug: {
         name: "A boolean",
@@ -33,6 +33,12 @@ export default airplane.workflow(
     },
     resources: ["db_slug", "email_slug", "rest_slug"],
     envVars: { dbdsn: { config: "dbdsn" } },
+    // Optionally uncomment the following line to enable the workflow runtime.
+    // The workflow runtime can run for significantly longer than the default
+    // runtime, but it comes with a few restrictions. For more information,
+    // see: https://docs.airplane.dev/tasks/runtimes
+    //
+    // runtime: "workflow"
   },
   async (params) => {
     // Get configs from the environment.

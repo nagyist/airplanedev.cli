@@ -2,7 +2,7 @@ import airplane from "airplane";
 
 // Converted from runbook {{.RunbookSlug}} (id: {{.RunbookID}})
 // via `airplane task init --from-runbook {{.RunbookSlug}}`
-export default airplane.workflow(
+export default airplane.task(
   {
     slug: "{{.Slug}}",
     name: "{{.Name}}",
@@ -13,7 +13,13 @@ export default airplane.workflow(
     {{end -}}
     {{if .Constraints -}}
     constraints: {{jsObj .Constraints}},
-    {{end}}
+    {{end -}}
+    // Optionally uncomment the following line to enable the workflow runtime.
+    // The workflow runtime can run for significantly longer than the default
+    // runtime, but it comes with a few restrictions. For more information,
+    // see: https://docs.airplane.dev/tasks/runtimes
+    //
+    // runtime: "workflow"
   },
   async (params) => {
     {{- if .Configs}}

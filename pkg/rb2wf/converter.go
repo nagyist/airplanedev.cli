@@ -154,7 +154,7 @@ func (r *RunbookConverter) Convert(ctx context.Context, runbookSlug string) erro
 		Configs:     configs,
 		Constraints: constraintsToMap(runbookInfo.runbook.Runbook.TemplateSession.Constraints),
 		EnvVars:     envVars,
-		Name:        fmt.Sprintf("%s (workflow)", runbookInfo.runbook.Runbook.Name),
+		Name:        fmt.Sprintf("%s (task)", runbookInfo.runbook.Runbook.Name),
 		Parameters:  workflowParams,
 		Resources:   resourceSlugs,
 		RunbookID:   runbookInfo.runbook.Runbook.ID,
