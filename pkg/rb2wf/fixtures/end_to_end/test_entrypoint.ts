@@ -1,6 +1,6 @@
 import airplane from "airplane";
 
-// Converted from runbook test_runbook_slug (id: testID)
+// Converted from runbook "test_runbook_slug" (id: testID)
 // via `airplane task init --from-runbook test_runbook_slug`
 export default airplane.task(
   {
@@ -148,5 +148,8 @@ export default airplane.task(
         regex: "^airplane$",
       },
     });
+
+    // Optionally return output that will be rendered in the run UI: https://docs.airplane.dev/tasks/output
+    // return {}
   }
 );

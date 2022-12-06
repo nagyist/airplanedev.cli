@@ -169,8 +169,8 @@ func (r *RunbookConverter) Convert(ctx context.Context, runbookSlug string) erro
 	}
 
 	if strings.Contains(mainTsStr, manualFixPlaceholder) {
-		// TODO: include link to conversion tool docs with "see docs for more details."
-		logger.Warning("Some templates use features that are not supported in tasks. Search for instances of '%s' and update the code accordingly.", manualFixPlaceholder)
+		logger.Warning("Some template expressions use features that are not supported by tasks. Search for instances of %q and update the code accordingly.", manualFixPlaceholder)
+		logger.Warning("See %s for more details.", logger.Purple("https://docs.airplane.dev/runbooks/migrate-to-tasks#migrating-runbook-features-to-task-features"))
 	}
 	logger.Step("Formatting code via prettier")
 	if err := r.writeFile(ctx, ".prettierrc", prettierConfig); err != nil {

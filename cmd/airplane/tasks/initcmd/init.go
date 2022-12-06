@@ -101,10 +101,7 @@ func New(c *cli.Config) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&cfg.from, "from", "", "Slug of an existing task to initialize.")
-	cmd.Flags().StringVar(&cfg.fromRunbook, "from-runbook", "", "Slug of an existing runbook to convert to a workflow. This implies --workflow and --inline.")
-	if err := cmd.Flags().MarkHidden("from-runbook"); err != nil {
-		logger.Debug("error: %s", err)
-	}
+	cmd.Flags().StringVar(&cfg.fromRunbook, "from-runbook", "", "Slug of an existing runbook to convert to a task.")
 
 	cmd.Flags().BoolVar(&cfg.codeOnly, "code-only", false, "True to skip creating a task definition file; only generates an entrypoint file.")
 	cmd.Flags().BoolVarP(&cfg.assumeYes, "yes", "y", false, "True to specify automatic yes to prompts.")
