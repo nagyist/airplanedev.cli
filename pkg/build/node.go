@@ -967,6 +967,13 @@ func nodeBundle(
 		ENV NODE_ENV=production
 		WORKDIR /airplane{{.Workdir}}
 
+		{{if .UseSlimImage}}
+		RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+			&& apt-get -y install --no-install-recommends \
+				curl ca-certificates \
+			&& apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+		{{end}}
+
 		RUN npm install -g esbuild@0.12 --unsafe-perm
 		
 		RUN mkdir -p /airplane/.airplane && \
@@ -992,6 +999,13 @@ func nodeBundle(
 		FROM {{.Base}} as task-build
 		ENV NODE_ENV=production
 		WORKDIR /airplane{{.Workdir}}
+
+		{{if .UseSlimImage}}
+		RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+			&& apt-get -y install --no-install-recommends \
+				curl ca-certificates \
+			&& apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+		{{end}}
 
 		# qemu (on m1 at least) segfaults while looking up a UID/GID for running
 		# postinstall scripts. We run as root with --unsafe-perm instead, skipping
