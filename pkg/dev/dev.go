@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,6 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
+	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
@@ -89,6 +91,8 @@ type LocalRunConfig struct {
 	PrintLogs bool
 	// WorkingDir is where the studio is running
 	WorkingDir string
+
+	StudioURL url.URL
 }
 
 type CmdConfig struct {
@@ -215,7 +219,6 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 		if err != nil {
 			return api.Outputs{}, err
 		}
-
 		// Load environment variables from .env files
 		// TODO: Deprecate support for .env files
 		dotEnvEnvVars, err := getDevEnvVars(r, entrypoint)
@@ -490,16 +493,20 @@ func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error
 	env = append(env, fmt.Sprintf("AIRPLANE_API_HOST=%s", config.LocalClient.HostURL()))
 	env = append(env, "AIRPLANE_RESOURCES_VERSION=2")
 
-	var runnerID, runnerEmail string
+	var runnerID, runnerEmail, runnerName string
 	if config.AuthInfo.User != nil {
 		runnerID = config.AuthInfo.User.ID
 		runnerEmail = config.AuthInfo.User.Email
+		runnerName = config.AuthInfo.User.Name
 	}
 
 	var teamID string
 	if config.AuthInfo.Team != nil {
 		teamID = config.AuthInfo.Team.ID
 	}
+	apiPort := config.LocalClient.AppURL().Port()
+	taskURL := utils.StudioURL(config.StudioURL.Host, apiPort, "/task/"+config.Slug)
+	runURL := utils.StudioURL(config.StudioURL.Host, apiPort, "/runs/"+config.ID)
 
 	// Environment variables documented in https://docs.airplane.dev/tasks/runtime-api-reference#environment-variables
 	// We omit:
@@ -512,13 +519,20 @@ func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error
 	env = append(env,
 		fmt.Sprintf("AIRPLANE_ENV_ID=%s", devenv.StudioEnvID),
 		fmt.Sprintf("AIRPLANE_ENV_SLUG=%s", devenv.StudioEnvID),
+		fmt.Sprintf("AIRPLANE_ENV_NAME=%s", devenv.StudioEnvID),
+		fmt.Sprintf("AIRPLANE_ENV_IS_DEFAULT=%v", true), // For local dev, there is one env.
+
 		fmt.Sprintf("AIRPLANE_RUN_ID=%s", config.ID),
 		fmt.Sprintf("AIRPLANE_PARENT_RUN_ID=%s", pointers.ToString(config.ParentRunID)),
 		fmt.Sprintf("AIRPLANE_RUNNER_EMAIL=%s", runnerEmail),
 		fmt.Sprintf("AIRPLANE_RUNNER_ID=%s", runnerID),
 		"AIRPLANE_RUNTIME=dev",
 		fmt.Sprintf("AIRPLANE_TASK_ID=%s", config.Slug), // For local dev, we use the task's slug as its id.
+		fmt.Sprintf("AIRPLANE_TASK_NAME=%s", config.Name),
 		fmt.Sprintf("AIRPLANE_TEAM_ID=%s", teamID),
+		fmt.Sprintf("AIRPLANE_RUNNER_NAME=%s", runnerName),
+		fmt.Sprintf("AIRPLANE_TASK_URL=%s", taskURL),
+		fmt.Sprintf("AIRPLANE_RUN_URL=%s", runURL),
 	)
 
 	token, err := GenerateInsecureAirplaneToken(AirplaneTokenClaims{

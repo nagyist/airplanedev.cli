@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -111,6 +112,8 @@ type Options struct {
 	Dir        string
 	AuthInfo   api.AuthInfoResponse
 	Discoverer *discover.Discoverer
+
+	StudioURL url.URL
 }
 
 // newServer returns a new HTTP server with API routes
@@ -160,6 +163,7 @@ func Start(opts Options) (*Server, error) {
 		Logger:         logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
 		AuthInfo:       opts.AuthInfo,
 		Discoverer:     opts.Discoverer,
+		StudioURL:      opts.StudioURL,
 	}
 
 	r := NewRouter(state)

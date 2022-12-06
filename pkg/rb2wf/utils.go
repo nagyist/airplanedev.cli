@@ -132,8 +132,40 @@ func (t templateValue) MarshalJSON() ([]byte, error) {
 	), nil
 }
 
+// Show this message when a feature could not be mapped directly and requires
+// user intervention.
+var manualFixPlaceholder = "FIX_ME"
+
+var runbookEnvVars = map[string]string{
+	"session.id":            "process.env.AIRPLANE_RUN_ID",
+	"session.url":           "process.env.AIRPLANE_RUN_URL",
+	"session.name":          "process.env.AIRPLANE_RUN_ID",
+	"session.creator.id":    "process.env.AIRPLANE_RUNNER_ID",
+	"session.creator.email": "process.env.AIRPLANE_RUNNER_EMAIL",
+	"session.creator.name":  "process.env.AIRPLANE_RUNNER_NAME",
+	"runbook.id":            "process.env.AIRPLANE_TASK_ID",
+	"runbook.url":           "process.env.AIRPLANE_TASK_URL",
+	"runbook.name":          "process.env.AIRPLANE_TASK_NAME",
+	"env.id":                "process.env.AIRPLANE_ENV_ID",
+	"env.slug":              "process.env.AIRPLANE_ENV_SLUG",
+	"env.name":              "process.env.AIRPLANE_ENV_NAME",
+	"env.is_default":        "process.env.AIRPLANE_ENV_IS_DEFAULT",
+
+	"block.id":   "process.env." + manualFixPlaceholder,
+	"block.slug": "process.env." + manualFixPlaceholder,
+}
+
+func (t templateValue) runbookGlobalsToEnVars() string {
+	template := t.rawTemplate
+	for envVar, processEnv := range runbookEnvVars {
+		template = strings.ReplaceAll(template, envVar, processEnv)
+	}
+	return template
+}
+
 func (t templateValue) toTemplate() string {
-	template := strings.ReplaceAll(t.rawTemplate, "{{", "${")
+	withEnvVars := t.runbookGlobalsToEnVars()
+	template := strings.ReplaceAll(withEnvVars, "{{", "${")
 	return strings.ReplaceAll(template, "}}", "}")
 }
 

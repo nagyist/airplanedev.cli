@@ -168,6 +168,10 @@ func (r *RunbookConverter) Convert(ctx context.Context, runbookSlug string) erro
 		return err
 	}
 
+	if strings.Contains(mainTsStr, manualFixPlaceholder) {
+		// TODO: include link to conversion tool docs with "see docs for more details."
+		logger.Warning("Some templates use features that are not supported in tasks. Search for instances of '%s' and update the code accordingly.", manualFixPlaceholder)
+	}
 	logger.Step("Formatting code via prettier")
 	if err := r.writeFile(ctx, ".prettierrc", prettierConfig); err != nil {
 		return err
@@ -272,6 +276,7 @@ func (r *RunbookConverter) blockToString(
 	block api.SessionBlock,
 	resources map[string]libapi.Resource,
 ) (string, error) {
+
 	if block.BlockKindConfig.Task != nil {
 		config := block.BlockKindConfig.Task
 		task, err := r.client.GetTaskByID(ctx, config.TaskID)

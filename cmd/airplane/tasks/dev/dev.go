@@ -272,6 +272,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		ConfigVars:        cfg.devConfig.ConfigVars,
 		EnvVars:           taskEnv,
 		PrintLogs:         true,
+		StudioURL:         *cfg.root.Client.AppURL(),
 	}
 	_, err = localExecutor.Execute(ctx, localRunConfig)
 	if err != nil {

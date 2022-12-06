@@ -99,6 +99,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		Dir:            absoluteDir,
 		AuthInfo:       authInfo,
 		Discoverer:     d,
+		StudioURL:      *appURL,
 	})
 	if err != nil {
 		return errors.Wrap(err, "starting local dev server")

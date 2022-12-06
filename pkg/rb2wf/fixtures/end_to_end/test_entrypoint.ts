@@ -35,43 +35,6 @@ export default airplane.workflow(
     envVars: { dbdsn: { config: "dbdsn" } },
   },
   async (params) => {
-    // Set globals; see https://docs.airplane.dev/runbooks/javascript-templates#globals-reference
-    // for more details.
-
-    // Sessions don't exist in workflows, so the associated globals are unset. If you're using them
-    // in your code, you'll want to remove them.
-    const session = {
-      id: "unset",
-      url: "unset",
-      name: "unset",
-      creator: {
-        id: "unset",
-        email: "unset",
-        name: "unset",
-      },
-    };
-
-    // Blocks don't exist in tasks, so these are unset. If you're using them in your code,
-    // you'll want to remove them.
-    const block = {
-      id: "unset",
-      slug: "unset",
-    };
-
-    // This is no longer a runbook, so the runbook globals are unset. If you're using them
-    // in your code, you'll want to remove them.
-    const runbook = {
-      id: "unset",
-      url: "unset",
-      name: "unset",
-    };
-
-    const env = {
-      id: "unset",
-      slug: "unset",
-      name: "unset",
-      is_default: false,
-    };
     // Get configs from the environment.
     const configs = { dbdsn: process.env["dbdsn"] };
 
@@ -81,6 +44,10 @@ export default airplane.workflow(
 
     await airplane.display.markdown(
       `This is some content with a ${params.an_integer_slug}`
+    );
+
+    await airplane.display.markdown(
+      `Tests that these templates get replaced: ${params.an_integer_slug}. ${process.env.AIRPLANE_RUN_ID} ${process.env.AIRPLANE_RUN_URL} ${process.env.AIRPLANE_RUN_ID} ${process.env.AIRPLANE_RUNNER_ID} ${process.env.AIRPLANE_RUNNER_EMAIL}${process.env.AIRPLANE_RUNNER_NAME} ${process.env.FIX_ME} ${process.env.FIX_ME} ${process.env.AIRPLANE_TASK_ID} ${process.env.AIRPLANE_TASK_URL} ${process.env.AIRPLANE_ENV_ID} ${process.env.AIRPLANE_ENV_SLUG} ${process.env.AIRPLANE_ENV_NAME} ${process.env.AIRPLANE_ENV_IS_DEFAULT}`
     );
 
     const sql_block_slug = await airplane.sql.query<any>(

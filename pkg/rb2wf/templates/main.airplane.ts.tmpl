@@ -16,44 +16,6 @@ export default airplane.workflow(
     {{end}}
   },
   async (params) => {
-    // Set globals; see https://docs.airplane.dev/runbooks/javascript-templates#globals-reference
-    // for more details.
-
-    // Sessions don't exist in workflows, so the associated globals are unset. If you're using them
-    // in your code, you'll want to remove them.
-    const session = {
-      id: "unset",
-      url: "unset",
-      name: "unset",
-      creator: {
-        id: "unset",
-        email: "unset",
-        name: "unset",
-      },
-    };
-
-    // Blocks don't exist in tasks, so these are unset. If you're using them in your code,
-    // you'll want to remove them.
-    const block = {
-      id: "unset",
-      slug: "unset",
-    };
-
-    // This is no longer a runbook, so the runbook globals are unset. If you're using them
-    // in your code, you'll want to remove them.
-    const runbook = {
-      id: "unset",
-      url: "unset",
-      name: "unset",
-    };
-
-    const env = {
-      id: "unset",
-      slug: "unset",
-      name: "unset",
-      is_default: false,
-    };
-
     {{- if .Configs}}
     // Get configs from the environment.
     const configs = {{jsObj .Configs}};

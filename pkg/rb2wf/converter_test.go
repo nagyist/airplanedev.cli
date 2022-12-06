@@ -124,6 +124,22 @@ func TestConverter(t *testing.T) {
 					},
 				},
 				{
+					ID:        "noteBlockGlobals",
+					Slug:      "note_block_globals_slug",
+					BlockKind: "note",
+					BlockKindConfig: api.BlockKindConfig{
+						Note: &api.BlockKindConfigNote{
+							Content: map[string]interface{}{
+								"__airplaneType": "template",
+								"raw": "Tests that these templates get replaced: {{params.an_integer_slug}}." +
+									" {{session.id}} {{session.url}} {{session.name}} {{session.creator.id}} {{session.creator.email}}" +
+									"{{session.creator.name}} {{block.id}} {{block.slug}} {{runbook.id}} " +
+									"{{runbook.url}} {{env.id}} {{env.slug}} {{env.name}} {{env.is_default}}",
+							},
+						},
+					},
+				},
+				{
 					ID:        "sqlBlockID",
 					Slug:      "sql_block_slug",
 					BlockKind: "stdapi",

@@ -98,6 +98,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			AuthInfo:       state.AuthInfo,
 			LogBroker:      run.LogBroker,
 			WorkingDir:     state.Dir,
+			StudioURL:      state.StudioURL,
 		}
 		resourceAttachments := map[string]string{}
 		mergedResources, err := resources.MergeRemoteResources(ctx, state)
@@ -213,6 +214,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 					// If an error output isn't already set, set it here.
 					if outputs.V == nil {
 						outputs = api.Outputs{
+
 							V: ojson.NewObject().SetAndReturn("error", err.Error()),
 						}
 					}

@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 
@@ -17,4 +18,8 @@ func Open(url string) bool {
 
 	err := browser.Open(runtime.GOOS, url)
 	return err == nil
+}
+
+func StudioURL(baseURL, port, page string) string {
+	return fmt.Sprintf("%s/studio%s?host=http://localhost:%s", baseURL, page, port)
 }
