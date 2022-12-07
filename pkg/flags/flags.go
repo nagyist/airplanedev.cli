@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	defaultFlagFreshness = time.Hour
+	defaultFlagFreshness = time.Minute * 10
 )
 
 type APIClient struct {

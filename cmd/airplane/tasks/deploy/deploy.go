@@ -85,6 +85,9 @@ func New(c *cli.Config) *cobra.Command {
 	if err := cmd.Flags().MarkHidden("jst"); err != nil {
 		logger.Debug("error: %s", err)
 	}
+	if err := cmd.Flags().MarkHidden("local"); err != nil {
+		logger.Debug("error: %s", err)
+	}
 
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
 
