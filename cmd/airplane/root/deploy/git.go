@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -15,10 +16,20 @@ type GitRepoGetter interface {
 }
 type FileGitRepoGetter struct{}
 
-// GetGitRepo gets a git repo that tracks the input file. If the file is not in a git repo, the
+// GetGitRepo gets a git repo that tracks the input file or directory. If the file is not in a git repo, the
 // returned repo will be nil.
-func (gh *FileGitRepoGetter) GetGitRepo(file string) (*git.Repository, error) {
-	repo, err := git.PlainOpenWithOptions(filepath.Dir(file), &git.PlainOpenOptions{
+func (gh *FileGitRepoGetter) GetGitRepo(fileOrDir string) (*git.Repository, error) {
+	fileInfo, err := os.Stat(fileOrDir)
+	if err != nil {
+		return nil, err
+	}
+
+	possibleRepoDir := fileOrDir
+	if !fileInfo.IsDir() {
+		possibleRepoDir = filepath.Dir(fileOrDir)
+	}
+
+	repo, err := git.PlainOpenWithOptions(possibleRepoDir, &git.PlainOpenOptions{
 		DetectDotGit: true,
 	})
 	if err != nil {
