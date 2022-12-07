@@ -721,11 +721,15 @@ func (c Client) do(ctx context.Context, method, path string, payload, reply inte
 		if contentType == "application/json" {
 			var errResponse struct {
 				Message string `json:"message"`
+				Error   string `json:"error"`
 			}
 			if err := json.Unmarshal(body, &errResponse); err != nil {
 				logger.Error("%s %s: failed to deserialize JSON body from error response: %+v", method, path, err)
 			} else {
 				errt.Message = errResponse.Message
+				if errt.Message == "" {
+					errt.Message = errResponse.Error
+				}
 			}
 		} else {
 			logger.Error("%s %s: response has unsupported Content-Type (%s) with body: %s", method, path, contentType, string(body))
