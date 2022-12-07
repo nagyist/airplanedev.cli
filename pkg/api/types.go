@@ -385,6 +385,7 @@ type DeployBundle struct {
 	Name         string       `json:"name"`
 	TargetFiles  []string     `json:"targetFiles"`
 	BuildContext BuildContext `json:"buildContext"`
+	GitFilePath  string       `json:"gitFilePath"`
 }
 
 type CreateDeploymentRequest struct {

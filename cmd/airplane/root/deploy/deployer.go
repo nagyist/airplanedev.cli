@@ -89,11 +89,19 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 		} else {
 			d.logger.Debug("discovered git repo for %s", b.RootPath)
 		}
+		var gitFilePath string
+		if repo != nil {
+			gitFilePath, err = GetEntrypointRelativeToGitRoot(repo, b.RootPath)
+			if err != nil {
+				d.logger.Debug("failed to get entrypoint relative to git root %s: %v", b.RootPath, err)
+			}
+		}
 		bundleToDeploy := api.DeployBundle{
 			UploadID:     uploadIDs[b.RootPath],
 			Name:         filepath.Base(b.RootPath),
 			TargetFiles:  b.TargetPaths,
 			BuildContext: b.BuildContext,
+			GitFilePath:  gitFilePath,
 		}
 		bundlesToDeploy = append(bundlesToDeploy, bundleToDeploy)
 
