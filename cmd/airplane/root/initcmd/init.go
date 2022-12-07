@@ -32,6 +32,7 @@ type config struct {
 	download    bool
 	workspace   string
 	envSlug     string
+	fromRunbook string
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -72,6 +73,7 @@ func New(c *cli.Config) *cobra.Command {
 	if err := cmd.Flags().MarkHidden("workspace"); err != nil {
 		logger.Debug("marking --workspace as hidden: %s", err)
 	}
+	cmd.Flags().StringVar(&cfg.fromRunbook, "from-runbook", "", "Initialize a task from a runbook.")
 
 	return cmd
 }
@@ -117,6 +119,15 @@ func run(ctx context.Context, cfg config) error {
 		return initFromTemplate(ctx, cfg, templates, cfg.template)
 	}
 
+	if cfg.fromRunbook != "" {
+		taskConfig := taskinit.ConfigOpts{
+			Client:      cfg.client,
+			Root:        cfg.root,
+			FromRunbook: cfg.fromRunbook,
+		}
+		return taskinit.Run(ctx, taskinit.GetConfig(taskConfig))
+	}
+
 	var selectedInit string
 	if err := survey.AskOne(
 		&survey.Select{
@@ -129,7 +140,7 @@ func run(ctx context.Context, cfg config) error {
 		return err
 	}
 	if selectedInit == taskOption {
-		return taskinit.Run(ctx, taskinit.GetConfig(cfg.client, cfg.root))
+		return taskinit.Run(ctx, taskinit.GetConfig(taskinit.ConfigOpts{Client: cfg.client, Root: cfg.root}))
 	} else if selectedInit == viewOption {
 		return viewinit.Run(ctx, viewinit.GetConfig(cfg.client))
 	} else if selectedInit == templateOption {

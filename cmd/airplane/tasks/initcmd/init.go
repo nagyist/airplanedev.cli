@@ -61,8 +61,14 @@ type config struct {
 	newTaskInfo newTaskInfo
 }
 
-func GetConfig(client *api.Client, root *cli.Config) config {
-	return config{client: client, root: root}
+type ConfigOpts struct {
+	Client      *api.Client
+	Root        *cli.Config
+	FromRunbook string
+}
+
+func GetConfig(opts ConfigOpts) config {
+	return config{client: opts.Client, root: opts.Root, fromRunbook: opts.FromRunbook}
 }
 
 type newTaskInfo struct {
@@ -73,7 +79,7 @@ type newTaskInfo struct {
 }
 
 func New(c *cli.Config) *cobra.Command {
-	var cfg = GetConfig(c.Client, c)
+	var cfg = GetConfig(ConfigOpts{Client: c.Client, Root: c})
 
 	cmd := &cobra.Command{
 		Use:   "init",
