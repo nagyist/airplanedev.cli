@@ -98,14 +98,14 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 		bundlesToDeploy = append(bundlesToDeploy, bundleToDeploy)
 
 		// Get the root directory of the git repo with which the bundle is associated.
-		var gitRoot string
 		if repo != nil {
+			var gitRoot string
 			w, err := repo.Worktree()
 			if err == nil {
 				gitRoot = w.Filesystem.Root()
 			}
+			gitRoots[gitRoot] = true
 		}
-		gitRoots[gitRoot] = true
 	}
 
 	// If bundles in a single deploy come from different git repos, we do not
