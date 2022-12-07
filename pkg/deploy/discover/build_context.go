@@ -17,9 +17,9 @@ func taskBuildContext(taskroot string, taskRuntime runtime.Interface) (build.Bui
 	}
 
 	var c config.AirplaneConfig
-	configPath, found := fsx.Find(taskroot, config.FileName)
-	if found {
-		c, err = config.NewAirplaneConfigFromFile(filepath.Join(configPath, config.FileName))
+	hasAirplaneConfig := fsx.Exists(filepath.Join(taskroot, config.FileName))
+	if hasAirplaneConfig {
+		c, err = config.NewAirplaneConfigFromFile(taskroot)
 		if err != nil {
 			return build.BuildContext{}, err
 		}
