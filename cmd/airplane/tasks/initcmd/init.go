@@ -1035,12 +1035,10 @@ func writeNewAirplaneConfig(writer io.Writer, opts getNewAirplaneConfigOptions) 
 		}
 	}
 
-	buf, err := yaml.Marshal(&opts.cfg)
-	if err != nil {
-		return errors.Wrapf(err, "Error while Marshaling %s", deployconfig.FileName)
-	}
-
-	if _, err := writer.Write(buf); err != nil {
+	e := yaml.NewEncoder(writer)
+	defer e.Close()
+	e.SetIndent(2)
+	if err := e.Encode(&opts.cfg); err != nil {
 		return errors.Wrapf(err, "writing %s", deployconfig.FileName)
 	}
 
