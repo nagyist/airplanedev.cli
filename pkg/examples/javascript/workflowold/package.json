@@ -1,9 +1,0 @@
-{
-  "name": "workflowold",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "airplane": "0.2.9"
-  }
-}

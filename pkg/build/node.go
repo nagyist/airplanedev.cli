@@ -391,22 +391,6 @@ func GenShimPackageJSON(rootDir string, packageJSONs []string, isWorkflow bool) 
 		if depVersion, containsAirplane := deps["airplane"]; containsAirplane {
 			apVersion := getLockPackageVersion(rootDir, "airplane", depVersion)
 
-			// Make sure that the version is new enough to support latest
-			// workflow shims.
-			meetsMin, err := meetsMinimumVersion(apVersion, minWorkflowSDKVersion)
-			if err != nil {
-				return nil, err
-			}
-
-			if !meetsMin {
-				return nil,
-					errors.Errorf(
-						"The version of the Airplane JS SDK (%s) does not meet the minimum supported version for Workflows (%s). Please update the version of the Airplane JS SDK by running: npm install airplane@latest.",
-						apVersion,
-						minWorkflowSDKVersion,
-					)
-			}
-
 			if _, containsWorkflowRuntime := deps[workflowRuntimePkg]; !containsWorkflowRuntime {
 				pjson.Dependencies[workflowRuntimePkg] = apVersion
 			}

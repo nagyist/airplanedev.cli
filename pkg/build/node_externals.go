@@ -500,21 +500,3 @@ func getLockPackageVersion(
 	)
 	return fallbackVersion
 }
-
-func meetsMinimumVersion(packageVersion string, minVersion string) (bool, error) {
-	if strings.HasPrefix(packageVersion, "^") || strings.HasPrefix(packageVersion, "~") {
-		packageVersion = packageVersion[1:]
-	}
-
-	packageSemver, err := semver.ParseTolerant(packageVersion)
-	if err != nil {
-		return false, errors.Wrap(err, "parsing package version")
-	}
-
-	minSemver, err := semver.ParseTolerant(minVersion)
-	if err != nil {
-		return false, errors.Wrap(err, "parsing min required version")
-	}
-
-	return packageSemver.GE(minSemver), nil
-}
