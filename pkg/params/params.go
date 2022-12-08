@@ -3,10 +3,12 @@
 package params
 
 import (
+	"context"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/airplanedev/cli/pkg/api"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/pkg/errors"
 )
@@ -15,6 +17,8 @@ const (
 	YesString = "Yes"
 	NoString  = "No"
 )
+
+const ParameterTimeFormat = time.RFC3339
 
 // ValidateInput checks that string from CLI fits into expected API value
 // This is best effort - API may still return a 400 even with valid inputs
@@ -171,4 +175,65 @@ func APIValueToInput(param libapi.Parameter, value interface{}) (string, error) 
 	default:
 		return "", nil
 	}
+}
+
+func StandardizeParamValues(
+	ctx context.Context,
+	remoteClient api.APIClient,
+	parameters libapi.Parameters,
+	values api.Values,
+) (api.Values, error) {
+	out := api.Values{}
+	for _, param := range parameters {
+		v, ok := values[param.Slug]
+		if !ok {
+			continue
+		}
+
+		// Copy over the value
+		out[param.Slug] = v
+
+		if param.Type == libapi.TypeUpload {
+			uploadID, ok := v.(string)
+			if !ok {
+				continue
+			}
+
+			resp, err := remoteClient.GetUpload(ctx, uploadID)
+			if err != nil {
+				return nil, errors.Wrap(err, "getting upload")
+			}
+
+			out[param.Slug] = map[string]interface{}{
+				"__airplaneType": "upload",
+				"id":             resp.Upload.ID,
+				"url":            resp.ReadOnlyURL,
+			}
+		} else if param.Type == libapi.TypeDate {
+			vs, ok := v.(string)
+			if !ok {
+				continue
+			}
+			_, err := time.Parse(ParameterTimeFormat, vs)
+			if err != nil {
+				continue
+			}
+			// Truncate to YYYY-MM-DD format. We assume the user creates a date
+			// according to their local timezone, so we don't want to convert to
+			// UTC because that may result in the date being off by one.
+			out[param.Slug] = vs[:10]
+		} else if param.Type == libapi.TypeDatetime {
+			vs, ok := v.(string)
+			if !ok {
+				continue
+			}
+			dt, err := time.Parse(ParameterTimeFormat, vs)
+			if err != nil {
+				continue
+			}
+			out[param.Slug] = dt.UTC().Format(ParameterTimeFormat)
+		}
+	}
+
+	return out, nil
 }

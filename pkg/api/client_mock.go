@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/pkg/errors"
 )
@@ -20,6 +21,7 @@ type MockClient struct {
 	Tasks                 map[string]libapi.Task
 	Users                 map[string]User
 	Views                 map[string]libapi.View
+	Uploads               map[string]libapi.Upload
 }
 
 var _ APIClient = &MockClient{}
@@ -286,5 +288,30 @@ func (mc *MockClient) GetUser(ctx context.Context, userID string) (res GetUserRe
 		return GetUserResponse{}, errors.Errorf("user with id %s does not exist", userID)
 	} else {
 		return GetUserResponse{User: user}, nil
+	}
+}
+
+func (mc *MockClient) CreateUpload(ctx context.Context, req libapi.CreateUploadRequest) (res libapi.CreateUploadResponse, err error) {
+	id := utils.GenerateID("upl")
+	upload := libapi.Upload{
+		ID:        id,
+		FileName:  req.FileName,
+		SizeBytes: req.SizeBytes,
+	}
+	mc.Uploads[id] = upload
+
+	return libapi.CreateUploadResponse{
+		Upload: upload,
+	}, nil
+}
+
+func (mc *MockClient) GetUpload(ctx context.Context, uploadID string) (res libapi.GetUploadResponse, err error) {
+	if upload, ok := mc.Uploads[uploadID]; !ok {
+		return libapi.GetUploadResponse{}, errors.Errorf("upload with id %s does not exist", uploadID)
+	} else {
+		return libapi.GetUploadResponse{
+			Upload:      upload,
+			ReadOnlyURL: "fake-url",
+		}, nil
 	}
 }

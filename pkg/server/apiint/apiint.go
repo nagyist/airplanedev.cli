@@ -57,6 +57,9 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/configs/upsert", handlers.HandlerWithBody(state, UpsertConfigHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/configs/delete", handlers.HandlerWithBody(state, DeleteConfigHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/configs/list", handlers.Handler(state, ListConfigsHandler)).Methods("GET", "OPTIONS")
+
+	r.Handle("/uploads/create", handlers.HandlerWithBody(state, CreateUploadHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/uploads/get", handlers.HandlerWithBody(state, GetUploadHandler)).Methods("POST", "OPTIONS") // Our web app expects POST for this endpoint
 }
 
 type CreateResourceRequest struct {
@@ -674,5 +677,40 @@ func ListConfigsHandler(ctx context.Context, state *state.State, r *http.Request
 
 	return ListConfigsResponse{
 		Configs: configsWithEnv,
+	}, nil
+}
+
+func CreateUploadHandler(
+	ctx context.Context,
+	state *state.State,
+	r *http.Request,
+	req libapi.CreateUploadRequest,
+) (libapi.CreateUploadResponse, error) {
+	resp, err := state.RemoteClient.CreateUpload(ctx, req)
+	if err != nil {
+		return libapi.CreateUploadResponse{}, errors.Wrap(err, "creating upload")
+	}
+
+	return libapi.CreateUploadResponse{
+		Upload:       resp.Upload,
+		ReadOnlyURL:  resp.ReadOnlyURL,
+		WriteOnlyURL: resp.WriteOnlyURL,
+	}, nil
+}
+
+func GetUploadHandler(
+	ctx context.Context,
+	state *state.State,
+	r *http.Request,
+	req libapi.GetUploadRequest,
+) (libapi.GetUploadResponse, error) {
+	resp, err := state.RemoteClient.GetUpload(ctx, req.UploadID)
+	if err != nil {
+		return libapi.GetUploadResponse{}, errors.Wrap(err, "getting upload")
+	}
+
+	return libapi.GetUploadResponse{
+		Upload:      resp.Upload,
+		ReadOnlyURL: resp.ReadOnlyURL,
 	}, nil
 }

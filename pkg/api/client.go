@@ -108,7 +108,6 @@ type APIClient interface {
 	ListConfigs(ctx context.Context, req ListConfigsRequest) (res ListConfigsResponse, err error)
 
 	GetRegistryToken(ctx context.Context) (res RegistryTokenResponse, err error)
-	CreateBuildUpload(ctx context.Context, req libapi.CreateBuildUploadRequest) (res libapi.CreateBuildUploadResponse, err error)
 
 	GetDeploymentLogs(ctx context.Context, deploymentID string, prevToken string) (res GetDeploymentLogsResponse, err error)
 	GetDeployment(ctx context.Context, id string) (res Deployment, err error)
@@ -116,7 +115,10 @@ type APIClient interface {
 	CancelDeployment(ctx context.Context, req CancelDeploymentRequest) error
 	DeploymentURL(deploymentID string, envSlug string) string
 
+	CreateBuildUpload(ctx context.Context, req libapi.CreateBuildUploadRequest) (res libapi.CreateBuildUploadResponse, err error)
 	GenerateSignedURLs(ctx context.Context, envSlug string) (res GenerateSignedURLsResponse, err error)
+	CreateUpload(ctx context.Context, req libapi.CreateUploadRequest) (res libapi.CreateUploadResponse, err error)
+	GetUpload(ctx context.Context, uploadID string) (res libapi.GetUploadResponse, err error)
 
 	GetView(ctx context.Context, req libapi.GetViewRequest) (libapi.View, error)
 	CreateView(ctx context.Context, req libapi.CreateViewRequest) (libapi.View, error)
@@ -615,6 +617,18 @@ func (c Client) GetPermissions(ctx context.Context, taskSlug string, actions []s
 	err = c.get(ctx, encodeQueryString("/permissions/get", url.Values{
 		"task_slug": []string{taskSlug},
 		"actions":   actions,
+	}), &res)
+	return
+}
+
+func (c Client) CreateUpload(ctx context.Context, req libapi.CreateUploadRequest) (res libapi.CreateUploadResponse, err error) {
+	err = c.post(ctx, "/uploads/create", req, &res)
+	return
+}
+
+func (c Client) GetUpload(ctx context.Context, uploadID string) (res libapi.GetUploadResponse, err error) {
+	err = c.get(ctx, encodeQueryString("/uploads/get", url.Values{
+		"id": []string{uploadID},
 	}), &res)
 	return
 }

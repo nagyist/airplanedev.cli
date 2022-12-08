@@ -461,3 +461,37 @@ func TestRemoteConfigs(t *testing.T) {
 	})
 	require.Equal(expected, listResp.Configs)
 }
+
+func TestUploadCreateGet(t *testing.T) {
+	require := require.New(t)
+
+	h := test_utils.GetHttpExpect(
+		context.Background(),
+		t,
+		server.NewRouter(&state.State{
+			RemoteClient: &api.MockClient{
+				Uploads: map[string]libapi.Upload{},
+			},
+		}),
+	)
+
+	var createResp libapi.CreateUploadResponse
+	body := h.POST("/i/uploads/create").
+		WithJSON(libapi.CreateUploadRequest{FileName: "test.txt", SizeBytes: 10}).
+		Expect().
+		Status(http.StatusOK).Body()
+	err := json.Unmarshal([]byte(body.Raw()), &createResp)
+	require.NoError(err)
+	require.Equal("test.txt", createResp.Upload.FileName)
+	require.Equal(10, createResp.Upload.SizeBytes)
+	upload := createResp.Upload
+
+	var getResp libapi.GetUploadResponse
+	body = h.POST("/i/uploads/get").
+		WithJSON(libapi.GetUploadRequest{UploadID: upload.ID}).
+		Expect().
+		Status(http.StatusOK).Body()
+	err = json.Unmarshal([]byte(body.Raw()), &getResp)
+	require.NoError(err)
+	require.Equal(upload, getResp.Upload)
+}

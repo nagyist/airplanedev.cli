@@ -10,6 +10,7 @@ import (
 	"github.com/airplanedev/cli/pkg/configs"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/params"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/server/handlers"
@@ -49,6 +50,8 @@ func AttachExternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/permissions/get", handlers.Handler(state, GetPermissionsHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/hosts/web", handlers.Handler(state, WebHostHandler)).Methods("GET", "OPTIONS")
+
+	r.Handle("/uploads/create", handlers.HandlerWithBody(state, CreateUploadHandler)).Methods("POST", "OPTIONS")
 }
 
 type ExecuteTaskRequest struct {
@@ -182,8 +185,14 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		runConfig.AliasToResource = aliasToResourceMap
 		run.Resources = resources.GenerateResourceAliasToID(aliasToResourceMap)
 		run.CreatedAt = start
+
 		run.ParamValues = req.ParamValues
 		run.Parameters = &parameters
+		runConfig.ParamValues, err = params.StandardizeParamValues(ctx, state.RemoteClient, parameters, req.ParamValues)
+		if err != nil {
+			return api.RunTaskResponse{}, errors.Wrap(err, "standardizing param values")
+		}
+
 		run.Status = api.RunActive
 		runCtx, fn := context.WithCancel(context.Background()) // Context used for cancelling a run.
 		run.CancelFn = fn
@@ -612,4 +621,22 @@ func GetPermissionsHandler(ctx context.Context, state *state.State, r *http.Requ
 
 func WebHostHandler(ctx context.Context, state *state.State, r *http.Request) (string, error) {
 	return state.RemoteClient.GetWebHost(ctx)
+}
+
+func CreateUploadHandler(
+	ctx context.Context,
+	state *state.State,
+	r *http.Request,
+	req libapi.CreateUploadRequest,
+) (libapi.CreateUploadResponse, error) {
+	resp, err := state.RemoteClient.CreateUpload(ctx, req)
+	if err != nil {
+		return libapi.CreateUploadResponse{}, errors.Wrap(err, "creating upload")
+	}
+
+	return libapi.CreateUploadResponse{
+		Upload:       resp.Upload,
+		ReadOnlyURL:  resp.ReadOnlyURL,
+		WriteOnlyURL: resp.WriteOnlyURL,
+	}, nil
 }
