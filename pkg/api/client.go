@@ -80,8 +80,36 @@ type CreateBuildUploadResponse struct {
 }
 
 type Upload struct {
-	ID  string `json:"id"`
-	URL string `json:"url"`
+	ID               string    `json:"id"`
+	FileName         string    `json:"fileName"`
+	URL              string    `json:"url"`
+	SizeBytes        int       `json:"sizeBytes"`
+	CreatedAt        time.Time `json:"createdAt"`
+	TeamID           string    `json:"teamID"`
+	CreatorUserID    *string   `json:"creatorUserID"`
+	RunID            *string   `json:"runID"`
+	TriggerRequestID *string   `json:"triggerRequestID"`
+	SessionID        *string   `json:"sessionID"`
+}
+
+type CreateUploadRequest struct {
+	FileName  string `json:"fileName"`
+	SizeBytes int    `json:"sizeBytes"`
+}
+
+type CreateUploadResponse struct {
+	Upload       Upload `json:"upload"`
+	ReadOnlyURL  string `json:"readOnlyURL"`
+	WriteOnlyURL string `json:"writeOnlyURL"`
+}
+
+type GetUploadRequest struct {
+	UploadID string `json:"uploadID"`
+}
+
+type GetUploadResponse struct {
+	Upload      Upload `json:"upload"`
+	ReadOnlyURL string `json:"readOnlyURL"`
 }
 
 // CreateTaskRequest creates a new task.
