@@ -1,9 +1,10 @@
 import airplane from "airplane";
 
-export default airplane.workflow(
+export default airplane.task(
   {
     slug: "demo_upgrade_company",
     name: "Demo: Upgrade company",
+    runtime: "workflow",
   },
   async () => {
     const data = [

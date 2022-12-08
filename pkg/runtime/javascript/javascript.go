@@ -91,7 +91,7 @@ var inlineCode = template.Must(template.New("ts").Funcs(template.FuncMap{
 	"paramRequired": paramRequired,
 }).Parse(`import airplane from "airplane"
 
-export default airplane.{{ .SDKMethod }}(
+export default airplane.task(
 	{
 		slug: "{{.Slug}}",
 		{{- with .Name}}
@@ -99,6 +99,11 @@ export default airplane.{{ .SDKMethod }}(
 		{{- end}}
 		{{- with .Description}}
 		description: "{{escape .}}",
+		{{- end}}
+		{{- if .Workflow}}
+		// To learn more about the workflow runtime, see the runtime docs:
+		// https://docs.airplane.dev/tasks/runtimes
+		runtime: "workflow",
 		{{- end}}
 		{{- if .Parameters}}
 		parameters: {
@@ -249,21 +254,17 @@ type inlineHelper struct {
 	*definitions.Definition_0_3
 	AllowSelfApprovals bool
 	Timeout            int
-	SDKMethod          string
+	Workflow           bool
 }
 
 // GenerateInline implementation.
 func (r Runtime) GenerateInline(def *definitions.Definition_0_3) ([]byte, fs.FileMode, error) {
 	var buf bytes.Buffer
-	method := "task"
-	if def.Runtime == build.TaskRuntimeWorkflow {
-		method = "workflow"
-	}
 	helper := inlineHelper{
 		Definition_0_3:     def,
 		AllowSelfApprovals: def.AllowSelfApprovals.Value(),
 		Timeout:            def.Timeout.Value(),
-		SDKMethod:          method,
+		Workflow:           def.Runtime == build.TaskRuntimeWorkflow,
 	}
 	if err := inlineCode.Execute(&buf, helper); err != nil {
 		return nil, 0, fmt.Errorf("javascript: template execute - %w", err)
