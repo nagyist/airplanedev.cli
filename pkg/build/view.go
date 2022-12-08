@@ -327,6 +327,12 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		# Copy build tools.
 		COPY .airplane-build-tools .airplane-build-tools/
 		RUN npm install -g esbuild@0.12 --unsafe-perm
+		
+		# Support setting BUILD_NPM_RC or BUILD_NPM_TOKEN to configure private registry auth
+		ARG BUILD_NPM_RC
+		ARG BUILD_NPM_TOKEN
+		RUN [ -z "${BUILD_NPM_RC}" ] || echo "${BUILD_NPM_RC}" > .npmrc
+		RUN [ -z "${BUILD_NPM_TOKEN}" ] || echo "//registry.npmjs.org/:_authToken=${BUILD_NPM_TOKEN}" > .npmrc
 
 		# Copy and install dependencies.
 		COPY package*.json yarn.* /airplane/
