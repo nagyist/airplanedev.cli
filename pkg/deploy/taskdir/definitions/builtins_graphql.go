@@ -58,7 +58,7 @@ func (d GraphQLDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, clie
 	if id, ok := collection.bySlug[d.Resource]; ok {
 		req.Resources["api"] = id
 	} else {
-		return errors.Errorf("unknown resource: %s", d.Resource)
+		return api.ResourceMissingError{Slug: d.Resource}
 	}
 	return nil
 }

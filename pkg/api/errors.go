@@ -2,6 +2,21 @@ package api
 
 import "fmt"
 
+const (
+	DefaultAppURL = "https://app.airplane.dev"
+)
+
+func getAppURL(appURL string) string {
+	if appURL != "" {
+		return appURL
+	}
+	return DefaultAppURL
+}
+
+func linkToCreatePage(pageName string, url string) string {
+	return fmt.Sprintf("Follow the URL below to create the %s:\n%s", pageName, url)
+}
+
 // TaskMissingError implements an explainable error.
 type TaskMissingError struct {
 	AppURL string
@@ -15,10 +30,8 @@ func (err TaskMissingError) Error() string {
 
 // ExplainError implementation.
 func (err TaskMissingError) ExplainError() string {
-	return fmt.Sprintf(
-		"Follow the URL below to create the task:\n%s",
-		err.AppURL+"/tasks/new",
-	)
+	url := getAppURL(err.AppURL) + "/tasks/new"
+	return linkToCreatePage("task", url)
 }
 
 // ViewMissingError implements an explainable error.
@@ -34,10 +47,8 @@ func (err ViewMissingError) Error() string {
 
 // ExplainError implementation.
 func (err ViewMissingError) ExplainError() string {
-	return fmt.Sprintf(
-		"Follow the URL below to create the view:\n%s",
-		err.AppURL+"/views/new",
-	)
+	url := getAppURL(err.AppURL) + "/views/new"
+	return linkToCreatePage("view", url)
 }
 
 // ResourceMissingError implements an explainable error.
@@ -53,5 +64,6 @@ func (err ResourceMissingError) Error() string {
 
 // ExplainError implementation.
 func (err ResourceMissingError) ExplainError() string {
-	return fmt.Sprintf("Follow the URL below to create the resource:\n%s", err.AppURL+"/settings/resources/new")
+	url := getAppURL(err.AppURL) + "/settings/resources/new"
+	return linkToCreatePage("resource", url)
 }

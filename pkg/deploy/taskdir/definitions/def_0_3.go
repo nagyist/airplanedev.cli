@@ -525,7 +525,7 @@ func (d *SQLDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client 
 	} else if id, ok := collection.byName[d.Resource]; ok {
 		req.Resources["db"] = id
 	} else {
-		return errors.Errorf("unknown resource: %s", d.Resource)
+		return api.ResourceMissingError{Slug: d.Resource}
 	}
 	return nil
 }
@@ -687,7 +687,7 @@ func (d *RESTDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client
 	} else if id, ok := collection.byName[d.Resource]; ok {
 		req.Resources["rest"] = id
 	} else {
-		return errors.Errorf("unknown resource: %s", d.Resource)
+		return api.ResourceMissingError{Slug: d.Resource}
 	}
 	return nil
 }
@@ -1313,7 +1313,7 @@ func (d Definition_0_3) addResourcesToUpdateTaskRequest(ctx context.Context, cli
 		if id, ok := collection.bySlug[ref]; ok {
 			req.Resources[alias] = id
 		} else {
-			return errors.Errorf("unknown resource: %q", ref)
+			return api.ResourceMissingError{Slug: ref}
 		}
 	}
 
