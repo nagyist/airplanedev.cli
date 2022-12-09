@@ -775,12 +775,20 @@ func (c Client) host() string {
 	return Host
 }
 
+var httpHostPrefixes = []string{
+	"localhost",
+	"127.0.0.1",
+	"host.docker.internal",
+	"172.17.0.1", // Docker for linux
+}
+
 func (c Client) scheme() string {
-	if strings.HasPrefix(c.Host, "localhost") ||
-		strings.HasPrefix(c.Host, "127.0.0.1") ||
-		strings.HasPrefix(c.Host, "host.docker.internal") {
-		return "http://"
+	for _, prefix := range httpHostPrefixes {
+		if strings.HasPrefix(c.Host, prefix) {
+			return "http://"
+		}
 	}
+
 	return "https://"
 }
 
