@@ -172,6 +172,10 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 				return api.RunTaskResponse{}, errors.Wrap(err, "merging local and remote configs")
 			}
 			run.TaskRevision = localTaskConfig
+			runConfig.ParamValues, err = params.StandardizeParamValues(ctx, state.RemoteClient, parameters, req.ParamValues)
+			if err != nil {
+				return api.RunTaskResponse{}, err
+			}
 		}
 		aliasToResourceMap, err := resources.GenerateAliasToResourceMap(
 			ctx,
@@ -188,10 +192,6 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 
 		run.ParamValues = req.ParamValues
 		run.Parameters = &parameters
-		runConfig.ParamValues, err = params.StandardizeParamValues(ctx, state.RemoteClient, parameters, req.ParamValues)
-		if err != nil {
-			return api.RunTaskResponse{}, errors.Wrap(err, "standardizing param values")
-		}
 
 		run.Status = api.RunActive
 		runCtx, fn := context.WithCancel(context.Background()) // Context used for cancelling a run.
