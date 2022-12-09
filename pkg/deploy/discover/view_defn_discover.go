@@ -40,6 +40,11 @@ func (dd *ViewDefnDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 	if err != nil {
 		return nil, err
 	}
+	bc, err := ViewBuildContext(root)
+	if err != nil {
+		return nil, err
+	}
+	d.Base = bc.Base
 
 	var view api.View
 	if !dd.DoNotVerifyMissingViews {
@@ -100,7 +105,7 @@ func (dd *ViewDefnDiscoverer) GetViewRoot(ctx context.Context, file string) (str
 	if err != nil {
 		return "", build.BuildContext{}, err
 	}
-	bc, err := taskBuildContext(pm.RootDir, pm.Runtime)
+	bc, err := ViewBuildContext(pm.RootDir)
 	if err != nil {
 		return "", build.BuildContext{}, err
 	}

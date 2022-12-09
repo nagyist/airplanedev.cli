@@ -378,6 +378,9 @@ func (d *PythonDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeV
 }
 
 func (d *PythonDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
+	if d.Base == "" {
+		d.Base = b
+	}
 }
 
 var _ taskKind_0_3 = &ShellDefinition_0_3{}

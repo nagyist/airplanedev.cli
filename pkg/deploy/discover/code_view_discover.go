@@ -143,20 +143,15 @@ func (dd *CodeViewDiscoverer) GetViewRoot(ctx context.Context, file string) (str
 	if err != nil {
 		return "", build.BuildContext{}, errors.Wrap(err, "unable to interpret task path metadata")
 	}
-	bc, err := taskBuildContext(pm.RootDir, pm.Runtime)
+	bc, err := ViewBuildContext(pm.RootDir)
 	if err != nil {
 		return "", build.BuildContext{}, err
-	}
-	base := bc.Base
-	if base == build.BuildBaseNone {
-		// Default to the slim base if otherwise unspecified.
-		base = build.BuildBaseSlim
 	}
 
 	return root, build.BuildContext{
 		Type:    build.ViewBuildType,
 		Version: bc.Version,
-		Base:    base,
+		Base:    bc.Base,
 		EnvVars: bc.EnvVars,
 	}, nil
 }

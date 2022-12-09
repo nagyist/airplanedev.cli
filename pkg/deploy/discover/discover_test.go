@@ -448,6 +448,7 @@ func TestDiscover(t *testing.T) {
 						Description:  "Test view yaml file",
 						Entrypoint:   fixturesPath + "/view/foo.js",
 						DefnFilePath: fixturesPath + "/view/defn.view.yaml",
+						Base:         build.BuildBaseSlim,
 					},
 					Root:   fixturesPath,
 					Source: ConfigSourceDefn,

@@ -7,18 +7,20 @@ import (
 	"text/template"
 
 	"github.com/airplanedev/lib/pkg/api"
+	"github.com/airplanedev/lib/pkg/build"
 	"github.com/goccy/go-yaml"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
 
 type ViewDefinition struct {
-	Name         string      `json:"name"`
-	Slug         string      `json:"slug"`
-	Description  string      `json:"description,omitempty"`
-	Entrypoint   string      `json:"entrypoint"`
-	EnvVars      api.EnvVars `json:"envVars,omitempty"`
-	DefnFilePath string      `json:"defnFilePath,omitempty"`
+	Name         string          `json:"name"`
+	Slug         string          `json:"slug"`
+	Description  string          `json:"description,omitempty"`
+	Entrypoint   string          `json:"entrypoint"`
+	EnvVars      api.EnvVars     `json:"envVars,omitempty"`
+	DefnFilePath string          `json:"defnFilePath,omitempty"`
+	Base         build.BuildBase `json:"base,omitempty"`
 }
 
 //go:embed view_schema.json

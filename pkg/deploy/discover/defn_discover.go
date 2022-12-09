@@ -198,7 +198,7 @@ func setBuildVersionAndWorkingDir(file string, def definitions.DefinitionInterfa
 	if err != nil {
 		return "", build.BuildContext{}, err
 	}
-	bc, err := taskBuildContext(taskPathMetadata.RootDir, taskPathMetadata.Runtime)
+	bc, err := TaskBuildContext(taskPathMetadata.RootDir, taskPathMetadata.Runtime)
 	if err != nil {
 		return "", build.BuildContext{}, err
 	}

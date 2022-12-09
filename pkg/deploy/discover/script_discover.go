@@ -118,7 +118,7 @@ func (sd *ScriptDiscoverer) GetTaskRoot(ctx context.Context, file string) (strin
 		return "", build.BuildContext{}, err
 	}
 
-	bc, err := taskBuildContext(pathMetadata.RootDir, pathMetadata.Runtime)
+	bc, err := TaskBuildContext(pathMetadata.RootDir, pathMetadata.Runtime)
 	if err != nil {
 		return "", build.BuildContext{}, err
 	}

@@ -6,11 +6,12 @@ import (
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/runtime"
+	"github.com/airplanedev/lib/pkg/runtime/javascript"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 )
 
-// taskBuildContext gets the build context for a task.
-func taskBuildContext(taskroot string, taskRuntime runtime.Interface) (build.BuildContext, error) {
+// TaskBuildContext gets the build context for a task.
+func TaskBuildContext(taskroot string, taskRuntime runtime.Interface) (build.BuildContext, error) {
 	buildVersion, err := taskRuntime.Version(taskroot)
 	if err != nil {
 		return build.BuildContext{}, err
@@ -24,6 +25,7 @@ func taskBuildContext(taskroot string, taskRuntime runtime.Interface) (build.Bui
 			return build.BuildContext{}, err
 		}
 	}
+
 	envVars := make(map[string]build.EnvVarValue)
 	switch taskRuntime.Kind() {
 	case build.TaskKindNode:
@@ -53,4 +55,17 @@ func taskBuildContext(taskroot string, taskRuntime runtime.Interface) (build.Bui
 		Base:    base,
 		EnvVars: envVars,
 	}, nil
+}
+
+// ViewBuildContext gets the build context for a view.
+func ViewBuildContext(viewroot string) (build.BuildContext, error) {
+	bc, err := TaskBuildContext(viewroot, javascript.Runtime{})
+	if err != nil {
+		return build.BuildContext{}, err
+	}
+	// Default to slim base for views.
+	if bc.Base == build.BuildBaseNone {
+		bc.Base = build.BuildBaseSlim
+	}
+	return bc, nil
 }

@@ -166,8 +166,9 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		apiHost = "https://" + apiHost
 	}
 
+	useSlimImage := buildContext.Base == BuildBaseSlim
 	nodeVersion := GetNodeVersion(options)
-	base, err := getBaseNodeImage(nodeVersion, false)
+	base, err := getBaseNodeImage(nodeVersion, useSlimImage)
 	if err != nil {
 		return "", err
 	}
@@ -297,6 +298,7 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		FilesToDiscover              string
 		DirectoryToBuildTo           string
 		NodeVersion                  string
+		UseSlimImage                 bool
 	}{
 		Base: base,
 		// Because the install command is running in the context of a docker build, the yarn cache
@@ -316,6 +318,7 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		FilesToDiscover:              strings.Join(discoverEntrypoints, " "),
 		DirectoryToBuildTo:           directoryToBuildTo,
 		NodeVersion:                  nodeVersion,
+		UseSlimImage:                 useSlimImage,
 	}
 
 	return applyTemplate(heredoc.Doc(`
@@ -323,6 +326,13 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		WORKDIR /airplane
 
 		ENV AIRPLANE_API_HOST={{.APIHost}}
+
+		{{if .UseSlimImage}}
+		RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+			&& apt-get -y install --no-install-recommends \
+				curl ca-certificates \
+			&& apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+		{{end}}
 
 		# Copy build tools.
 		COPY .airplane-build-tools .airplane-build-tools/

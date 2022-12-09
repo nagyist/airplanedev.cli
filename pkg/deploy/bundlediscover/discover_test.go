@@ -175,6 +175,7 @@ func TestDiscover(t *testing.T) {
 					TargetPaths: []string{"viewWithDefn"},
 					BuildContext: build.BuildContext{
 						Type: build.ViewBuildType,
+						Base: build.BuildBaseSlim,
 					},
 				},
 			},

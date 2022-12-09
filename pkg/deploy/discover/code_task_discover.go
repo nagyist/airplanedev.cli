@@ -124,7 +124,7 @@ func (c *CodeTaskDiscoverer) GetTaskRoot(ctx context.Context, file string) (stri
 	if err != nil {
 		return "", build.BuildContext{}, errors.Wrap(err, "unable to interpret task path metadata")
 	}
-	bc, err := taskBuildContext(pm.RootDir, pm.Runtime)
+	bc, err := TaskBuildContext(pm.RootDir, pm.Runtime)
 	if err != nil {
 		return "", build.BuildContext{}, err
 	}
@@ -165,7 +165,7 @@ func (c *CodeTaskDiscoverer) parseNodeDefinitions(ctx context.Context, file stri
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to interpret task path metadata")
 	}
-	bc, err := taskBuildContext(pm.RootDir, pm.Runtime)
+	bc, err := TaskBuildContext(pm.RootDir, pm.Runtime)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +222,7 @@ func (c *CodeTaskDiscoverer) parsePythonDefinitions(ctx context.Context, file st
 	if err != nil {
 		return nil, err
 	}
-	bc, err := taskBuildContext(pathMetadata.RootDir, pathMetadata.Runtime)
+	bc, err := TaskBuildContext(pathMetadata.RootDir, pathMetadata.Runtime)
 	if err != nil {
 		return nil, err
 	}
