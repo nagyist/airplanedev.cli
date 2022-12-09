@@ -776,7 +776,9 @@ func (c Client) host() string {
 }
 
 func (c Client) scheme() string {
-	if strings.HasPrefix(c.Host, "localhost") || strings.HasPrefix(c.Host, "127.0.0.1") {
+	if strings.HasPrefix(c.Host, "localhost") ||
+		strings.HasPrefix(c.Host, "127.0.0.1") ||
+		strings.HasPrefix(c.Host, "host.docker.internal") {
 		return "http://"
 	}
 	return "https://"
