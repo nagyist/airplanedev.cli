@@ -21,5 +21,5 @@ func Open(url string) bool {
 }
 
 func StudioURL(baseURL, port, page string) string {
-	return fmt.Sprintf("%s/studio%s?host=http://localhost:%s", baseURL, page, port)
+	return fmt.Sprintf("%s/studio%s?__airplane_host=http://localhost:%s", baseURL, page, port)
 }

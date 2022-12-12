@@ -209,7 +209,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	logger.Log("")
-	studioURL := fmt.Sprintf("%s/studio?host=http://localhost:%d&__env=%s", appURL, cfg.port, remoteEnv.Slug)
+	studioURL := fmt.Sprintf("%s/studio?__airplane_host=http://localhost:%d&__env=%s", appURL, cfg.port, remoteEnv.Slug)
 	logger.Log("Started studio session at %s (^C to quit)", logger.Blue(studioURL))
 
 	// Execute the flow to open the studio in the browser in a separate goroutine so fmt.Scanln doesn't capture
