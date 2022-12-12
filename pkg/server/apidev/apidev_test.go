@@ -107,14 +107,14 @@ func TestListEntrypoints(t *testing.T) {
 			{
 				Name: "My task",
 				Slug: "my_task",
-				Kind: apidev.AppKindTask,
+				Kind: apidev.EntityKindTask,
 			},
 		},
 		"my_view.ts": {
 			{
 				Name: "My view",
 				Slug: "my_view",
-				Kind: apidev.AppKindView,
+				Kind: apidev.EntityKindView,
 			},
 		},
 	}, resp.Entrypoints)
@@ -122,7 +122,7 @@ func TestListEntrypoints(t *testing.T) {
 		{
 			Name:    "Foo",
 			Slug:    "fooslug",
-			Kind:    apidev.AppKindTask,
+			Kind:    apidev.EntityKindTask,
 			Runtime: build.TaskRuntimeStandard,
 		},
 	}, resp.RemoteEntrypoints)
@@ -187,6 +187,7 @@ func TestListFilesHandler(t *testing.T) {
 	err = json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
 	require.Equal(absoluteDir, resp.Root.Path)
+	require.Equal(true, resp.Root.IsDir)
 	require.ElementsMatch([]*apidev.FileNode{
 		{
 			Path: taskDefFileName,
@@ -194,7 +195,7 @@ func TestListFilesHandler(t *testing.T) {
 				{
 					Name: "My task",
 					Slug: "my_task",
-					Kind: apidev.AppKindTask,
+					Kind: apidev.EntityKindTask,
 				},
 			},
 			Children: []*apidev.FileNode{},
@@ -205,13 +206,14 @@ func TestListFilesHandler(t *testing.T) {
 				{
 					Name: "My view",
 					Slug: "my_view",
-					Kind: apidev.AppKindView,
+					Kind: apidev.EntityKindView,
 				},
 			},
 			Children: []*apidev.FileNode{},
 		},
 		{
-			Path: filepath.Join(absoluteDir, "subdir"),
+			Path:  filepath.Join(absoluteDir, "subdir"),
+			IsDir: true,
 			Children: []*apidev.FileNode{
 				{
 					Path:     filepath.Join(absoluteDir, "subdir/subfile"),

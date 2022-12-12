@@ -80,18 +80,18 @@ func GetInfoHandler(ctx context.Context, s *state.State, r *http.Request) (Studi
 	}, nil
 }
 
-type AppKind string
+type EntityKind string
 
 const (
-	AppKindTask = "task"
-	AppKindView = "view"
+	EntityKindTask = "task"
+	EntityKindView = "view"
 )
 
 // EntityMetadata represents metadata for a task or view.
 type EntityMetadata struct {
 	Name    string            `json:"name"`
 	Slug    string            `json:"slug"`
-	Kind    AppKind           `json:"kind"`
+	Kind    EntityKind        `json:"kind"`
 	Runtime build.TaskRuntime `json:"runtime"`
 }
 
@@ -123,7 +123,7 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 		entrypoints[ep] = append(entrypoints[ep], EntityMetadata{
 			Name:    taskConfig.Def.GetName(),
 			Slug:    slug,
-			Kind:    AppKindTask,
+			Kind:    EntityKindTask,
 			Runtime: taskConfig.Def.GetRuntime(),
 		})
 	}
@@ -141,7 +141,7 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 		entrypoints[ep] = append(entrypoints[ep], EntityMetadata{
 			Name: viewConfig.Def.Name,
 			Slug: slug,
-			Kind: AppKindView,
+			Kind: EntityKindView,
 		})
 	}
 
@@ -156,7 +156,7 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 			remoteEntrypoints = append(remoteEntrypoints, EntityMetadata{
 				Name:    task.Name,
 				Slug:    task.Slug,
-				Kind:    AppKindTask,
+				Kind:    EntityKindTask,
 				Runtime: task.Runtime,
 			})
 		}
@@ -170,8 +170,9 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 
 type FileNode struct {
 	Path     string           `json:"path"`
-	Entities []EntityMetadata `json:"entities"`
+	IsDir    bool             `json:"isDir"`
 	Children []*FileNode      `json:"children"`
+	Entities []EntityMetadata `json:"entities"`
 }
 
 type ListFilesResponse struct {
@@ -199,7 +200,7 @@ func ListFilesHandler(ctx context.Context, state *state.State, r *http.Request) 
 		filepathToEntities[defnFilePath] = append(filepathToEntities[defnFilePath], EntityMetadata{
 			Name:    taskConfig.Def.GetName(),
 			Slug:    slug,
-			Kind:    AppKindTask,
+			Kind:    EntityKindTask,
 			Runtime: taskConfig.Def.GetRuntime(),
 		})
 	}
@@ -212,7 +213,7 @@ func ListFilesHandler(ctx context.Context, state *state.State, r *http.Request) 
 		filepathToEntities[defnFilePath] = append(filepathToEntities[defnFilePath], EntityMetadata{
 			Name: viewConfig.Def.Name,
 			Slug: slug,
-			Kind: AppKindView,
+			Kind: EntityKindView,
 		})
 	}
 
@@ -225,17 +226,20 @@ func ListFilesHandler(ctx context.Context, state *state.State, r *http.Request) 
 			}
 
 			// Ignore non-user-facing directories.
+			var isDir bool
 			if info.IsDir() {
 				base := filepath.Base(path)
 				if _, ok := ignoredDirs[base]; ok {
 					return filepath.SkipDir
 				}
+				isDir = true
 			}
 
 			nodes[path] = &FileNode{
 				Path:     path,
-				Entities: filepathToEntities[path],
+				IsDir:    isDir,
 				Children: make([]*FileNode, 0),
+				Entities: filepathToEntities[path],
 			}
 			return nil
 		},

@@ -207,7 +207,7 @@ func ValidateTasks(ctx context.Context, resourcesWithEnv map[string]env.Resource
 			appErr := dev_errors.AppError{
 				Level:   dev_errors.LevelError,
 				AppName: cfg.Def.GetName(),
-				AppKind: apidev.AppKindTask,
+				AppKind: apidev.EntityKindTask,
 				Reason:  fmt.Sprintf("%v task does not support local execution", kind)}
 			unsupportedApps[cfg.Def.GetSlug()] = appErr
 			taskErrors[cfg.Def.GetSlug()] = []dev_errors.AppError{appErr}
@@ -234,7 +234,7 @@ func ValidateTasks(ctx context.Context, resourcesWithEnv map[string]env.Resource
 				{
 					Level:   dev_errors.LevelWarning,
 					AppName: cfg.Def.GetSlug(),
-					AppKind: apidev.AppKindTask,
+					AppKind: apidev.EntityKindTask,
 					Reason:  fmt.Sprintf("Attached resource: %v not found in dev config file or remotely.", missingResources),
 				},
 			}
