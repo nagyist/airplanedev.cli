@@ -352,9 +352,9 @@ func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, 
 	}
 
 	// Look for version in airplane.config
-	configPath, found := fsx.Find(rootPath, config.FileName)
-	if found {
-		c, err := config.NewAirplaneConfigFromFile(filepath.Join(configPath, config.FileName))
+	hasAirplaneConfig := config.HasAirplaneConfig(rootPath)
+	if hasAirplaneConfig {
+		c, err := config.NewAirplaneConfigFromFile(rootPath)
 		if err == nil && c.Javascript.NodeVersion != "" {
 			return build.BuildTypeVersion(c.Javascript.NodeVersion), nil
 		}

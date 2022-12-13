@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/goccy/go-yaml"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
@@ -38,6 +39,10 @@ type PythonConfig struct {
 type AirplaneConfig struct {
 	Javascript JavaScriptConfig `yaml:"javascript,omitempty" json:"javascript,omitempty"`
 	Python     PythonConfig     `yaml:"python,omitempty" json:"python,omitempty"`
+}
+
+func HasAirplaneConfig(dir string) bool {
+	return fsx.Exists(filepath.Join(dir, FileName))
 }
 
 func NewAirplaneConfigFromFile(fileOrDir string) (AirplaneConfig, error) {

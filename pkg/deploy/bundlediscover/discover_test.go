@@ -102,6 +102,28 @@ func TestDiscover(t *testing.T) {
 			},
 		},
 		{
+			desc:  "inline tasks in their own project",
+			paths: []string{"./fixtures/inlineTasksOwnProject"},
+			expectedBundles: []Bundle{
+				{
+					RootPath:    path.Join(fixturesPath, "inlineTasksOwnProject", "nested"),
+					TargetPaths: []string{"."},
+					BuildContext: build.BuildContext{
+						Type: build.NodeBuildType,
+						Base: build.BuildBaseSlim,
+					},
+				},
+				{
+					RootPath:    path.Join(fixturesPath, "inlineTasksOwnProject", "nested"),
+					TargetPaths: []string{"."},
+					BuildContext: build.BuildContext{
+						Type: build.PythonBuildType,
+						Base: build.BuildBaseSlim,
+					},
+				},
+			},
+		},
+		{
 			desc:  "inline tasks with version and base set",
 			paths: []string{"./fixtures/inlineTasksVersion"},
 			expectedBundles: []Bundle{
