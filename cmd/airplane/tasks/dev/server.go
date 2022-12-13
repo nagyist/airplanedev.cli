@@ -16,7 +16,6 @@ import (
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/filewatcher"
 	"github.com/airplanedev/cli/pkg/utils"
-	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/pkg/errors"
 )
@@ -108,7 +107,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
-	fmt.Fprint(os.Stderr, "Discovering tasks, workflows, and views... ")
+	fmt.Fprint(os.Stderr, "Discovering tasks and views... ")
 	taskConfigs, viewConfigs, err := apiServer.DiscoverTasksAndViews(ctx, cfg.fileOrDir)
 	if err != nil {
 		logger.Log("")
@@ -116,13 +115,8 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 	// Print out discovered views and tasks to the user
 	numTasks := 0
-	numWorkflows := 0
-	for _, tc := range taskConfigs {
-		if tc.Def.GetRuntime() == build.TaskRuntimeWorkflow {
-			numWorkflows++
-		} else {
-			numTasks++
-		}
+	for range taskConfigs {
+		numTasks++
 	}
 
 	taskNoun := "tasks"
@@ -130,21 +124,14 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		taskNoun = "task"
 	}
 
-	workflowNoun := "workflows"
-	if numWorkflows == 1 {
-		workflowNoun = "workflow"
-	}
-
 	viewNoun := "views"
 	if len(viewConfigs) == 1 {
 		viewNoun = "view"
 	}
 	logger.Log(
-		"registered %s %s, %s %s, and %s %s.",
+		"Registered %s %s and %s %s.",
 		logger.Green(strconv.Itoa(numTasks)),
 		logger.Green(taskNoun),
-		logger.Green(strconv.Itoa(numWorkflows)),
-		logger.Green(workflowNoun),
 		logger.Green(strconv.Itoa(len(viewConfigs))),
 		logger.Green(viewNoun),
 	)

@@ -57,7 +57,8 @@ func New(c *cli.Config) *cobra.Command {
 		Short: "Locally run a task",
 		Long:  "Locally runs a task, optionally with specific parameters.",
 		Example: heredoc.Doc(`
-			airplane dev ./airplane_apps/ (developing a set of tasks, views, or workflows)
+			airplane dev (develop all tasks and views in the current directory)
+			airplane dev ./airplane_apps/ (developing all tasks and views in ./airplane_apps/)
 			airplane dev ./my.task.yaml (developing a single task)
 		`),
 		PersistentPreRunE: utils.WithParentPersistentPreRunE(func(cmd *cobra.Command, args []string) error {

@@ -30,8 +30,8 @@ func New(c *cli.Config) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "deploybundle",
-		Short: "Deploy tasks, views and workflows",
-		Long:  "Deploy code from a local directory as an Airplane task, view or workflow",
+		Short: "Deploy tasks and views",
+		Long:  "Deploy code from a local directory as an Airplane task or view.",
 		Example: heredoc.Doc(`
 			airplane deploy
 			airplane deploy my_directory

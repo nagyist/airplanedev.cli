@@ -118,7 +118,7 @@ func New(c *cli.Config) *cobra.Command {
 		logger.Debug("error: %s", err)
 	}
 
-	cmd.Flags().BoolVar(&cfg.workflow, "workflow", false, "Generate a workflow instead of a task. Implies --inline.")
+	cmd.Flags().BoolVar(&cfg.workflow, "workflow", false, "Generate a workflow-runtime task. Implies --inline.")
 
 	// Unhide this flag once we release environments.
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")

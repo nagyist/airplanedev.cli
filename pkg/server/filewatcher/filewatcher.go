@@ -110,7 +110,7 @@ func IsValidDefinitionFile(path string) bool {
 func (f *AppWatcher) Watch(wd string) error {
 	logger.Log(" ")
 	logger.Log(logger.Green("Watching for changes in: %s", wd))
-	logger.Log(logger.Green("Changes to tasks, workflows, and views will be applied automatically."))
+	logger.Log(logger.Green("Changes to tasks and views will be applied automatically."))
 
 	// Ignore hidden files and known directories
 	f.watcher.IgnoreHiddenFiles(true)
