@@ -34,7 +34,7 @@ func TestDiscover(t *testing.T) {
 			expectedBundles: []Bundle{
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"taskWithComment"},
+					TargetPaths: []string{"taskWithComment/single_task.js"},
 					BuildContext: build.BuildContext{
 						Type: build.NodeBuildType,
 					},
@@ -47,7 +47,7 @@ func TestDiscover(t *testing.T) {
 			expectedBundles: []Bundle{
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"tasksWithDefn"},
+					TargetPaths: []string{"tasksWithDefn/defn.js", "tasksWithDefn/defn.task.yaml"},
 					BuildContext: build.BuildContext{
 						Type:    build.NodeBuildType,
 						Version: build.BuildTypeVersionNode14,
@@ -55,7 +55,7 @@ func TestDiscover(t *testing.T) {
 				},
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"tasksWithDefn"},
+					TargetPaths: []string{"tasksWithDefn/defn2.py", "tasksWithDefn/defn2.task.yaml"},
 					BuildContext: build.BuildContext{
 						Type: build.PythonBuildType,
 						EnvVars: map[string]build.EnvVarValue{
@@ -65,14 +65,14 @@ func TestDiscover(t *testing.T) {
 				},
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"tasksWithDefn"},
+					TargetPaths: []string{"tasksWithDefn/defn3.sh", "tasksWithDefn/defn3.task.yaml"},
 					BuildContext: build.BuildContext{
 						Type: build.ShellBuildType,
 					},
 				},
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"tasksWithDefn"},
+					TargetPaths: []string{"tasksWithDefn/defn4.task.yaml"},
 					BuildContext: build.BuildContext{
 						Type: build.NoneBuildType,
 					},
@@ -85,7 +85,7 @@ func TestDiscover(t *testing.T) {
 			expectedBundles: []Bundle{
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"inlineTasks"},
+					TargetPaths: []string{"inlineTasks/codeOnlyTask.airplane.ts"},
 					BuildContext: build.BuildContext{
 						Type: build.NodeBuildType,
 						Base: build.BuildBaseSlim,
@@ -93,7 +93,7 @@ func TestDiscover(t *testing.T) {
 				},
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"inlineTasks"},
+					TargetPaths: []string{"inlineTasks/code_only_task_airplane.py"},
 					BuildContext: build.BuildContext{
 						Type: build.PythonBuildType,
 						Base: build.BuildBaseSlim,
@@ -107,7 +107,7 @@ func TestDiscover(t *testing.T) {
 			expectedBundles: []Bundle{
 				{
 					RootPath:    path.Join(fixturesPath, "inlineTasksOwnProject", "nested"),
-					TargetPaths: []string{"."},
+					TargetPaths: []string{"codeOnlyTask.airplane.ts"},
 					BuildContext: build.BuildContext{
 						Type: build.NodeBuildType,
 						Base: build.BuildBaseSlim,
@@ -115,7 +115,7 @@ func TestDiscover(t *testing.T) {
 				},
 				{
 					RootPath:    path.Join(fixturesPath, "inlineTasksOwnProject", "nested"),
-					TargetPaths: []string{"."},
+					TargetPaths: []string{"code_only_task_airplane.py"},
 					BuildContext: build.BuildContext{
 						Type: build.PythonBuildType,
 						Base: build.BuildBaseSlim,
@@ -129,7 +129,7 @@ func TestDiscover(t *testing.T) {
 			expectedBundles: []Bundle{
 				{
 					RootPath:    path.Join(fixturesPath, "inlineTasksVersion"),
-					TargetPaths: []string{"."},
+					TargetPaths: []string{"codeOnlyTask.airplane.ts"},
 					BuildContext: build.BuildContext{
 						Type:    build.NodeBuildType,
 						Version: build.BuildTypeVersionNode16,
@@ -144,7 +144,7 @@ func TestDiscover(t *testing.T) {
 			expectedBundles: []Bundle{
 				{
 					RootPath:    path.Join(fixturesPath, "inlineTaskWithEnvVars"),
-					TargetPaths: []string{"."},
+					TargetPaths: []string{"codeOnlyTask.airplane.ts"},
 					BuildContext: build.BuildContext{
 						Type: build.NodeBuildType,
 						EnvVars: map[string]build.EnvVarValue{
@@ -161,7 +161,7 @@ func TestDiscover(t *testing.T) {
 			expectedBundles: []Bundle{
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"nonbuildtask"},
+					TargetPaths: []string{"nonbuildtask/defn.task.yaml"},
 					BuildContext: build.BuildContext{
 						Type: build.NoneBuildType,
 					}},
@@ -173,14 +173,14 @@ func TestDiscover(t *testing.T) {
 			expectedBundles: []Bundle{
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"nonbuildtasknested"},
+					TargetPaths: []string{"nonbuildtasknested/defn.task.yaml", "nonbuildtasknested/nested/rest.task.yaml"},
 					BuildContext: build.BuildContext{
 						Type: build.NoneBuildType,
 					},
 				},
 				{
 					RootPath:    path.Join(fixturesPath, "nonbuildtasknested/nested/nested"),
-					TargetPaths: []string{"."},
+					TargetPaths: []string{"code.task.yaml", "code.ts"},
 					BuildContext: build.BuildContext{
 						Type:    build.NodeBuildType,
 						Version: build.BuildTypeVersionNode18,
@@ -194,7 +194,7 @@ func TestDiscover(t *testing.T) {
 			expectedBundles: []Bundle{
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"viewWithDefn"},
+					TargetPaths: []string{"viewWithDefn/defn.view.yaml"},
 					BuildContext: build.BuildContext{
 						Type: build.ViewBuildType,
 						Base: build.BuildBaseSlim,
@@ -208,39 +208,19 @@ func TestDiscover(t *testing.T) {
 			expectedBundles: []Bundle{
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"viewInline"},
+					TargetPaths: []string{"viewInline/myView.view.tsx"},
 					BuildContext: build.BuildContext{
 						Type: build.ViewBuildType,
 						Base: build.BuildBaseSlim,
 					}},
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"viewInline"},
+					TargetPaths: []string{"viewInline/myView.view.tsx"},
 					BuildContext: build.BuildContext{
 						Type: build.NodeBuildType,
 						Base: build.BuildBaseSlim,
 					},
 				},
-			},
-		},
-		{
-			desc:  "inline view with inline tasks",
-			paths: []string{"./fixtures/viewAndTaskInline"},
-			expectedBundles: []Bundle{
-				{
-					RootPath:    fixturesPath,
-					TargetPaths: []string{"viewAndTaskInline"},
-					BuildContext: build.BuildContext{
-						Type: build.NodeBuildType,
-						Base: build.BuildBaseSlim,
-					}},
-				{
-					RootPath:    fixturesPath,
-					TargetPaths: []string{"viewAndTaskInline"},
-					BuildContext: build.BuildContext{
-						Type: build.ViewBuildType,
-						Base: build.BuildBaseSlim,
-					}},
 			},
 		},
 		{
@@ -263,7 +243,7 @@ func TestDiscover(t *testing.T) {
 			expectedBundles: []Bundle{
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"inlineTasks"},
+					TargetPaths: []string{"inlineTasks/codeOnlyTask.airplane.ts"},
 					BuildContext: build.BuildContext{
 						Type: build.NodeBuildType,
 						Base: build.BuildBaseSlim,
@@ -271,7 +251,7 @@ func TestDiscover(t *testing.T) {
 				},
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"inlineTasks"},
+					TargetPaths: []string{"inlineTasks/code_only_task_airplane.py"},
 					BuildContext: build.BuildContext{
 						Type: build.PythonBuildType,
 						Base: build.BuildBaseSlim,
@@ -279,7 +259,7 @@ func TestDiscover(t *testing.T) {
 				},
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"tasksWithDefn"},
+					TargetPaths: []string{"tasksWithDefn/defn2.py", "tasksWithDefn/defn2.task.yaml"},
 					BuildContext: build.BuildContext{
 						Type: build.PythonBuildType,
 						EnvVars: map[string]build.EnvVarValue{
@@ -289,20 +269,20 @@ func TestDiscover(t *testing.T) {
 				},
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"tasksWithDefn", "tasksWithDefn/defn.task.yaml"},
+					TargetPaths: []string{"tasksWithDefn/defn.js", "tasksWithDefn/defn.task.yaml"},
 					BuildContext: build.BuildContext{
 						Type:    build.NodeBuildType,
 						Version: build.BuildTypeVersionNode14,
 					}},
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"tasksWithDefn"},
+					TargetPaths: []string{"tasksWithDefn/defn3.sh", "tasksWithDefn/defn3.task.yaml"},
 					BuildContext: build.BuildContext{
 						Type: build.ShellBuildType,
 					}},
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"tasksWithDefn"},
+					TargetPaths: []string{"tasksWithDefn/defn4.task.yaml"},
 					BuildContext: build.BuildContext{
 						Type: build.NoneBuildType,
 					}},
@@ -314,7 +294,7 @@ func TestDiscover(t *testing.T) {
 			expectedBundles: []Bundle{
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"nestedTask"},
+					TargetPaths: []string{"nestedTask/nestedFolder/defn.js", "nestedTask/nestedFolder/defn.task.yaml"},
 					BuildContext: build.BuildContext{
 						Type:    build.NodeBuildType,
 						Version: build.BuildTypeVersionNode16,
@@ -326,8 +306,14 @@ func TestDiscover(t *testing.T) {
 			paths: []string{"./fixtures/multipleTasksSameRoot"},
 			expectedBundles: []Bundle{
 				{
-					RootPath:    fixturesPath,
-					TargetPaths: []string{"multipleTasksSameRoot"},
+					RootPath: fixturesPath,
+					TargetPaths: []string{
+						"multipleTasksSameRoot/codeOnlyTask.airplane.ts",
+						"multipleTasksSameRoot/defn.js",
+						"multipleTasksSameRoot/defn.task.yaml",
+						"multipleTasksSameRoot/defn2.js",
+						"multipleTasksSameRoot/defn2.task.yaml",
+					},
 					BuildContext: build.BuildContext{
 						Type: build.NodeBuildType,
 						Base: build.BuildBaseSlim,
@@ -339,22 +325,30 @@ func TestDiscover(t *testing.T) {
 			paths: []string{"./fixtures/multipleTasksSameRootDiffBuild"},
 			expectedBundles: []Bundle{
 				{
-					RootPath:    fixturesPath,
-					TargetPaths: []string{"multipleTasksSameRootDiffBuild"},
+					RootPath: fixturesPath,
+					TargetPaths: []string{
+						"multipleTasksSameRootDiffBuild/defn.js",
+						"multipleTasksSameRootDiffBuild/defn.task.yaml",
+					},
 					BuildContext: build.BuildContext{
 						Type: build.NodeBuildType,
 					}},
 				{
-					RootPath:    fixturesPath,
-					TargetPaths: []string{"multipleTasksSameRootDiffBuild"},
+					RootPath: fixturesPath,
+					TargetPaths: []string{
+						"multipleTasksSameRootDiffBuild/defn2.js",
+						"multipleTasksSameRootDiffBuild/defn2.task.yaml",
+					},
 					BuildContext: build.BuildContext{
 						Type:    build.NodeBuildType,
 						Version: build.BuildTypeVersionNode16,
 					}},
 				{
-					RootPath:    fixturesPath,
-					TargetPaths: []string{"multipleTasksSameRootDiffBuild"},
-					BuildContext: build.BuildContext{
+					RootPath: fixturesPath,
+					TargetPaths: []string{
+						"multipleTasksSameRootDiffBuild/defn3.js",
+						"multipleTasksSameRootDiffBuild/defn3.task.yaml",
+					}, BuildContext: build.BuildContext{
 						Type: build.NodeBuildType,
 						Base: build.BuildBaseSlim,
 					},
@@ -367,21 +361,21 @@ func TestDiscover(t *testing.T) {
 			expectedBundles: []Bundle{
 				{
 					RootPath:    fixturesPath,
-					TargetPaths: []string{"multipleTasksDiffRoot"},
+					TargetPaths: []string{"multipleTasksDiffRoot/defn.js", "multipleTasksDiffRoot/defn.task.yaml"},
 					BuildContext: build.BuildContext{
 						Type:    build.NodeBuildType,
 						Version: build.BuildTypeVersionNode14,
 					}},
 				{
 					RootPath:    path.Join(fixturesPath, "multipleTasksDiffRoot/nested"),
-					TargetPaths: []string{"."},
+					TargetPaths: []string{"defn2.js", "defn2.task.yaml"},
 					BuildContext: build.BuildContext{
 						Type:    build.NodeBuildType,
 						Version: build.BuildTypeVersionNode14,
 					}},
 				{
 					RootPath:    path.Join(fixturesPath, "multipleTasksDiffRoot/nested/nested"),
-					TargetPaths: []string{"."},
+					TargetPaths: []string{"defn2.js", "defn2.task.yaml"},
 					BuildContext: build.BuildContext{
 						Type:    build.NodeBuildType,
 						Version: build.BuildTypeVersionNode14,

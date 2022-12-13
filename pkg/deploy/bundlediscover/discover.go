@@ -2,6 +2,7 @@ package bundlediscover
 
 import (
 	"context"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -9,7 +10,6 @@ import (
 	"github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
-	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slices"
@@ -81,78 +81,84 @@ func (d *Discoverer) discoverHelper(ctx context.Context, paths ...string) ([]Bun
 	var bundles []Bundle
 
 	for _, p := range paths {
-		if discover.IgnoredDirectories[filepath.Base(p)] {
-			continue
-		}
 		fileInfo, err := os.Stat(p)
 		if err != nil {
 			return nil, errors.Wrapf(err, "determining if %s is file or directory", p)
 		}
 
-		if fileInfo.IsDir() {
-			// We found a directory. Recursively explore all of the files and directories in it.
-			nestedFiles, err := os.ReadDir(p)
-			if err != nil {
-				return nil, errors.Wrapf(err, "reading directory %s", p)
-			}
-			var nestedPaths []string
-			for _, nestedFile := range nestedFiles {
-				nestedPaths = append(nestedPaths, path.Join(p, nestedFile.Name()))
-			}
-			nestedBundles, err := d.discoverHelper(ctx, nestedPaths...)
+		if !fileInfo.IsDir() {
+			bundlesForFile, err := d.getBundlesForFile(ctx, p)
 			if err != nil {
 				return nil, err
 			}
-			for _, b := range nestedBundles {
-				b.TargetPaths = nil
-				if err := updateBundleWithTarget(&b, p); err != nil {
-					return nil, err
-				}
-				bundles = append(bundles, b)
-			}
+			bundles = append(bundles, bundlesForFile...)
 		} else {
-			// We found a file.
-			for _, td := range d.TaskDiscoverers {
-				bundlePath, buildContext, err := td.GetTaskRoot(ctx, p)
-				if err != nil {
-					return nil, err
+			err := filepath.WalkDir(p, func(path string, entry fs.DirEntry, err error) error {
+				if discover.IgnoredDirectories[filepath.Base(path)] {
+					return filepath.SkipDir
 				}
-				if bundlePath == "" {
-					// This file is not an Airplane task.
-					continue
+				if err != nil {
+					return err
 				}
 
-				b := Bundle{
-					RootPath:     bundlePath,
-					BuildContext: buildContext,
+				if !entry.IsDir() {
+					bundlesForFile, err := d.getBundlesForFile(ctx, path)
+					if err != nil {
+						return err
+					}
+					bundles = append(bundles, bundlesForFile...)
 				}
-				if err := updateBundleWithTarget(&b, p); err != nil {
-					return nil, err
-				}
-				bundles = append(bundles, b)
-			}
-			for _, td := range d.ViewDiscoverers {
-				bundlePath, buildContext, err := td.GetViewRoot(ctx, p)
-				if err != nil {
-					return nil, err
-				}
-				if bundlePath == "" {
-					// This file is not an Airplane view.
-					continue
-				}
-
-				bundle := Bundle{
-					RootPath:     bundlePath,
-					BuildContext: buildContext,
-				}
-				bundles = append(bundles, bundle)
-				if err != nil {
-					return nil, err
-				}
+				return nil
+			})
+			if err != nil {
+				return nil, err
 			}
 		}
 	}
 
+	return bundles, nil
+}
+
+func (d *Discoverer) getBundlesForFile(ctx context.Context, path string) ([]Bundle, error) {
+	var bundles []Bundle
+	for _, td := range d.TaskDiscoverers {
+		bundlePath, buildContext, err := td.GetTaskRoot(ctx, path)
+		if err != nil {
+			return nil, err
+		}
+		if bundlePath == "" {
+			// This file is not an Airplane task.
+			continue
+		}
+
+		b := Bundle{
+			RootPath:     bundlePath,
+			BuildContext: buildContext,
+		}
+		if err := updateBundleWithTarget(&b, path); err != nil {
+			return nil, err
+		}
+		bundles = append(bundles, b)
+	}
+	for _, td := range d.ViewDiscoverers {
+		bundlePath, buildContext, err := td.GetViewRoot(ctx, path)
+		if err != nil {
+			return nil, err
+		}
+		if bundlePath == "" {
+			// This file is not an Airplane view.
+			continue
+		}
+
+		b := Bundle{
+			RootPath:     bundlePath,
+			BuildContext: buildContext,
+		}
+		if err := updateBundleWithTarget(&b, path); err != nil {
+			return nil, err
+		}
+		bundles = append(bundles, b)
+	}
 	return bundles, nil
 }
 
@@ -163,19 +169,10 @@ func updateBundleWithTarget(b *Bundle, target string) error {
 	if err != nil {
 		return err
 	}
-	targetIsParentOfRoot, err := fsx.IsSubDirectory(absTarget, b.RootPath)
+
+	relPath, err := filepath.Rel(b.RootPath, absTarget)
 	if err != nil {
 		return err
-	}
-
-	var relPath string
-	if targetIsParentOfRoot {
-		relPath = "."
-	} else {
-		relPath, err = filepath.Rel(b.RootPath, absTarget)
-		if err != nil {
-			return err
-		}
 	}
 
 	if !slices.Contains(b.TargetPaths, relPath) {
