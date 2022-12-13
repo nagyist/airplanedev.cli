@@ -5,6 +5,5 @@
   "reviewers": ["team:deps"],
   "schedule": ["before 5am on Thursday"],
   "timezone": "America/New_York",
-  "ignorePaths": ["**/fixtures/**"],
   "ignoreDeps": ["github.com/snowflakedb/gosnowflake"]
 }
