@@ -380,21 +380,40 @@ type DeployView struct {
 
 type BuildContext = build.BuildContext
 
+// type DeployBundle struct {
+// 	UploadID     string       `json:"uploadID"`
+// 	Name         string       `json:"name"`
+// 	TargetFiles  []string     `json:"targetFiles"`
+// 	BuildContext BuildContext `json:"buildContext"`
+// 	GitFilePath  string       `json:"gitFilePath"`
+// }
+
 type DeployBundle struct {
-	UploadID     string       `json:"uploadID"`
-	Name         string       `json:"name"`
-	TargetFiles  []string     `json:"targetFiles"`
-	BuildContext BuildContext `json:"buildContext"`
-	GitFilePath  string       `json:"gitFilePath"`
+	Name     string `json:"name"`
+	UploadID string `json:"uploadID"`
+	// Path from the git root to the entrypoint of the bundle if the bundle was deployed
+	// from a git repository.
+	GitFilePath string `json:"gitFilePath"`
 }
 
 type CreateDeploymentRequest struct {
-	Tasks       []DeployTask   `json:"tasks"`
-	Views       []DeployView   `json:"views"`
 	Bundles     []DeployBundle `json:"bundles"`
 	GitMetadata GitMetadata    `json:"gitMetadata"`
-	EnvSlug     string         `json:"envSlug"`
+	// Source      ap.TaskSource `json:"source"`
+	TargetFiles []string `json:"targetFiles"`
+	EnvSlug     string   `json:"envSlug"`
+
+	Tasks []DeployTask `json:"tasks"`
+	Views []DeployView `json:"views"`
 }
+
+// type CreateDeploymentRequest struct {
+// 	Tasks       []DeployTask   `json:"tasks"`
+// 	Views       []DeployView   `json:"views"`
+// 	Bundles     []DeployBundle `json:"bundles"`
+// 	GitMetadata GitMetadata    `json:"gitMetadata"`
+// 	EnvSlug     string         `json:"envSlug"`
+// }
 
 type GenerateSignedURLsResponse struct {
 	SignedURLs []string `json:"signedURLs"`

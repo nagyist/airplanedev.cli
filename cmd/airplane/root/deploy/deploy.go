@@ -97,5 +97,5 @@ func Deploy(ctx context.Context, cfg Config) error {
 		return err
 	}
 
-	return NewDeployer(cfg, l, DeployerOpts{}).Deploy(ctx, bundles)
+	return NewDeployer(cfg, l, DeployerOpts{}).Deploy(ctx, bundles, cfg.Paths...)
 }

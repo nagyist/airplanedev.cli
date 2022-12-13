@@ -20,6 +20,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/go-git/go-git/v5"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/slices"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -56,7 +57,7 @@ func NewDeployer(cfg Config, l logger.LoggerWithLoader, opts DeployerOpts) *depl
 }
 
 // Deploy creates a deployment.
-func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) error {
+func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle, paths ...string) error {
 	var err error
 	if len(d.cfg.ChangedFiles) > 0 {
 		bundles, err = d.filterBundlesByChangedFiles(ctx, bundles)
@@ -72,8 +73,15 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 
 	d.printPreDeploySummary(ctx, bundles)
 
+	var rootPaths []string
+	for _, b := range bundles {
+		if !slices.Contains(rootPaths, b.RootPath) {
+			rootPaths = append(rootPaths, b.RootPath)
+		}
+	}
+
 	var uploadIDs map[string]string
-	uploadIDs, err = d.tarAndUploadBatch(ctx, bundles)
+	uploadIDs, err = d.tarAndUploadBatch(ctx, rootPaths)
 	if err != nil {
 		return err
 	}
@@ -82,26 +90,24 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 	var bundlesToDeploy []api.DeployBundle
 	gitRoots := make(map[string]bool)
 	var repo *git.Repository
-	for _, b := range bundles {
-		repo, err = d.repoGetter.GetGitRepo(b.RootPath)
+	for _, p := range rootPaths {
+		repo, err = d.repoGetter.GetGitRepo(p)
 		if err != nil {
-			d.logger.Debug("failed to get git repo for %s: %v", b.RootPath, err)
+			d.logger.Debug("failed to get git repo for %s: %v", p, err)
 		} else {
-			d.logger.Debug("discovered git repo for %s", b.RootPath)
+			d.logger.Debug("discovered git repo for %s", p)
 		}
 		var gitFilePath string
 		if repo != nil {
-			gitFilePath, err = GetEntrypointRelativeToGitRoot(repo, b.RootPath)
+			gitFilePath, err = GetEntrypointRelativeToGitRoot(repo, p)
 			if err != nil {
-				d.logger.Debug("failed to get entrypoint relative to git root %s: %v", b.RootPath, err)
+				d.logger.Debug("failed to get entrypoint relative to git root %s: %v", p, err)
 			}
 		}
 		bundleToDeploy := api.DeployBundle{
-			UploadID:     uploadIDs[b.RootPath],
-			Name:         filepath.Base(b.RootPath),
-			TargetFiles:  b.TargetPaths,
-			BuildContext: b.BuildContext,
-			GitFilePath:  gitFilePath,
+			UploadID:    uploadIDs[p],
+			Name:        filepath.Base(p),
+			GitFilePath: gitFilePath,
 		}
 		bundlesToDeploy = append(bundlesToDeploy, bundleToDeploy)
 
@@ -145,6 +151,7 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 		Bundles:     bundlesToDeploy,
 		GitMetadata: gitMeta,
 		EnvSlug:     d.cfg.EnvSlug,
+		TargetFiles: paths,
 	})
 	if err != nil {
 		return err
@@ -169,20 +176,20 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 }
 
 // tarAndUploadBatch concurrently tars and uploads bundles.
-func (d *deployer) tarAndUploadBatch(ctx context.Context, bundles []bundlediscover.Bundle) (map[string]string, error) {
+func (d *deployer) tarAndUploadBatch(ctx context.Context, paths []string) (map[string]string, error) {
 	var uploadIDs sync.Map
 	g, ctx := errgroup.WithContext(ctx)
-	for _, b := range bundles {
-		b := b
 
+	for _, p := range paths {
+		p := p
 		g.Go(func() error {
-			uploadID, err := d.tarAndUpload(ctx, b.RootPath)
+			uploadID, err := d.tarAndUpload(ctx, p)
 			if err != nil {
 				return err
 			}
-			_, ok := uploadIDs.Load(b.RootPath)
+			_, ok := uploadIDs.Load(p)
 			if !ok {
-				uploadIDs.Store(b.RootPath, uploadID)
+				uploadIDs.Store(p, uploadID)
 			}
 			return nil
 		})

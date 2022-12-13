@@ -206,8 +206,8 @@ func (mc *MockClient) CreateDeployment(ctx context.Context, req CreateDeployment
 		Deployment: Deployment{
 			ID: "deployment",
 		},
-		NumTasksUpdated:  len(req.Tasks),
-		NumBuildsCreated: len(req.Tasks),
+		// NumTasksUpdated:  len(req.Tasks),
+		// NumBuildsCreated: len(req.Tasks),
 	}, nil
 }
 
