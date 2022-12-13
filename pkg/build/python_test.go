@@ -36,6 +36,15 @@ func TestPythonBuilder(t *testing.T) {
 			SearchString: "[1]",
 		},
 		{
+			Root: "python/embeddedrequirements",
+			Kind: TaskKindPython,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "main.py",
+			},
+			SearchString: "[1]",
+		},
+		{
 			Root: "python/requirementswithbuildargs",
 			Kind: TaskKindPython,
 			Options: KindOptions{
@@ -128,6 +137,25 @@ func TestPythonBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "python/requirements",
+			Kind: TaskKindPython,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    PythonBuildType,
+				Version: BuildTypeVersionPython37,
+				Base:    BuildBaseSlim,
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.py",
+					SearchString:  "[1]",
+				},
+			},
+		},
+		{
+			Root: "python/embeddedrequirements",
 			Kind: TaskKindPython,
 			Options: KindOptions{
 				"shim": "true",

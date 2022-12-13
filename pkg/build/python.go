@@ -1,6 +1,7 @@
 package build
 
 import (
+	"bufio"
 	_ "embed"
 	"fmt"
 	"os"
@@ -30,6 +31,17 @@ func python(
 	entrypoint, _ := opts["entrypoint"].(string)
 	if err := fsx.AssertExistsAll(filepath.Join(root, entrypoint)); err != nil {
 		return "", err
+	}
+
+	requirementsPath := filepath.Join(root, "requirements.txt")
+	hasRequirements := fsx.Exists(requirementsPath)
+	var embeddedRequirements []string
+	var err error
+	if hasRequirements {
+		embeddedRequirements, err = collectEmbeddedRequirements(root, requirementsPath)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	var airplaneConfig config.AirplaneConfig
@@ -70,7 +82,6 @@ func python(
 		buildArgs[i] = fmt.Sprintf("ARG %s", a)
 	}
 	argsCommand := strings.Join(buildArgs, "\n")
-
 	dockerfile := heredoc.Doc(`
 		FROM {{ .Base }}
 
@@ -95,6 +106,9 @@ func python(
 
 		{{if .HasRequirements}}
 		COPY requirements.txt .
+		{{range .EmbeddedRequirements}}
+		COPY {{.}} .
+		{{end}}
 		{{if .HasPipConf}}
 		COPY pip.conf .
 		ENV PIP_CONFIG_FILE=pip.conf
@@ -115,30 +129,66 @@ func python(
 	`)
 
 	df, err := applyTemplate(dockerfile, struct {
-		Base               string
-		InlineShim         string
-		HasRequirements    bool
-		HasPipConf         bool
-		Args               string
-		PreInstallPath     string
-		PostInstallPath    string
-		PreInstallCommand  string
-		PostInstallCommand string
+		Base                 string
+		InlineShim           string
+		HasRequirements      bool
+		EmbeddedRequirements []string
+		HasPipConf           bool
+		Args                 string
+		PreInstallPath       string
+		PostInstallPath      string
+		PreInstallCommand    string
+		PostInstallCommand   string
 	}{
-		Base:               v.String(),
-		InlineShim:         inlineString(shim),
-		HasRequirements:    fsx.Exists(filepath.Join(root, "requirements.txt")),
-		HasPipConf:         fsx.Exists(filepath.Join(root, "pip.conf")),
-		Args:               argsCommand,
-		PreInstallCommand:  preinstallCommand,
-		PostInstallCommand: postInstallCommand,
-		PreInstallPath:     installHooks.PreInstallFilePath,
-		PostInstallPath:    installHooks.PostInstallFilePath,
+		Base:                 v.String(),
+		InlineShim:           inlineString(shim),
+		HasRequirements:      hasRequirements,
+		EmbeddedRequirements: embeddedRequirements,
+		HasPipConf:           fsx.Exists(filepath.Join(root, "pip.conf")),
+		Args:                 argsCommand,
+		PreInstallCommand:    preinstallCommand,
+		PostInstallCommand:   postInstallCommand,
+		PreInstallPath:       installHooks.PreInstallFilePath,
+		PostInstallPath:      installHooks.PostInstallFilePath,
 	})
 	if err != nil {
 		return "", errors.Wrapf(err, "rendering dockerfile")
 	}
 	return df, nil
+}
+
+func collectEmbeddedRequirements(root, requirementsPath string) ([]string, error) {
+	var embeddedRequirements []string
+	file, err := os.Open(requirementsPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "opening requirements.txt")
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		parts := strings.Fields(line)
+		// Embedded requirements are of the form `-r embedded_requirements.txt`.
+		if len(parts) == 2 && parts[0] == "-r" {
+			embeddedReqPath := parts[1]
+			// Ensure the embedded requirements file exists and is in the root.
+			if strings.Contains(embeddedReqPath, "..") {
+				return nil, errors.New("embedded requirements may not contain directory traversal elements (`..`)")
+			}
+
+			if !fsx.Exists(filepath.Join(root, embeddedReqPath)) {
+				return nil, errors.Errorf("embedded requirements file %s does not exist", embeddedReqPath)
+			}
+			embeddedRequirements = append(embeddedRequirements, embeddedReqPath)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, errors.Wrap(err, "reading requirements.txt")
+	}
+
+	return embeddedRequirements, nil
 }
 
 // Python creates a dockerfile for all Python tasks within a task root.
@@ -151,6 +201,17 @@ func pythonBundle(
 ) (string, error) {
 	if opts["shim"] != "true" {
 		return pythonLegacy(root, opts)
+	}
+
+	requirementsPath := filepath.Join(root, "requirements.txt")
+	hasRequirements := fsx.Exists(requirementsPath)
+	var embeddedRequirements []string
+	var err error
+	if hasRequirements {
+		embeddedRequirements, err = collectEmbeddedRequirements(root, requirementsPath)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	var airplaneConfig config.AirplaneConfig
@@ -199,7 +260,6 @@ func pythonBundle(
 			return "", errors.Wrap(err, "writing parser script")
 		}
 	}
-
 	dockerfile := heredoc.Doc(`
 		FROM {{ .Base }}
 
@@ -224,6 +284,9 @@ func pythonBundle(
 
 		{{if .HasRequirements}}
 		COPY requirements.txt .
+		{{range .EmbeddedRequirements}}
+		COPY {{.}} .
+		{{end}}
 		{{if .HasPipConf}}
 		COPY pip.conf .
 		ENV PIP_CONFIG_FILE=pip.conf
@@ -247,27 +310,29 @@ func pythonBundle(
 	`)
 
 	df, err := applyTemplate(dockerfile, struct {
-		Base               string
-		InlineShim         string
-		HasRequirements    bool
-		HasPipConf         bool
-		Args               string
-		PreInstallPath     string
-		PostInstallPath    string
-		PreInstallCommand  string
-		PostInstallCommand string
-		FilesToDiscover    string
+		Base                 string
+		InlineShim           string
+		HasRequirements      bool
+		EmbeddedRequirements []string
+		HasPipConf           bool
+		Args                 string
+		PreInstallPath       string
+		PostInstallPath      string
+		PreInstallCommand    string
+		PostInstallCommand   string
+		FilesToDiscover      string
 	}{
-		Base:               v.String(),
-		InlineShim:         inlineString(shim),
-		HasRequirements:    fsx.Exists(filepath.Join(root, "requirements.txt")),
-		HasPipConf:         fsx.Exists(filepath.Join(root, "pip.conf")),
-		Args:               argsCommand,
-		PreInstallPath:     installHooks.PreInstallFilePath,
-		PostInstallPath:    installHooks.PostInstallFilePath,
-		PreInstallCommand:  preinstallCommand,
-		PostInstallCommand: postInstallCommand,
-		FilesToDiscover:    strings.Join(filesToDiscover, " "),
+		Base:                 v.String(),
+		InlineShim:           inlineString(shim),
+		HasRequirements:      hasRequirements,
+		EmbeddedRequirements: embeddedRequirements,
+		HasPipConf:           fsx.Exists(filepath.Join(root, "pip.conf")),
+		Args:                 argsCommand,
+		PreInstallPath:       installHooks.PreInstallFilePath,
+		PostInstallPath:      installHooks.PostInstallFilePath,
+		PreInstallCommand:    preinstallCommand,
+		PostInstallCommand:   postInstallCommand,
+		FilesToDiscover:      strings.Join(filesToDiscover, " "),
 	})
 	if err != nil {
 		return "", errors.Wrapf(err, "rendering dockerfile")
