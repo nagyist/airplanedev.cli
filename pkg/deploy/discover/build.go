@@ -11,6 +11,7 @@ import (
 
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
+	"github.com/airplanedev/lib/pkg/utils/logger"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slices"
@@ -20,7 +21,7 @@ const outputDir = ".airplane"
 
 // Finds all user .js, .ts, .jsx, .tsx files and builds them in root/.airplane/ with the
 // same directory structure as the user code (so relative imports work properly).
-func esbuildUserFiles(rootDir string) error {
+func esbuildUserFiles(log logger.Logger, rootDir string) error {
 	rootPackageJSON := filepath.Join(rootDir, "package.json")
 	hasPackageJSON := fsx.AssertExistsAll(rootPackageJSON) == nil
 	packageJSONs, usesWorkspaces, err := build.GetPackageJSONs(rootPackageJSON)
@@ -68,13 +69,21 @@ func esbuildUserFiles(rootDir string) error {
 		Bundle:   true,
 		External: externals,
 	})
+	var errMsgs []string
 	for _, e := range res.Errors {
-		//nolint:forbidigo
-		fmt.Printf("esbuild(error): %v\n", e)
+		msg := e.Text
+		if strings.HasPrefix(e.Text, "Could not resolve") {
+			msg = fmt.Sprintf("%s. Did you forget to install a dependency?", msg)
+		}
+		errMsgs = append(errMsgs, msg)
 	}
 
 	if len(res.OutputFiles) == 0 {
-		return errors.New("esbuild failed to produce output files")
+		msg := "failed to build code"
+		if len(errMsgs) > 0 {
+			msg = strings.Join(errMsgs, "\n")
+		}
+		return errors.New(msg)
 	}
 	return nil
 }

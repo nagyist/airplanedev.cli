@@ -40,8 +40,9 @@ func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 		return nil, err
 	}
 
-	if err := esbuildUserFiles(pm.RootDir); err != nil {
+	if err := esbuildUserFiles(dd.Logger, pm.RootDir); err != nil {
 		// TODO: convert to an error once inline discovery is more stable.
+		dd.Logger.Log("")
 		dd.Logger.Warning(`Unable to build view: %s`, err.Error())
 		return nil, nil
 	}

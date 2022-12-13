@@ -466,10 +466,10 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		},
 	})
 	for _, w := range res.Warnings {
-		logger.Debug("esbuild(warn): %v", w)
+		logger.Debug(w.Text)
 	}
 	for _, e := range res.Errors {
-		logger.Warning("esbuild(error): %v", e)
+		logger.Warning(e.Text)
 	}
 	logger.Debug("Compiled JS in %s", time.Since(start).String())
 
