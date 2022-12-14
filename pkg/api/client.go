@@ -775,7 +775,7 @@ func (c Client) host() string {
 	return Host
 }
 
-var httpHostPrefixes = []string{
+var httpHosts = []string{
 	"localhost",
 	"127.0.0.1",
 	"host.docker.internal",
@@ -784,8 +784,22 @@ var httpHostPrefixes = []string{
 }
 
 func (c Client) scheme() string {
-	for _, prefix := range httpHostPrefixes {
-		if strings.HasPrefix(c.Host, prefix) {
+	if c.Host == Host {
+		return "https://"
+	}
+
+	// If the host didn't come with a scheme, force a "//" in front of it.
+	host := c.Host
+	if !strings.HasPrefix(host, "http") {
+		host = fmt.Sprintf("//%s", host)
+	}
+	u, err := url.Parse(host)
+	if err != nil {
+		return "https://"
+	}
+
+	for _, httpHost := range httpHosts {
+		if u.Hostname() == httpHost {
 			return "http://"
 		}
 	}
