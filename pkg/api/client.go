@@ -780,6 +780,7 @@ var httpHostPrefixes = []string{
 	"127.0.0.1",
 	"host.docker.internal",
 	"172.17.0.1", // Docker for linux
+	"api",
 }
 
 func (c Client) scheme() string {
