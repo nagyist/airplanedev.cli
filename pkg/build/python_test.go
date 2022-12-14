@@ -260,6 +260,28 @@ func TestPythonBundleBuilder(t *testing.T) {
 				},
 			},
 		},
+		{
+			Root: "python/bundleimport",
+			Kind: TaskKindPython,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    PythonBuildType,
+				Version: BuildTypeVersionPython37,
+			},
+			FilesToDiscover: []string{
+				"taskmod/task/my_task_airplane.py",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "taskmod/task/my_task_airplane.py",
+					ExportName:    "import_task",
+					SearchString:  "running:import_task",
+				},
+			},
+		},
 	}
 
 	RunTests(t, ctx, tests)

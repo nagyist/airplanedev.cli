@@ -149,6 +149,9 @@ def extract_task_configs(files: List[str]) -> List[Def]:
 
 
 def main() -> None:
+    # Add the task root to the sys path. This will have no effect for local dev but will allow
+    # discovered modules to properly import their dependencies during deployments.
+    sys.path.append("/airplane/")
     files = sys.argv[1:]
     task_configs = extract_task_configs(files)
     print(
