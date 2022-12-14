@@ -149,6 +149,16 @@ export default airplane.task(
       },
     });
 
+    if (form_block_slug.bool_example && process.env.AIRPLANE_ENV_IS_DEFAULT) {
+      await airplane.display.markdown(
+        `This is some content with a form value reference: ${form_block_slug.date_example}`
+      );
+    } else {
+      console.log(
+        "Skipping over 'note_block_slug2' because startCondition is false"
+      );
+    }
+
     // Optionally return output that will be rendered in the run UI: https://docs.airplane.dev/tasks/output
     // return {}
   }

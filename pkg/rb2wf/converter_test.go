@@ -337,6 +337,22 @@ func TestConverter(t *testing.T) {
 						},
 					},
 				},
+				{
+					ID:        "noteBlockID2",
+					Slug:      "note_block_slug2",
+					BlockKind: "note",
+					// Test rewriting JSTs from start conditions:
+					StartCondition: "form_block_slug.output.bool_example && env.is_default",
+					BlockKindConfig: api.BlockKindConfig{
+						Note: &api.BlockKindConfigNote{
+							Content: map[string]interface{}{
+								"__airplaneType": "template",
+								// Test rewriting JSTs that reference form outputs:
+								"raw": "This is some content with a form value reference: {{form_block_slug.output.date_example}}",
+							},
+						},
+					},
+				},
 			},
 		},
 		Tasks: map[string]libapi.Task{

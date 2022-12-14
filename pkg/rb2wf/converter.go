@@ -130,7 +130,7 @@ func (r *RunbookConverter) Convert(ctx context.Context, runbookSlug string) erro
 
 	for _, block := range runbookInfo.blocks.Blocks {
 		logger.Step("Converting block %s to code", block.Slug)
-		blockStr, err := r.blockToString(ctx, block, resources)
+		blockStr, err := r.blockToString(ctx, block, runbookInfo, resources)
 		if err != nil {
 			return err
 		}
@@ -191,10 +191,10 @@ type runbookInfo struct {
 func (r *RunbookConverter) getRunbookInfo(
 	ctx context.Context,
 	runbookSlug string,
-) (*runbookInfo, error) {
+) (runbookInfo, error) {
 	runbookResp, err := r.client.GetRunbook(ctx, runbookSlug)
 	if err != nil {
-		return nil, err
+		return runbookInfo{}, err
 	}
 
 	sessionBlocksResp, err := r.client.ListSessionBlocks(
@@ -202,10 +202,10 @@ func (r *RunbookConverter) getRunbookInfo(
 		runbookResp.Runbook.TemplateSession.ID,
 	)
 	if err != nil {
-		return nil, err
+		return runbookInfo{}, err
 	}
 
-	return &runbookInfo{
+	return runbookInfo{
 		runbook: runbookResp,
 		blocks:  sessionBlocksResp,
 	}, nil
@@ -230,14 +230,14 @@ func isUnsupportedParamType(t libapi.Type) bool {
 
 // runbookParamsToPromptParams helps construct a map of prompt parameters
 // in the valid format of {slug: PromptAPIParameterJSONObj}
-func runbookParamsToPromptParams(params libapi.Parameters) (interface{}, error) {
+func runbookParamsToPromptParams(params libapi.Parameters, runbookInfo runbookInfo) (interface{}, error) {
 	o := ojson.NewObject()
 	for _, p := range params {
 		if isUnsupportedParamType(p.Type) {
 			logger.Warning("- Skipping unsupported parameter - %s parameter types are not supported: %s.", p.Type, p.Slug)
 			continue
 		}
-		defaultV, err := interfaceToJSObj(p.Default, nil)
+		defaultV, err := interfaceToJSObj(p.Default, nil, runbookInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -252,7 +252,7 @@ func runbookParamsToPromptParams(params libapi.Parameters) (interface{}, error) 
 			Regex:    p.Constraints.Regex,
 		}
 		if len(p.Constraints.Options) > 0 {
-			options, err := interfaceToJSObj(p.Constraints.Options, nil)
+			options, err := interfaceToJSObj(p.Constraints.Options, nil, runbookInfo)
 			if err != nil {
 				return nil, err
 			}
@@ -274,8 +274,10 @@ func runbookParamsToPromptParams(params libapi.Parameters) (interface{}, error) 
 func (r *RunbookConverter) blockToString(
 	ctx context.Context,
 	block api.SessionBlock,
+	runbookInfo runbookInfo,
 	resources map[string]libapi.Resource,
 ) (string, error) {
+	startCondition := transformTemplate(block.StartCondition, runbookInfo)
 
 	if block.BlockKindConfig.Task != nil {
 		config := block.BlockKindConfig.Task
@@ -285,7 +287,7 @@ func (r *RunbookConverter) blockToString(
 		}
 		taskSlug := task.Slug
 
-		taskParamValues, err := interfaceToJSObj(config.ParamValues, nil)
+		taskParamValues, err := interfaceToJSObj(config.ParamValues, nil, runbookInfo)
 		if err != nil {
 			return "", err
 		}
@@ -298,7 +300,7 @@ func (r *RunbookConverter) blockToString(
 		}{
 			BlockSlug:      block.Slug,
 			ParamValues:    taskParamValues,
-			StartCondition: block.StartCondition,
+			StartCondition: startCondition,
 			TaskSlug:       taskSlug,
 		})
 		if err != nil {
@@ -309,7 +311,7 @@ func (r *RunbookConverter) blockToString(
 	} else if block.BlockKindConfig.Note != nil {
 		config := block.BlockKindConfig.Note
 
-		noteContent, err := interfaceToJSObj(config.Content, nil)
+		noteContent, err := interfaceToJSObj(config.Content, nil, runbookInfo)
 		if err != nil {
 			return "", err
 		}
@@ -321,7 +323,7 @@ func (r *RunbookConverter) blockToString(
 		}{
 			BlockSlug:      block.Slug,
 			Content:        noteContent,
-			StartCondition: block.StartCondition,
+			StartCondition: startCondition,
 		})
 		if err != nil {
 			return "", err
@@ -329,11 +331,11 @@ func (r *RunbookConverter) blockToString(
 		return noteBlockStr, nil
 	} else if block.BlockKindConfig.Form != nil {
 		config := block.BlockKindConfig.Form
-		blockParams, err := runbookParamsToPromptParams(config.Parameters)
+		blockParams, err := runbookParamsToPromptParams(config.Parameters, runbookInfo)
 		if err != nil {
 			return "", err
 		}
-		formParams, err := interfaceToJSObj(blockParams, nil)
+		formParams, err := interfaceToJSObj(blockParams, nil, runbookInfo)
 		if err != nil {
 			return "", err
 		}
@@ -344,7 +346,7 @@ func (r *RunbookConverter) blockToString(
 		}{
 			BlockSlug:      block.Slug,
 			Params:         formParams,
-			StartCondition: block.StartCondition,
+			StartCondition: startCondition,
 		})
 		if err != nil {
 			return "", err
@@ -360,11 +362,11 @@ func (r *RunbookConverter) blockToString(
 
 		switch config.Namespace {
 		case "email":
-			sender, err := interfaceToJSObj(req["sender"], nil)
+			sender, err := interfaceToJSObj(req["sender"], nil, runbookInfo)
 			if err != nil {
 				return "", err
 			}
-			receipients, err := interfaceToJSObj(req["recipients"], nil)
+			recipients, err := interfaceToJSObj(req["recipients"], nil, runbookInfo)
 			if err != nil {
 				return "", err
 			}
@@ -373,6 +375,7 @@ func (r *RunbookConverter) blockToString(
 					"sender":     {},
 					"recipients": {},
 				},
+				runbookInfo,
 			)
 			if err != nil {
 				return "", err
@@ -390,17 +393,17 @@ func (r *RunbookConverter) blockToString(
 			}{
 				BlockSlug:      block.Slug,
 				Options:        options,
-				Recipients:     receipients,
+				Recipients:     recipients,
 				ResourceSlug:   resourceSlug,
 				Sender:         sender,
-				StartCondition: block.StartCondition,
+				StartCondition: startCondition,
 			})
 			if err != nil {
 				return "", err
 			}
 			return emailBlockStr, nil
 		case "graphql":
-			operation, err := interfaceToJSObj(req["operation"], nil)
+			operation, err := interfaceToJSObj(req["operation"], nil, runbookInfo)
 			if err != nil {
 				return "", err
 			}
@@ -409,6 +412,7 @@ func (r *RunbookConverter) blockToString(
 				req, map[string]struct{}{
 					"operation": {},
 				},
+				runbookInfo,
 			)
 			if err != nil {
 				return "", err
@@ -427,14 +431,14 @@ func (r *RunbookConverter) blockToString(
 				Operation:      operation,
 				Options:        options,
 				ResourceSlug:   resourceSlug,
-				StartCondition: block.StartCondition,
+				StartCondition: startCondition,
 			})
 			if err != nil {
 				return "", err
 			}
 			return graphQLBlockStr, nil
 		case "mongodb":
-			collection, err := interfaceToJSObj(req["collection"], nil)
+			collection, err := interfaceToJSObj(req["collection"], nil, runbookInfo)
 			if err != nil {
 				return "", err
 			}
@@ -443,6 +447,7 @@ func (r *RunbookConverter) blockToString(
 				req, map[string]struct{}{
 					"collection": {},
 				},
+				runbookInfo,
 			)
 			if err != nil {
 				return "", err
@@ -463,18 +468,18 @@ func (r *RunbookConverter) blockToString(
 				DBSlug:         resourceSlug,
 				Operation:      config.Name,
 				Options:        options,
-				StartCondition: block.StartCondition,
+				StartCondition: startCondition,
 			})
 			if err != nil {
 				return "", err
 			}
 			return mongoDBBlockStr, nil
 		case "rest":
-			method, err := interfaceToJSObj(req["method"], nil)
+			method, err := interfaceToJSObj(req["method"], nil, runbookInfo)
 			if err != nil {
 				return "", err
 			}
-			path, err := interfaceToJSObj(req["path"], nil)
+			path, err := interfaceToJSObj(req["path"], nil, runbookInfo)
 			if err != nil {
 				return "", err
 			}
@@ -484,6 +489,7 @@ func (r *RunbookConverter) blockToString(
 					"method": {},
 					"path":   {},
 				},
+				runbookInfo,
 			)
 			if err != nil {
 				return "", err
@@ -504,18 +510,18 @@ func (r *RunbookConverter) blockToString(
 				Options:        options,
 				Path:           path,
 				ResourceSlug:   resourceSlug,
-				StartCondition: block.StartCondition,
+				StartCondition: startCondition,
 			})
 			if err != nil {
 				return "", err
 			}
 			return restBlockStr, nil
 		case "slack":
-			channel, err := interfaceToJSObj(req["channelName"], nil)
+			channel, err := interfaceToJSObj(req["channelName"], nil, runbookInfo)
 			if err != nil {
 				return "", err
 			}
-			message, err := interfaceToJSObj(req["message"], nil)
+			message, err := interfaceToJSObj(req["message"], nil, runbookInfo)
 			if err != nil {
 				return "", err
 			}
@@ -529,19 +535,19 @@ func (r *RunbookConverter) blockToString(
 				BlockSlug:      block.Slug,
 				Channel:        channel,
 				Message:        message,
-				StartCondition: block.StartCondition,
+				StartCondition: startCondition,
 			})
 			if err != nil {
 				return "", err
 			}
 			return slackBlockStr, nil
 		case "sql":
-			query, err := interfaceToJSObj(req["query"], nil)
+			query, err := interfaceToJSObj(req["query"], nil, runbookInfo)
 			if err != nil {
 				return "", err
 			}
 
-			queryArgs, err := interfaceToJSObj(req["queryArgs"], nil)
+			queryArgs, err := interfaceToJSObj(req["queryArgs"], nil, runbookInfo)
 			if err != nil {
 				return "", err
 			}
@@ -559,7 +565,7 @@ func (r *RunbookConverter) blockToString(
 				DBSlug:         dbSlug,
 				Query:          query,
 				QueryArgs:      queryArgs,
-				StartCondition: block.StartCondition,
+				StartCondition: startCondition,
 			})
 			if err != nil {
 				return "", err

@@ -155,23 +155,38 @@ var runbookEnvVars = map[string]string{
 	"block.slug": "process.env." + manualFixPlaceholder,
 }
 
-func (t templateValue) runbookGlobalsToEnVars() string {
-	template := t.rawTemplate
+// transformTemplate transforms JSTs from a format that works in runbooks to what works
+// inside of a task.
+func transformTemplate(tmpl string, runbookInfo runbookInfo) string {
+	// Transform JST globals into their corresponding environment variable.
 	for envVar, processEnv := range runbookEnvVars {
-		template = strings.ReplaceAll(template, envVar, processEnv)
+		tmpl = strings.ReplaceAll(tmpl, envVar, processEnv)
 	}
-	return template
+
+	// The semantics for accessing form values is different in tasks than runbooks.
+	// In tasks, we return the values directly while in runbooks we return them under a
+	// `.output` field.
+	for _, block := range runbookInfo.blocks.Blocks {
+		if block.BlockKind != "form" {
+			continue
+		}
+
+		// Replace `form1.output.foo` -> `form1.foo`
+		tmpl = strings.ReplaceAll(tmpl, block.Slug+".output", block.Slug)
+	}
+
+	return tmpl
 }
 
 func (t templateValue) toTemplate() string {
-	withEnvVars := t.runbookGlobalsToEnVars()
-	template := strings.ReplaceAll(withEnvVars, "{{", "${")
+	template := strings.ReplaceAll(t.rawTemplate, "{{", "${")
 	return strings.ReplaceAll(template, "}}", "}")
 }
 
 func interfaceToJSObj(
 	obj interface{},
 	removeKeys map[string]struct{},
+	runbookInfo runbookInfo,
 ) (interface{}, error) {
 	switch v := obj.(type) {
 	case map[string]interface{}:
@@ -182,7 +197,7 @@ func interfaceToJSObj(
 				return nil, errors.Errorf("got non-string raw value: %+v", v["raw"])
 			}
 
-			return templateValue{rawTemplate}, nil
+			return templateValue{transformTemplate(rawTemplate, runbookInfo)}, nil
 		} else {
 			result := map[string]interface{}{}
 			for key, value := range v {
@@ -193,7 +208,7 @@ func interfaceToJSObj(
 				}
 
 				var err error
-				result[key], err = interfaceToJSObj(value, removeKeys)
+				result[key], err = interfaceToJSObj(value, removeKeys, runbookInfo)
 				if err != nil {
 					return nil, err
 				}
@@ -203,7 +218,7 @@ func interfaceToJSObj(
 	case []interface{}:
 		items := []interface{}{}
 		for _, obj := range v {
-			item, err := interfaceToJSObj(obj, removeKeys)
+			item, err := interfaceToJSObj(obj, removeKeys, runbookInfo)
 			if err != nil {
 				return nil, err
 			}
