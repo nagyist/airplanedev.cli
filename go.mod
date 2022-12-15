@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/airplanedev/lib v0.5.133
+	github.com/airplanedev/lib v0.5.135
 	github.com/airplanedev/ojson v0.1.0
 	github.com/airplanedev/trap v0.1.0
 	github.com/bep/debounce v1.2.1
@@ -13,11 +13,11 @@ require (
 	github.com/briandowns/spinner v1.19.0
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.13.0
-	github.com/gavv/httpexpect/v2 v2.7.0
+	github.com/gavv/httpexpect/v2 v2.8.0
 	github.com/getsentry/sentry-go v0.16.0
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git-fixtures/v4 v4.3.1
-	github.com/go-git/go-git/v5 v5.4.2
+	github.com/go-git/go-git/v5 v5.5.1
 	github.com/golang-jwt/jwt/v4 v4.4.3
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
@@ -121,7 +121,6 @@ require (
 	github.com/mattn/go-ieproxy v0.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
-	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/buildkit v0.10.5 // indirect
@@ -134,6 +133,7 @@ require (
 	github.com/opencontainers/image-spec v1.0.3-0.20211202183452-c5a74bcca799 // indirect
 	github.com/opencontainers/runc v1.1.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.16 // indirect
+	github.com/pjbgf/sha1cd v0.2.3 // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 // indirect
@@ -141,12 +141,13 @@ require (
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
+	github.com/skeema/knownhosts v1.1.0 // indirect
 	github.com/snowflakedb/gosnowflake v1.6.13 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.40.0 // indirect
-	github.com/xanzy/ssh-agent v0.3.2 // indirect
+	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
