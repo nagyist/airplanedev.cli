@@ -147,7 +147,7 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 							out := runTask(t, ctx, client, runTaskConfig{
 								Image:       resp.ImageURL,
 								ParamValues: test.ParamValues,
-								Entrypoint:  []string{"bash", ".airplane/shim.sh", "./" + testRun.RelEntrypoint},
+								Cmd:         []string{"bash", ".airplane/shim.sh", "./" + testRun.RelEntrypoint},
 								Kind:        test.Kind,
 							})
 							require.True(strings.Contains(string(out), testRun.SearchString), "unable to find %q in output:\n%s", test.SearchString, string(out))
@@ -173,20 +173,21 @@ type runTaskConfig struct {
 	Image       string
 	ParamValues Values
 	Entrypoint  strslice.StrSlice
+	Cmd         strslice.StrSlice
 	Kind        TaskKind
 }
 
 func runTask(t *testing.T, ctx context.Context, dclient *client.Client, c runTaskConfig) []byte {
 	require := require.New(t)
 
-	var cmd strslice.StrSlice
+	cmd := c.Cmd
 	if c.Kind == TaskKindShell {
 		var params []string
 		for k, v := range c.ParamValues {
 			params = append(params, fmt.Sprintf("%s=%s", k, v))
 		}
 		if len(c.Entrypoint) == 0 {
-			cmd = strslice.StrSlice{strings.Join(params, ", ")}
+			cmd = append(cmd, params...)
 		} else {
 			for k, v := range c.ParamValues {
 				c.Entrypoint = append(c.Entrypoint, fmt.Sprintf("%s=%s", k, v))
@@ -196,7 +197,7 @@ func runTask(t *testing.T, ctx context.Context, dclient *client.Client, c runTas
 		pv, err := json.Marshal(c.ParamValues)
 		require.NoError(err)
 		if len(c.Entrypoint) == 0 {
-			cmd = strslice.StrSlice{string(pv)}
+			cmd = append(cmd, string(pv))
 		} else {
 			c.Entrypoint = append(c.Entrypoint, string(pv))
 		}

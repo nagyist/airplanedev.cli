@@ -210,6 +210,20 @@ func TestShellBundleBuilder(t *testing.T) {
 				},
 			},
 		},
+		{
+			Root: "shell/dockerfilewithentrypoint",
+			Kind: TaskKindShell,
+			BuildContext: BuildContext{
+				Type: ShellBuildType,
+			},
+			Bundle: true,
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.sh",
+					SearchString:  "bar",
+				},
+			},
+		},
 	}
 
 	RunTests(t, ctx, tests)

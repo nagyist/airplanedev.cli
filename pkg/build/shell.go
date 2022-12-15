@@ -59,6 +59,8 @@ func shellBundle(root string) (string, error) {
 		RUN mkdir -p .airplane && {{.InlineShim}} > .airplane/shim.sh
 
 		COPY --chmod=700 . .
+		# Set an empty entrypoint to override any entrypoints that may be set in the base image.
+		ENTRYPOINT []
 	`)
 	return applyTemplate(dockerfileTemplate, struct {
 		InlineShim string

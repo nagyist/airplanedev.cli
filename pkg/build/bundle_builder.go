@@ -188,6 +188,9 @@ func (b *BundleBuilder) Build(ctx context.Context, bundleBuildID, version string
 
 		var resp controlapi.StatusResponse
 
+		if msg.ErrorMessage != "" {
+			return nil, errors.Wrap(errors.New(msg.ErrorMessage), "building image")
+		}
 		if msg.ID != "moby.buildkit.trace" {
 			continue
 		}
