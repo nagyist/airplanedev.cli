@@ -170,19 +170,24 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 
 // tarAndUploadBatch concurrently tars and uploads bundles.
 func (d *deployer) tarAndUploadBatch(ctx context.Context, bundles []bundlediscover.Bundle) (map[string]string, error) {
+	pathsToUpload := make(map[string]interface{})
+	for _, b := range bundles {
+		pathsToUpload[b.RootPath] = struct{}{}
+	}
+
 	var uploadIDs sync.Map
 	g, ctx := errgroup.WithContext(ctx)
-	for _, b := range bundles {
-		b := b
+	for p := range pathsToUpload {
+		p := p
 
 		g.Go(func() error {
-			uploadID, err := d.tarAndUpload(ctx, b.RootPath)
+			uploadID, err := d.tarAndUpload(ctx, p)
 			if err != nil {
 				return err
 			}
-			_, ok := uploadIDs.Load(b.RootPath)
+			_, ok := uploadIDs.Load(p)
 			if !ok {
-				uploadIDs.Store(b.RootPath, uploadID)
+				uploadIDs.Store(p, uploadID)
 			}
 			return nil
 		})
@@ -309,12 +314,15 @@ func (d *deployer) waitForDeploy(ctx context.Context, client api.APIClient, depl
 			switch {
 			case deployment.FailedAt != nil:
 				d.deployLog(ctx, api.LogLevelInfo, deployLogReq{msg: logger.Bold(logger.Red("failed: %s", deployment.FailedReason))})
+				d.logger.Log(logger.Purple(fmt.Sprintf("Failed deployment: %s\n", d.cfg.Client.DeploymentURL(deployment.ID, d.cfg.EnvSlug))))
 				return errors.New("Deploy failed")
 			case deployment.SucceededAt != nil:
 				d.deployLog(ctx, api.LogLevelInfo, deployLogReq{msg: logger.Bold(logger.Green("succeeded"))})
+				d.logger.Log(logger.Purple(fmt.Sprintf("Successful deployment: %s\n", d.cfg.Client.DeploymentURL(deployment.ID, d.cfg.EnvSlug))))
 				return nil
 			case deployment.CancelledAt != nil:
 				d.deployLog(ctx, api.LogLevelInfo, deployLogReq{msg: logger.Bold(logger.Red("cancelled"))})
+				d.logger.Log(logger.Purple(fmt.Sprintf("Cancelled deployment: %s\n", d.cfg.Client.DeploymentURL(deployment.ID, d.cfg.EnvSlug))))
 				return errors.New("Deploy cancelled")
 			}
 		}
