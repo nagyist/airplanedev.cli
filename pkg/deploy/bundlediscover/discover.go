@@ -74,6 +74,16 @@ func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]Bundle, e
 		}
 	}
 
+	// Standardize target paths to use forward slashes.
+	// On unix machines this will be a no-op, but on Windows machines this will
+	// convert backslashes to forward slashes.
+	for i, b := range dedupedBundles {
+		for j, target := range b.TargetPaths {
+			b.TargetPaths[j] = filepath.ToSlash(target)
+		}
+		dedupedBundles[i] = b
+	}
+
 	return dedupedBundles, nil
 }
 
