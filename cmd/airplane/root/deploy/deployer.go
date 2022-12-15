@@ -352,8 +352,9 @@ func (d *deployer) confirmBuildRoot(root string) error {
 	} else if home != root {
 		return nil
 	}
-	d.logger.Warning("This root is your home directory — deploying will attempt to upload the entire directory.")
-	d.logger.Warning("Consider moving your task entrypoint to a subdirectory.")
+	d.logger.Warning("The Airplane project you are deploying contains your entire home directory — deploying will attempt to upload the entire directory.")
+	d.logger.Warning("Consider moving your project's root directory to a subdirectory.")
+	d.logger.Warning("For more information, see https://docs.airplane.dev/dev-lifecycle/code-organization#determing-which-project-a-task-or-view-is-in.")
 	wasActive := d.logger.StopLoader()
 	if wasActive {
 		defer d.logger.StartLoader()
@@ -361,7 +362,7 @@ func (d *deployer) confirmBuildRoot(root string) error {
 	if ok, err := utils.Confirm("Are you sure?"); err != nil {
 		return err
 	} else if !ok {
-		return errors.New("aborting build")
+		return errors.New("aborting deployment")
 	}
 	return nil
 }

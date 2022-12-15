@@ -110,6 +110,7 @@ func run(ctx context.Context, cfg config) error {
 	defer l.StopLoader()
 
 	if cfg.root.Flagger.Bool(ctx, l, flagsiface.DeployBundles) {
+		l.StopLoader()
 		return bundledeploy.Deploy(ctx, bundledeploy.Config{
 			Root:         cfg.root,
 			Client:       cfg.client,
