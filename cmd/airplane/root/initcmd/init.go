@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -239,7 +239,11 @@ func FindTemplate(templates []Template, gitPath string) (Template, error) {
 		if strings.HasPrefix(gitPath, "https://github.com/") {
 			gitPath = strings.TrimPrefix(gitPath, "https://")
 		} else {
-			gitPath = filepath.Join(defaultGitPrefix, gitPath)
+			p, err := url.JoinPath(defaultGitPrefix, gitPath)
+			if err != nil {
+				return Template{}, errors.Wrapf(err, "creating URL from %s and %s", defaultGitPrefix, gitPath)
+			}
+			gitPath = p
 		}
 	}
 
