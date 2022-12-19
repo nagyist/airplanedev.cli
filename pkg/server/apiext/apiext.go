@@ -33,6 +33,7 @@ func AttachExternalAPIRoutes(r *mux.Router, state *state.State) {
 
 	r.Handle("/tasks/execute", handlers.HandlerWithBody(state, ExecuteTaskHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/tasks/getMetadata", handlers.Handler(state, GetTaskMetadataHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/tasks/getTaskReviewers", handlers.Handler(state, GetTaskReviewersHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/runs/getOutputs", handlers.Handler(state, GetOutputsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/get", handlers.Handler(state, GetRunHandler)).Methods("GET", "OPTIONS")
@@ -251,7 +252,8 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			EnvSlug:     state.RemoteEnv.Slug,
 		})
 		if err != nil {
-			if _, ok := err.(*libapi.TaskMissingError); ok {
+			var taskMissingError *libapi.TaskMissingError
+			if errors.As(err, taskMissingError) {
 				return api.RunTaskResponse{}, errors.Errorf("task with slug %s is not registered locally or remotely", req.Slug)
 			} else {
 				return api.RunTaskResponse{}, err
@@ -326,6 +328,38 @@ func GetTaskMetadataHandler(ctx context.Context, state *state.State, r *http.Req
 		Slug:    slug,
 		IsLocal: true,
 	}, nil
+}
+
+func GetTaskReviewersHandler(ctx context.Context, state *state.State, r *http.Request) (api.GetTaskReviewersResponse, error) {
+	taskSlug := r.URL.Query().Get("taskSlug")
+	localTaskConfig, ok := state.TaskConfigs.Get(taskSlug)
+	if ok {
+		parameters, err := localTaskConfig.Def.GetParameters()
+		if err != nil {
+			return api.GetTaskReviewersResponse{}, err
+		}
+		return api.GetTaskReviewersResponse{
+			Task: &libapi.Task{
+				Slug:       taskSlug,
+				Parameters: parameters,
+				Triggers:   []libapi.Trigger{{Kind: "form"}},
+			},
+		}, nil
+	}
+	if !state.UseFallbackEnv {
+		return api.GetTaskReviewersResponse{}, errors.Errorf("task with slug %s is not registered locally", taskSlug)
+	}
+
+	resp, err := state.RemoteClient.GetTaskReviewers(ctx, taskSlug)
+	if err != nil {
+		var taskMissingError *libapi.TaskMissingError
+		if errors.As(err, taskMissingError) {
+			return api.GetTaskReviewersResponse{}, errors.Errorf("task with slug %s is not registered locally or remotely", taskSlug)
+		} else {
+			return api.GetTaskReviewersResponse{}, err
+		}
+	}
+	return resp, nil
 }
 
 // GetViewHandler handles requests to the /v0/views/get endpoint. It generates a deterministic view ID for each view

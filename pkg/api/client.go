@@ -88,6 +88,7 @@ type APIClient interface {
 
 	// GetTaskMetadata fetches a task's metadata by slug. If the slug does not match a task, a *TaskMissingError is returned.
 	GetTaskMetadata(ctx context.Context, slug string) (res libapi.TaskMetadata, err error)
+	GetTaskReviewers(ctx context.Context, slug string) (res GetTaskReviewersResponse, err error)
 	ListTasks(ctx context.Context, envSlug string) (res ListTasksResponse, err error)
 	CreateTask(ctx context.Context, req CreateTaskRequest) (res CreateTaskResponse, err error)
 	UpdateTask(ctx context.Context, req libapi.UpdateTaskRequest) (res UpdateTaskResponse, err error)
@@ -433,6 +434,22 @@ func (c Client) GetTaskByID(ctx context.Context, id string) (res libapi.Task, er
 func (c Client) GetTaskMetadata(ctx context.Context, slug string) (res libapi.TaskMetadata, err error) {
 	err = c.get(ctx, encodeQueryString("/tasks/getMetadata", url.Values{
 		"slug": []string{slug},
+	}), &res)
+
+	if err, ok := err.(Error); ok && err.Code == 404 {
+		return res, &libapi.TaskMissingError{
+			AppURL: c.AppURL().String(),
+			Slug:   slug,
+		}
+	}
+
+	return
+}
+
+// GetTaskReviewers fetches a task and reviewers by slug. If the slug does not match a task, a *TaskMissingError is returned.
+func (c Client) GetTaskReviewers(ctx context.Context, slug string) (res GetTaskReviewersResponse, err error) {
+	err = c.get(ctx, encodeQueryString("/tasks/getTaskReviewers", url.Values{
+		"taskSlug": []string{slug},
 	}), &res)
 
 	if err, ok := err.(Error); ok && err.Code == 404 {

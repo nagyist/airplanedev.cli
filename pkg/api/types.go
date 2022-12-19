@@ -16,6 +16,16 @@ type GetTaskRequest struct {
 	EnvSlug string
 }
 
+type ReviewerID struct {
+	UserID  string `json:"userID,omitempty"`
+	GroupID string `json:"groupID,omitempty"`
+}
+
+type GetTaskReviewersResponse struct {
+	Task      *libapi.Task `json:"task"`
+	Reviewers []ReviewerID `json:"reviewers"`
+}
+
 // CreateTaskRequest creates a new task.
 type CreateTaskRequest struct {
 	Slug             string                    `json:"slug"`

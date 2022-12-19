@@ -53,6 +53,16 @@ func (mc *MockClient) GetTaskMetadata(ctx context.Context, slug string) (res lib
 	}, nil
 }
 
+func (mc *MockClient) GetTaskReviewers(ctx context.Context, slug string) (res GetTaskReviewersResponse, err error) {
+	task, ok := mc.Tasks[slug]
+	if !ok {
+		return GetTaskReviewersResponse{}, &libapi.TaskMissingError{AppURL: "api/", Slug: slug}
+	}
+	return GetTaskReviewersResponse{
+		Task: &task,
+	}, nil
+}
+
 func (mc *MockClient) ListTasks(ctx context.Context, envSlug string) (res ListTasksResponse, err error) {
 	allTasks := make([]libapi.Task, 0, len(mc.Tasks))
 	for _, task := range mc.Tasks {
