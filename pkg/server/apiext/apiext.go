@@ -143,6 +143,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			}
 			run.StdAPIRequest = stdapiReq
 			run.TaskName = req.Slug
+			run.ParamValues = req.ParamValues
 		} else if localTaskConfig.Def != nil {
 			kind, kindOptions, err := dev.GetKindAndOptions(localTaskConfig)
 			if err != nil {
@@ -173,7 +174,9 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 				return api.RunTaskResponse{}, errors.Wrap(err, "merging local and remote configs")
 			}
 			run.TaskRevision = localTaskConfig
-			runConfig.ParamValues, err = params.StandardizeParamValues(ctx, state.RemoteClient, parameters, req.ParamValues)
+			paramValuesWithDefaults := params.ApplyDefaults(parameters, req.ParamValues)
+			run.ParamValues = paramValuesWithDefaults
+			runConfig.ParamValues, err = params.StandardizeParamValues(ctx, state.RemoteClient, parameters, paramValuesWithDefaults)
 			if err != nil {
 				return api.RunTaskResponse{}, err
 			}
@@ -191,7 +194,6 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		run.Resources = resources.GenerateResourceAliasToID(aliasToResourceMap)
 		run.CreatedAt = start
 
-		run.ParamValues = req.ParamValues
 		run.Parameters = &parameters
 
 		run.Status = api.RunActive

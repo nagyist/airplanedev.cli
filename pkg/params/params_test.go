@@ -10,6 +10,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestApplyDefaults(t *testing.T) {
+	require := require.New(t)
+	parameters := libapi.Parameters{libapi.Parameter{
+		Name:    "Param 1",
+		Slug:    "p1",
+		Type:    libapi.TypeString,
+		Default: "Eric",
+	}, libapi.Parameter{
+		Name:    "Param 2",
+		Slug:    "p2",
+		Type:    libapi.TypeString,
+		Default: "Erica",
+	}}
+	paramValues := api.Values{
+		"p2": "Erie",
+	}
+	paramValuesWithDefaults := params.ApplyDefaults(parameters, paramValues)
+	require.Equal("Eric", paramValuesWithDefaults["p1"])
+	require.Equal("Erie", paramValuesWithDefaults["p2"])
+}
+
 func TestStandardizeParams(t *testing.T) {
 	require := require.New(t)
 

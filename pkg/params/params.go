@@ -177,6 +177,24 @@ func APIValueToInput(param libapi.Parameter, value interface{}) (string, error) 
 	}
 }
 
+func ApplyDefaults(
+	parameters libapi.Parameters,
+	values api.Values,
+) api.Values {
+	out := api.Values{}
+	for _, param := range parameters {
+		v, ok := values[param.Slug]
+		if !ok || v == nil {
+			if param.Default != nil {
+				out[param.Slug] = param.Default
+			}
+		} else {
+			out[param.Slug] = v
+		}
+	}
+	return out
+}
+
 func StandardizeParamValues(
 	ctx context.Context,
 	remoteClient api.APIClient,
