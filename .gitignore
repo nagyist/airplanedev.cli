@@ -6,3 +6,4 @@ bin/
 .google_credentials
 .idea/
 coverage.out
+gha-creds-*.json
