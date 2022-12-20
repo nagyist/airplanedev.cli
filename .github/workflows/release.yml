@@ -20,13 +20,15 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: 1.19
+
       - name: Set up gcloud CLI
-        uses: google-github-actions/setup-gcloud@v0.6.2
+        uses: google-github-actions/auth@v1
         with:
           project_id: airplane-prod
-          service_account_key: ${{ secrets.GCP_KEY }}
-          export_default_credentials: true
-          credentials_file_path: ${{ env.GOOGLE_CREDENTIALS_FILE_PATH }}
+          credentials_json: ${{ secrets.GCP_KEY }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - uses: google-github-actions/setup-gcloud@v1.0.1
       - name: Configure Docker to use Artifact Registry
         run: gcloud auth configure-docker us-docker.pkg.dev
       - name: Run GoReleaser
