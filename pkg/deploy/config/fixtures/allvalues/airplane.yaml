@@ -10,6 +10,7 @@ javascript:
   preinstall: preinstall
   postinstall: postinstall
 python:
+  version: "3.11"
   envVars:
     fromValue: value3
     fromValue2:

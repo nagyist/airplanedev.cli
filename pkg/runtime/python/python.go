@@ -17,6 +17,7 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
@@ -469,6 +470,15 @@ func (r Runtime) Root(path string) (string, error) {
 }
 
 func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, err error) {
+	// Look for version in airplane.config
+	hasAirplaneConfig := config.HasAirplaneConfig(rootPath)
+	if hasAirplaneConfig {
+		c, err := config.NewAirplaneConfigFromFile(rootPath)
+		if err == nil && c.Python.Version != "" {
+			return build.BuildTypeVersion(c.Python.Version), nil
+		}
+	}
+
 	return "", nil
 }
 

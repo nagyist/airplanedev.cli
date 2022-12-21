@@ -36,6 +36,7 @@ func TestNewAirplaneConfigFromFile(t *testing.T) {
 						"fromValue2": EnvVarValue{Value: pointers.String("value4")},
 						"fromConfig": EnvVarValue{Config: pointers.String("CONFIG2")},
 					},
+					Version:     "3.11",
 					Base:        "full",
 					PreInstall:  "preinstall",
 					PostInstall: "postinstall",

@@ -104,7 +104,7 @@ func TestPythonBundleBuilder(t *testing.T) {
 			},
 			BuildContext: BuildContext{
 				Type:    PythonBuildType,
-				Version: BuildTypeVersionPython37,
+				Version: BuildTypeVersionPython310,
 			},
 			BundleRuns: []BundleTestRun{
 				{
@@ -125,7 +125,7 @@ func TestPythonBundleBuilder(t *testing.T) {
 			},
 			BuildContext: BuildContext{
 				Type:    PythonBuildType,
-				Version: BuildTypeVersionPython37,
+				Version: BuildTypeVersionPython310,
 				Base:    BuildBaseSlim,
 			},
 			BundleRuns: []BundleTestRun{
@@ -144,7 +144,7 @@ func TestPythonBundleBuilder(t *testing.T) {
 			Bundle: true,
 			BuildContext: BuildContext{
 				Type:    PythonBuildType,
-				Version: BuildTypeVersionPython37,
+				Version: BuildTypeVersionPython310,
 				Base:    BuildBaseSlim,
 			},
 			BundleRuns: []BundleTestRun{
@@ -163,7 +163,7 @@ func TestPythonBundleBuilder(t *testing.T) {
 			Bundle: true,
 			BuildContext: BuildContext{
 				Type:    PythonBuildType,
-				Version: BuildTypeVersionPython37,
+				Version: BuildTypeVersionPython310,
 				Base:    BuildBaseSlim,
 			},
 			BundleRuns: []BundleTestRun{
@@ -182,7 +182,7 @@ func TestPythonBundleBuilder(t *testing.T) {
 			Bundle: true,
 			BuildContext: BuildContext{
 				Type:    PythonBuildType,
-				Version: BuildTypeVersionPython37,
+				Version: BuildTypeVersionPython310,
 				Base:    BuildBaseSlim,
 			},
 			BundleRuns: []BundleTestRun{
@@ -201,7 +201,7 @@ func TestPythonBundleBuilder(t *testing.T) {
 			Bundle: true,
 			BuildContext: BuildContext{
 				Type:    PythonBuildType,
-				Version: BuildTypeVersionPython37,
+				Version: BuildTypeVersionPython310,
 				Base:    BuildBaseSlim,
 			},
 			BundleRuns: []BundleTestRun{
@@ -232,7 +232,7 @@ func TestPythonBundleBuilder(t *testing.T) {
 			},
 			BuildContext: BuildContext{
 				Type:    PythonBuildType,
-				Version: BuildTypeVersionPython37,
+				Version: BuildTypeVersionPython310,
 			},
 			FilesToDiscover: []string{
 				"rootInlineTask_airplane.py",
@@ -269,7 +269,7 @@ func TestPythonBundleBuilder(t *testing.T) {
 			Bundle: true,
 			BuildContext: BuildContext{
 				Type:    PythonBuildType,
-				Version: BuildTypeVersionPython37,
+				Version: BuildTypeVersionPython310,
 			},
 			FilesToDiscover: []string{
 				"taskmod/task/my_task_airplane.py",

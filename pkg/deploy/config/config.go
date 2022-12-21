@@ -31,6 +31,7 @@ type JavaScriptConfig struct {
 
 type PythonConfig struct {
 	Base        string  `yaml:"base,omitempty" json:"base,omitempty"`
+	Version     string  `yaml:"version,omitempty" json:"version,omitempty"`
 	EnvVars     TaskEnv `yaml:"envVars,omitempty" json:"envVars,omitempty"`
 	PreInstall  string  `yaml:"preinstall,omitempty" json:"preinstall,omitempty"`
 	PostInstall string  `yaml:"postinstall,omitempty" json:"postinstall,omitempty"`

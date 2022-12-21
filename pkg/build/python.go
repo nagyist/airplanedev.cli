@@ -17,6 +17,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	DefaultPythonVersion = BuildTypeVersionPython310
+)
+
 // Python creates a dockerfile for Python.
 func python(
 	root string,
@@ -233,7 +237,7 @@ func pythonBundle(
 	}
 
 	useSlimImage := buildContext.Base == BuildBaseSlim
-	v, err := GetVersion(NamePython, "3", useSlimImage)
+	v, err := GetVersion(NamePython, string(buildContext.VersionOrDefault()), useSlimImage)
 	if err != nil {
 		return "", err
 	}

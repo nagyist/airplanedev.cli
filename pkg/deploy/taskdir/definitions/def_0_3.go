@@ -285,6 +285,7 @@ type PythonDefinition_0_3 struct {
 	Entrypoint string          `json:"entrypoint"`
 	EnvVars    api.TaskEnv     `json:"envVars,omitempty"`
 	Base       build.BuildBase `json:"base,omitempty"`
+	Version    string          `json:"-"`
 
 	absoluteEntrypoint string `json:"-"`
 }
@@ -310,6 +311,13 @@ func (d *PythonDefinition_0_3) hydrateFromTask(ctx context.Context, client api.I
 			d.Entrypoint = sv
 		} else {
 			return errors.Errorf("expected string entrypoint, got %T instead", v)
+		}
+	}
+	if v, ok := t.KindOptions["version"]; ok {
+		if sv, ok := v.(string); ok {
+			d.Version = sv
+		} else {
+			return errors.Errorf("expected string version, got %T instead", v)
 		}
 	}
 	if v, ok := t.KindOptions["base"]; ok {
@@ -349,6 +357,9 @@ func (d *PythonDefinition_0_3) getKindOptions() (build.KindOptions, error) {
 	if d.Base != "" {
 		ko["base"] = d.Base
 	}
+	if d.Version != "" {
+		ko["version"] = d.Version
+	}
 	return ko, nil
 }
 
@@ -374,10 +385,13 @@ func (d *PythonDefinition_0_3) getResourceAttachments() map[string]string {
 }
 
 func (d *PythonDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
-	return build.PythonBuildType, build.BuildTypeVersionUnspecified, d.Base
+	return build.PythonBuildType, build.BuildTypeVersion(d.Version), d.Base
 }
 
 func (d *PythonDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
+	if d.Version == "" {
+		d.Version = string(v)
+	}
 	if d.Base == "" {
 		d.Base = b
 	}

@@ -53,6 +53,7 @@ const (
 	BuildTypeVersionPython38  BuildTypeVersion = "3.8"
 	BuildTypeVersionPython39  BuildTypeVersion = "3.9"
 	BuildTypeVersionPython310 BuildTypeVersion = "3.10"
+	BuildTypeVersionPython311 BuildTypeVersion = "3.11"
 
 	BuildTypeVersionUnspecified BuildTypeVersion = ""
 )
@@ -75,6 +76,7 @@ var AllBuildTypeVersions = map[BuildType][]BuildTypeVersion{
 		BuildTypeVersionPython38,
 		BuildTypeVersionPython39,
 		BuildTypeVersionPython310,
+		BuildTypeVersionPython311,
 		BuildTypeVersionUnspecified,
 	},
 	ShellBuildType: {
@@ -113,9 +115,9 @@ func (b BuildContext) VersionOrDefault() BuildTypeVersion {
 func (b BuildContext) DefaultVersion() BuildTypeVersion {
 	switch b.Type {
 	case NodeBuildType, ViewBuildType:
-		return BuildTypeVersionNode18
+		return DefaultNodeVersion
 	case PythonBuildType:
-		return BuildTypeVersionPython310
+		return DefaultPythonVersion
 	default:
 		return BuildTypeVersionUnspecified
 	}

@@ -40,6 +40,10 @@
           "enum": ["", "full", "slim"],
           "default": ""
         },
+        "version": {
+          "description": "The version of Python to use.",
+          "enum": ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        },
         "preinstall": {
           "description": "A command to run before dependencies are installed",
           "type": "string"
