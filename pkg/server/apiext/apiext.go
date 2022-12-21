@@ -266,7 +266,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		run.ID = resp.RunID
 		run.RunID = resp.RunID
 		state.Runs.Add(req.Slug, resp.RunID, run)
-		return api.RunTaskResponse{RunID: runID}, nil
+		return api.RunTaskResponse{RunID: resp.RunID}, nil
 	}
 
 	return api.RunTaskResponse{RunID: runID}, nil

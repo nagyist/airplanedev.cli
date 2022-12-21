@@ -100,6 +100,7 @@ func TestExecute(t *testing.T) {
 	var resp dev.LocalRun
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
+	// TODO: Don't check prefix
 	require.True(strings.HasPrefix(resp.RunID, utils.DevRunPrefix))
 
 	run, found := store.Get(resp.RunID)
@@ -107,6 +108,48 @@ func TestExecute(t *testing.T) {
 	require.Equal(paramValues, run.ParamValues)
 	require.Equal(taskDefinition.Slug, run.TaskID)
 	require.Equal(taskDefinition.Name, run.TaskName)
+	require.False(run.IsStdAPI)
+}
+
+func TestExecuteFallback(t *testing.T) {
+	require := require.New(t)
+	mockExecutor := new(dev.MockExecutor)
+	slug := "my_task"
+
+	store := state.NewRunStore()
+	h := test_utils.GetHttpExpect(
+		context.Background(),
+		t,
+		server.NewRouter(&state.State{
+			RemoteClient:   &api.MockClient{},
+			Executor:       mockExecutor,
+			Runs:           store,
+			TaskConfigs:    state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{}),
+			DevConfig:      &conf.DevConfig{},
+			UseFallbackEnv: true,
+		}),
+	)
+
+	paramValues := api.Values{
+		"param1": "a",
+		"param2": "b",
+	}
+	body := h.POST("/v0/tasks/execute").
+		WithJSON(apiext.ExecuteTaskRequest{
+			Slug:        slug,
+			ParamValues: paramValues,
+		}).
+		Expect().
+		Status(http.StatusOK).Body()
+
+	var resp api.RunTaskResponse
+	err := json.Unmarshal([]byte(body.Raw()), &resp)
+	require.NoError(err)
+	// TODO: Don't check prefix
+	require.True(strings.HasPrefix(resp.RunID, "run"))
+
+	run, found := store.Get(resp.RunID)
+	require.True(found)
 	require.False(run.IsStdAPI)
 }
 
@@ -192,6 +235,7 @@ func TestExecuteBuiltin(t *testing.T) {
 	var resp dev.LocalRun
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
+	// TODO: Don't check prefix
 	require.True(strings.HasPrefix(resp.RunID, utils.DevRunPrefix))
 
 	run, found := store.Get(resp.RunID)

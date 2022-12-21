@@ -74,7 +74,7 @@ func (mc *MockClient) ListTasks(ctx context.Context, envSlug string) (res ListTa
 }
 
 func (mc *MockClient) RunTask(ctx context.Context, req RunTaskRequest) (RunTaskResponse, error) {
-	panic("not implemented")
+	return RunTaskResponse{RunID: utils.GenerateID("run")}, nil
 }
 
 func (mc *MockClient) GetRun(ctx context.Context, id string) (res GetRunResponse, err error) {
