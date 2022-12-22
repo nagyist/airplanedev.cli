@@ -15,7 +15,7 @@ func Exists(path string) bool {
 	return err == nil
 }
 
-// FilesExist ensures that all paths exists or returns an error.
+// AssertExistsAll ensures that all paths exists or returns an error.
 func AssertExistsAll(paths ...string) error {
 	for _, p := range paths {
 		if _, err := os.Stat(p); os.IsNotExist(err) {
@@ -25,7 +25,7 @@ func AssertExistsAll(paths ...string) error {
 	return nil
 }
 
-// FilesExist ensures that any of the paths exists or returns an error.
+// AssertExistsAny ensures that any of the paths exists or returns an error.
 func AssertExistsAny(paths ...string) error {
 	for _, p := range paths {
 		if _, err := os.Stat(p); err == nil {
@@ -45,12 +45,18 @@ func AssertExistsAny(paths ...string) error {
 // filename is found, If the file is not found the method
 // returns false.
 //
-// Continues recursively until the root directory is reached.
+// If dir is an absolute path, then the method continues
+// recursively until the root directory is reached.
+//
+// If dir is a relative path, the search will terminate at the
+// leftmost element in dir. For example, if dir is "a/b/c",
+// the search will terminate at "a", even if there are more
+// parent directories, e.g. `/1/2/3/a/b/c`.
 func Find(dir, filename string) (string, bool) {
 	return FindUntil(dir, "", filename)
 }
 
-// Find attempts to find the path of the given filename.
+// FindUntil attempts to find the path of the given filename.
 //
 // The method recursively visits parent dirs until the given
 // filename is found, If the file is not found the method
@@ -70,24 +76,6 @@ func FindUntil(start, end, filename string) (string, bool) {
 	}
 
 	return start, true
-}
-
-// IsSubDirectory return whether sub is a subdirectory of parent.
-// Both parent and sub must be either absolute or relative.
-func IsSubDirectory(parent, sub string) (bool, error) {
-	if parent == sub {
-		return false, nil
-	}
-	up := ".." + string(os.PathSeparator)
-
-	rel, err := filepath.Rel(parent, sub)
-	if err != nil {
-		return false, err
-	}
-	if !strings.HasPrefix(rel, up) && rel != ".." {
-		return true, nil
-	}
-	return false, nil
 }
 
 func TrimExtension(file string) string {
