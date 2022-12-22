@@ -140,7 +140,7 @@ func New(c *cli.Config) *cobra.Command {
 
 	cmd.AddCommand(config.New(c))
 
-	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
+	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the fallback environment to query for remote resources and configs. If not set, does not fall back to a remote environment")
 	cmd.Flags().IntVar(&cfg.port, "port", server.DefaultPort, "The port to start the local airplane api server on - defaults to 4000.")
 	cmd.Flags().StringVar(&cfg.devConfigPath, "config-path", "", "The path to the dev config file to load into the local dev server.")
 	cmd.Flags().BoolVar(&cfg.studio, "studio", true, "Run the local Studio")
