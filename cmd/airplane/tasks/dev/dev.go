@@ -91,12 +91,17 @@ func New(c *cli.Config) *cobra.Command {
 						devDir = filepath.Dir(cfg.fileOrDir)
 					}
 
+					absDevDir, err := filepath.Abs(devDir)
+					if err != nil {
+						return errors.Wrap(err, "getting absolute path of dev root")
+					}
+
 					// Recursively search for dev config file, starting from the dev dir.
-					devConfigDir, ok := fsx.Find(devDir, conf.DefaultDevConfigFileName)
+					devConfigDir, ok := fsx.Find(absDevDir, conf.DefaultDevConfigFileName)
 					if !ok {
-						// If a dev config file is not found, set the dev config dir to the dev root and prompt for creation
-						// of the file below.
-						devConfigDir = devDir
+						// If a dev config file is not found, set the dev config dir to the dev root and auto-create the
+						// file whenever it needs to be written to.
+						devConfigDir = absDevDir
 					}
 					cfg.devConfigPath = filepath.Join(devConfigDir, conf.DefaultDevConfigFileName)
 				} else {
