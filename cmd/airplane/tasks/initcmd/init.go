@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -29,8 +28,8 @@ import (
 	deployconfig "github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
-	"github.com/airplanedev/lib/pkg/runtime/javascript"
 	_ "github.com/airplanedev/lib/pkg/runtime/javascript"
+	"github.com/airplanedev/lib/pkg/runtime/python"
 	_ "github.com/airplanedev/lib/pkg/runtime/python"
 	_ "github.com/airplanedev/lib/pkg/runtime/rest"
 	_ "github.com/airplanedev/lib/pkg/runtime/shell"
@@ -251,10 +250,8 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 			entrypoint = cfg.file
 		}
 
-		entrypointBase := path.Base(entrypoint)
-		if strings.HasSuffix(entrypointBase, ".view.tsx") || strings.HasSuffix(entrypointBase, ".view.jsx") {
-			logger.Log("Task %s was deployed from the view file %s.", def.GetSlug(), entrypointBase)
-			logger.Log("You should run `airplane views init` if you'd like to initialize this task.")
+		if filepath.Ext(entrypoint) == "tsx" || filepath.Ext(entrypoint) == "jsx" {
+			logger.Log("You are trying to deploy a React file. Use `airplane views init` if you'd like to initialize a view.")
 			if ok, err := utils.ConfirmWithAssumptions("Are you sure you'd like to continue?", cfg.assumeYes, cfg.assumeNo); err != nil {
 				return err
 			} else if !ok {
@@ -294,6 +291,13 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		}
 
 		if err := def.SetEntrypoint(entrypoint); err != nil {
+			return err
+		}
+		absEntrypoint, err := filepath.Abs(entrypoint)
+		if err != nil {
+			return errors.Wrap(err, "determining absolute entrypoint")
+		}
+		if err := def.SetAbsoluteEntrypoint(absEntrypoint); err != nil {
 			return err
 		}
 
@@ -654,33 +658,37 @@ func patch(slug, file string) (ok bool, err error) {
 }
 
 func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint string, cfg config) (string, error) {
-	exts := runtime.SuggestExts(kind)
-	if defaultEntrypoint == "" {
-		defaultEntrypoint = slug
-		if kind == build.TaskKindNode && len(exts) > 1 {
-			// Special case JavaScript tasks and make their extensions '.ts'
-			defaultEntrypoint += ".ts"
-		} else {
-			defaultEntrypoint += exts[0]
-		}
-
-		if cwdIsHome, err := cwdIsHome(); err != nil {
+	entrypoint := defaultEntrypoint
+	if entrypoint == "" {
+		var err error
+		entrypoint, err = getEntrypointFile(slug, kind, cfg)
+		if err != nil {
 			return "", err
-		} else if cwdIsHome {
-			// Suggest a subdirectory to avoid putting a file directly into home directory.
-			defaultEntrypoint = filepath.Join("airplane", defaultEntrypoint)
+		}
+	} else if fsx.Exists(entrypoint) {
+		fileInfo, err := os.Stat(entrypoint)
+		if err != nil {
+			return "", errors.Wrapf(err, "describing %s", entrypoint)
+		}
+		if fileInfo.IsDir() {
+			// The user provided a directory. Create an entrypoint in that directory.
+			entrypointFile, err := getEntrypointFile(slug, kind, cfg)
+			if err != nil {
+				return "", err
+			}
+			entrypoint = filepath.Join(entrypoint, entrypointFile)
 		}
 	}
-
+	// Ensure that the file has the correct extension for an inline entrypoint.
 	if !cfg.codeOnly && cfg.inline {
-		defaultEntrypoint = modifyEntrypointForInline(kind, defaultEntrypoint)
+		entrypoint = modifyEntrypointForInline(kind, entrypoint)
 	}
 
-	var entrypoint string
+	exts := runtime.SuggestExts(kind)
 	if err := survey.AskOne(
 		&survey.Input{
 			Message: "Where is the script for this task?",
-			Default: defaultEntrypoint,
+			Default: entrypoint,
 			Suggest: func(toComplete string) []string {
 				files, _ := filepath.Glob(toComplete + "*")
 				return files
@@ -705,11 +713,39 @@ func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint str
 		return "", err
 	}
 
+	// Ensure that the selected file has the correct extension for an inline entrypoint.
+	if !cfg.codeOnly && cfg.inline {
+		entrypoint = modifyEntrypointForInline(kind, entrypoint)
+	}
+
 	directory := filepath.Dir(entrypoint)
 	if err := createFolder(directory); err != nil {
 		return "", errors.Wrapf(err, "Error creating directory for script.")
 	}
 
+	return entrypoint, nil
+}
+
+func getEntrypointFile(slug string, kind build.TaskKind, cfg config) (string, error) {
+	exts := runtime.SuggestExts(kind)
+	entrypoint := slug
+	if kind == build.TaskKindNode && len(exts) > 1 {
+		// Special case JavaScript tasks and make their extensions '.ts'
+		entrypoint += ".ts"
+	} else {
+		entrypoint += exts[0]
+	}
+
+	if cwdIsHome, err := cwdIsHome(); err != nil {
+		return "", err
+	} else if cwdIsHome {
+		// Suggest a subdirectory to avoid putting a file directly into home directory.
+		entrypoint = filepath.Join("airplane", entrypoint)
+	}
+
+	if !cfg.codeOnly && cfg.inline {
+		entrypoint = modifyEntrypointForInline(kind, entrypoint)
+	}
 	return entrypoint, nil
 }
 
@@ -936,14 +972,13 @@ func apiTaskToRuntimeTask(task *libapi.Task) *runtime.Task {
 }
 
 func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.TaskKind, def definitions.Definition_0_3) error {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return errors.Wrap(err, "getting working directory")
-	}
-
 	switch kind {
 	case build.TaskKindNode:
-		packageJSONDir, err := node.CreatePackageJSON(cwd, node.PackageJSONOptions{
+		entrypoint, err := def.GetAbsoluteEntrypoint()
+		if err != nil {
+			return err
+		}
+		packageJSONDir, err := node.CreatePackageJSON(filepath.Dir(entrypoint), node.PackageJSONOptions{
 			Dependencies: node.NodeDependencies{
 				Dependencies:    []string{"airplane"},
 				DevDependencies: []string{"@types/node"},
@@ -953,19 +988,16 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 			return err
 		}
 
-		_, nodeVersion, buildBase, err := def.GetBuildType()
-		if err != nil {
-			return err
-		}
-
-		runtime := javascript.Runtime{}
-		root, err := runtime.Root(cwd)
-		if err != nil {
-			return err
-		}
-
 		if cfg.root.Flagger.Bool(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), flagsiface.AirplaneConfg) {
-			if err := createOrUpdateAirplaneConfig(root, deployconfig.AirplaneConfig{
+			_, nodeVersion, buildBase, err := def.GetBuildType()
+			if err != nil {
+				return err
+			}
+			if nodeVersion == "" {
+				nodeVersion = build.DefaultNodeVersion
+			}
+
+			if err := createOrUpdateAirplaneConfig(packageJSONDir, deployconfig.AirplaneConfig{
 				Javascript: deployconfig.JavaScriptConfig{
 					NodeVersion: string(nodeVersion),
 					Base:        string(buildBase),
@@ -977,6 +1009,35 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 		// Create/update tsconfig in the same directory as the package.json file
 		if err := node.CreateTaskTSConfig(packageJSONDir); err != nil {
 			return err
+		}
+		return nil
+	case build.TaskKindPython:
+		if cfg.root.Flagger.Bool(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), flagsiface.AirplaneConfg) {
+			entrypoint, err := def.GetAbsoluteEntrypoint()
+			if err != nil {
+				return err
+			}
+			runtime := python.Runtime{}
+			root, err := runtime.Root(entrypoint)
+			if err != nil {
+				return err
+			}
+
+			_, pythonVersion, buildBase, err := def.GetBuildType()
+			if err != nil {
+				return err
+			}
+			if pythonVersion == "" {
+				pythonVersion = build.DefaultPythonVersion
+			}
+			if err := createOrUpdateAirplaneConfig(root, deployconfig.AirplaneConfig{
+				Python: deployconfig.PythonConfig{
+					Version: string(pythonVersion),
+					Base:    string(buildBase),
+				},
+			}); err != nil {
+				return err
+			}
 		}
 		return nil
 	default:
@@ -1023,7 +1084,10 @@ func writeNewAirplaneConfig(writer io.Writer, opts getNewAirplaneConfigOptions) 
 			// The existing config is not empty. Don't update it, but possibly log
 			// some helpful hints.
 			if opts.cfg.Javascript.NodeVersion != "" && opts.existingConfig.Javascript.NodeVersion == "" {
-				logger.Warning("We recommend specifying a nodeVersion in your %s.", deployconfig.FileName)
+				logger.Warning("We recommend specifying a javascript.nodeVersion in your %s.", deployconfig.FileName)
+			}
+			if opts.cfg.Python.Version != "" && opts.existingConfig.Python.Version == "" {
+				logger.Warning("We recommend specifying a python.version in your %s.", deployconfig.FileName)
 			}
 			return nil
 		}
