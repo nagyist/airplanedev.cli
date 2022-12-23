@@ -132,7 +132,7 @@ func TestDiscover(t *testing.T) {
 					TargetPaths: []string{"codeOnlyTask.airplane.ts"},
 					BuildContext: build.BuildContext{
 						Type:    build.NodeBuildType,
-						Version: build.BuildTypeVersionNode16,
+						Version: build.BuildTypeVersionNode18,
 						Base:    build.BuildBaseSlim,
 					},
 				},

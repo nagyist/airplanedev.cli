@@ -95,12 +95,12 @@ func TestVersion(t *testing.T) {
 			buildVersion: build.BuildTypeVersionNode18,
 		},
 		{
-			desc:         "great than node version",
+			desc:         "greater than node version",
 			path:         "./fixtures/version/gt15/file.js",
 			buildVersion: build.BuildTypeVersionNode18,
 		},
 		{
-			desc:         "great than and less than node version",
+			desc:         "greater than and less than node version",
 			path:         "./fixtures/version/gt15lt18/file.js",
 			buildVersion: build.BuildTypeVersionNode16,
 		},
