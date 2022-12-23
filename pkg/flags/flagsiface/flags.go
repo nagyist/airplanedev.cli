@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	DeployBundles = "deploy-bundles-rollout"
-	AirplaneConfg = "airplane-config-rollout"
+	DeployBundles       = "deploy-bundles-rollout"
+	AirplaneConfg       = "airplane-config-rollout"
+	DefaultInlineConfig = "default-inline"
 )
 
 // Flaggers are the primary mechanism for dynamically adjusting runtime behavior

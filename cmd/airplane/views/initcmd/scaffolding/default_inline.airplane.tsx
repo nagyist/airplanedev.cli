@@ -1,4 +1,5 @@
 import { Stack, Table, Text, Title, useComponentState } from "@airplane/views";
+import airplane from "airplane";
 
 // Put the main logic of the view here.
 // Views documentation: https://docs.airplane.dev/views/getting-started
@@ -103,4 +104,10 @@ const usersCols = [
   },
 ];
 
-export default ExampleView;
+export default airplane.view(
+  {
+    slug: "{{.Slug}}",
+    name: "{{.Name}}",
+  },
+  ExampleView
+);

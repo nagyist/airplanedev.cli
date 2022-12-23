@@ -114,14 +114,8 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().BoolVarP(&cfg.assumeNo, "no", "n", false, "True to specify automatic no to prompts.")
 
 	cmd.Flags().BoolVar(&cfg.inline, "inline", false, "Generate inline config for custom tasks")
-	if err := cmd.Flags().MarkHidden("inline"); err != nil {
-		logger.Debug("error: %s", err)
-	}
-
 	cmd.Flags().BoolVar(&cfg.workflow, "workflow", false, "Generate a workflow-runtime task. Implies --inline.")
-
-	// Unhide this flag once we release environments.
-	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
+	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment that the `from` task is in. Defaults to your team's default environment.")
 
 	return cmd
 }

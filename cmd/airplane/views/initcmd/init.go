@@ -1,17 +1,20 @@
 package initcmd
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"fmt"
 	"os"
 	"path/filepath"
+	"text/template"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/flags/flagsiface"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/node"
 	"github.com/airplanedev/cli/pkg/utils"
@@ -23,15 +26,17 @@ import (
 
 type config struct {
 	client  *api.Client
-	envSlug string
+	root    *cli.Config
+	inline  bool
 	name    string
 	viewDir string
 	slug    string
 	from    string
+	cmd     *cobra.Command
 }
 
 func New(c *cli.Config) *cobra.Command {
-	var cfg = GetConfig(c.Client)
+	var cfg = GetConfig(c)
 
 	cmd := &cobra.Command{
 		Use:     "init",
@@ -46,17 +51,24 @@ func New(c *cli.Config) *cobra.Command {
 			return Run(cmd.Root().Context(), cfg)
 		},
 	}
-	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
-	cmd.Flags().StringVar(&cfg.from, "from", "", "Path to an existing github folder to initialize.")
+	cmd.Flags().StringVar(&cfg.from, "from", "", "Path to an existing github URL to initialize from")
+	cmd.Flags().BoolVar(&cfg.inline, "inline", false, "If true, the view will be configured with inline configuration")
+	cfg.cmd = cmd
 
 	return cmd
 }
 
-func GetConfig(client *api.Client) config {
-	return config{client: client}
+func GetConfig(c *cli.Config) config {
+	return config{client: c.Client, root: c}
 }
 
 func Run(ctx context.Context, cfg config) error {
+	inlineSetByUser := cfg.cmd.Flags().Changed("inline")
+	if !inlineSetByUser {
+		if cfg.root.Flagger.Bool(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), flagsiface.DefaultInlineConfig) {
+			cfg.inline = true
+		}
+	}
 	if cfg.from != "" {
 		if err := utils.CopyFromGithubPath(cfg.from); err != nil {
 			return err
@@ -90,16 +102,20 @@ func createViewScaffolding(ctx context.Context, cfg *config) error {
 	slug := utils.MakeSlug(cfg.name)
 	cfg.slug = slug
 
-	// Default to creating folder with the slug
-	directory := slug
-	if err := utils.CreateDirectory(directory); err != nil {
-		return err
+	var directory string
+	if !cfg.inline {
+		// Nest non-inline views in a folder.
+		directory = slug
+		if err := utils.CreateDirectory(directory); err != nil {
+			return err
+		}
 	}
 	cfg.viewDir = directory
 
-	// TODO: Add the views scaffolding files to directory
-	if err := createViewDefinition(*cfg); err != nil {
-		return err
+	if !cfg.inline {
+		if err := createViewDefinition(*cfg); err != nil {
+			return err
+		}
 	}
 	if err := createEntrypoint(*cfg); err != nil {
 		return err
@@ -112,9 +128,13 @@ func createViewScaffolding(ctx context.Context, cfg *config) error {
 	if fsx.Exists(filepath.Join(cwd, cfg.viewDir, "package.json")) {
 		packageJSONDir = filepath.Join(cwd, cfg.viewDir)
 	}
+	deps := []string{"@airplane/views", "react", "react-dom"}
+	if cfg.inline {
+		deps = append(deps, "airplane")
+	}
 	packageJSONDir, err = node.CreatePackageJSON(packageJSONDir, node.PackageJSONOptions{
 		Dependencies: node.NodeDependencies{
-			Dependencies:    []string{"@airplane/views", "react", "react-dom"},
+			Dependencies:    deps,
 			DevDependencies: []string{"@types/react", "@types/react-dom", "typescript"},
 		},
 	})
@@ -135,8 +155,10 @@ func createViewScaffolding(ctx context.Context, cfg *config) error {
 func generateEntrypointPath(cfg config, inViewDir bool) string {
 	if inViewDir {
 		return fmt.Sprintf("%s.view.tsx", cfg.slug)
-	} else {
+	} else if !cfg.inline {
 		return fmt.Sprintf("%s/%s.view.tsx", cfg.viewDir, cfg.slug)
+	} else {
+		return fmt.Sprintf("%s.airplane.tsx", cfg.slug)
 	}
 }
 
@@ -172,10 +194,30 @@ func createViewDefinition(cfg config) error {
 //go:embed scaffolding/default.view.tsx
 var defaultEntrypoint []byte
 
+//go:embed scaffolding/default_inline.airplane.tsx
+var defaultEntrypointInline []byte
+
 func createEntrypoint(cfg config) error {
 	entrypointPath := generateEntrypointPath(cfg, false)
 
-	if err := os.WriteFile(entrypointPath, defaultEntrypoint, 0644); err != nil {
+	var entrypointContents []byte
+	if cfg.inline {
+		tmpl, err := template.New("entrypoint").Parse(string(defaultEntrypointInline))
+		if err != nil {
+			return errors.Wrap(err, "parsing entrypoint template")
+		}
+		buf := new(bytes.Buffer)
+		if err := tmpl.Execute(buf, map[string]interface{}{
+			"Slug": cfg.slug,
+			"Name": cfg.name,
+		}); err != nil {
+			return errors.Wrap(err, "executing entrypoint template")
+		}
+		entrypointContents = buf.Bytes()
+	} else {
+		entrypointContents = defaultEntrypoint
+	}
+	if err := os.WriteFile(entrypointPath, entrypointContents, 0644); err != nil {
 		return errors.Wrap(err, "creating view entrypoint")
 	}
 	logger.Step("Created view entrypoint at %s", entrypointPath)

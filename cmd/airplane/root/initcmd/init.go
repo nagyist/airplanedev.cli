@@ -142,7 +142,7 @@ func run(ctx context.Context, cfg config) error {
 	if selectedInit == taskOption {
 		return taskinit.Run(ctx, taskinit.GetConfig(taskinit.ConfigOpts{Client: cfg.client, Root: cfg.root}))
 	} else if selectedInit == viewOption {
-		return viewinit.Run(ctx, viewinit.GetConfig(cfg.client))
+		return viewinit.Run(ctx, viewinit.GetConfig(cfg.root))
 	} else if selectedInit == templateOption {
 		templates, err := ListTemplates(ctx)
 		if err != nil {
