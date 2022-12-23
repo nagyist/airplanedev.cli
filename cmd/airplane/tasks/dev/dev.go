@@ -20,6 +20,7 @@ import (
 	"github.com/airplanedev/cli/pkg/params"
 	"github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/server"
+	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
@@ -141,7 +142,7 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.AddCommand(config.New(c))
 
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the fallback environment to query for remote resources and configs. If not set, does not fall back to a remote environment")
-	cmd.Flags().IntVar(&cfg.port, "port", server.DefaultPort, "The port to start the local airplane api server on - defaults to 4000.")
+	cmd.Flags().IntVar(&cfg.port, "port", 0, "The port to start the local airplane api server on - defaults to a random open port.")
 	cmd.Flags().StringVar(&cfg.devConfigPath, "config-path", "", "The path to the dev config file to load into the local dev server.")
 	cmd.Flags().BoolVar(&cfg.studio, "studio", true, "Run the local Studio")
 	cmd.Flags().BoolVar(&cfg.studio, "editor", true, "Run the local Studio")
@@ -167,21 +168,8 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		return errors.Errorf("Unable to open: %s", cfg.fileOrDir)
 	}
 
-	localExecutor := dev.NewLocalExecutor(filepath.Dir(cfg.fileOrDir))
-	localClient := &api.Client{
-		Host:   fmt.Sprintf("127.0.0.1:%d", cfg.port),
-		Token:  cfg.root.Client.Token,
-		Source: cfg.root.Client.Source,
-		APIKey: cfg.root.Client.APIKey,
-		TeamID: cfg.root.Client.TeamID,
-	}
-
-	apiServer, err := server.Start(server.Options{
-		LocalClient:  localClient,
-		RemoteClient: cfg.root.Client,
-		Executor:     localExecutor,
-		Port:         cfg.port,
-		DevConfig:    cfg.devConfig,
+	apiServer, port, err := server.Start(server.Options{
+		Port: cfg.port,
 	})
 	if err != nil {
 		return errors.Wrap(err, "starting local dev api server")
@@ -192,6 +180,22 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 			l.Error("failed to stop local api server: %+v", err)
 		}
 	}()
+
+	localExecutor := dev.NewLocalExecutor(filepath.Dir(cfg.fileOrDir))
+	localClient := &api.Client{
+		Host:   fmt.Sprintf("127.0.0.1:%d", port),
+		Token:  cfg.root.Client.Token,
+		Source: cfg.root.Client.Source,
+		APIKey: cfg.root.Client.APIKey,
+		TeamID: cfg.root.Client.TeamID,
+	}
+
+	apiServer.RegisterState(&state.State{
+		LocalClient:  localClient,
+		RemoteClient: cfg.root.Client,
+		Executor:     localExecutor,
+		DevConfig:    cfg.devConfig,
+	})
 
 	// Discover local tasks in the directory of the file.
 	d := &discover.Discoverer{

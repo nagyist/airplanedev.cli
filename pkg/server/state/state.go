@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"io"
 	"net/url"
 	"os"
@@ -76,6 +77,34 @@ type runsStore struct {
 	runDescendants map[string][]string
 
 	mu sync.Mutex
+}
+
+// New initializes a new state.
+func New() (*State, error) {
+	onEvict := func(key string, viteContext ViteContext) {
+		if err := viteContext.Process.Kill(); err != nil {
+			logger.Error(fmt.Sprintf("could not shutdown existing vite process: %v", err))
+		}
+
+		if err := viteContext.Closer.Close(); err != nil {
+			logger.Error(fmt.Sprintf("unable to cleanup vite process: %v", err))
+		}
+	}
+
+	viteContextCache, err := lrucache.NewWithEvict(5, onEvict)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create vite context cache")
+	}
+
+	return &State{
+		Runs:         NewRunStore(),
+		TaskConfigs:  NewStore[string, discover.TaskConfig](nil),
+		AppCondition: NewStore[string, AppCondition](nil),
+		ViewConfigs:  NewStore[string, discover.ViewConfig](nil),
+		Debouncer:    NewDebouncer(),
+		ViteContexts: viteContextCache,
+		Logger:       logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
+	}, nil
 }
 
 func NewRunStore() *runsStore {

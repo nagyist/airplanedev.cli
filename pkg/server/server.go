@@ -3,16 +3,13 @@ package server
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/conf"
-	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/resources"
@@ -23,21 +20,18 @@ import (
 	"github.com/airplanedev/cli/pkg/server/filewatcher"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
-	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	lrucache "github.com/hashicorp/golang-lru/v2"
 	"github.com/pkg/errors"
 )
 
-const DefaultPort = 4000
-
 type Server struct {
-	srv   *http.Server
-	state *state.State
+	srv      *http.Server
+	listener net.Listener
+	state    *state.State
 }
 
 const containerAddress = "0.0.0.0"
@@ -97,87 +91,69 @@ func NewRouter(state *state.State) *mux.Router {
 	return r
 }
 
+// Options are options when starting the local dev server.
 type Options struct {
-	LocalClient    *api.Client
-	RemoteClient   api.APIClient
-	RemoteEnv      libapi.Env
-	UseFallbackEnv bool
-
+	// Port is the desired port to listen on. If 0, a random port will be chosen.
 	Port int
 	// Expose is used to bind the server to the default route (0.0.0.0) so that it can be accessed outside a container.
 	Expose bool
-
-	Executor   dev.Executor
-	DevConfig  *conf.DevConfig
-	Dir        string
-	AuthInfo   api.AuthInfoResponse
-	Discoverer *discover.Discoverer
-
-	StudioURL url.URL
 }
 
 // newServer returns a new HTTP server with API routes
-func newServer(router *mux.Router, state *state.State, port int, expose bool) *Server {
+func newServer(router *mux.Router, state *state.State, port int, expose bool) (*Server, error) {
 	srv := &http.Server{
-		Addr:    address(port, expose),
 		Handler: router,
 	}
+
+	listener, err := net.Listen("tcp", address(port, expose))
+	if err != nil {
+		return nil, errors.Wrap(err, "listening on port")
+	}
+
 	router.Handle("/shutdown", ShutdownHandler(srv))
 	return &Server{
-		srv:   srv,
-		state: state,
-	}
+		srv:      srv,
+		listener: listener,
+		state:    state,
+	}, nil
 }
 
-// Start starts and returns a new instance of the Airplane API server.
-func Start(opts Options) (*Server, error) {
-	onEvict := func(key string, viteContext state.ViteContext) {
-		if err := viteContext.Process.Kill(); err != nil {
-			logger.Error(fmt.Sprintf("could not shutdown existing vite process: %v", err))
-		}
-
-		if err := viteContext.Closer.Close(); err != nil {
-			logger.Error(fmt.Sprintf("unable to cleanup vite process: %v", err))
-		}
-	}
-
-	viteContextCache, err := lrucache.NewWithEvict(5, onEvict)
+// Start starts and returns a new instance of the Airplane API server along with the port it is listening on.
+func Start(opts Options) (*Server, int, error) {
+	s, err := state.New()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create vite context cache")
+		return nil, 0, err
 	}
 
-	state := &state.State{
-		LocalClient:    opts.LocalClient,
-		RemoteClient:   opts.RemoteClient,
-		RemoteEnv:      opts.RemoteEnv,
-		UseFallbackEnv: opts.UseFallbackEnv,
-		Executor:       opts.Executor,
-		Runs:           state.NewRunStore(),
-		TaskConfigs:    state.NewStore[string, discover.TaskConfig](nil),
-		AppCondition:   state.NewStore[string, state.AppCondition](nil),
-		ViewConfigs:    state.NewStore[string, discover.ViewConfig](nil),
-		Debouncer:      state.NewDebouncer(),
-		DevConfig:      opts.DevConfig,
-		ViteContexts:   viteContextCache,
-		Dir:            opts.Dir,
-		Logger:         logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
-		AuthInfo:       opts.AuthInfo,
-		Discoverer:     opts.Discoverer,
-		StudioURL:      opts.StudioURL,
+	r := NewRouter(s)
+	apiServer, err := newServer(r, s, opts.Port, opts.Expose)
+	if err != nil {
+		return nil, 0, err
 	}
-
-	r := NewRouter(state)
-	s := newServer(r, state, opts.Port, opts.Expose)
 
 	go func() {
-		if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := apiServer.srv.Serve(apiServer.listener); err != nil && err != http.ErrServerClosed {
 			logger.Log("")
 			logger.Error(fmt.Sprintf("failed to start api server: %v", err))
 			os.Exit(1)
 		}
 	}()
 
-	return s, nil
+	return apiServer, apiServer.listener.Addr().(*net.TCPAddr).Port, nil
+}
+
+// RegisterState updates the server's state with the given state.
+func (s *Server) RegisterState(newState *state.State) {
+	s.state.LocalClient = newState.LocalClient
+	s.state.RemoteClient = newState.RemoteClient
+	s.state.RemoteEnv = newState.RemoteEnv
+	s.state.UseFallbackEnv = newState.UseFallbackEnv
+	s.state.Executor = newState.Executor
+	s.state.DevConfig = newState.DevConfig
+	s.state.Dir = newState.Dir
+	s.state.AuthInfo = newState.AuthInfo
+	s.state.Discoverer = newState.Discoverer
+	s.state.StudioURL = newState.StudioURL
 }
 
 func supportsLocalExecution(name string, entrypoint string, kind build.TaskKind) bool {

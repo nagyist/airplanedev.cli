@@ -15,6 +15,7 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/filewatcher"
+	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/pkg/errors"
@@ -34,15 +35,6 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		return err
 	}
 
-	devServerHost := fmt.Sprintf("127.0.0.1:%d", cfg.port)
-	localClient := &api.Client{
-		Host:   devServerHost,
-		Token:  cfg.root.Client.Token,
-		Source: cfg.root.Client.Source,
-		APIKey: cfg.root.Client.APIKey,
-		TeamID: cfg.root.Client.TeamID,
-	}
-
 	// Use absolute path to dev root to allow the local dev server to more easily calculate relative paths.
 	dir := cfg.fileOrDir
 	fileInfo, err := os.Stat(cfg.fileOrDir)
@@ -56,6 +48,22 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	absoluteDir, err := filepath.Abs(dir)
 	if err != nil {
 		return errors.Wrap(err, "getting absolute directory of dev server root")
+	}
+
+	apiServer, port, err := server.Start(server.Options{
+		Port:   cfg.port,
+		Expose: cfg.sandbox,
+	})
+	if err != nil {
+		return errors.Wrap(err, "starting local dev server")
+	}
+
+	localClient := &api.Client{
+		Host:   fmt.Sprintf("127.0.0.1:%d", port),
+		Token:  cfg.root.Client.Token,
+		Source: cfg.root.Client.Source,
+		APIKey: cfg.root.Client.APIKey,
+		TeamID: cfg.root.Client.TeamID,
 	}
 
 	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{})
@@ -86,23 +94,18 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		Client:  localClient,
 	}
 
-	apiServer, err := server.Start(server.Options{
+	apiServer.RegisterState(&state.State{
 		LocalClient:    localClient,
 		RemoteClient:   cfg.root.Client,
 		RemoteEnv:      remoteEnv,
 		UseFallbackEnv: cfg.useFallbackEnv,
 		DevConfig:      cfg.devConfig,
 		Executor:       dev.NewLocalExecutor(absoluteDir),
-		Port:           cfg.port,
-		Expose:         cfg.sandbox,
 		Dir:            absoluteDir,
 		AuthInfo:       authInfo,
 		Discoverer:     d,
 		StudioURL:      *appURL,
 	})
-	if err != nil {
-		return errors.Wrap(err, "starting local dev server")
-	}
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
@@ -196,7 +199,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	logger.Log("")
-	studioURL := fmt.Sprintf("%s/studio?__airplane_host=http://localhost:%d&__env=%s", appURL, cfg.port, remoteEnv.Slug)
+	studioURL := fmt.Sprintf("%s/studio?__airplane_host=http://localhost:%d&__env=%s", appURL, port, remoteEnv.Slug)
 	logger.Log("Started studio session at %s (^C to quit)", logger.Blue(studioURL))
 
 	// Execute the flow to open the studio in the browser in a separate goroutine so fmt.Scanln doesn't capture
