@@ -6,7 +6,6 @@
   "reviewers": ["team:deps"],
   "schedule": ["before 5am on Thursday"],
   "timezone": "America/New_York",
-  "ignoreDeps": ["github.com/snowflakedb/gosnowflake"],
   "ignorePaths": [
     "pkg/runtime/javascript/fixtures/version/gt15lt18/package.json"
   ]
