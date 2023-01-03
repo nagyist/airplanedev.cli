@@ -18,6 +18,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
+	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
 )
 
@@ -179,7 +180,11 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 				return apiServer.ReloadApps(context.Background(), cfg.fileOrDir, e)
 			},
 		})
-		err := fileWatcher.Watch(cfg.fileOrDir, cfg.devConfigPath)
+		var toWatch []string
+		if cfg.devConfigPath != "" && fsx.Exists(cfg.devConfigPath) {
+			toWatch = append(toWatch, cfg.devConfigPath)
+		}
+		err := fileWatcher.Watch(cfg.fileOrDir, toWatch...)
 		if err != nil {
 			return errors.Wrap(err, "starting filewatcher")
 		}
