@@ -15,7 +15,7 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/gavv/httpexpect/v2 v2.8.0
 	github.com/getsentry/sentry-go v0.16.0
-	github.com/go-git/go-billy/v5 v5.3.1
+	github.com/go-git/go-billy/v5 v5.4.0
 	github.com/go-git/go-git-fixtures/v4 v4.3.1
 	github.com/go-git/go-git/v5 v5.5.1
 	github.com/golang-jwt/jwt/v4 v4.4.3
@@ -27,7 +27,7 @@ require (
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/joho/godotenv v1.4.0
 	github.com/kr/text v0.2.0
-	github.com/mattn/go-isatty v0.0.16
+	github.com/mattn/go-isatty v0.0.17
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pkg/errors v0.9.1
 	github.com/radovskyb/watcher v1.0.7
