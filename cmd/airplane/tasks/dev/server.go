@@ -71,23 +71,27 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	d := &discover.Discoverer{
 		TaskDiscoverers: []discover.TaskDiscoverer{
 			&discover.DefnDiscoverer{
-				Client:           localClient,
-				Logger:           l,
-				DisableNormalize: true,
+				Client:                  localClient,
+				Logger:                  l,
+				DisableNormalize:        true,
+				DoNotVerifyMissingTasks: true,
 			},
 			&discover.CodeTaskDiscoverer{
-				Client: localClient,
-				Logger: l,
+				Client:                  localClient,
+				Logger:                  l,
+				DoNotVerifyMissingTasks: true,
 			},
 		},
 		ViewDiscoverers: []discover.ViewDiscoverer{
 			&discover.ViewDefnDiscoverer{
-				Client: localClient,
-				Logger: l,
+				Client:                  localClient,
+				Logger:                  l,
+				DoNotVerifyMissingViews: true,
 			},
 			&discover.CodeViewDiscoverer{
-				Client: localClient,
-				Logger: l,
+				Client:                  localClient,
+				Logger:                  l,
+				DoNotVerifyMissingViews: true,
 			},
 		},
 		EnvSlug: cfg.envSlug,
@@ -155,21 +159,6 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		}
 	}
 
-	if len(warnings.UnattachedResources) > 0 {
-		logger.Log(" ")
-		unattachedResourcesMsg := "The following tasks have resource attachments that are not defined in the dev config file"
-		if cfg.useFallbackEnv {
-			unattachedResourcesMsg += fmt.Sprintf(" or remotely in %s.", logger.Bold(remoteEnv.Name))
-		} else {
-			unattachedResourcesMsg += "."
-		}
-		unattachedResourcesMsg += " Please add them through the studio or run `airplane dev config set-resource`."
-		logger.Log(unattachedResourcesMsg)
-		for _, ur := range warnings.UnattachedResources {
-			logger.Log("- %s: %s", ur.TaskName, ur.ResourceSlugs)
-		}
-	}
-
 	logger.Log("")
 	if cfg.useFallbackEnv {
 		logger.Log("Your fallback environment is set to %s.", logger.Bold(remoteEnv.Name))
@@ -186,12 +175,11 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	} else {
 		fileWatcher := filewatcher.NewAppWatcher(filewatcher.AppWatcherOpts{
 			PollInterval: time.Millisecond * 200,
-			IsValid:      filewatcher.IsValidDefinitionFile,
 			Callback: func(e filewatcher.Event) error {
-				return apiServer.ReloadApps(context.Background(), e.Path, cfg.fileOrDir, e)
+				return apiServer.ReloadApps(context.Background(), cfg.fileOrDir, e)
 			},
 		})
-		err := fileWatcher.Watch(cfg.fileOrDir)
+		err := fileWatcher.Watch(cfg.fileOrDir, cfg.devConfigPath)
 		if err != nil {
 			return errors.Wrap(err, "starting filewatcher")
 		}

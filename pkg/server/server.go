@@ -249,50 +249,65 @@ func shouldReloadDirectory(e filewatcher.Event) bool {
 // ReloadApps takes in the changed file/directory and kicks off a
 // goroutine to re-discover the task/view or reload the config file.
 // It uses the state.Debouncer to debounce the actual refreshing.
-func (s *Server) ReloadApps(ctx context.Context, path string, wd string, e filewatcher.Event) error {
+func (s *Server) ReloadApps(ctx context.Context, wd string, e filewatcher.Event) error {
 	shouldRefreshDir := shouldReloadDirectory(e)
+	path := e.Path
 	if shouldRefreshDir {
 		path = wd
 	}
-	var reload func()
 
-	if path == s.state.DevConfig.Path {
-		reload = func() {
+	reload := func() {
+		if path == s.state.DevConfig.Path {
 			if err := s.state.DevConfig.LoadConfigFile(); err != nil {
 				logger.Error("Loading dev config file: %s", err.Error())
 			}
 		}
-	} else {
-		reload = func() {
-			pathsToDiscover := []string{path}
-			// Refresh any tasks and views that have the modified entrypoint.
-			for _, tC := range s.state.TaskConfigs.Items() {
-				if tC.TaskEntrypoint == path {
-					pathsToDiscover = append(pathsToDiscover, tC.Def.GetDefnFilePath())
+
+		pathsToDiscover := []string{path}
+
+		for _, tC := range s.state.TaskConfigs.Items() {
+			var shouldRefreshTask bool
+			// Refresh any tasks that have resource attachments
+			if path == s.state.DevConfig.Path {
+				ra, err := tC.Def.GetResourceAttachments()
+				if err != nil {
+					logger.Debug("Error getting resource attachments for task %s: %v", tC.Def.GetName(), err)
+					continue
+				}
+
+				if len(ra) > 0 {
+					shouldRefreshTask = true
 				}
 			}
 
-			for _, vC := range s.state.ViewConfigs.Items() {
-				if vC.Def.Entrypoint == path {
-					pathsToDiscover = append(pathsToDiscover, vC.Def.DefnFilePath)
-				}
+			// Refresh any tasks that have the modified entrypoint.
+			shouldRefreshTask = shouldRefreshTask || tC.TaskEntrypoint == path
+			if shouldRefreshTask {
+				pathsToDiscover = append(pathsToDiscover, tC.Def.GetDefnFilePath())
 			}
-			pathsToDiscover = utils.UniqueStrings(pathsToDiscover)
+		}
 
-			taskConfigs, viewConfigs, err := s.DiscoverTasksAndViews(ctx, pathsToDiscover...)
-			if err != nil {
-				logger.Error(err.Error())
+		// Refresh any views that have the modified entrypoint.
+		for _, vC := range s.state.ViewConfigs.Items() {
+			if vC.Def.Entrypoint == path {
+				pathsToDiscover = append(pathsToDiscover, vC.Def.DefnFilePath)
 			}
+		}
+		pathsToDiscover = utils.UniqueStrings(pathsToDiscover)
 
-			_, err = s.RegisterTasksAndViews(ctx, DiscoverOpts{
-				Tasks:        taskConfigs,
-				Views:        viewConfigs,
-				OverwriteAll: shouldRefreshDir,
-			})
-			LogNewApps(taskConfigs, viewConfigs)
-			if err != nil {
-				logger.Error(err.Error())
-			}
+		taskConfigs, viewConfigs, err := s.DiscoverTasksAndViews(ctx, pathsToDiscover...)
+		if err != nil {
+			logger.Error(err.Error())
+		}
+
+		_, err = s.RegisterTasksAndViews(ctx, DiscoverOpts{
+			Tasks:        taskConfigs,
+			Views:        viewConfigs,
+			OverwriteAll: shouldRefreshDir,
+		})
+		LogNewApps(taskConfigs, viewConfigs)
+		if err != nil {
+			logger.Error(err.Error())
 		}
 	}
 

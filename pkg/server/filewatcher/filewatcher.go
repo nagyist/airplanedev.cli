@@ -12,7 +12,7 @@ import (
 
 // FileWatcher will listen for changes to files in a directory
 type FileWatcher interface {
-	Watch(directory string) error
+	Watch(directory string, additionalPaths ...string) error
 	Stop()
 }
 
@@ -73,16 +73,12 @@ type AppWatcherOpts struct {
 func NewAppWatcher(opts AppWatcherOpts) FileWatcher {
 	w := watcher.New()
 	w.SetMaxEvents(20)
-	if opts.IsValid == nil {
-		// set a default filter
-		opts.IsValid = IsValidDefinitionFile
-	}
 
 	return &AppWatcher{
 		watcher:      w,
 		callback:     opts.Callback,
 		pollInterval: opts.PollInterval,
-		isValid:      opts.IsValid,
+		isValid:      IsValidDefinitionFile,
 	}
 }
 
@@ -107,7 +103,7 @@ func IsValidDefinitionFile(path string) bool {
 	return false
 }
 
-func (f *AppWatcher) Watch(wd string) error {
+func (f *AppWatcher) Watch(wd string, additionalPaths ...string) error {
 	logger.Log(" ")
 	logger.Log(logger.Green("Watching for changes in: %s", wd))
 	logger.Log(logger.Green("Changes to tasks and views will be applied automatically."))
@@ -124,6 +120,13 @@ func (f *AppWatcher) Watch(wd string) error {
 	// Watch working directory recursively for changes.
 	if err := f.watcher.AddRecursive(wd); err != nil {
 		return err
+	}
+
+	// Watch any additional paths for changes.
+	for _, path := range additionalPaths {
+		if err := f.watcher.Add(path); err != nil {
+			return err
+		}
 	}
 	// Listen for changes
 	go func() {

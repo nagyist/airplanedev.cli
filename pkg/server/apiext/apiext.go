@@ -310,15 +310,15 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (de
 	return run, nil
 }
 
-// GetTaskMetadataHandler handles requests to the /v0/tasks/metadata endpoint. It generates a deterministic task ID for
-// each task found locally, and its primary purpose is to ensure that the task discoverer does not error.
+// GetTaskMetadataHandler handles requests to the /v0/tasks/getMetadata endpoint. It generates a deterministic task ID
+// for each task found locally, and its primary purpose is to ensure that the task discoverer does not error.
 // If a task is not local, it tries the fallback environment, so that local views
 // can route correctly to the correct URL.
 func GetTaskMetadataHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.TaskMetadata, error) {
 	slug := r.URL.Query().Get("slug")
 	_, ok := state.TaskConfigs.Get(slug)
 	isBuiltin := builtins.IsBuiltinTaskSlug(slug)
-	// Neither builtin or local, we try using the fallback env first, but we
+	// Neither builtin nor local, we try using the fallback env first, but we
 	// default to returning a dummy task if it's not found.
 	if !isBuiltin && !ok {
 		if state.UseFallbackEnv {
