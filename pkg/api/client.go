@@ -557,6 +557,23 @@ type PromptReviewers struct {
 	AllowSelfApprovals *bool    `json:"allowSelfApprovals"`
 }
 
+type Sleep struct {
+	// Unique ID of the sleep.
+	ID string `json:"id"`
+	// RunID identifies the run that is sleeping.
+	RunID string `json:"runID"`
+	// DurationMs is the length of the sleep in milliseconds, used for display purposes only.
+	DurationMs int `json:"durationMs"`
+	// CreatedAt is when this sleep was started. This is generated on the server side.
+	CreatedAt time.Time `json:"createdAt"`
+	// Until is the sleep end time.
+	Until time.Time `json:"until"`
+
+	// When the sleep was skipped. This value will be null if the sleep was not skipped.
+	SkippedAt *time.Time `json:"skippedAt"`
+	SkippedBy *string    `json:"skippedBy"`
+}
+
 type Env struct {
 	ID         string     `json:"id"`
 	Slug       string     `json:"slug"`
