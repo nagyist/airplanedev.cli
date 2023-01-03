@@ -393,6 +393,13 @@ func initWorkflowFromRunbook(ctx context.Context, cfg config) error {
 			Base:        build.BuildBaseSlim,
 		},
 	}
+	absEntrypoint, err := filepath.Abs(entrypoint)
+	if err != nil {
+		return errors.Wrap(err, "determining absolute entrypoint")
+	}
+	if err := def.SetAbsoluteEntrypoint(absEntrypoint); err != nil {
+		return err
+	}
 
 	if err := runKindSpecificInstallation(ctx, cfg, build.TaskKindNode, def); err != nil {
 		return err
