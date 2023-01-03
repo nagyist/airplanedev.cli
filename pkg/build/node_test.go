@@ -389,7 +389,8 @@ func TestGenShimPackageJSON(t *testing.T) {
 			isWorkflow:  true,
 			expectedShimPackageJSON: shimPackageJSON{
 				Dependencies: map[string]string{
-					"@airplane/workflow-runtime": "0.2.10",
+					// XXX(fleung): this needs to get bumped when dependencies change
+					"@airplane/workflow-runtime": "0.2.27",
 				},
 			},
 		},

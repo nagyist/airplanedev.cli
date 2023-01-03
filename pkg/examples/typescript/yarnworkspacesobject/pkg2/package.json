@@ -8,7 +8,7 @@
     "dist/**/*"
   ],
   "dependencies": {
-    "airplane": "0.2.0",
+    "airplane": "0.2.27",
     "pkg1": "1.0.0"
   },
   "airplane": {

@@ -2,7 +2,7 @@
   "name": "airplane-tasks",
   "version": "0.0.1",
   "devDependencies": {
-    "@types/node": "18.11.15"
+    "@types/node": "18.11.18"
   },
   "dependencies": {
     "airplane": "0.2.27",

@@ -12,11 +12,11 @@ require (
 	github.com/alessio/shellescape v1.4.1
 	github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible
 	github.com/blang/semver/v4 v4.0.0
-	github.com/evanw/esbuild v0.16.7
+	github.com/evanw/esbuild v0.16.13
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568
 	github.com/go-git/go-git/v5 v5.5.1
 	github.com/go-sql-driver/mysql v1.7.0
-	github.com/goccy/go-yaml v1.9.7
+	github.com/goccy/go-yaml v1.9.8
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/moby/buildkit v0.10.6
 	github.com/otiai10/copy v1.9.0
@@ -134,8 +134,8 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/Microsoft/hcsshim v0.9.2 // indirect
 	github.com/airplanedev/dlog v0.0.0-20210615011719-ca8d3becde5e
-	github.com/docker/docker v20.10.21+incompatible
-	github.com/mattn/go-isatty v0.0.16
+	github.com/docker/docker v20.10.22+incompatible
+	github.com/mattn/go-isatty v0.0.17
 	github.com/moby/sys/mount v0.3.0 // indirect
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/segmentio/ksuid v1.0.4

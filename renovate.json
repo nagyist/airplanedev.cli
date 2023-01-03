@@ -7,6 +7,7 @@
   "schedule": ["before 5am on Thursday"],
   "timezone": "America/New_York",
   "ignorePaths": [
-    "pkg/runtime/javascript/fixtures/version/gt15lt18/package.json"
+    "pkg/runtime/javascript/fixtures/version/gt15lt18/package.json",
+    "pkg/examples/typescript/airplaneoverride/package.json"
   ]
 }
