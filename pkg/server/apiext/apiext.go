@@ -48,6 +48,11 @@ func AttachExternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/prompts/get", handlers.Handler(state, GetPromptHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/prompts/create", handlers.HandlerWithBody(state, CreatePromptHandler)).Methods("POST", "OPTIONS")
 
+	// Run sleeps
+	r.Handle("/sleeps/create", handlers.HandlerWithBody(state, CreateSleepHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/sleeps/list", handlers.Handler(state, ListSleepsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/sleeps/get", handlers.Handler(state, GetSleepHandler)).Methods("GET", "OPTIONS")
+
 	r.Handle("/permissions/get", handlers.Handler(state, GetPermissionsHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/hosts/web", handlers.Handler(state, WebHostHandler)).Methods("GET", "OPTIONS")

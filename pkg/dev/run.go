@@ -33,6 +33,7 @@ type LocalRun struct {
 	TaskName         string                 `json:"taskName"`
 	Displays         []libapi.Display       `json:"displays"`
 	Prompts          []libapi.Prompt        `json:"prompts"`
+	Sleeps           []libapi.Sleep         `json:"sleeps"`
 	IsWaitingForUser bool                   `json:"isWaitingForUser"`
 
 	// The version of the task at the time of the run execution
