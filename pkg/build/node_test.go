@@ -858,11 +858,13 @@ func TestNodeBundleBuilder(t *testing.T) {
 			},
 			FilesToBuild: []string{
 				"rootInlineTask.airplane.ts",
+				"taskInView.airplane.tsx",
 				"subfolder/subfolderInlineTask.airplane.ts",
 				"subfolder/nonInlineTask.ts",
 			},
 			FilesToDiscover: []string{
 				"rootInlineTask.airplane.ts",
+				"taskInView.airplane.tsx",
 				"subfolder/subfolderInlineTask.airplane.ts",
 			},
 			BundleRuns: []BundleTestRun{
@@ -870,6 +872,11 @@ func TestNodeBundleBuilder(t *testing.T) {
 					RelEntrypoint: "rootInlineTask.airplane.js",
 					ExportName:    "default",
 					SearchString:  "running:default_export_root_folder",
+				},
+				{
+					RelEntrypoint: "taskInView.airplane.js",
+					ExportName:    "default",
+					SearchString:  "running:in_view",
 				},
 				{
 					RelEntrypoint: "rootInlineTask.airplane.js",
@@ -984,6 +991,7 @@ func TestGenShimPackageJSON(t *testing.T) {
 					"airplane":                   defaultSDKVersion,
 					"@airplane/workflow-runtime": defaultSDKVersion,
 					"esbuild":                    "~0.12.0",
+					"jsdom":                      "~20.0.3",
 				},
 			},
 		},

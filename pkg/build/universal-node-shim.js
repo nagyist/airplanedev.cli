@@ -1,5 +1,10 @@
 // This file includes a shim that will execute your task code.
 import airplane from "airplane";
+import { JSDOM } from "jsdom";
+
+// Replace the global "document" with JSDOM to mock out browser APIs.
+const dom = new JSDOM(`<!DOCTYPE html><body></div></body>`);
+global.document = dom.window.document;
 
 async function main() {
   if (process.argv.length !== 5) {

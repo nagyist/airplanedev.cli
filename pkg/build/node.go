@@ -380,6 +380,7 @@ func GenShimPackageJSON(rootDir string, packageJSONs []string, isWorkflow, isBun
 	}
 	if isBundle {
 		pjson.Dependencies["esbuild"] = "~0.12.0"
+		pjson.Dependencies["jsdom"] = "~20.0.3"
 	}
 
 	// Allow users to override any shim dependencies. Given shim code is bundled

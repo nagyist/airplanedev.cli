@@ -1,6 +1,7 @@
 {
     "name": "node_tasks",
     "dependencies": {
+        "@airplane/views": "1.13.1",
         "airplane": "^0.2"
     }
 }
