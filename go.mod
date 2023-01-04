@@ -25,7 +25,7 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/xeipuuv/gojsonschema v1.2.0
 	go.mongodb.org/mongo-driver v1.11.1
-	golang.org/x/exp v0.0.0-20221208152030-732eee02a75a
+	golang.org/x/exp v0.0.0-20221230185412-738e83a70c30
 	golang.org/x/sync v0.1.0
 	google.golang.org/api v0.105.0
 )
