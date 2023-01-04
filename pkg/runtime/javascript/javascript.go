@@ -421,7 +421,7 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		return nil, nil, errors.Wrap(err, "getting package JSONs")
 	}
 
-	pjson, err := build.GenShimPackageJSON(root, packageJSONs, false)
+	pjson, err := build.GenShimPackageJSON(root, packageJSONs, false, false)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -261,6 +261,592 @@ func TestNodeBundleBuilder(t *testing.T) {
 
 	tests := []Test{
 		{
+			Root: "javascript/simple",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.js",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/simple",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/slim",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+				Base:    BuildBaseSlim,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/airplaneoverride",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/npm",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/yarn",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/yarn2",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/imports",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"task/main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "task/main.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/noparams",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+					SearchString:  "success",
+				},
+			},
+			// Since this example does not take parameters, override the default SearchString.
+		},
+		{
+			Root: "typescript/esnext",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "main.ts",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/esnext",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode14,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/esm",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/aliases",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/externals",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/yarnworkspaces",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":    "true",
+				"workdir": examples.Path(t, "typescript/yarnworkspaces/pkg2"),
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"pkg2/src/index.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "pkg2/src/index.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/yarnworkspacesobject",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":    "true",
+				"workdir": examples.Path(t, "typescript/yarnworkspacesobject/pkg2"),
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"pkg2/src/index.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "pkg2/src/index.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/yarnworkspaceswithglob",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":    "true",
+				"workdir": examples.Path(t, "typescript/yarnworkspaceswithglob/nested/pkg2"),
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"nested/pkg2/src/index.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "nested/pkg2/src/index.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/yarnworkspacespostinstall",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":    "true",
+				"workdir": examples.Path(t, "typescript/yarnworkspaces/pkg2"),
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"pkg2/src/index.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "pkg2/src/index.js",
+					ExportName:    "default",
+					SearchString:  "I love airplanes",
+				},
+			},
+		},
+		{
+			Root: "typescript/npmworkspaces",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":    "true",
+				"workdir": examples.Path(t, "typescript/npmworkspaces/pkg2"),
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"pkg2/src/index.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "pkg2/src/index.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/nopackagejson",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "main.ts",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/custominstall",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			BuildArgs: map[string]string{
+				"IS_PRODUCTION": "false",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
+			Root: "typescript/installhooksviapackagejson",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+			SearchString: "hello from preinstall",
+		},
+		{
+			Root: "typescript/installhooksviaairplaneconfig",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+			SearchString: "hello from preinstall",
+		},
+		{
+			Root: "typescript/installhooksviashell",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+			SearchString: "hello from preinstall",
+		},
+		{
+			Root: "typescript/installhooksviashellsubdirectory",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"foo/bar/main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "foo/bar/main.js",
+					ExportName:    "default",
+				},
+			},
+			SearchString: "hello from preinstall",
+		},
+		{
+			Root: "typescript/installhooksviapackagejsonoverride",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+			SearchString: "hello from preinstall",
+		},
+		{
+			Root: "typescript/prisma",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.js",
+					ExportName:    "default",
+				},
+			},
+		},
+		{
 			Root: "typescript/bundle",
 			Options: KindOptions{
 				"shim": "true",
@@ -274,6 +860,10 @@ func TestNodeBundleBuilder(t *testing.T) {
 				"rootInlineTask.airplane.ts",
 				"subfolder/subfolderInlineTask.airplane.ts",
 				"subfolder/nonInlineTask.ts",
+			},
+			FilesToDiscover: []string{
+				"rootInlineTask.airplane.ts",
+				"subfolder/subfolderInlineTask.airplane.ts",
 			},
 			BundleRuns: []BundleTestRun{
 				{
@@ -370,6 +960,7 @@ func TestGenShimPackageJSON(t *testing.T) {
 		desc                    string
 		packageJSON             string
 		isWorkflow              bool
+		isBundle                bool
 		expectedShimPackageJSON shimPackageJSON
 	}{
 		{
@@ -380,6 +971,19 @@ func TestGenShimPackageJSON(t *testing.T) {
 				Dependencies: map[string]string{
 					"airplane":                   defaultSDKVersion,
 					"@airplane/workflow-runtime": defaultSDKVersion,
+				},
+			},
+		},
+		{
+			desc:        "Yarn workspace with no shim dependencies bundle",
+			packageJSON: "typescript/yarnworkspacesnoairplane/package.json",
+			isWorkflow:  true,
+			isBundle:    true,
+			expectedShimPackageJSON: shimPackageJSON{
+				Dependencies: map[string]string{
+					"airplane":                   defaultSDKVersion,
+					"@airplane/workflow-runtime": defaultSDKVersion,
+					"esbuild":                    "~0.12.0",
 				},
 			},
 		},
@@ -408,6 +1012,7 @@ func TestGenShimPackageJSON(t *testing.T) {
 				filepath.Dir(examples.Path(t, tc.packageJSON)),
 				packageJSONs,
 				tc.isWorkflow,
+				tc.isBundle,
 			)
 			require.NoError(err)
 

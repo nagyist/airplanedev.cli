@@ -130,7 +130,11 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 								Entrypoint:  []string{"node", "/airplane/.airplane/dist/universal-shim.js", path.Join("/airplane/.airplane/", testRun.RelEntrypoint), testRun.ExportName},
 								Kind:        test.Kind,
 							})
-							require.True(strings.Contains(string(out), testRun.SearchString), "unable to find %q in output:\n%s", test.SearchString, string(out))
+							ss := testRun.SearchString
+							if ss == "" {
+								ss = test.SearchString
+							}
+							require.True(strings.Contains(string(out), ss), "unable to find %q in output:\n%s", ss, string(out))
 						}
 					case PythonBuildType:
 						for _, testRun := range test.BundleRuns {
@@ -140,7 +144,11 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 								Entrypoint:  []string{"python", "/airplane/.airplane/shim.py", path.Join("/airplane/", testRun.RelEntrypoint), testRun.ExportName},
 								Kind:        test.Kind,
 							})
-							require.True(strings.Contains(string(out), testRun.SearchString), "unable to find %q in output:\n%s", test.SearchString, string(out))
+							ss := testRun.SearchString
+							if ss == "" {
+								ss = test.SearchString
+							}
+							require.True(strings.Contains(string(out), ss), "unable to find %q in output:\n%s", ss, string(out))
 						}
 					case ShellBuildType:
 						for _, testRun := range test.BundleRuns {
