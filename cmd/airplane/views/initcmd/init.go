@@ -65,7 +65,7 @@ func GetConfig(c *cli.Config) config {
 func Run(ctx context.Context, cfg config) error {
 	inlineSetByUser := cfg.cmd != nil && cfg.cmd.Flags().Changed("inline")
 	if !inlineSetByUser {
-		if cfg.root.Flagger.Bool(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), flagsiface.DefaultInlineConfig) {
+		if cfg.root.Flagger.Bool(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), flagsiface.DefaultInlineConfigViews) {
 			cfg.inline = true
 		}
 	}

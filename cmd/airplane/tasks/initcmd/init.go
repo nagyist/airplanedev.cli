@@ -5,7 +5,6 @@
 package initcmd
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -49,10 +48,10 @@ type config struct {
 	from        string
 	fromRunbook string
 
-	codeOnly  bool
 	assumeYes bool
 	assumeNo  bool
 	envSlug   string
+	cmd       *cobra.Command
 
 	inline   bool
 	workflow bool
@@ -108,24 +107,28 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().StringVar(&cfg.from, "from", "", "Slug of an existing task to initialize.")
 	cmd.Flags().StringVar(&cfg.fromRunbook, "from-runbook", "", "Slug of an existing runbook to convert to a task.")
 
-	cmd.Flags().BoolVar(&cfg.codeOnly, "code-only", false, "True to skip creating a task definition file; only generates an entrypoint file.")
 	cmd.Flags().BoolVarP(&cfg.assumeYes, "yes", "y", false, "True to specify automatic yes to prompts.")
 	cmd.Flags().BoolVarP(&cfg.assumeNo, "no", "n", false, "True to specify automatic no to prompts.")
 
-	cmd.Flags().BoolVar(&cfg.inline, "inline", false, "Generate inline config for custom tasks")
+	cmd.Flags().BoolVar(&cfg.inline, "inline", false, "If true, the task will be configured with inline configuration")
 	cmd.Flags().BoolVar(&cfg.workflow, "workflow", false, "Generate a workflow-runtime task. Implies --inline.")
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment that the `from` task is in. Defaults to your team's default environment.")
+	cfg.cmd = cmd
 
 	return cmd
 }
 
 func Run(ctx context.Context, cfg config) error {
+	inlineSetByUser := cfg.cmd != nil && cfg.cmd.Flags().Changed("inline")
+	if !inlineSetByUser {
+		if cfg.root.Flagger.Bool(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), flagsiface.DefaultInlineConfigTasks) {
+			cfg.inline = true
+		}
+	}
+
 	// Check for mutually exclusive flags.
 	if cfg.assumeYes && cfg.assumeNo {
 		return errors.New("Cannot specify both --yes and --no")
-	}
-	if cfg.codeOnly && cfg.from == "" {
-		return errors.New("Required flag(s) \"from\" not set")
 	}
 	if cfg.from != "" && cfg.fromRunbook != "" {
 		return errors.New("Cannot specify both --from and --from-runbook")
@@ -133,10 +136,6 @@ func Run(ctx context.Context, cfg config) error {
 
 	// workflows are also inline
 	cfg.inline = cfg.inline || cfg.workflow || cfg.fromRunbook != ""
-
-	if cfg.codeOnly && cfg.inline {
-		return errors.New("Cannot specify both --code-only and --inline")
-	}
 
 	if strings.HasPrefix(cfg.from, "github.com/") || strings.HasPrefix(cfg.from, "https://github.com/") {
 		return initWithExample(ctx, cfg)
@@ -147,10 +146,6 @@ func Run(ctx context.Context, cfg config) error {
 		if err := promptForNewTask(cfg.file, &cfg.newTaskInfo, cfg.inline, cfg.workflow); err != nil {
 			return err
 		}
-	}
-
-	if cfg.codeOnly {
-		return initCodeOnly(ctx, cfg)
 	}
 
 	if cfg.fromRunbook != "" {
@@ -178,10 +173,6 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		if task.Runtime == build.TaskRuntimeWorkflow {
 			cfg.workflow = true
 			cfg.inline = true
-		}
-
-		if cfg.inline && !isInlineSupportedKind(task.Kind) {
-			return errors.New("Inline config is only supported for JavaScript and Python tasks.")
 		}
 
 		def, err = definitions.NewDefinitionFromTask_0_3(ctx, cfg.client, task)
@@ -494,111 +485,6 @@ func writeDefnFile(def *definitions.Definition_0_3, cfg config) (*writeDefnFileR
 	}, nil
 }
 
-func initCodeOnly(ctx context.Context, cfg config) error {
-	client := cfg.client
-
-	task, err := client.GetTask(ctx, libapi.GetTaskRequest{
-		Slug:    cfg.from,
-		EnvSlug: cfg.envSlug,
-	})
-	if err != nil {
-		return err
-	}
-
-	if cfg.file == "" {
-		cfg.file, err = promptForEntrypoint(task.Slug, task.Kind, "", cfg)
-		if err != nil {
-			return err
-		}
-	}
-
-	r, err := runtime.Lookup(cfg.file, task.Kind)
-	if err != nil {
-		return errors.Wrapf(err, "unable to init %q - check that your CLI is up to date", cfg.file)
-	}
-
-	if fsx.Exists(cfg.file) {
-		if slug := runtime.Slug(cfg.file); slug == task.Slug {
-			logger.Step("%s is already linked to %s", cfg.file, cfg.from)
-			suggestNextSteps(suggestNextStepsRequest{
-				entrypoint:         cfg.file,
-				showLocalExecution: true,
-				kind:               task.Kind,
-			})
-			return nil
-		}
-
-		patch, err := patch(cfg.from, cfg.file)
-		if err != nil {
-			return err
-		}
-
-		if !patch {
-			logger.Log("You canceled linking %s to %s", cfg.file, cfg.from)
-			return nil
-		}
-
-		buf, err := os.ReadFile(cfg.file)
-		if err != nil {
-			return err
-		}
-		code := prependComment(buf, runtime.Comment(r, task.URL))
-		// Note: 0644 is ignored because file already exists. Uses a reasonable default just in case.
-		if err := os.WriteFile(cfg.file, code, 0644); err != nil {
-			return err
-		}
-		logger.Step("Linked %s to %s", cfg.file, cfg.from)
-
-		suggestNextSteps(suggestNextStepsRequest{
-			entrypoint:         cfg.file,
-			showLocalExecution: true,
-			kind:               task.Kind,
-		})
-		return nil
-	}
-
-	if err := createEntrypoint(r, cfg.file, &task); err != nil {
-		return err
-	}
-	logger.Step("Created %s", cfg.file)
-	suggestNextSteps(suggestNextStepsRequest{
-		entrypoint:         cfg.file,
-		showLocalExecution: true,
-		kind:               task.Kind,
-	})
-	return nil
-}
-
-// prependComment handles writing the linking comment to source code, accounting for shebangs
-// (which have to appear first in the file).
-func prependComment(source []byte, comment string) []byte {
-	var buf bytes.Buffer
-
-	// Regardless of task type, look for a shebang and put comment after it if detected.
-	hasShebang := len(source) >= 2 && source[0] == '#' && source[1] == '!'
-	appendAfterFirstNewline := hasShebang
-
-	appendComment := func() {
-		buf.WriteString(comment)
-		buf.WriteRune('\n')
-		buf.WriteRune('\n')
-	}
-
-	prepended := false
-	if !appendAfterFirstNewline {
-		appendComment()
-		prepended = true
-	}
-	for _, char := range string(source) {
-		buf.WriteRune(char)
-		if char == '\n' && appendAfterFirstNewline && !prepended {
-			appendComment()
-			prepended = true
-		}
-	}
-	return buf.Bytes()
-}
-
 type suggestNextStepsRequest struct {
 	defnFile           string
 	entrypoint         string
@@ -650,20 +536,6 @@ func suggestNextSteps(req suggestNextStepsRequest) {
 	)
 }
 
-// Patch asks the user if he would like to patch a file
-// and add the airplane special comment.
-func patch(slug, file string) (ok bool, err error) {
-	err = survey.AskOne(
-		&survey.Confirm{
-			Message: fmt.Sprintf("Would you like to link %s to %s?", file, slug),
-			Help:    "Linking this file will add a special airplane comment.",
-			Default: true,
-		},
-		&ok,
-	)
-	return
-}
-
 func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint string, cfg config) (string, error) {
 	entrypoint := defaultEntrypoint
 	if entrypoint == "" {
@@ -687,7 +559,7 @@ func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint str
 		}
 	}
 	// Ensure that the file has the correct extension for an inline entrypoint.
-	if !cfg.codeOnly && cfg.inline {
+	if cfg.inline {
 		entrypoint = modifyEntrypointForInline(kind, entrypoint)
 	}
 
@@ -721,7 +593,7 @@ func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint str
 	}
 
 	// Ensure that the selected file has the correct extension for an inline entrypoint.
-	if !cfg.codeOnly && cfg.inline {
+	if cfg.inline {
 		entrypoint = modifyEntrypointForInline(kind, entrypoint)
 	}
 
@@ -750,7 +622,7 @@ func getEntrypointFile(slug string, kind build.TaskKind, cfg config) (string, er
 		entrypoint = filepath.Join("airplane", entrypoint)
 	}
 
-	if !cfg.codeOnly && cfg.inline {
+	if cfg.inline {
 		entrypoint = modifyEntrypointForInline(kind, entrypoint)
 	}
 	return entrypoint, nil
@@ -888,9 +760,6 @@ func promptForNewTask(file string, info *newTaskInfo, inline bool, workflow bool
 	info.kind = allKindsByName[selectedKindName]
 	if info.kind == "" {
 		return errors.Errorf("Unknown kind selected: %q", selectedKindName)
-	}
-	if inline && !isInlineSupportedKind(info.kind) {
-		return errors.New("Inline config is only supported for JavaScript and Python tasks.")
 	}
 
 	return nil
