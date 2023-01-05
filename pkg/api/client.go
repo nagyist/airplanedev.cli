@@ -97,7 +97,7 @@ type APIClient interface {
 
 	GetRun(ctx context.Context, id string) (res GetRunResponse, err error)
 	GetOutputs(ctx context.Context, runID string) (res GetOutputsResponse, err error)
-	GetRunbook(ctx context.Context, runbookSlug string) (res GetRunbookResponse, err error)
+	GetRunbook(ctx context.Context, runbookSlug string, envSlug string) (res GetRunbookResponse, err error)
 	ListSessionBlocks(ctx context.Context, sessionID string) (res ListSessionBlocksResponse, err error)
 
 	ListResources(ctx context.Context, envSlug string) (res libapi.ListResourcesResponse, err error)
@@ -375,8 +375,8 @@ func (c Client) GetOutputs(ctx context.Context, runID string) (res GetOutputsRes
 }
 
 // GetRunbook returns the details of a runbook by slug.
-func (c Client) GetRunbook(ctx context.Context, runbookSlug string) (res GetRunbookResponse, err error) {
-	q := url.Values{"runbookSlug": []string{runbookSlug}}
+func (c Client) GetRunbook(ctx context.Context, runbookSlug string, envSlug string) (res GetRunbookResponse, err error) {
+	q := url.Values{"runbookSlug": []string{runbookSlug}, "envSlug": []string{envSlug}}
 	err = c.get(ctx, "/runbooks/get?"+q.Encode(), &res)
 	return
 }

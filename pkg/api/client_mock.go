@@ -85,7 +85,7 @@ func (mc *MockClient) GetOutputs(ctx context.Context, runID string) (res GetOutp
 	panic("not implemented")
 }
 
-func (mc *MockClient) GetRunbook(ctx context.Context, runbookSlug string) (res GetRunbookResponse, err error) {
+func (mc *MockClient) GetRunbook(ctx context.Context, runbookSlug string, envSlug string) (res GetRunbookResponse, err error) {
 	runbook, ok := mc.Runbooks[runbookSlug]
 	if !ok {
 		return GetRunbookResponse{}, errors.New("runbook not found")

@@ -404,7 +404,7 @@ func TestConverter(t *testing.T) {
 
 	converterObj := NewRunbookConverter(client, tempDir, "test_entrypoint.ts")
 
-	err = converterObj.Convert(ctx, "test_runbook")
+	err = converterObj.Convert(ctx, "test_runbook", "prod")
 	require.NoError(t, err)
 
 	fileContents := map[string]string{}

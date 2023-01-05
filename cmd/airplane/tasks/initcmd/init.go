@@ -401,7 +401,7 @@ func initWorkflowFromRunbook(ctx context.Context, cfg config) error {
 		entrypointDir,
 		filepath.Base(entrypoint),
 	)
-	err = converter.Convert(ctx, cfg.fromRunbook)
+	err = converter.Convert(ctx, cfg.fromRunbook, cfg.envSlug)
 	if err != nil {
 		return err
 	}

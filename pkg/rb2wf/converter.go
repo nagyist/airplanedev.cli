@@ -74,9 +74,9 @@ func NewRunbookConverter(
 	}
 }
 
-func (r *RunbookConverter) Convert(ctx context.Context, runbookSlug string) error {
+func (r *RunbookConverter) Convert(ctx context.Context, runbookSlug string, envSlug string) error {
 	logger.Step("Fetching details of runbook %s", runbookSlug)
-	runbookInfo, err := r.getRunbookInfo(ctx, runbookSlug)
+	runbookInfo, err := r.getRunbookInfo(ctx, runbookSlug, envSlug)
 	if err != nil {
 		return err
 	}
@@ -191,8 +191,9 @@ type runbookInfo struct {
 func (r *RunbookConverter) getRunbookInfo(
 	ctx context.Context,
 	runbookSlug string,
+	envSlug string,
 ) (runbookInfo, error) {
-	runbookResp, err := r.client.GetRunbook(ctx, runbookSlug)
+	runbookResp, err := r.client.GetRunbook(ctx, runbookSlug, envSlug)
 	if err != nil {
 		return runbookInfo{}, err
 	}
