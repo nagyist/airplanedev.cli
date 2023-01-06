@@ -79,10 +79,13 @@ func StartView(ctx context.Context, cfg Config) error {
 		return err
 	}
 
+	usesYarn := utils.ShouldUseYarn(vd.Root())
+
 	cmd, _, closer, err := views.Dev(ctx, &vd, views.ViteOpts{
-		Client:  cfg.Root.Client,
-		EnvSlug: cfg.EnvSlug,
-		TTY:     true,
+		Client:   cfg.Root.Client,
+		EnvSlug:  cfg.EnvSlug,
+		TTY:      true,
+		UsesYarn: usesYarn,
 	})
 	if err != nil {
 		return err

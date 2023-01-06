@@ -3,6 +3,8 @@ package views
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -28,6 +30,7 @@ const (
 	tokenEnvKey   = "AIRPLANE_TOKEN"
 	apiKeyEnvKey  = "AIRPLANE_API_KEY"
 	envSlugEnvKey = "AIRPLANE_ENV_SLUG"
+	depHashFile   = "dep-hash"
 )
 
 func Dev(ctx context.Context, v viewdir.ViewDirectoryInterface, viteOpts ViteOpts) (*exec.Cmd, string, io.Closer, error) {
@@ -43,13 +46,8 @@ func Dev(ctx context.Context, v viewdir.ViewDirectoryInterface, viteOpts ViteOpt
 	l.Debug("Root directory: %s", v.Root())
 	l.Debug("Entrypoint: %s", v.EntrypointPath())
 	airplaneViewDir := filepath.Join(root, ".airplane-view")
-	if _, err := os.Stat(airplaneViewDir); os.IsNotExist(err) {
-		if err := os.Mkdir(airplaneViewDir, 0755); err != nil {
-			return nil, "", nil, errors.Wrap(err, "creating .airplane-view dir")
-		}
-		l.Debug("created .airplane-view dir %s", airplaneViewDir)
-	} else {
-		l.Debug(".airplane-view dir %s exists", airplaneViewDir)
+	if err := ensureAirplaneViewDir(airplaneViewDir, l); err != nil {
+		return nil, "", nil, err
 	}
 
 	viewSubdir := filepath.Join(airplaneViewDir, v.Slug())
@@ -127,15 +125,13 @@ func Dev(ctx context.Context, v viewdir.ViewDirectoryInterface, viteOpts ViteOpt
 		return nil, "", nil, errors.Wrap(err, "creating vite config")
 	}
 
-	// Run npm/yarn install.
-	useYarn := utils.ShouldUseYarn(airplaneViewDir)
 	l.Log("Installing development dependencies for view...")
 	if err := utils.InstallDependencies(airplaneViewDir, utils.InstallOptions{
-		Yarn: useYarn,
+		Yarn: viteOpts.UsesYarn,
 	}); err != nil {
 		l.Debug(err.Error())
 		if errors.Is(err, exec.ErrNotFound) {
-			if useYarn {
+			if viteOpts.UsesYarn {
 				return nil, "", nil, errors.New("error installing dependencies using yarn. Try installing yarn.")
 			} else {
 				return nil, "", nil, errors.New("error installing dependencies using npm. Try installing npm.")
@@ -191,6 +187,69 @@ func createWrapperTemplates(airplaneViewDir string, viewSubdir string, entrypoin
 	deprecatedMainTsxPath := filepath.Join(airplaneViewDir, "main.tsx")
 	if err := os.RemoveAll(deprecatedMainTsxPath); err != nil {
 		logger.Warning("unable to remove deprecated .airplane-view/main.tsx file: %v", err)
+	}
+
+	return nil
+}
+
+// CheckLockfile checks if we should use npm or yarn to install dependencies, and also if the hash of the lockfile has
+// changed since the last time we ran vite.
+func CheckLockfile(v viewdir.ViewDirectoryInterface, l logger.Logger) (usesYarn bool, hashesEqual bool, err error) {
+	airplaneViewDir := filepath.Join(v.Root(), ".airplane-view")
+
+	var prevHash string
+	contents, err := os.ReadFile(filepath.Join(airplaneViewDir, depHashFile))
+	if err != nil {
+		if os.IsNotExist(err) {
+			prevHash = ""
+		} else {
+			return usesYarn, false, errors.Wrap(err, "reading dependency hash file")
+		}
+	} else {
+		prevHash = string(contents)
+	}
+
+	usesYarn = utils.ShouldUseYarn(airplaneViewDir)
+	lockfile := "package-lock.json"
+	if usesYarn {
+		lockfile = "yarn.lock"
+	}
+	lockfileContents, err := os.ReadFile(filepath.Join(v.Root(), lockfile))
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			lockfileContents = []byte{}
+		} else {
+			return usesYarn, false, errors.Wrap(err, "reading package.json")
+		}
+	}
+
+	sha := sha256.Sum256(lockfileContents)
+	currHash := hex.EncodeToString(sha[:])
+
+	if prevHash == currHash {
+		return usesYarn, true, nil
+	} else {
+		// Write new dependency hash file.
+		if err := ensureAirplaneViewDir(airplaneViewDir, l); err != nil {
+			return usesYarn, false, err
+		}
+
+		if err := os.WriteFile(filepath.Join(airplaneViewDir, depHashFile), []byte(currHash), 0644); err != nil {
+			return usesYarn, false, errors.Wrap(err, "writing dependency hash file")
+		}
+		return usesYarn, false, nil
+	}
+}
+
+// ensureAirplaneViewDir ensures that the .airplane-view directory exists.
+func ensureAirplaneViewDir(airplaneViewDir string, l logger.Logger) error {
+	if _, err := os.Stat(airplaneViewDir); os.IsNotExist(err) {
+		if err := os.Mkdir(airplaneViewDir, 0755); err != nil {
+			return errors.Wrap(err, "creating .airplane-view dir")
+		}
+		l.Debug("created .airplane-view dir %s", airplaneViewDir)
+	} else {
+		l.Debug(".airplane-view dir %s exists", airplaneViewDir)
 	}
 
 	return nil
@@ -259,9 +318,11 @@ func addDevDepsToPackageJSON(existingPackageJSON map[string]interface{}, package
 }
 
 type ViteOpts struct {
-	Client  *api.Client
-	EnvSlug string
-	TTY     bool
+	Client               *api.Client
+	EnvSlug              string
+	TTY                  bool
+	RebundleDependencies bool
+	UsesYarn             bool
 }
 
 func runVite(ctx context.Context, opts ViteOpts, airplaneViewDir string, viewSlug string) (*exec.Cmd, string, error) {
@@ -269,7 +330,14 @@ func runVite(ctx context.Context, opts ViteOpts, airplaneViewDir string, viewSlu
 	// based on the location of the index.html file. Because this is part of the view-specific subdirectory, Vite will
 	// not find the config file there, and we instead need to tell it to use the config file one level higher, at
 	// .airplane-view/vite.config.ts.
-	cmd := exec.Command("node_modules/.bin/vite", "dev", "--config", "vite.config.ts", viewSlug)
+	args := []string{"dev", "--config", "vite.config.ts", viewSlug}
+
+	if opts.RebundleDependencies {
+		logger.Debug("package.json changed, forcing Vite to re-bundle")
+		args = append(args, "--force")
+	}
+
+	cmd := exec.Command("node_modules/.bin/vite", args...)
 	cmd.Dir = airplaneViewDir
 	cmd.Env = append(os.Environ(), getAdditionalEnvs(opts.Client.Host, opts.Client.APIKey, opts.Client.Token, opts.EnvSlug)...)
 

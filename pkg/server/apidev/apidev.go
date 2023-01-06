@@ -12,6 +12,7 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev/env"
+	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/state"
@@ -307,11 +308,6 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 		return StartViewResponse{}, errors.Errorf("View slug was not supplied, request path must be of the form /dev/startView/<view_slug>")
 	}
 
-	viteContext, ok := s.ViteContexts.Get(viewSlug)
-	if ok {
-		return StartViewResponse{ViteServer: viteContext.ServerURL}, nil
-	}
-
 	viewConfig, ok := s.ViewConfigs.Get(viewSlug)
 	if !ok {
 		return StartViewResponse{}, errors.Errorf("View with slug %s not found", viewSlug)
@@ -327,9 +323,41 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 		return StartViewResponse{}, err
 	}
 
+	// Vite has some caching logic that attempts to avoid bundling dependencies that haven't changed. However, we rely
+	// on the root package.json file for non-vite dependencies, and Vite doesn't know about these and hence may not
+	// re-bundle when they (e.g. @airplane/views) change. To work around this, we add a hash of the package.json file
+	// to the .airplane-view directory, and check that the hash has changed before running Vite. If it has, we pass
+	// the --force flag to Vite to force a re-bundle.
+	usesYarn, depHashesEqual, err := views.CheckLockfile(&vd, s.Logger)
+	if err != nil {
+		return StartViewResponse{}, err
+	}
+
+	if depHashesEqual {
+		// Check if the vite process for this view is already running.
+		viteContext, ok := s.ViteContexts.Get(viewSlug)
+		if ok {
+			logger.Debug("Vite process already running for view %s", viewSlug)
+			return StartViewResponse{ViteServer: viteContext.ServerURL}, nil
+		}
+	} else {
+		// Invalidate all vite processes that use the same root
+		for slug, cfg := range s.ViewConfigs.Items() {
+			if slug == viewSlug {
+				continue
+			}
+
+			if cfg.Root == viewConfig.Root {
+				s.ViteContexts.Remove(slug)
+			}
+		}
+	}
+
 	cmd, viteServer, closer, err := views.Dev(ctx, &vd, views.ViteOpts{
-		Client: s.LocalClient,
-		TTY:    false,
+		Client:               s.LocalClient,
+		TTY:                  false,
+		RebundleDependencies: !depHashesEqual,
+		UsesYarn:             usesYarn,
 	})
 	if err != nil {
 		return StartViewResponse{}, errors.Wrap(err, "starting views dev")
