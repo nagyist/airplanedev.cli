@@ -18,8 +18,19 @@ import (
 	"google.golang.org/api/option"
 )
 
-var supportedOS = map[string]bool{"darwin": true, "linux": true}
-var supportedArch = map[string]bool{"amd64": true, "arm64": true}
+var supportedArchsByOS = map[string]map[string]bool{
+	"darwin": {
+		"amd64": true,
+		"arm64": true,
+	},
+	"linux": {
+		"amd64": true,
+		"arm64": true,
+	},
+	"windows": {
+		"amd64": true,
+	},
+}
 
 const (
 	checksumFileName  = "builtins-checksum.txt"
@@ -27,9 +38,13 @@ const (
 )
 
 func isLocalExecutionSupported(opSystem, arch string) bool {
-	_, osSupported := supportedOS[opSystem]
-	_, archSupported := supportedArch[arch]
-	return osSupported && archSupported
+	supportedArchs, osSupported := supportedArchsByOS[opSystem]
+	if !osSupported {
+		return false
+	}
+
+	_, archSupported := supportedArchs[arch]
+	return archSupported
 }
 
 type StdAPIRequest struct {
@@ -82,7 +97,11 @@ func NewLocalClient(root string, opSystem string, arch string, logger logger.Log
 	if err != nil {
 		return nil, errors.Wrap(err, "creating GCS client")
 	}
+
 	fileName := fmt.Sprintf("builtins-%s-%s", opSystem, arch)
+	if opSystem == "windows" {
+		fileName += ".exe"
+	}
 
 	// put builtins directly under the .airplane dir
 	airplaneDir, err := airplane_directory.CreateAirplaneDir(root)
