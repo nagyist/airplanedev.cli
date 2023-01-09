@@ -1063,25 +1063,26 @@ type makeInstallCommandReq struct {
 }
 
 func makeInstallCommand(req makeInstallCommandReq) string {
-	installCommand := "npm install --production"
+	installCommand := "npm install"
 	if req.PkgInstallCommand != "" {
 		installCommand = req.PkgInstallCommand
 	} else if req.IsYarn {
 		if yarnBerry, _ := isYarnBerry(req.RootPackageJSON); yarnBerry {
-			// Yarn Berry has removed --non-interactive --production --frozen-lockfile. There
-			// is no real replacement for these, so we'll just install with `yarn install`.
-			installCommand = "yarn install"
+			// Yarn Berry has different flags.
+			// --frozen-lockfile is equivalent to --immutable.
+			// --non-interactive does not exist.
+			installCommand = "yarn install --immutable"
 		} else {
 			// Because the install command is running in the context of a docker build, the yarn cache
 			// isn't used after the packages are installed, and so we clean the cache to keep the
 			// image lean. This doesn't apply to Yarn v2 (specifically Plug'n'Play), which uses the
 			// cache directory for storing packages.
-			installCommand = "yarn install --non-interactive --production --frozen-lockfile && yarn cache clean"
+			installCommand = "yarn install --non-interactive --frozen-lockfile && yarn cache clean"
 		}
 	} else if req.HasPackageLock {
 		// Use npm ci if possible, since it's faster and behaves better:
 		// https://docs.npmjs.com/cli/v8/commands/npm-ci
-		installCommand = "npm ci --production"
+		installCommand = "npm ci"
 	}
 	// Remove large binaries for platforms that we aren't using
 	installCommand += " && rm -Rf /airplane/node_modules/@swc/core-linux-x64-musl /airplane/node_modules/@temporalio/core-bridge/releases/aarch64* /airplane/node_modules/@temporalio/core-bridge/releases/*windows* /airplane/node_modules/@temporalio/core-bridge/releases/*darwin*"
