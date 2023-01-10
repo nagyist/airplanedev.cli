@@ -141,25 +141,23 @@ func Run(ctx context.Context, cfg config) error {
 		return initWithExample(ctx, cfg)
 	}
 
-	if cfg.from == "" && cfg.fromRunbook == "" {
+	if cfg.fromRunbook != "" {
+		return initWorkflowFromRunbook(ctx, cfg)
+	}
+
+	if cfg.from == "" {
 		// Prompt for new task information.
 		if err := promptForNewTask(cfg.file, &cfg.newTaskInfo, cfg.inline, cfg.workflow); err != nil {
 			return err
 		}
 	}
 
-	if cfg.fromRunbook != "" {
-		return initWorkflowFromRunbook(ctx, cfg)
-	}
-
-	return initWithTaskDef(ctx, cfg)
+	return initTask(ctx, cfg)
 }
 
-func initWithTaskDef(ctx context.Context, cfg config) error {
+func initTask(ctx context.Context, cfg config) error {
 	client := cfg.client
 
-	// workflows are also inline
-	cfg.inline = cfg.inline || cfg.workflow
 	var def definitions.Definition_0_3
 	if cfg.from != "" {
 		task, err := client.GetTask(ctx, libapi.GetTaskRequest{
@@ -251,6 +249,7 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 			}
 		}
 
+		var shouldPrintEntrypointToStdOut bool
 		for {
 			if cfg.assumeYes && cfg.file != "" {
 				entrypoint = cfg.file
@@ -262,18 +261,12 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 			}
 
 			if fsx.Exists(entrypoint) {
-				var question string
-				if !cfg.inline {
-					question = fmt.Sprintf("Are you sure you want to link %s? You should only link existing Airplane scripts.", entrypoint)
-					if kind == build.TaskKindSQL {
-						question = fmt.Sprintf("Would you like to overwrite %s?", entrypoint)
-					}
-				} else {
-					question = fmt.Sprintf("Would you like to overwrite %s?", entrypoint)
-				}
-				if ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
+				shouldOverwrite, shouldPrintToStdOut, err := shouldOverwriteEntrypoint(cfg, entrypoint, kind)
+				if err != nil {
 					return err
-				} else if ok {
+				}
+				shouldPrintEntrypointToStdOut = shouldPrintToStdOut
+				if shouldOverwrite || shouldPrintEntrypointToStdOut {
 					break
 				}
 			} else {
@@ -313,10 +306,14 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 			}
 			logger.Step("Created %s", entrypoint)
 		} else if cfg.inline {
-			if err := createInlineEntrypoint(r, entrypoint, &def); err != nil {
+			if err := createInlineEntrypoint(r, entrypoint, &def, shouldPrintEntrypointToStdOut); err != nil {
 				return errors.Wrapf(err, "unable to create entrypoint")
 			}
-			logger.Step("Created %s", entrypoint)
+			if shouldPrintEntrypointToStdOut {
+				logger.Step("Printed task to stdout. Copy task configuration to %s.", entrypoint)
+			} else {
+				logger.Step("Created %s", entrypoint)
+			}
 		} else {
 			// Create entrypoint, without comment link, if it doesn't exist.
 			if !fsx.Exists(entrypoint) {
@@ -357,6 +354,56 @@ func initWithTaskDef(ctx context.Context, cfg config) error {
 		isNew:              cfg.from == "",
 	})
 	return nil
+}
+
+func shouldOverwriteEntrypoint(cfg config, entrypoint string, kind build.TaskKind) (shouldOverwrite, shouldPrintToStdOut bool, err error) {
+	if cfg.inline {
+		overwriteOption := fmt.Sprintf("Overwrite %s.", entrypoint)
+		if cfg.from != "" {
+			overwriteOption = fmt.Sprintf("Overwrite %s with configuration from %s.", entrypoint, cfg.from)
+		}
+		shouldPrintToStdOutOption := "Print to stdout instead of writing to a file."
+		if cfg.from != "" {
+			shouldPrintToStdOutOption = fmt.Sprintf("Print %s to stdout instead of writing to a file.", cfg.from)
+		}
+		chooseDifferentFileOption := "Write the configuration to a different file."
+		if cfg.from != "" {
+			chooseDifferentFileOption = fmt.Sprintf("Write the configuration for %s to a different file.", cfg.from)
+		}
+		options := []string{
+			overwriteOption,
+			shouldPrintToStdOutOption,
+			chooseDifferentFileOption,
+		}
+		var selectedOption string
+		if err := survey.AskOne(
+			&survey.Select{
+				Message: fmt.Sprintf("%s already exists. What would you like to do?", entrypoint),
+				Options: options,
+				Default: options[0],
+			},
+			&selectedOption,
+		); err != nil {
+			return false, false, err
+		}
+		if selectedOption == shouldPrintToStdOutOption {
+			return false, true, nil
+		}
+		if selectedOption == overwriteOption {
+			return true, false, nil
+		}
+	} else {
+		question := fmt.Sprintf("Are you sure you want to link %s? You should only link existing Airplane scripts.", entrypoint)
+		if kind == build.TaskKindSQL {
+			question = fmt.Sprintf("Would you like to overwrite %s?", entrypoint)
+		}
+		if ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
+			return false, false, err
+		} else if ok {
+			return true, false, nil
+		}
+	}
+	return false, false, nil
 }
 
 func initWorkflowFromRunbook(ctx context.Context, cfg config) error {
@@ -792,10 +839,13 @@ func createEntrypoint(r runtime.Interface, entrypoint string, task *libapi.Task)
 	return writeEntrypoint(entrypoint, code, fileMode)
 }
 
-func createInlineEntrypoint(r runtime.Interface, entrypoint string, def *definitions.Definition_0_3) error {
+func createInlineEntrypoint(r runtime.Interface, entrypoint string, def *definitions.Definition_0_3, printToStdOut bool) error {
 	code, fileMode, err := r.GenerateInline(def)
 	if err != nil {
 		return err
+	}
+	if printToStdOut {
+		return printEntrypointToStdOut(code)
 	}
 
 	return writeEntrypoint(entrypoint, code, fileMode)
@@ -827,6 +877,11 @@ func writeEntrypoint(path string, b []byte, fileMode os.FileMode) error {
 		return err
 	}
 
+	return nil
+}
+
+func printEntrypointToStdOut(b []byte) error {
+	logger.Log(string(b))
 	return nil
 }
 
