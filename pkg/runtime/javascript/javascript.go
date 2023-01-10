@@ -22,7 +22,6 @@ import (
 	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
-	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slices"
 )
@@ -397,20 +396,9 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		}
 	}()
 
-	entrypoint, err := filepath.Rel(root, opts.Path)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "entrypoint is not within the task root")
-	}
-	entrypointFunc, _ := opts.KindOptions["entrypointFunc"].(string)
-	shim, err := build.TemplatedNodeShim(build.NodeShimParams{
-		Entrypoint:     filepath.Join("..", entrypoint),
-		EntrypointFunc: entrypointFunc,
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if err := os.WriteFile(filepath.Join(taskDir, "shim.js"), []byte(shim), 0644); err != nil {
+	shim := build.UniversalNodeShim
+	shimPath := filepath.Join(taskDir, "shim.js")
+	if err := os.WriteFile(shimPath, []byte(shim), 0644); err != nil {
 		return nil, nil, errors.Wrap(err, "writing shim file")
 	}
 
@@ -421,7 +409,7 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		return nil, nil, errors.Wrap(err, "getting package JSONs")
 	}
 
-	pjson, err := build.GenShimPackageJSON(root, packageJSONs, false, false)
+	pjson, err := build.GenShimPackageJSON(root, packageJSONs, false, true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -429,8 +417,8 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		return nil, nil, errors.Wrap(err, "writing shim package.json")
 	}
 	cmd := exec.CommandContext(ctx, "npm", "install")
-	cmd.Dir = filepath.Join(root, ".airplane")
-	logger.Debug("Running %s (in %s)", strings.Join(cmd.Args, " "), root)
+	cmd.Dir = airplaneDir
+	logger.Debug("Running %s (in %s)", strings.Join(cmd.Args, " "), cmd.Dir)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log(strings.TrimSpace(string(out)))
@@ -448,41 +436,70 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		return nil, nil, err
 	}
 	logger.Debug("Discovered external dependencies: %v", externalDeps)
+	var external []string
+	for _, dep := range externalDeps {
+		external = append(external, fmt.Sprintf(`"%s"`, dep))
+	}
 
 	start := time.Now()
-	res := esbuild.Build(esbuild.BuildOptions{
-		Bundle: true,
 
-		EntryPoints: []string{filepath.Join(taskDir, "shim.js")},
-		Outfile:     filepath.Join(taskDir, "dist/shim.js"),
-		Write:       true,
+	// Save esbuild.js which we will use to run the build.
+	esBuildPath := filepath.Join(airplaneDir, "esbuild.js")
+	if err := os.WriteFile(esBuildPath, []byte(build.Esbuild), 0644); err != nil {
+		return nil, nil, errors.Wrap(err, "writing esbuild file")
+	}
+	// First build the shim.
+	builtShimPath := filepath.Join(taskDir, "dist/shim.js")
+	cmd = exec.CommandContext(ctx,
+		"node",
+		esBuildPath,
+		fmt.Sprintf(`["%s"]`, shimPath),
+		"node"+build.GetNodeVersion(opts.KindOptions),
+		fmt.Sprintf(`[%s]`, strings.Join(external, ", ")),
+		builtShimPath,
+	)
+	cmd.Dir = airplaneDir
+	logger.Debug("Running %s (in %s)", strings.Join(cmd.Args, " "), cmd.Dir)
+	out, err = cmd.CombinedOutput()
+	if err != nil {
+		logger.Log(strings.TrimSpace(string(out)))
+		return nil, nil, errors.New("failed to build task shim")
+	}
 
-		External: externalDeps,
-		Platform: esbuild.PlatformNode,
-		Engines: []esbuild.Engine{
-			// esbuild is relatively generous in the node versions it supports:
-			// https://esbuild.github.io/api/#target
-			{Name: esbuild.EngineNode, Version: build.GetNodeVersion(opts.KindOptions)},
-		},
-	})
-	for _, w := range res.Warnings {
-		logger.Debug(w.Text)
+	// Then build the entrypoint.
+	entrypoint, err := filepath.Rel(root, opts.Path)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "entrypoint is not within the task root")
 	}
-	for _, e := range res.Errors {
-		logger.Warning(e.Text)
+	cmd = exec.CommandContext(ctx,
+		"node",
+		esBuildPath,
+		fmt.Sprintf(`["%s"]`, filepath.Join(root, entrypoint)),
+		"node"+build.GetNodeVersion(opts.KindOptions),
+		fmt.Sprintf(`[%s]`, strings.Join(external, ", ")),
+		"",
+		filepath.Join(taskDir, "dist"),
+		root,
+	)
+	cmd.Dir = airplaneDir
+	logger.Debug("Running %s (in %s)", strings.Join(cmd.Args, " "), airplaneDir)
+	out, err = cmd.CombinedOutput()
+	if err != nil {
+		logger.Log(strings.TrimSpace(string(out)))
+		return nil, nil, errors.New("failed to build task")
 	}
-	logger.Debug("Compiled JS in %s", time.Since(start).String())
+
+	logger.Debug("Built JS in %s", time.Since(start).String())
 
 	pv, err := json.Marshal(opts.ParamValues)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "serializing param values")
 	}
 
-	if len(res.OutputFiles) == 0 {
-		return nil, nil, errors.New("esbuild failed: see logs")
-	}
-
-	return []string{"node", res.OutputFiles[0].Path, string(pv)}, closer, nil
+	entrypointFunc, _ := opts.KindOptions["entrypointFunc"].(string)
+	entrypointExt := filepath.Ext(entrypoint)
+	entrypointJS := strings.TrimSuffix(entrypoint, entrypointExt) + ".js"
+	return []string{"node", builtShimPath, filepath.Join(taskDir, "dist", entrypointJS), entrypointFunc, string(pv)}, closer, nil
 }
 
 // SupportsLocalExecution implementation.

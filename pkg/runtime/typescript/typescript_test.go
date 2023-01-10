@@ -96,6 +96,44 @@ func TestDev(tt *testing.T) {
 				TaskSlug: "aliases",
 			},
 		},
+		{
+			Kind: build.TaskKindNode,
+			Opts: runtime.PrepareRunOptions{
+				Path:     "typescript/bundle/taskInView.airplane.tsx",
+				TaskSlug: "default_export_root_folder",
+			},
+			SearchString: "running:in_view",
+		},
+		{
+			Kind: build.TaskKindNode,
+			Opts: runtime.PrepareRunOptions{
+				Path:     "typescript/bundle/rootInlineTask.airplane.ts",
+				TaskSlug: "default_export_root_folder",
+			},
+			SearchString: "running:default_export_root_folder",
+		},
+		{
+			Kind: build.TaskKindNode,
+			Opts: runtime.PrepareRunOptions{
+				Path:     "typescript/bundle/rootInlineTask.airplane.ts",
+				TaskSlug: "default_export_root_folder",
+				KindOptions: build.KindOptions{
+					"entrypointFunc": "named",
+				},
+			},
+			SearchString: "running:named_export_root_folder",
+		},
+		{
+			Kind: build.TaskKindNode,
+			Opts: runtime.PrepareRunOptions{
+				Path:     "typescript/bundle/subfolder/subfolderInlineTask.airplane.ts",
+				TaskSlug: "default_export_subfolder",
+				KindOptions: build.KindOptions{
+					"entrypointFunc": "default",
+				},
+			},
+			SearchString: "running:default_export_subfolder",
+		},
 		// TODO: debug why yarn workspaces aren't working. Seems like we would need to compile
 		// pkg1 before compiling pkg2. Once we do that, add an npm workspaces variant along with
 		// JS variants.
