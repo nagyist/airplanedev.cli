@@ -61,6 +61,7 @@ func NewLocalRun() *LocalRun {
 		LogBroker:   logs.NewDevLogBroker(),
 		Displays:    []libapi.Display{},
 		Prompts:     []libapi.Prompt{},
+		Sleeps:      []libapi.Sleep{},
 		Resources:   map[string]string{},
 	}
 }
