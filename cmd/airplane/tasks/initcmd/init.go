@@ -20,6 +20,7 @@ import (
 	"github.com/airplanedev/cli/pkg/flags/flagsiface"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/node"
+	"github.com/airplanedev/cli/pkg/python"
 	"github.com/airplanedev/cli/pkg/rb2wf"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
@@ -28,7 +29,6 @@ import (
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
 	_ "github.com/airplanedev/lib/pkg/runtime/javascript"
-	"github.com/airplanedev/lib/pkg/runtime/python"
 	_ "github.com/airplanedev/lib/pkg/runtime/python"
 	_ "github.com/airplanedev/lib/pkg/runtime/rest"
 	_ "github.com/airplanedev/lib/pkg/runtime/shell"
@@ -513,7 +513,7 @@ func suggestNextSteps(req suggestNextStepsRequest) {
 			steps = append(steps, fmt.Sprintf("Write your task logic in %s", req.entrypoint))
 		}
 		if req.defnFile != "" {
-			steps = append(steps, fmt.Sprintf("Add a description, parameters, and more details in %s", req.defnFile))
+			steps = append(steps, fmt.Sprintf("Configure your task with parameters, a description and more in %s", req.defnFile))
 		}
 		logger.SuggestSteps("✅ To complete your task:", steps...)
 	}
@@ -893,8 +893,15 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 			if err != nil {
 				return err
 			}
-			runtime := python.Runtime{}
-			root, err := runtime.Root(entrypoint)
+			var deps []python.PythonDependency
+			if cfg.inline {
+				deps = []python.PythonDependency{
+					{Name: "airplanesdk", Version: "~=0.3.14"},
+				}
+			}
+			requirementsTxtDir, err := python.CreateRequirementsTxt(filepath.Dir(entrypoint), python.RequirementsTxtOptions{
+				Dependencies: deps,
+			})
 			if err != nil {
 				return err
 			}
@@ -906,7 +913,7 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 			if pythonVersion == "" {
 				pythonVersion = build.DefaultPythonVersion
 			}
-			if err := createOrUpdateAirplaneConfig(root, deployconfig.AirplaneConfig{
+			if err := createOrUpdateAirplaneConfig(requirementsTxtDir, deployconfig.AirplaneConfig{
 				Python: deployconfig.PythonConfig{
 					Version: string(pythonVersion),
 					Base:    string(buildBase),

@@ -68,15 +68,17 @@ func CreatePackageJSON(directory string, packageJSONOptions PackageJSONOptions) 
 			if surveyResp == useExisting {
 				selectedPackageJSONDir = packageJSONDirPath
 			} else {
-				// Create a new package.json in the current directory.
-				if err := createPackageJSONFile(directory); err != nil {
+				selectedPackageJSONDir = directory
+				if err := createPackageJSONFile(selectedPackageJSONDir); err != nil {
 					return "", err
 				}
-				selectedPackageJSONDir = directory
 			}
 		}
 	} else {
 		selectedPackageJSONDir = directory
+		if err := createPackageJSONFile(selectedPackageJSONDir); err != nil {
+			return "", err
+		}
 	}
 
 	return selectedPackageJSONDir, addAllPackages(selectedPackageJSONDir, useYarn, packageJSONOptions.Dependencies)
