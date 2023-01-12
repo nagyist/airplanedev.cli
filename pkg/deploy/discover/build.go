@@ -12,6 +12,7 @@ import (
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
+	"github.com/airplanedev/lib/pkg/utils/pointers"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slices"
@@ -68,6 +69,12 @@ func esbuildUserFiles(log logger.Logger, rootDir string) error {
 		Format:   esbuild.FormatCommonJS,
 		Bundle:   true,
 		External: externals,
+		Plugins: []esbuild.Plugin{
+			{
+				Name:  "Remove css",
+				Setup: removeCSSEsbuildPlugin,
+			},
+		},
 	})
 	var errMsgs []string
 	for _, e := range res.Errors {
@@ -157,4 +164,28 @@ func extractPythonConfigs(file string) ([]map[string]interface{}, error) {
 		return nil, errors.Wrap(err, "unmarshalling parser output")
 	}
 	return parsedTasks, nil
+}
+
+// removeCSSEsbuildPlugin is an esbuild plugin that replaces all CSS imports with an empty file.
+// Without this plugin, we cannot execute a built file that contains CSS because Node.JS does not
+// know how to import and execute CSS files.
+func removeCSSEsbuildPlugin(pb esbuild.PluginBuild) {
+	pb.OnResolve(esbuild.OnResolveOptions{
+		Filter: "\\.css$",
+	}, func(ora esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
+		return esbuild.OnResolveResult{
+			External: false,
+			// Rewrite all css imports to a hardcoded path that doesn't actually exist.
+			// We will tell esbuild how to load this path in the next step.
+			Path: "/empty.css",
+		}, nil
+	})
+	pb.OnLoad(esbuild.OnLoadOptions{
+		Filter: "\\.css$",
+	}, func(ola esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
+		// Load all css files with a bit of JS that does nothing.
+		return esbuild.OnLoadResult{
+			Contents: pointers.String("var foo = 6"),
+		}, nil
+	})
 }

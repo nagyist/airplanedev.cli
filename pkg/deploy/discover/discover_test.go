@@ -887,6 +887,27 @@ func TestDiscover(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:  "view code definition that imports css",
+			paths: []string{"./fixtures/viewInlineCSS/myView/myView.view.tsx"},
+			existingViews: map[string]api.View{
+				"my_view": {ID: "view123", Slug: "my_view", Name: "My View"},
+			},
+			expectedViewConfigs: []ViewConfig{
+				{
+					ID: "view123",
+					Def: definitions.ViewDefinition{
+						Name:         "My View",
+						Slug:         "my_view",
+						Description:  "my description",
+						Entrypoint:   fixturesPath + "/viewInlineCSS/myView/myView.view.tsx",
+						DefnFilePath: fixturesPath + "/viewInlineCSS/myView/myView.view.tsx",
+					},
+					Root:   fixturesPath + "/viewInlineCSS",
+					Source: ConfigSourceCode,
+				},
+			},
+		},
 	}
 	for _, tC := range tests {
 		t.Run(tC.name, func(t *testing.T) {
