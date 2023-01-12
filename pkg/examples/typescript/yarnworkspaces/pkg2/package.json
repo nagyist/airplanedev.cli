@@ -4,7 +4,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "airplane": "0.2.27",
+    "airplane": "0.2.29",
     "pkg1": "1.0.0",
     "node-fetch": "3.3.0"
   },

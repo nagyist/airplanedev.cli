@@ -19,16 +19,16 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-18.11.18.tgz#8dfb97f0da23c2293e554c5a50d61ef134d7697f"
   integrity sha512-DHQpWGjyQKSHj3ebjFI/wRKcqQcdR+MoFBygntYOZytCqNfkd2ZC4ARDJ2DQqhjH5p85Nnd3jhUJIXrszFX/JA==
 
-airplane@0.2.27:
-  version "0.2.27"
-  resolved "https://registry.yarnpkg.com/airplane/-/airplane-0.2.27.tgz#f029e9d0c8d9973690ddb2313d192f3a784d192e"
-  integrity sha512-U7Pi4Xjyze/TUt61jJFco3FmLuUVPLhqQ3MATKHjYhBdrRSG2B5gstL9LJbHKyxhQaC5yRYg8EFzHNZZJJmO5A==
+airplane@0.2.29:
+  version "0.2.29"
+  resolved "https://registry.yarnpkg.com/airplane/-/airplane-0.2.29.tgz#e7f02708a8f53056fe2d5aae19bf32fbc4b15497"
+  integrity sha512-G2+bP0Ok8YI+ehOJ87PaIwJ2W+7a9YZntFWTK94IZeG7RnB+rljuS7NNT7orqsTRL0SXXdpY8P0AUYRmTk8GIw==
   dependencies:
     "@azure/abort-controller" "1.1.0"
     "@opentelemetry/api" "1.2.0"
     cross-fetch "3.1.5"
     fast-equals "4.0.3"
-    fetch-retry "5.0.3"
+    ms "3.0.0-canary.1"
     query-string "7.1.3"
     ts-dedent "2.2.0"
     uuid "9.0.0"
@@ -74,11 +74,6 @@ fast-equals@4.0.3:
   resolved "https://registry.yarnpkg.com/fast-equals/-/fast-equals-4.0.3.tgz#72884cc805ec3c6679b99875f6b7654f39f0e8c7"
   integrity sha512-G3BSX9cfKttjr+2o1O22tYMLq0DPluZnYtq1rXumE1SpL/F/SLIfHx08WYQoWSIpeMYf8sRbJ8++71+v6Pnxfg==
 
-fetch-retry@5.0.3:
-  version "5.0.3"
-  resolved "https://registry.yarnpkg.com/fetch-retry/-/fetch-retry-5.0.3.tgz#edfa3641892995f9afee94f25b168827aa97fe3d"
-  integrity sha512-uJQyMrX5IJZkhoEUBQ3EjxkeiZkppBd5jS/fMTJmfZxLSiaQjv2zD0kTvuvkSH89uFvgSlB6ueGpjD3HWN7Bxw==
-
 filter-obj@^1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/filter-obj/-/filter-obj-1.1.0.tgz#9b311112bc6c6127a16e016c6c5d7f19e0805c5b"
@@ -113,6 +108,11 @@ mimic-fn@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/mimic-fn/-/mimic-fn-2.1.0.tgz#7ed2c2ccccaf84d3ffcb7a69b57711fc2083401b"
   integrity sha512-OqbOk5oEQeAZ8WXWydlu9HJjz9WVdEIvamMCcXmuqUYjTknH/sqsWvhQ3vgwKFRR1HpjvNBKQ37nbJgYzGqGcg==
+
+ms@3.0.0-canary.1:
+  version "3.0.0-canary.1"
+  resolved "https://registry.yarnpkg.com/ms/-/ms-3.0.0-canary.1.tgz#c7b34fbce381492fd0b345d1cf56e14d67b77b80"
+  integrity sha512-kh8ARjh8rMN7Du2igDRO9QJnqCb2xYTJxyQYK7vJJS4TvLLmsbyhiKpSW+t+y26gyOyMd0riphX0GeWKU3ky5g==
 
 node-fetch@2.6.7:
   version "2.6.7"

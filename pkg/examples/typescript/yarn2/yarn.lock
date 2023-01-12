@@ -21,19 +21,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"airplane@npm:0.2.27":
-  version: 0.2.27
-  resolution: "airplane@npm:0.2.27"
+"airplane@npm:0.2.29":
+  version: 0.2.29
+  resolution: "airplane@npm:0.2.29"
   dependencies:
     "@azure/abort-controller": 1.1.0
     "@opentelemetry/api": 1.2.0
     cross-fetch: 3.1.5
     fast-equals: 4.0.3
-    fetch-retry: 5.0.3
+    ms: 3.0.0-canary.1
     query-string: 7.1.3
     ts-dedent: 2.2.0
     uuid: 9.0.0
-  checksum: 7c580aee63543fe7caef8ae09991958280081c6e1ef090ff20b69e74b1b82fac90d92685276d01410227e4442d7f65fda1582b795780d6418bef8a1239b60e6f
+  checksum: 70fef73a2b6db723408808166ec426786f6cb086a12d9d837d9c3f4bdc34cd9bbed0afc416ec6392993e5983277556c0aaba6b338c29e4ea9d9bf3a6d1fd0d3a
   languageName: node
   linkType: hard
 
@@ -60,17 +60,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fetch-retry@npm:5.0.3":
-  version: 5.0.3
-  resolution: "fetch-retry@npm:5.0.3"
-  checksum: b4eebc04bd41651417e89ae9287e5b9e5421970ce07058c6e1e22f7d9c1cd5f935fc39a328fd66b433247c0ae1bb8a6b2d48c073d5a9f911992f72c5d311b14d
-  languageName: node
-  linkType: hard
-
 "filter-obj@npm:^1.1.0":
   version: 1.1.0
   resolution: "filter-obj@npm:1.1.0"
   checksum: cf2104a7c45ff48e7f505b78a3991c8f7f30f28bd8106ef582721f321f1c6277f7751aacd5d83026cb079d9d5091082f588d14a72e7c5d720ece79118fa61e10
+  languageName: node
+  linkType: hard
+
+"ms@npm:3.0.0-canary.1":
+  version: 3.0.0-canary.1
+  resolution: "ms@npm:3.0.0-canary.1"
+  checksum: 5ec76c0932cf83ac3e7f70f1a4c0d4db4dbc91de6ea5f7d336c67b48f513c8cb4c0fce3a07e3d84ee931dbdc9a48f33ed1c485e834279fff8906d385e86684ae
   languageName: node
   linkType: hard
 
@@ -104,7 +104,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
-    airplane: 0.2.27
+    airplane: 0.2.29
   languageName: unknown
   linkType: soft
 
