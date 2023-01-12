@@ -1,11 +1,15 @@
 package deploy
 
 import (
+	"bytes"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/go-git/go-git/v5"
 	"github.com/pkg/errors"
@@ -66,11 +70,18 @@ func GetGitMetadata(repo *git.Repository) (api.GitMetadata, error) {
 		return meta, err
 	}
 
-	status, err := w.Status()
-	if err != nil {
-		return meta, err
+	// Worktree.Status() is very slow so fall back to the command line instead.
+	// https://github.com/go-git/go-git/issues/181
+	cmd := exec.Command("git", "status", "--porcelain")
+	cmd.Dir = w.Filesystem.Root()
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stdout
+	if cmd.Run() != nil {
+		analytics.ReportMessage(fmt.Sprintf("failed to get git status: %v", stdout.String()))
+	} else {
+		meta.IsDirty = stdout.Len() > 0
 	}
-	meta.IsDirty = !status.IsClean()
 
 	h, err := repo.Head()
 	if err != nil {

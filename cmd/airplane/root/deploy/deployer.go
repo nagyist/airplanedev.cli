@@ -125,6 +125,7 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 
 	var gitMeta api.GitMetadata
 	if repo != nil && !mismatchedGitRepos {
+		start := time.Now()
 		gitMeta, err = GetGitMetadata(repo)
 		if err != nil {
 			analytics.ReportMessage(fmt.Sprintf("failed to gather git metadata: %v", err))
@@ -138,7 +139,7 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 		if getGitRepoResp.OwnerName != "" {
 			gitMeta.RepositoryOwnerName = getGitRepoResp.OwnerName
 		}
-		d.logger.Debug("Gathered git metadata for %s", gitMeta.RepositoryName)
+		d.logger.Debug("Gathered git metadata for %s in %v: %#v", gitMeta.RepositoryName, time.Since(start), gitMeta)
 	}
 
 	resp, err := d.cfg.Client.CreateDeployment(ctx, api.CreateDeploymentRequest{

@@ -167,7 +167,7 @@ func TestDeploy(t *testing.T) {
 					GitMetadata: api.GitMetadata{
 						CommitHash:          "6ecf0ef2c2dffb796033e5a02219af86ec6584e5",
 						Ref:                 "master",
-						IsDirty:             true,
+						IsDirty:             false,
 						CommitMessage:       "vendor stuff\n",
 						RepositoryOwnerName: "git-fixtures",
 						RepositoryName:      "basic",
@@ -189,7 +189,7 @@ func TestDeploy(t *testing.T) {
 					GitMetadata: api.GitMetadata{
 						CommitHash:          "6ecf0ef2c2dffb796033e5a02219af86ec6584e5",
 						Ref:                 "master",
-						IsDirty:             true,
+						IsDirty:             false,
 						CommitMessage:       "vendor stuff\n",
 						RepositoryOwnerName: "airplanedev",
 						RepositoryName:      "airport",
