@@ -199,6 +199,91 @@ func TestSubmitPrompts(t *testing.T) {
 	require.Nil(listPrompts.Prompts[1].SubmittedBy)
 }
 
+func TestSkipSleeps(t *testing.T) {
+	require := require.New(t)
+	taskSlug := "task1"
+	now := time.Now()
+	runID := "run_0"
+	sleepID := "slp1"
+	sleepID2 := "slp2"
+
+	sleep1 := libapi.Sleep{
+		ID:         sleepID,
+		RunID:      runID,
+		DurationMs: 1000,
+		CreatedAt:  now,
+		Until:      now.Add(time.Second * 30),
+	}
+
+	sleep2 := libapi.Sleep{
+		ID:         sleepID2,
+		RunID:      runID,
+		DurationMs: 1000,
+		CreatedAt:  now,
+		Until:      now.Add(time.Second * 30),
+	}
+
+	runstore := state.NewRunStore()
+	run := dev.LocalRun{
+		ID:        runID,
+		RunID:     runID,
+		TaskID:    taskSlug,
+		Sleeps:    []libapi.Sleep{sleep1, sleep2},
+		CreatorID: "user1",
+	}
+	runstore.Add(taskSlug, runID, run)
+
+	h := test_utils.GetHttpExpect(
+		context.Background(),
+		t,
+		server.NewRouter(&state.State{
+			Runs:         runstore,
+			TaskConfigs:  state.NewStore[string, discover.TaskConfig](nil),
+			DevConfig:    &conf.DevConfig{},
+			RemoteClient: &api.MockClient{},
+		}),
+	)
+
+	var resp apiint.SkipSleepResponse
+	body := h.POST("/i/sleeps/skip").
+		WithJSON(apiint.SkipSleepRequest{
+			RunID:   runID,
+			SleepID: sleepID,
+		}).
+		Expect().
+		Status(http.StatusOK).Body()
+
+	err := json.Unmarshal([]byte(body.Raw()), &resp)
+	require.NoError(err)
+	require.Equal(sleepID, resp.ID)
+
+	body = h.GET("/i/sleeps/list").
+		WithQuery("runID", runID).
+		Expect().
+		Status(http.StatusOK).Body()
+
+	listSleeps := apiint.ListSleepsResponse{}
+	err = json.Unmarshal([]byte(body.Raw()), &listSleeps)
+	require.NoError(err)
+	require.Equal(2, len(listSleeps.Sleeps))
+
+	// check sleep 1 values match what was expected
+	// and is skipped
+	require.Equal(sleep1.ID, listSleeps.Sleeps[0].ID)
+	require.True(sleep1.CreatedAt.Equal(listSleeps.Sleeps[0].CreatedAt))
+	require.True(sleep1.Until.Equal(listSleeps.Sleeps[0].Until))
+	require.Equal(sleep1.DurationMs, listSleeps.Sleeps[0].DurationMs)
+	require.NotNil(listSleeps.Sleeps[0].SkippedAt)
+	require.NotNil(listSleeps.Sleeps[0].SkippedBy)
+
+	// sleep 2 should not be skipped
+	require.Equal(sleep2.ID, listSleeps.Sleeps[1].ID)
+	require.True(sleep2.CreatedAt.Equal(listSleeps.Sleeps[1].CreatedAt))
+	require.True(sleep2.Until.Equal(listSleeps.Sleeps[1].Until))
+	require.Nil(listSleeps.Sleeps[1].SkippedAt)
+	require.Nil(listSleeps.Sleeps[1].SkippedBy)
+}
+
 func TestListRuns(t *testing.T) {
 	require := require.New(t)
 	taskSlug := "task1"

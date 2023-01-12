@@ -45,6 +45,7 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/prompts/submit", handlers.HandlerWithBody(state, SubmitPromptHandler)).Methods("POST", "OPTIONS")
 
 	r.Handle("/sleeps/list", handlers.Handler(state, ListSleepsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/sleeps/skip", handlers.HandlerWithBody(state, SkipSleepHandler)).Methods("POST", "OPTIONS")
 
 	r.Handle("/runs/get", handlers.Handler(state, GetRunHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/getDescendants", handlers.Handler(state, GetDescendantsHandler)).Methods("GET", "OPTIONS")
