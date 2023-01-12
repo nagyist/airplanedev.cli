@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -274,4 +275,76 @@ func TestGetFileHandler(t *testing.T) {
 	err = json.Unmarshal([]byte(body.Raw()), &errResp)
 	require.NoError(err)
 	require.Contains(errResp.Error, "path is outside dev root")
+
+	// Traversal elements
+	body = h.GET("/dev/files/get").
+		WithQuery("path", subfilePath+"/../path").
+		Expect().
+		Status(http.StatusInternalServerError).Body()
+
+	err = json.Unmarshal([]byte(body.Raw()), &errResp)
+	require.NoError(err)
+	require.Contains(errResp.Error, "path may not contain directory traversal elements (`..`)")
+}
+
+func TestUpdateFileHandler(t *testing.T) {
+	require := require.New(t)
+
+	// Create a temporary directory and file
+	file, err := os.CreateTemp("", "airplane-dev-test")
+	require.NoError(err)
+	defer os.RemoveAll(file.Name())
+
+	h := test_utils.GetHttpExpect(
+		context.Background(),
+		t,
+		server.NewRouter(&state.State{
+			Dir: os.TempDir(),
+		}),
+	)
+
+	// Valid path
+	h.POST("/dev/files/update").
+		WithJSON(apidev.UpdateFileRequest{
+			Path:    file.Name(),
+			Content: "hello",
+		}).
+		Expect().
+		Status(http.StatusOK).Body()
+
+	body := h.GET("/dev/files/get").
+		WithQuery("path", file.Name()).
+		Expect().
+		Status(http.StatusOK).Body()
+	var resp apidev.GetFileResponse
+	err = json.Unmarshal([]byte(body.Raw()), &resp)
+	require.NoError(err)
+	require.Equal("hello", resp.Content)
+
+	// Path outside dev root
+	body = h.POST("/dev/files/update").
+		WithJSON(apidev.UpdateFileRequest{
+			Path:    "invalid_path",
+			Content: "hello",
+		}).
+		Expect().
+		Status(http.StatusInternalServerError).Body()
+
+	var errResp test_utils.ErrorResponse
+	err = json.Unmarshal([]byte(body.Raw()), &errResp)
+	require.NoError(err)
+	require.Contains(errResp.Error, "path is outside dev root")
+
+	// Traversal elements
+	body = h.POST("/dev/files/update").
+		WithJSON(apidev.UpdateFileRequest{
+			Path:    file.Name() + "/../invalid_path",
+			Content: "hello",
+		}).
+		Expect().
+		Status(http.StatusInternalServerError).Body()
+
+	err = json.Unmarshal([]byte(body.Raw()), &errResp)
+	require.NoError(err)
+	require.Contains(errResp.Error, "path may not contain directory traversal elements (`..`)")
 }

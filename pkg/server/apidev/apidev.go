@@ -38,6 +38,7 @@ func AttachDevRoutes(r *mux.Router, s *state.State) {
 	r.Handle("/list", handlers.Handler(s, ListEntrypointsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/files/list", handlers.Handler(s, ListFilesHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/files/get", handlers.Handler(s, GetFileHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/files/update", handlers.HandlerWithBody(s, UpdateFileHandler)).Methods("POST", "OPTIONS")
 
 	r.Handle("/startView/{view_slug}", handlers.Handler(s, StartViewHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/logs/{run_id}", handlers.HandlerSSE(s, LogsHandler)).Methods("GET", "OPTIONS")
@@ -280,12 +281,40 @@ func GetFileHandler(ctx context.Context, state *state.State, r *http.Request) (G
 		return GetFileResponse{}, errors.New("path is outside dev root")
 	}
 
+	if strings.Contains(path, "..") {
+		return GetFileResponse{}, errors.New("path may not contain directory traversal elements (`..`)")
+	}
+
 	contents, err := os.ReadFile(path)
 	if err != nil {
 		return GetFileResponse{}, errors.Wrap(err, "reading file")
 	}
 
 	return GetFileResponse{Content: string(contents)}, nil
+}
+
+type UpdateFileRequest struct {
+	Path    string `json:"path"`
+	Content string `json:"content"`
+}
+
+// UpdateFileHandler updates the file at the requested location. It takes in the new file contents in the request body,
+// and updates the specified file only if the file path is within the development root.
+func UpdateFileHandler(ctx context.Context, s *state.State, r *http.Request, req UpdateFileRequest) (struct{}, error) {
+	// Ensure the path is within the dev server root.
+	if !strings.HasPrefix(req.Path, s.Dir) {
+		return struct{}{}, errors.New("path is outside dev root")
+	}
+
+	if strings.Contains(req.Path, "..") {
+		return struct{}{}, errors.New("path may not contain directory traversal elements (`..`)")
+	}
+
+	if err := os.WriteFile(req.Path, []byte(req.Content), 0644); err != nil {
+		return struct{}{}, errors.Wrap(err, "writing file")
+	}
+
+	return struct{}{}, nil
 }
 
 type CreateRunResponse struct {
