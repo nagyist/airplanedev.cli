@@ -147,7 +147,7 @@ func Run(ctx context.Context, cfg config) error {
 
 	if cfg.from == "" {
 		// Prompt for new task information.
-		if err := promptForNewTask(cfg.file, &cfg.newTaskInfo, cfg.inline, cfg.workflow); err != nil {
+		if err := promptForNewTask(cfg.file, &cfg.newTaskInfo, cfg.workflow); err != nil {
 			return err
 		}
 	}
@@ -224,7 +224,9 @@ func initTask(ctx context.Context, cfg config) error {
 	if err != nil {
 		return err
 	}
-
+	if !isInlineSupportedKind(kind) {
+		cfg.inline = false
+	}
 	if cfg.workflow {
 		def.Runtime = build.TaskRuntimeWorkflow
 	}
@@ -752,7 +754,7 @@ var supportedWorkflowKindNames = []string{
 	"JavaScript",
 }
 
-func promptForNewTask(file string, info *newTaskInfo, inline bool, workflow bool) error {
+func promptForNewTask(file string, info *newTaskInfo, workflow bool) error {
 	defFormat := definitions.GetTaskDefFormat(file)
 	ext := filepath.Ext(file)
 	base := strings.TrimSuffix(filepath.Base(file), ext)
