@@ -40,16 +40,19 @@ type templateParams struct {
 	IsWorkflow                       bool
 	NodeVersion                      string
 	ExternalFlags                    string
-	InstallCommand                   string
-	InstallRequiresCode              bool
-	PreInstallCommand                string
-	PostInstallCommand               string
 	Args                             string
-	PreInstallPath                   string
-	PostInstallPath                  string
-	PackageCopyCmds                  []string
 	UseSlimImage                     bool
 	Esbuild                          string
+	Instructions                     string
+
+	// Use Instructions instead of the below
+	InstallCommand      string
+	InstallRequiresCode bool
+	PreInstallCommand   string
+	PostInstallCommand  string
+	PreInstallPath      string
+	PostInstallPath     string
+	PackageCopyCmds     []string
 
 	// FilesToBuild is a string of space-separated js/ts files to esbuild (user code) for
 	// running tasks and discovering inline configuration.
@@ -57,6 +60,271 @@ type templateParams struct {
 	// FilesToDiscover is a string of space-separated built js files to discover entity configs from.
 	// These files are the output of esbuild on FilesToBuild.
 	FilesToDiscover string
+}
+
+func getNodeBundleBuildInstructions(
+	root string,
+	options KindOptions,
+) (BuildInstructions, error) {
+	var err error
+
+	// For backwards compatibility, continue to build old Node tasks
+	// in the same way. Tasks built with the latest CLI will set
+	// shim=true which enables the new code path.
+	if shim, ok := options["shim"].(string); !ok || shim != "true" {
+		return getNodeLegacyBuildInstructions(root, options)
+	}
+
+	instructions := []InstallInstruction{
+		// Support setting BUILD_NPM_RC or BUILD_NPM_TOKEN to configure private registry auth
+		{
+			Cmd: `[ -z "${BUILD_NPM_RC}" ] || echo "${BUILD_NPM_RC}" > .npmrc`,
+		},
+		{
+			Cmd: `[ -z "${BUILD_NPM_TOKEN}" ] || echo "//registry.npmjs.org/:_authToken=${BUILD_NPM_TOKEN}" > .npmrc`,
+		},
+	}
+
+	rootPackageJSON := filepath.Join(root, "package.json")
+	hasPackageJSON := fsx.AssertExistsAll(rootPackageJSON) == nil
+
+	pathYarnLock := filepath.Join(root, "yarn.lock")
+	isYarn := fsx.AssertExistsAll(pathYarnLock) == nil
+
+	pathPackageLock := filepath.Join(root, "package-lock.json")
+	hasPackageLock := fsx.AssertExistsAll(pathPackageLock) == nil
+
+	var pkg PackageJSON
+	if hasPackageJSON {
+		pkg, err = ReadPackageJSON(rootPackageJSON)
+		if err != nil {
+			return BuildInstructions{}, err
+		}
+	}
+
+	// Install hooks can only exist in the task root for bundle builds
+	installHooks, err := GetInstallHooks("", root)
+	if err != nil {
+		return BuildInstructions{}, err
+	}
+
+	packageJSONs, _, err := GetPackageJSONs(rootPackageJSON)
+	if err != nil {
+		return BuildInstructions{}, err
+	}
+
+	var hasPackageInstallHooks bool
+	if hasPackageJSON {
+		packageCopyInstructions, err := GetPackageCopyInstructions(root, packageJSONs)
+		if err != nil {
+			return BuildInstructions{}, err
+		}
+		instructions = append(instructions, packageCopyInstructions...)
+
+		// Check all files for pre- or post-install scripts. If there are any found, then
+		// we to run the install with the entire codebase to be safe as opposed to
+		// just the package.json and yarn files (since the postinstall scripts might assume
+		// that all code is present).
+		for _, packageJSONPath := range packageJSONs {
+			hasPackageInstallHooks, err = hasInstallHooks(packageJSONPath)
+			if err != nil {
+				return BuildInstructions{}, err
+			}
+			if hasPackageInstallHooks {
+				break
+			}
+		}
+	} else {
+		// Just create an empty package.json in the root
+		instructions = append(instructions, InstallInstruction{
+			Cmd: "echo '{}' > /airplane/package.json",
+		})
+	}
+
+	var airplaneConfig config.AirplaneConfig
+	hasAirplaneConfig := fsx.Exists(filepath.Join(root, config.FileName))
+	if hasAirplaneConfig {
+		airplaneConfig, err = config.NewAirplaneConfigFromFile(root)
+		if err != nil {
+			return BuildInstructions{}, err
+		}
+	}
+
+	preinstall := []InstallInstruction{}
+	install := ""
+	postinstall := []InstallInstruction{}
+	if pkg.Settings.PreInstallCommand != "" {
+		preinstall = append(preinstall, InstallInstruction{
+			Cmd: pkg.Settings.PreInstallCommand,
+		})
+	} else if airplaneConfig.Javascript.PreInstall != "" {
+		preinstall = append(preinstall, InstallInstruction{
+			Cmd: airplaneConfig.Javascript.PreInstall,
+		})
+	} else if installHooks.PreInstallFilePath != "" {
+		preinstall = append(preinstall, InstallInstruction{
+			Cmd:        "./airplane_preinstall.sh",
+			SrcPath:    installHooks.PreInstallFilePath,
+			DstPath:    "airplane_preinstall.sh",
+			Executable: true,
+		})
+	}
+
+	if pkg.Settings.InstallCommand != "" {
+		install = pkg.Settings.InstallCommand
+	} else if airplaneConfig.Javascript.Install != "" {
+		install = airplaneConfig.Javascript.Install
+	}
+
+	if pkg.Settings.PostInstallCommand != "" {
+		postinstall = append(postinstall, InstallInstruction{
+			Cmd: pkg.Settings.PostInstallCommand,
+		})
+	} else if airplaneConfig.Javascript.PostInstall != "" {
+		postinstall = append(postinstall, InstallInstruction{
+			Cmd: airplaneConfig.Javascript.PostInstall,
+		})
+	} else if installHooks.PostInstallFilePath != "" {
+		postinstall = append(postinstall, InstallInstruction{
+			Cmd:        "./airplane_postinstall.sh",
+			SrcPath:    installHooks.PostInstallFilePath,
+			DstPath:    "airplane_postinstall.sh",
+			Executable: true,
+		})
+	}
+
+	// For safety purposes, we need to install from the full code if either (1) there are any
+	// hook scripts in the package.json files or (2) there's an airplane preinstall
+	// command; any of these could be assuming that the full code is present. This prevents us
+	// from caching the user's dependencies separately from their code.
+	//
+	// TODO: Investigate whether we can get around this by doing an npm or yarn install with
+	// an '--ignore-scripts' flag, then run it again without this flag.
+	installRequiresCode := hasPackageInstallHooks || len(preinstall) > 0
+
+	if installRequiresCode {
+		instructions = append(instructions, InstallInstruction{
+			SrcPath: ".",
+			DstPath: "/airplane",
+		})
+	}
+
+	instructions = append(instructions, preinstall...)
+
+	installCmd := makeInstallCommand(makeInstallCommandReq{
+		PkgInstallCommand: install,
+		RootPackageJSON:   rootPackageJSON,
+		IsYarn:            isYarn,
+		HasPackageLock:    hasPackageLock,
+	})
+	instructions = append(instructions, InstallInstruction{
+		Cmd: installCmd,
+	})
+
+	if !installRequiresCode {
+		instructions = append(instructions, InstallInstruction{
+			SrcPath: ".",
+			DstPath: "/airplane",
+		})
+	}
+
+	instructions = append(instructions, postinstall...)
+	instructions = append(instructions, InstallInstruction{
+		Cmd: fmt.Sprintf(`mkdir -p /airplane/.airplane && \
+			%s > /airplane/.airplane/esbuild.js`, inlineString(Esbuild)),
+	})
+
+	return BuildInstructions{
+		InstallInstructions: instructions,
+		BuildArgs: []string{
+			"BUILD_NPM_RC",
+			"BUILD_NPM_TOKEN",
+		},
+	}, nil
+}
+
+func getNodeLegacyBuildInstructions(root string, options KindOptions) (BuildInstructions, error) {
+	entrypoint, _ := options["entrypoint"].(string)
+	main := filepath.Join(root, entrypoint)
+	deps := filepath.Join(root, "package.json")
+	yarnlock := filepath.Join(root, "yarn.lock")
+	pkglock := filepath.Join(root, "package-lock.json")
+	lang, _ := options["language"].(string)
+	// `workdir` is fixed usually - `buildWorkdir` is a subdirectory of `workdir` if there's
+	// `buildCommand` and is ultimately where `entrypoint` is run from.
+	buildCommand, _ := options["buildCommand"].(string)
+	buildDir, _ := options["buildDir"].(string)
+	workdir := "/airplane"
+
+	// Make sure that entrypoint and `package.json` exist.
+	if err := fsx.AssertExistsAll(main, deps); err != nil {
+		return BuildInstructions{}, err
+	}
+
+	instructions := []InstallInstruction{
+		// Support setting BUILD_NPM_RC or BUILD_NPM_TOKEN to configure private registry auth
+		{
+			Cmd: `[ -z "${BUILD_NPM_RC}" ] || echo "${BUILD_NPM_RC}" > .npmrc`,
+		},
+		{
+			Cmd: `[ -z "${BUILD_NPM_TOKEN}" ] || echo "//registry.npmjs.org/:_authToken=${BUILD_NPM_TOKEN}" > .npmrc`,
+		},
+
+		{
+			SrcPath: ".",
+			DstPath: workdir,
+		},
+	}
+
+	// Determine the install command to use.
+	if err := fsx.AssertExistsAll(pkglock); err == nil {
+		instructions = append(instructions, InstallInstruction{
+			Cmd: `npm install package-lock.json`,
+		})
+	} else if err := fsx.AssertExistsAll(yarnlock); err == nil {
+		instructions = append(instructions, InstallInstruction{
+			Cmd: `yarn install`,
+		})
+	}
+
+	// Language specific.
+	switch lang {
+	case "typescript":
+		if buildDir == "" {
+			buildDir = ".airplane"
+		}
+		instructions = append(instructions, InstallInstruction{
+			Cmd: `npm install -g typescript@4.1`,
+		})
+		instructions = append(instructions, InstallInstruction{
+			Cmd: `[ -f tsconfig.json ] || echo '{"include": ["*", "**/*"], "exclude": ["node_modules"]}' >tsconfig.json`,
+		})
+		instructions = append(instructions, InstallInstruction{
+			Cmd: fmt.Sprintf(`rm -rf %s && tsc --outDir %s --rootDir .`, buildDir, buildDir),
+		})
+		if buildCommand != "" {
+			// It's not totally expected, but if you do set buildCommand we'll run it after tsc
+			instructions = append(instructions, InstallInstruction{
+				Cmd: buildCommand,
+			})
+		}
+	case "javascript":
+		if buildCommand != "" {
+			instructions = append(instructions, InstallInstruction{
+				Cmd: buildCommand,
+			})
+		}
+	default:
+		return BuildInstructions{}, errors.Errorf("build: unknown language %q, expected \"javascript\" or \"typescript\"", lang)
+	}
+
+	return BuildInstructions{
+		InstallInstructions: instructions,
+		BuildArgs: []string{
+			"BUILD_NPM_RC",
+			"BUILD_NPM_TOKEN",
+		},
+	}, nil
 }
 
 // node creates a dockerfile for Node (typescript/javascript).
@@ -482,31 +750,17 @@ func TemplateEntrypoint(script string, params NodeShimParams) (string, error) {
 // TODO(amir): possibly just run `npm start` instead of exposing lots
 // of options to users?
 func nodeLegacyBuilder(root string, options KindOptions) (string, error) {
-	entrypoint, _ := options["entrypoint"].(string)
-	main := filepath.Join(root, entrypoint)
-	deps := filepath.Join(root, "package.json")
-	yarnlock := filepath.Join(root, "yarn.lock")
-	pkglock := filepath.Join(root, "package-lock.json")
-	lang, _ := options["language"].(string)
-	// `workdir` is fixed usually - `buildWorkdir` is a subdirectory of `workdir` if there's
-	// `buildCommand` and is ultimately where `entrypoint` is run from.
-	buildCommand, _ := options["buildCommand"].(string)
-	buildDir, _ := options["buildDir"].(string)
-	workdir := "/airplane"
-	buildWorkdir := "/airplane"
-	cmds := []string{}
-
-	// Make sure that entrypoint and `package.json` exist.
-	if err := fsx.AssertExistsAll(main, deps); err != nil {
+	instructions, err := getNodeLegacyBuildInstructions(root, options)
+	if err != nil {
 		return "", err
 	}
 
-	// Determine the install command to use.
-	if err := fsx.AssertExistsAll(pkglock); err == nil {
-		cmds = append(cmds, `npm install package-lock.json`)
-	} else if err := fsx.AssertExistsAll(yarnlock); err == nil {
-		cmds = append(cmds, `yarn install`)
-	}
+	entrypoint, _ := options["entrypoint"].(string)
+	lang, _ := options["language"].(string)
+	// `workdir` is fixed usually - `buildWorkdir` is a subdirectory of `workdir` if there's
+	buildDir, _ := options["buildDir"].(string)
+	workdir := "/airplane"
+	buildWorkdir := "/airplane"
 
 	// Language specific.
 	switch lang {
@@ -514,20 +768,10 @@ func nodeLegacyBuilder(root string, options KindOptions) (string, error) {
 		if buildDir == "" {
 			buildDir = ".airplane"
 		}
-		cmds = append(cmds, `npm install -g typescript@4.1`)
-		cmds = append(cmds, `[ -f tsconfig.json ] || echo '{"include": ["*", "**/*"], "exclude": ["node_modules"]}' >tsconfig.json`)
-		cmds = append(cmds, fmt.Sprintf(`rm -rf %s && tsc --outDir %s --rootDir .`, buildDir, buildDir))
-		if buildCommand != "" {
-			// It's not totally expected, but if you do set buildCommand we'll run it after tsc
-			cmds = append(cmds, buildCommand)
-		}
 		buildWorkdir = path.Join(workdir, buildDir)
 		// If entrypoint ends in .ts, replace it with .js
 		entrypoint = strings.TrimSuffix(entrypoint, ".ts") + ".js"
 	case "javascript":
-		if buildCommand != "" {
-			cmds = append(cmds, buildCommand)
-		}
 		if buildDir != "" {
 			buildWorkdir = path.Join(workdir, buildDir)
 		}
@@ -541,31 +785,28 @@ func nodeLegacyBuilder(root string, options KindOptions) (string, error) {
 		return "", err
 	}
 
+	dockerfileInstructions, err := instructions.DockerfileString()
+	if err != nil {
+		return "", err
+	}
+
 	return applyTemplate(heredoc.Doc(`
 		FROM {{ .Base }}
 		WORKDIR {{ .Workdir }}
-		# Support setting BUILD_NPM_RC or BUILD_NPM_TOKEN to configure private registry auth
-		ARG BUILD_NPM_RC
-		ARG BUILD_NPM_TOKEN
-		RUN [ -z "${BUILD_NPM_RC}" ] || echo "${BUILD_NPM_RC}" > .npmrc
-		RUN [ -z "${BUILD_NPM_TOKEN}" ] || echo "//registry.npmjs.org/:_authToken=${BUILD_NPM_TOKEN}" > .npmrc
-		COPY . {{ .Workdir }}
-		{{ range .Commands }}
-		RUN {{ . }}
-		{{ end }}
+		{{ .Instructions }}
 		WORKDIR {{ .BuildWorkdir }}
 		ENTRYPOINT ["node", "{{ .Main }}"]
 	`), struct {
 		Base         string
 		Workdir      string
 		BuildWorkdir string
-		Commands     []string
+		Instructions string
 		Main         string
 	}{
 		Base:         baseImage,
 		Workdir:      workdir,
 		BuildWorkdir: buildWorkdir,
-		Commands:     cmds,
+		Instructions: dockerfileInstructions,
 		Main:         entrypoint,
 	})
 }
@@ -685,15 +926,14 @@ func nodeBundle(
 		return nodeLegacyBuilder(root, options)
 	}
 
+	instructions, err := getNodeBundleBuildInstructions(root, options)
+	if err != nil {
+		return "", err
+	}
+
 	workdir, _ := options["workdir"].(string)
 	rootPackageJSON := filepath.Join(root, "package.json")
 	hasPackageJSON := fsx.AssertExistsAll(rootPackageJSON) == nil
-
-	pathYarnLock := filepath.Join(root, "yarn.lock")
-	isYarn := fsx.AssertExistsAll(pathYarnLock) == nil
-
-	pathPackageLock := filepath.Join(root, "package-lock.json")
-	hasPackageLock := fsx.AssertExistsAll(pathPackageLock) == nil
 
 	var pkg PackageJSON
 	if hasPackageJSON {
@@ -701,33 +941,6 @@ func nodeBundle(
 		if err != nil {
 			return "", err
 		}
-	}
-
-	var airplaneConfig config.AirplaneConfig
-	hasAirplaneConfig := fsx.Exists(filepath.Join(root, config.FileName))
-	if hasAirplaneConfig {
-		airplaneConfig, err = config.NewAirplaneConfigFromFile(root)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	// Install hooks can only exist in the task root for bundle builds
-	installHooks, err := GetInstallHooks("", root)
-	if err != nil {
-		return "", err
-	}
-	preinstallCommand := pkg.Settings.PreInstallCommand
-	if preinstallCommand == "" {
-		preinstallCommand = airplaneConfig.Javascript.PreInstall
-	}
-	postInstallCommand := pkg.Settings.PostInstallCommand
-	if postInstallCommand == "" {
-		postInstallCommand = airplaneConfig.Javascript.PostInstall
-	}
-	installCommand := pkg.Settings.InstallCommand
-	if installCommand == "" {
-		installCommand = airplaneConfig.Javascript.Install
 	}
 
 	type TaskImport struct {
@@ -756,6 +969,11 @@ func nodeBundle(
 		return "", err
 	}
 
+	dockerfileInstructions, err := instructions.DockerfileString()
+	if err != nil {
+		return "", err
+	}
+
 	cfg := templateParams{
 		Workdir:        workdir,
 		HasPackageJSON: hasPackageJSON,
@@ -763,17 +981,13 @@ func nodeBundle(
 		// esbuild is relatively generous in the node versions it supports:
 		// https://esbuild.github.io/api/#target
 		NodeVersion:                      string(buildContext.VersionOrDefault()),
-		PreInstallCommand:                preinstallCommand,
-		PostInstallCommand:               postInstallCommand,
-		PreInstallPath:                   installHooks.PreInstallFilePath,
-		PostInstallPath:                  installHooks.PostInstallFilePath,
 		Args:                             makeArgsCommand(buildArgs),
+		Instructions:                     dockerfileInstructions,
 		InlineTaskShim:                   inlineString(UniversalNodeShim),
 		InlineWorkerShim:                 inlineString(workerShim),
 		InlineWorkflowShim:               inlineString(universalWorkflowShimTemplated),
 		InlineWorkflowBundlerScript:      inlineString(workflowBundlerScript),
 		InlineWorkflowInterceptorsScript: inlineString(workflowInterceptorsScript),
-		Esbuild:                          inlineString(Esbuild),
 	}
 
 	// Generate a list of all of the files to build
@@ -796,32 +1010,6 @@ func nodeBundle(
 	packageJSONs, usesWorkspaces, err := GetPackageJSONs(rootPackageJSON)
 	if err != nil {
 		return "", err
-	}
-
-	var hasPackageInstallHooks bool
-
-	if cfg.HasPackageJSON {
-		cfg.PackageCopyCmds, err = GetPackageCopyCmds(root, packageJSONs)
-		if err != nil {
-			return "", err
-		}
-
-		// Check all files for pre- or post-install scripts. If there are any found, then
-		// we to run the install with the entire codebase to be safe as opposed to
-		// just the package.json and yarn files (since the postinstall scripts might assume
-		// that all code is present).
-		for _, packageJSONPath := range packageJSONs {
-			hasPackageInstallHooks, err = hasInstallHooks(packageJSONPath)
-			if err != nil {
-				return "", err
-			}
-			if hasPackageInstallHooks {
-				break
-			}
-		}
-	} else {
-		// Just create an empty package.json in the root
-		cfg.PackageCopyCmds = []string{"RUN echo '{}' > /airplane/package.json"}
 	}
 
 	if cfg.HasPackageJSON {
@@ -866,24 +1054,6 @@ func nodeBundle(
 	}
 	cfg.InlineWorkflowShimPackageJSON = inlineString(string(workflowpjson))
 
-	cfg.InstallCommand = makeInstallCommand(makeInstallCommandReq{
-		PkgInstallCommand: installCommand,
-		RootPackageJSON:   rootPackageJSON,
-		IsYarn:            isYarn,
-		HasPackageLock:    hasPackageLock,
-	})
-
-	// For safety purposes, we need to install from the full code if either (1) there are any
-	// hook scripts in the package.json files or (2) there's an airplane preinstall
-	// command; any of these could be assuming that the full code is present. This prevents us
-	// from caching the user's dependencies separately from their code.
-	//
-	// TODO: Investigate whether we can get around this by doing an npm or yarn install with
-	// an '--ignore-scripts' flag, then run it again without this flag.
-	cfg.InstallRequiresCode = hasPackageInstallHooks ||
-		cfg.PreInstallCommand != "" ||
-		cfg.PreInstallPath != ""
-
 	if len(filesToDiscover) > 0 {
 		// Generate parser and store on context
 		parserPath := path.Join(root, ".airplane-build-tools", "inlineParser.cjs")
@@ -920,44 +1090,8 @@ func nodeBundle(
 			&& apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 		{{end}}
 
-		# Support setting BUILD_NPM_RC or BUILD_NPM_TOKEN to configure private registry auth
-		ARG BUILD_NPM_RC
-		ARG BUILD_NPM_TOKEN
-		RUN [ -z "${BUILD_NPM_RC}" ] || echo "${BUILD_NPM_RC}" > .npmrc
-		RUN [ -z "${BUILD_NPM_TOKEN}" ] || echo "//registry.npmjs.org/:_authToken=${BUILD_NPM_TOKEN}" > .npmrc
-
-		{{range .PackageCopyCmds}}
-		{{.}}
-		{{end}}
-
-		{{if .InstallRequiresCode}}
-		COPY . /airplane
-		{{end}}
-
 		{{.Args}}
-
-		{{if .PreInstallCommand}}
-		RUN {{.PreInstallCommand}}
-		{{else if .PreInstallPath}}
-		COPY {{ .PreInstallPath }} airplane_preinstall.sh
-		RUN chmod +x airplane_preinstall.sh && ./airplane_preinstall.sh
-		{{end}}
-
-		RUN {{.InstallCommand}}
-
-		{{if not .InstallRequiresCode}}
-		COPY . /airplane
-		{{end}}
-
-		{{if .PostInstallCommand}}
-		RUN {{.PostInstallCommand}}
-		{{else if .PostInstallPath}}
-		COPY {{ .PostInstallPath }} airplane_postinstall.sh
-		RUN chmod +x airplane_postinstall.sh && ./airplane_postinstall.sh
-		{{end}}
-
-		RUN mkdir -p /airplane/.airplane && \
-			{{.Esbuild}} > /airplane/.airplane/esbuild.js
+		{{.Instructions}}
 
 		FROM {{.Base}} as workflow-build
 		ENV NODE_ENV=production

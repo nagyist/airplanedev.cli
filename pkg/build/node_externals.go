@@ -64,8 +64,33 @@ func GetPackageJSONs(rootPackageJSON string) (pathPackageJSONs []string, usesWor
 // us to do a yarn or npm install on top of just these, allowing us to cache
 // the dependencies across builds.
 func GetPackageCopyCmds(baseDir string, pathPackageJSONs []string) ([]string, error) {
-	srcPaths := map[string]struct{}{}
+	instructions, err := GetPackageCopyInstructions(baseDir, pathPackageJSONs)
+	if err != nil {
+		return nil, err
+	}
+
 	copyCommands := []string{}
+	for _, inst := range instructions {
+		copyCommands = append(
+			copyCommands,
+			fmt.Sprintf(
+				"COPY %s %s",
+				inst.SrcPath,
+				inst.DstPath,
+			),
+		)
+	}
+
+	return copyCommands, nil
+}
+
+// GetPackageCopyInstructions gets a set of COPY commands that can be used
+// to copy just the package json and yarn files needed for a workspace. This allows
+// us to do a yarn or npm install on top of just these, allowing us to cache
+// the dependencies across builds.
+func GetPackageCopyInstructions(baseDir string, pathPackageJSONs []string) ([]InstallInstruction, error) {
+	srcPaths := map[string]struct{}{}
+	copyInstructions := []InstallInstruction{}
 
 	for _, pathPackageJSON := range pathPackageJSONs {
 		packageDir := filepath.Dir(pathPackageJSON)
@@ -84,30 +109,31 @@ func GetPackageCopyCmds(baseDir string, pathPackageJSONs []string) ([]string, er
 			destPath = destPath + "/"
 		}
 
-		copyCommands = append(
-			copyCommands,
-			fmt.Sprintf(
-				"COPY %s %s %s",
-				filepath.Join(srcPath, "package*.json"),
-				// As long as there's a match for the previous glob,
-				// Docker won't complain if there aren't any matches for this one.
-				filepath.Join(srcPath, "yarn.*"),
-				destPath,
-			),
-		)
+		copyInstructions = append(
+			copyInstructions,
+			InstallInstruction{
+				SrcPath: fmt.Sprintf("%s %s",
+					filepath.Join(srcPath, "package*.json"),
+					// As long as there's a match for the previous glob,
+					// Docker won't complain if there aren't any matches for this one.
+					filepath.Join(srcPath, "yarn.*"),
+				),
+				DstPath: destPath,
+			})
 	}
 
 	// Sort the results so they're returned in a consistent order (which map
 	// iteration doesn't guarantee).
-	sort.Slice(copyCommands, func(a, b int) bool {
-		numComponentsA := strings.Count(copyCommands[a], "/")
-		numComponentsB := strings.Count(copyCommands[b], "/")
+	sort.Slice(copyInstructions, func(a, b int) bool {
+		numComponentsA := strings.Count(copyInstructions[a].SrcPath+copyInstructions[a].DstPath, "/")
+		numComponentsB := strings.Count(copyInstructions[b].SrcPath+copyInstructions[b].DstPath, "/")
 
 		return (numComponentsA < numComponentsB) ||
-			(numComponentsA == numComponentsB && copyCommands[a] < copyCommands[b])
+			(numComponentsA == numComponentsB &&
+				copyInstructions[a].SrcPath < copyInstructions[b].SrcPath)
 	})
 
-	return copyCommands, nil
+	return copyInstructions, nil
 }
 
 // ExternalPackages reads a list of package.json files and returns all dependencies and dev dependencies. This is used

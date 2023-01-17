@@ -301,6 +301,8 @@ func GetBundleBuildInstructions(c BundleDockerfileConfig) (BuildInstructions, er
 	switch c.BuildContext.Type {
 	case PythonBuildType:
 		return getPythonBundleBuildInstructions(c.Root, c.Options, "")
+	case NodeBuildType:
+		return getNodeBundleBuildInstructions(c.Root, c.Options)
 	default:
 		return BuildInstructions{}, ErrUnsupportedBuilder{
 			Type: c.BuildContext.Type,

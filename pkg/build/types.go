@@ -154,10 +154,14 @@ type Values = map[string]interface{}
 
 type BuildInstructions struct {
 	InstallInstructions []InstallInstruction
+	BuildArgs           []string
 }
 
 func (i BuildInstructions) DockerfileString() (string, error) {
 	return applyTemplate(heredoc.Doc(`
+		{{range .BuildArgs}}
+		ARG {{.}}
+		{{end}}
 		{{range .InstallInstructions}}
 		{{if .SrcPath}}
 		COPY {{.SrcPath}} {{if .DstPath}}{{.DstPath}}{{else}}.{{end}}
