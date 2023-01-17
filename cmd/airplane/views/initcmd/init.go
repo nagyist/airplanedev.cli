@@ -117,7 +117,8 @@ func createViewScaffolding(ctx context.Context, cfg *config) error {
 			return err
 		}
 	}
-	if err := createEntrypoint(*cfg); err != nil {
+	entrypoint, err := createEntrypoint(*cfg)
+	if err != nil {
 		return err
 	}
 	cwd, err := os.Getwd()
@@ -141,9 +142,11 @@ func createViewScaffolding(ctx context.Context, cfg *config) error {
 	if err != nil {
 		return err
 	}
-	// Create/update tsconfig in the same directory as the package.json file
-	if err := node.CreateViewTSConfig(packageJSONDir); err != nil {
-		return err
+	if filepath.Ext(entrypoint) == ".tsx" {
+		// Create/update tsconfig in the same directory as the package.json file
+		if err := node.CreateViewTSConfig(packageJSONDir); err != nil {
+			return err
+		}
 	}
 
 	if err := utils.CreateDefaultGitignoreFile(".gitignore"); err != nil {
@@ -197,31 +200,31 @@ var defaultEntrypoint []byte
 //go:embed scaffolding/default_inline.airplane.tsx
 var defaultEntrypointInline []byte
 
-func createEntrypoint(cfg config) error {
+func createEntrypoint(cfg config) (string, error) {
 	entrypointPath := generateEntrypointPath(cfg, false)
 
 	var entrypointContents []byte
 	if cfg.inline {
 		tmpl, err := template.New("entrypoint").Parse(string(defaultEntrypointInline))
 		if err != nil {
-			return errors.Wrap(err, "parsing entrypoint template")
+			return "", errors.Wrap(err, "parsing entrypoint template")
 		}
 		buf := new(bytes.Buffer)
 		if err := tmpl.Execute(buf, map[string]interface{}{
 			"Slug": cfg.slug,
 			"Name": cfg.name,
 		}); err != nil {
-			return errors.Wrap(err, "executing entrypoint template")
+			return "", errors.Wrap(err, "executing entrypoint template")
 		}
 		entrypointContents = buf.Bytes()
 	} else {
 		entrypointContents = defaultEntrypoint
 	}
 	if err := os.WriteFile(entrypointPath, entrypointContents, 0644); err != nil {
-		return errors.Wrap(err, "creating view entrypoint")
+		return "", errors.Wrap(err, "creating view entrypoint")
 	}
 	logger.Step("Created view entrypoint at %s", entrypointPath)
-	return nil
+	return entrypointPath, nil
 }
 
 func suggestNextSteps(cfg config) {

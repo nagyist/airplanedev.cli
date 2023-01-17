@@ -939,9 +939,11 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 				return err
 			}
 		}
-		// Create/update tsconfig in the same directory as the package.json file
-		if err := node.CreateTaskTSConfig(packageJSONDir); err != nil {
-			return err
+		if filepath.Ext(entrypoint) == ".ts" || filepath.Ext(entrypoint) == ".tsx" {
+			// Create/update tsconfig in the same directory as the package.json file
+			if err := node.CreateTaskTSConfig(packageJSONDir); err != nil {
+				return err
+			}
 		}
 		return nil
 	case build.TaskKindPython:
