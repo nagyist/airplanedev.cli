@@ -296,3 +296,14 @@ func BuildBundleDockerfile(c BundleDockerfileConfig) (string, error) {
 		return "", errors.Errorf("build: unknown build type %v", c.BuildContext.Type)
 	}
 }
+
+func GetBundleBuildInstructions(c BundleDockerfileConfig) (BuildInstructions, error) {
+	switch c.BuildContext.Type {
+	case PythonBuildType:
+		return getPythonBundleBuildInstructions(c.Root, c.Options, "")
+	default:
+		return BuildInstructions{}, ErrUnsupportedBuilder{
+			Type: c.BuildContext.Type,
+		}
+	}
+}

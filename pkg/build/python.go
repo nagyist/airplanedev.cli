@@ -21,6 +21,136 @@ const (
 	DefaultPythonVersion = BuildTypeVersionPython310
 )
 
+func getPythonBuildInstructions(
+	root string,
+	opts KindOptions,
+	shim string,
+) (BuildInstructions, error) {
+	// Assert that the entrypoint file exists:
+	entrypoint, _ := opts["entrypoint"].(string)
+	if err := fsx.AssertExistsAll(filepath.Join(root, entrypoint)); err != nil {
+		return BuildInstructions{}, err
+	}
+
+	installHooks, err := GetInstallHooks(entrypoint, root)
+	if err != nil {
+		return BuildInstructions{}, err
+	}
+
+	return getPythonBuildInstructionsInternal(root, opts, shim, installHooks)
+}
+
+func getPythonBundleBuildInstructions(
+	root string,
+	opts KindOptions,
+	shim string,
+) (BuildInstructions, error) {
+	// Install hooks can only exist in the task root for bundle builds
+	installHooks, err := GetInstallHooks("", root)
+	if err != nil {
+		return BuildInstructions{}, err
+	}
+
+	return getPythonBuildInstructionsInternal(root, opts, shim, installHooks)
+}
+func getPythonBuildInstructionsInternal(
+	root string,
+	opts KindOptions,
+	shim string,
+	installHooks installHooks,
+) (BuildInstructions, error) {
+	if opts["shim"] != "true" {
+		return pythonLegacyInstructions(root, opts)
+	}
+
+	instructions := []InstallInstruction{
+		{
+			Cmd: `pip install "airplanesdk>=0.3.0,<0.4.0"`,
+		},
+	}
+	if shim != "" {
+		instructions = append(instructions, InstallInstruction{
+			Cmd: fmt.Sprintf(`mkdir -p .airplane && %s > .airplane/shim.py`, inlineString(shim)),
+		})
+	}
+
+	preinstall := []InstallInstruction{}
+	postinstall := []InstallInstruction{}
+	var airplaneConfig config.AirplaneConfig
+	hasAirplaneConfig := fsx.Exists(filepath.Join(root, config.FileName))
+	if hasAirplaneConfig {
+		var err error
+		airplaneConfig, err = config.NewAirplaneConfigFromFile(root)
+		if err != nil {
+			return BuildInstructions{}, err
+		}
+		if airplaneConfig.Python.PreInstall != "" {
+			preinstall = append(preinstall, InstallInstruction{
+				Cmd: airplaneConfig.Python.PreInstall,
+			})
+		}
+		if airplaneConfig.Python.PostInstall != "" {
+			postinstall = append(postinstall, InstallInstruction{
+				Cmd: airplaneConfig.Python.PostInstall,
+			})
+		}
+	}
+
+	if len(preinstall) == 0 && installHooks.PreInstallFilePath != "" {
+		preinstall = append(preinstall, InstallInstruction{
+			Cmd:        "./airplane_preinstall.sh",
+			SrcPath:    installHooks.PreInstallFilePath,
+			DstPath:    "airplane_preinstall.sh",
+			Executable: true,
+		})
+	}
+	if len(postinstall) == 0 && installHooks.PostInstallFilePath != "" {
+		postinstall = append(postinstall, InstallInstruction{
+			Cmd:        "./airplane_postinstall.sh",
+			SrcPath:    installHooks.PostInstallFilePath,
+			DstPath:    "airplane_postinstall.sh",
+			Executable: true,
+		})
+	}
+
+	instructions = append(instructions, preinstall...)
+
+	requirementsPath := filepath.Join(root, "requirements.txt")
+	hasRequirements := fsx.Exists(requirementsPath)
+	var embeddedRequirements []string
+	var err error
+	if hasRequirements {
+		instructions = append(instructions, InstallInstruction{
+			SrcPath: "requirements.txt",
+		})
+		embeddedRequirements, err = collectEmbeddedRequirements(root, requirementsPath)
+		if err != nil {
+			return BuildInstructions{}, err
+		}
+		for _, embeddedReq := range embeddedRequirements {
+			instructions = append(instructions, InstallInstruction{
+				SrcPath: embeddedReq,
+			})
+		}
+
+		if fsx.Exists(filepath.Join(root, "pip.conf")) {
+			instructions = append(instructions, InstallInstruction{
+				SrcPath: "pip.conf",
+			})
+		}
+
+		instructions = append(instructions, InstallInstruction{
+			Cmd: `pip install -r requirements.txt`,
+		})
+	}
+
+	instructions = append(instructions, postinstall...)
+
+	return BuildInstructions{
+		InstallInstructions: instructions,
+	}, nil
+}
+
 // Python creates a dockerfile for Python.
 func python(
 	root string,
@@ -34,34 +164,6 @@ func python(
 	// Assert that the entrypoint file exists:
 	entrypoint, _ := opts["entrypoint"].(string)
 	if err := fsx.AssertExistsAll(filepath.Join(root, entrypoint)); err != nil {
-		return "", err
-	}
-
-	requirementsPath := filepath.Join(root, "requirements.txt")
-	hasRequirements := fsx.Exists(requirementsPath)
-	var embeddedRequirements []string
-	var err error
-	if hasRequirements {
-		embeddedRequirements, err = collectEmbeddedRequirements(root, requirementsPath)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	var airplaneConfig config.AirplaneConfig
-	hasAirplaneConfig := fsx.Exists(filepath.Join(root, config.FileName))
-	if hasAirplaneConfig {
-		var err error
-		airplaneConfig, err = config.NewAirplaneConfigFromFile(root)
-		if err != nil {
-			return "", err
-		}
-	}
-	preinstallCommand := airplaneConfig.Python.PreInstall
-	postInstallCommand := airplaneConfig.Python.PostInstall
-
-	installHooks, err := GetInstallHooks(entrypoint, root)
-	if err != nil {
 		return "", err
 	}
 
@@ -82,10 +184,22 @@ func python(
 		return "", err
 	}
 
-	for i, a := range buildArgs {
-		buildArgs[i] = fmt.Sprintf("ARG %s", a)
+	instructions, err := getPythonBuildInstructions(root, opts, shim)
+	if err != nil {
+		return "", err
 	}
-	argsCommand := strings.Join(buildArgs, "\n")
+
+	args := make([]string, len(buildArgs))
+	for i, a := range buildArgs {
+		args[i] = fmt.Sprintf("ARG %s", a)
+	}
+	argsCommand := strings.Join(args, "\n")
+
+	dockerfileInstructions, err := instructions.DockerfileString()
+	if err != nil {
+		return "", err
+	}
+
 	dockerfile := heredoc.Doc(`
 		FROM {{ .Base }}
 
@@ -96,36 +210,11 @@ func python(
 			&& apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 		WORKDIR /airplane
-		RUN pip install "airplanesdk>=0.3.0,<0.4.0"
-		RUN mkdir -p .airplane && {{.InlineShim}} > .airplane/shim.py
+		ENV PIP_CONFIG_FILE=pip.conf
 
 		{{.Args}}
 
-		{{if .PreInstallCommand}}
-		RUN {{.PreInstallCommand}}
-		{{else if .PreInstallPath}}
-		COPY {{ .PreInstallPath }} airplane_preinstall.sh
-		RUN chmod +x airplane_preinstall.sh && ./airplane_preinstall.sh
-		{{end}}
-
-		{{if .HasRequirements}}
-		COPY requirements.txt .
-		{{range .EmbeddedRequirements}}
-		COPY {{.}} .
-		{{end}}
-		{{if .HasPipConf}}
-		COPY pip.conf .
-		ENV PIP_CONFIG_FILE=pip.conf
-		{{end}}
-		RUN pip install -r requirements.txt
-		{{end}}
-
-		{{if .PostInstallCommand}}
-		RUN {{.PostInstallCommand}}
-		{{else if .PostInstallPath}}
-		COPY {{ .PostInstallPath }} airplane_postinstall.sh
-		RUN chmod +x airplane_postinstall.sh && ./airplane_postinstall.sh
-		{{end}}
+		{{.Instructions}}
 
 		COPY . .
 		ENV PYTHONUNBUFFERED=1
@@ -133,27 +222,13 @@ func python(
 	`)
 
 	df, err := applyTemplate(dockerfile, struct {
-		Base                 string
-		InlineShim           string
-		HasRequirements      bool
-		EmbeddedRequirements []string
-		HasPipConf           bool
-		Args                 string
-		PreInstallPath       string
-		PostInstallPath      string
-		PreInstallCommand    string
-		PostInstallCommand   string
+		Base         string
+		Args         string
+		Instructions string
 	}{
-		Base:                 v.String(),
-		InlineShim:           inlineString(shim),
-		HasRequirements:      hasRequirements,
-		EmbeddedRequirements: embeddedRequirements,
-		HasPipConf:           fsx.Exists(filepath.Join(root, "pip.conf")),
-		Args:                 argsCommand,
-		PreInstallCommand:    preinstallCommand,
-		PostInstallCommand:   postInstallCommand,
-		PreInstallPath:       installHooks.PreInstallFilePath,
-		PostInstallPath:      installHooks.PostInstallFilePath,
+		Base:         v.String(),
+		Args:         argsCommand,
+		Instructions: dockerfileInstructions,
 	})
 	if err != nil {
 		return "", errors.Wrapf(err, "rendering dockerfile")
@@ -207,35 +282,6 @@ func pythonBundle(
 		return pythonLegacy(root, opts)
 	}
 
-	requirementsPath := filepath.Join(root, "requirements.txt")
-	hasRequirements := fsx.Exists(requirementsPath)
-	var embeddedRequirements []string
-	var err error
-	if hasRequirements {
-		embeddedRequirements, err = collectEmbeddedRequirements(root, requirementsPath)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	var airplaneConfig config.AirplaneConfig
-	hasAirplaneConfig := fsx.Exists(filepath.Join(root, config.FileName))
-	if hasAirplaneConfig {
-		var err error
-		airplaneConfig, err = config.NewAirplaneConfigFromFile(root)
-		if err != nil {
-			return "", err
-		}
-	}
-	preinstallCommand := airplaneConfig.Python.PreInstall
-	postInstallCommand := airplaneConfig.Python.PostInstall
-
-	// Install hooks can only exist in the task root for bundle builds
-	installHooks, err := GetInstallHooks("", root)
-	if err != nil {
-		return "", err
-	}
-
 	useSlimImage := buildContext.Base == BuildBaseSlim
 	v, err := GetVersion(NamePython, string(buildContext.VersionOrDefault()), useSlimImage)
 	if err != nil {
@@ -247,10 +293,16 @@ func pythonBundle(
 		return "", err
 	}
 
-	for i, a := range buildArgs {
-		buildArgs[i] = fmt.Sprintf("ARG %s", a)
+	instructions, err := getPythonBundleBuildInstructions(root, opts, shim)
+	if err != nil {
+		return "", err
 	}
-	argsCommand := strings.Join(buildArgs, "\n")
+
+	args := make([]string, len(buildArgs))
+	for i, a := range buildArgs {
+		args[i] = fmt.Sprintf("ARG %s", a)
+	}
+	argsCommand := strings.Join(args, "\n")
 
 	// Add build tools.
 	buildToolsPath := path.Join(root, ".airplane-build-tools")
@@ -264,6 +316,12 @@ func pythonBundle(
 			return "", errors.Wrap(err, "writing parser script")
 		}
 	}
+
+	dockerfileInstructions, err := instructions.DockerfileString()
+	if err != nil {
+		return "", err
+	}
+
 	dockerfile := heredoc.Doc(`
 		FROM {{ .Base }}
 
@@ -274,36 +332,11 @@ func pythonBundle(
 			&& apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 		WORKDIR /airplane
-		RUN pip install "airplanesdk>=0.3.0,<0.4.0"
-		RUN mkdir -p .airplane && {{.InlineShim}} > .airplane/shim.py
+		ENV PIP_CONFIG_FILE=pip.conf
 
 		{{.Args}}
 
-		{{if .PreInstallCommand}}
-		RUN {{.PreInstallCommand}}
-		{{else if .PreInstallPath}}
-		COPY {{ .PreInstallPath }} airplane_preinstall.sh
-		RUN chmod +x airplane_preinstall.sh && ./airplane_preinstall.sh
-		{{end}}
-
-		{{if .HasRequirements}}
-		COPY requirements.txt .
-		{{range .EmbeddedRequirements}}
-		COPY {{.}} .
-		{{end}}
-		{{if .HasPipConf}}
-		COPY pip.conf .
-		ENV PIP_CONFIG_FILE=pip.conf
-		{{end}}
-		RUN pip install -r requirements.txt
-		{{end}}
-
-		{{if .PostInstallCommand}}
-		RUN {{.PostInstallCommand}}
-		{{else if .PostInstallPath}}
-		COPY {{ .PostInstallPath }} airplane_postinstall.sh
-		RUN chmod +x airplane_postinstall.sh && ./airplane_postinstall.sh
-		{{end}}
+		{{.Instructions}}
 
 		COPY . .
 		ENV PYTHONUNBUFFERED=1
@@ -314,29 +347,15 @@ func pythonBundle(
 	`)
 
 	df, err := applyTemplate(dockerfile, struct {
-		Base                 string
-		InlineShim           string
-		HasRequirements      bool
-		EmbeddedRequirements []string
-		HasPipConf           bool
-		Args                 string
-		PreInstallPath       string
-		PostInstallPath      string
-		PreInstallCommand    string
-		PostInstallCommand   string
-		FilesToDiscover      string
+		Base            string
+		Args            string
+		Instructions    string
+		FilesToDiscover string
 	}{
-		Base:                 v.String(),
-		InlineShim:           inlineString(shim),
-		HasRequirements:      hasRequirements,
-		EmbeddedRequirements: embeddedRequirements,
-		HasPipConf:           fsx.Exists(filepath.Join(root, "pip.conf")),
-		Args:                 argsCommand,
-		PreInstallPath:       installHooks.PreInstallFilePath,
-		PostInstallPath:      installHooks.PostInstallFilePath,
-		PreInstallCommand:    preinstallCommand,
-		PostInstallCommand:   postInstallCommand,
-		FilesToDiscover:      strings.Join(filesToDiscover, " "),
+		Base:            v.String(),
+		Args:            argsCommand,
+		Instructions:    dockerfileInstructions,
+		FilesToDiscover: strings.Join(filesToDiscover, " "),
 	})
 	if err != nil {
 		return "", errors.Wrapf(err, "rendering dockerfile")
@@ -390,10 +409,14 @@ func UniversalPythonShim(taskRoot string) (string, error) {
 
 // PythonLegacy generates a dockerfile for legacy python support.
 func pythonLegacy(root string, args KindOptions) (string, error) {
-	var entrypoint, _ = args["entrypoint"].(string)
-	var main = filepath.Join(root, entrypoint)
-	var reqs = filepath.Join(root, "requirements.txt")
+	instructions, err := pythonLegacyInstructions(root, args)
+	if err != nil {
+		return "", err
+	}
 
+	var entrypoint, _ = args["entrypoint"].(string)
+
+	var main = filepath.Join(root, entrypoint)
 	if err := fsx.AssertExistsAll(main); err != nil {
 		return "", err
 	}
@@ -401,11 +424,15 @@ func pythonLegacy(root string, args KindOptions) (string, error) {
 	t, err := template.New("python").Parse(heredoc.Doc(`
 		FROM {{ .Base }}
 		WORKDIR /airplane
-		{{if not .HasRequirements}}
-		RUN echo > requirements.txt
+		{{range .InstallInstructions}}
+		{{if .SrcPath}}
+		COPY {{.SrcPath}} {{if .DstPath}}{{.DstPath}}{{else}}.{{end}}
+		{{if .Executable}}
+		RUN chmod +x {{if .DstPath}}{{.DstPath}}{{else}}{{.SrcPath}}{{end}}
 		{{end}}
-		COPY . .
-		RUN pip install -r requirements.txt
+		{{end}}
+		{{if .Cmd}}RUN {{.Cmd}}{{end}}
+		{{end}}
 		ENTRYPOINT ["python", "/airplane/{{ .Entrypoint }}"]
 	`))
 	if err != nil {
@@ -419,16 +446,41 @@ func pythonLegacy(root string, args KindOptions) (string, error) {
 
 	var buf strings.Builder
 	if err := t.Execute(&buf, struct {
-		Base            string
-		Entrypoint      string
-		HasRequirements bool
+		Base                string
+		Entrypoint          string
+		InstallInstructions []InstallInstruction
 	}{
-		Base:            v.String(),
-		Entrypoint:      entrypoint,
-		HasRequirements: fsx.AssertExistsAll(reqs) == nil,
+		Base:                v.String(),
+		Entrypoint:          entrypoint,
+		InstallInstructions: instructions.InstallInstructions,
 	}); err != nil {
 		return "", err
 	}
 
 	return buf.String(), nil
+}
+
+func pythonLegacyInstructions(root string, args KindOptions) (BuildInstructions, error) {
+	instructions := []InstallInstruction{}
+	if fsx.AssertExistsAll(filepath.Join(root, "requirements.txt")) != nil {
+		instructions = append(instructions,
+			InstallInstruction{
+				Cmd: "echo > requirements.txt",
+			},
+		)
+	}
+	instructions = append(instructions,
+		InstallInstruction{
+			SrcPath: ".",
+		},
+	)
+	instructions = append(instructions,
+		InstallInstruction{
+			Cmd: `pip install -r requirements.txt`,
+		},
+	)
+
+	return BuildInstructions{
+		InstallInstructions: instructions,
+	}, nil
 }

@@ -1,6 +1,9 @@
 package build
 
 import (
+	"fmt"
+
+	"github.com/MakeNowJust/heredoc"
 	"golang.org/x/exp/slices"
 )
 
@@ -148,3 +151,38 @@ type Value interface{}
 //
 // They're keyed by the parameter "slug".
 type Values = map[string]interface{}
+
+type BuildInstructions struct {
+	InstallInstructions []InstallInstruction
+}
+
+func (i BuildInstructions) DockerfileString() (string, error) {
+	return applyTemplate(heredoc.Doc(`
+		{{range .InstallInstructions}}
+		{{if .SrcPath}}
+		COPY {{.SrcPath}} {{if .DstPath}}{{.DstPath}}{{else}}.{{end}}
+		{{if .Executable}}
+		RUN chmod +x {{if .DstPath}}{{.DstPath}}{{else}}{{.SrcPath}}{{end}}
+		{{end}}
+		{{end}}
+		{{if .Cmd}}RUN {{.Cmd}}{{end}}
+		{{end}}
+	`), i)
+}
+
+type InstallInstruction struct {
+	Cmd        string
+	SrcPath    string
+	DstPath    string
+	Executable bool
+}
+
+type ErrUnsupportedBuilder struct {
+	Type BuildType
+}
+
+var _ error = &ErrUnsupportedBuilder{}
+
+func (e ErrUnsupportedBuilder) Error() string {
+	return fmt.Sprintf("Unsupported builder type %q", e.Type)
+}
