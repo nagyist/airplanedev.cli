@@ -35,6 +35,9 @@ func AttachExternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/tasks/getMetadata", handlers.Handler(state, GetTaskMetadataHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/tasks/getTaskReviewers", handlers.Handler(state, GetTaskReviewersHandler)).Methods("GET", "OPTIONS")
 
+	r.Handle("/entities/search", handlers.Handler(state, SearchEntitiesHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/runners/createScaleSignal", handlers.HandlerWithBody(state, CreateScaleSignalHandler)).Methods("POST", "OPTIONS")
+
 	r.Handle("/runs/getOutputs", handlers.Handler(state, GetOutputsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/get", handlers.Handler(state, GetRunHandler)).Methods("GET", "OPTIONS")
 
@@ -679,5 +682,39 @@ func CreateUploadHandler(
 		Upload:       resp.Upload,
 		ReadOnlyURL:  resp.ReadOnlyURL,
 		WriteOnlyURL: resp.WriteOnlyURL,
+	}, nil
+}
+
+type CreateRunnerScaleSignalRequest struct {
+	SignalKey                 string  `json:"signalKey"`
+	ExpirationDurationSeconds int     `json:"expirationDurationSeconds"`
+	TaskSlug                  *string `json:"taskSlug"`
+	TaskID                    *string `json:"taskID"`
+	IsStdAPI                  *bool   `json:"isStdAPI"`
+	TaskRevisionID            *string `json:"taskRevisionID"`
+}
+
+type CreateRunnerScaleSignalResponse struct{}
+
+func CreateScaleSignalHandler(
+	ctx context.Context,
+	state *state.State,
+	r *http.Request,
+	req CreateRunnerScaleSignalRequest,
+) (CreateRunnerScaleSignalResponse, error) {
+	return CreateRunnerScaleSignalResponse{}, nil
+}
+
+type SearchEntitiesResponse struct {
+	Results []struct{} `json:"results"`
+}
+
+func SearchEntitiesHandler(
+	ctx context.Context,
+	state *state.State,
+	r *http.Request,
+) (SearchEntitiesResponse, error) {
+	return SearchEntitiesResponse{
+		Results: []struct{}{},
 	}, nil
 }
