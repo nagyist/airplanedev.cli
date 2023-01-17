@@ -360,6 +360,7 @@ func inlineString(s string) string {
 	// Since the string is wrapped in single-quotes, escape any single-quotes
 	// inside of the target string.
 	s = strings.ReplaceAll(s, "'", `'"'"'`)
+	s = strings.ReplaceAll(s, "%", `%%`)
 	return "printf '" + s + "'"
 }
 
