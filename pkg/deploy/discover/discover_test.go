@@ -485,8 +485,7 @@ func TestDiscover(t *testing.T) {
 						Resources:          definitions.ResourceDefinition_0_3{Attachments: map[string]string{}},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
 						Python: &definitions.PythonDefinition_0_3{
-							EnvVars:    api.TaskEnv{},
-							Entrypoint: "task_a_airplane.py",
+							EnvVars: api.TaskEnv{},
 						},
 						Schedules: map[string]definitions.ScheduleDefinition_0_3{},
 					},
@@ -534,8 +533,7 @@ func TestDiscover(t *testing.T) {
 						Resources:          definitions.ResourceDefinition_0_3{Attachments: map[string]string{}},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
 						Python: &definitions.PythonDefinition_0_3{
-							EnvVars:    api.TaskEnv{},
-							Entrypoint: "task_b_airplane.py",
+							EnvVars: api.TaskEnv{},
 						},
 						Schedules: map[string]definitions.ScheduleDefinition_0_3{},
 					},
@@ -583,8 +581,7 @@ func TestDiscover(t *testing.T) {
 						Resources:          definitions.ResourceDefinition_0_3{Attachments: map[string]string{}},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
 						Python: &definitions.PythonDefinition_0_3{
-							EnvVars:    api.TaskEnv{},
-							Entrypoint: "task_c_airplane.py",
+							EnvVars: api.TaskEnv{},
 						},
 						Schedules: map[string]definitions.ScheduleDefinition_0_3{},
 					},
@@ -610,8 +607,7 @@ func TestDiscover(t *testing.T) {
 						Resources:          definitions.ResourceDefinition_0_3{Attachments: map[string]string{}},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
 						Python: &definitions.PythonDefinition_0_3{
-							EnvVars:    api.TaskEnv{},
-							Entrypoint: "task_c_airplane.py",
+							EnvVars: api.TaskEnv{},
 						},
 						Schedules: map[string]definitions.ScheduleDefinition_0_3{},
 					},
@@ -658,9 +654,7 @@ func TestDiscover(t *testing.T) {
 								Type: "integer",
 							},
 						},
-						Node: &definitions.NodeDefinition_0_3{
-							Entrypoint: "taskInline/codeOnlyTask.airplane.ts",
-						},
+						Node: &definitions.NodeDefinition_0_3{},
 					},
 					Source: ConfigSourceCode,
 				},
@@ -698,9 +692,7 @@ func TestDiscover(t *testing.T) {
 								Type: "integer",
 							},
 						},
-						Node: &definitions.NodeDefinition_0_3{
-							Entrypoint: "taskInlineEsm/codeOnlyTask.airplane.ts",
-						},
+						Node: &definitions.NodeDefinition_0_3{},
 					},
 					Source: ConfigSourceCode,
 				},
@@ -733,7 +725,6 @@ func TestDiscover(t *testing.T) {
 						Slug:       "collatz",
 						Parameters: []definitions.ParameterDefinition_0_3{},
 						Node: &definitions.NodeDefinition_0_3{
-							Entrypoint: "codeOnlyTask.airplane.ts",
 							EnvVars: api.TaskEnv{
 								"ENV1": api.EnvVarValue{Value: pointers.String("1")},
 								"ENV2": api.EnvVarValue{Value: pointers.String("2")},
@@ -843,12 +834,10 @@ func TestDiscover(t *testing.T) {
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: fixturesPath + "/viewInline-with-tasks/myView/myView.view.tsx",
 					Def: &definitions.Definition_0_3{
-						Name:       "My Task",
-						Slug:       "my_task",
-						Parameters: []definitions.ParameterDefinition_0_3{},
-						Node: &definitions.NodeDefinition_0_3{
-							Entrypoint: "viewInline-with-tasks/myView/myView.view.tsx",
-						},
+						Name:        "My Task",
+						Slug:        "my_task",
+						Parameters:  []definitions.ParameterDefinition_0_3{},
+						Node:        &definitions.NodeDefinition_0_3{},
 						Description: "my description",
 					},
 					Source: ConfigSourceCode,

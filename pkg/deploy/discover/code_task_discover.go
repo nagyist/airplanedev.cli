@@ -285,6 +285,10 @@ func ConstructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPat
 	if err := def.SetAbsoluteEntrypoint(pathMetadata.AbsEntrypoint); err != nil {
 		return nil, err
 	}
+	// Code based tasks do not have the concept of an entrypoint.
+	if err := def.SetEntrypoint(""); err != nil {
+		return nil, err
+	}
 	if err := def.SetBuildVersionBase(buildContext.Version, buildContext.Base); err != nil {
 		return nil, err
 	}

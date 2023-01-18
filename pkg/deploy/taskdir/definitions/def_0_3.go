@@ -152,6 +152,8 @@ func (d *ImageDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b bu
 var _ taskKind_0_3 = &NodeDefinition_0_3{}
 
 type NodeDefinition_0_3 struct {
+	// Entrypoint is the relative path from the task definition file to the script. It does not
+	// apply for inline configured tasks.
 	Entrypoint  string          `json:"entrypoint"`
 	NodeVersion string          `json:"nodeVersion"`
 	EnvVars     api.TaskEnv     `json:"envVars,omitempty"`
@@ -233,8 +235,9 @@ func (d *NodeDefinition_0_3) getAbsoluteEntrypoint() (string, error) {
 }
 
 func (d *NodeDefinition_0_3) getKindOptions() (build.KindOptions, error) {
-	ko := build.KindOptions{
-		"entrypoint": d.Entrypoint,
+	ko := build.KindOptions{}
+	if d.Entrypoint != "" {
+		ko["entrypoint"] = d.Entrypoint
 	}
 	if d.NodeVersion != "" {
 		ko["nodeVersion"] = d.NodeVersion
@@ -282,6 +285,8 @@ func (d *NodeDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b bui
 var _ taskKind_0_3 = &PythonDefinition_0_3{}
 
 type PythonDefinition_0_3 struct {
+	// Entrypoint is the relative path from the task definition file to the script. It does not
+	// apply for inline configured tasks.
 	Entrypoint string          `json:"entrypoint"`
 	EnvVars    api.TaskEnv     `json:"envVars,omitempty"`
 	Base       build.BuildBase `json:"base,omitempty"`
@@ -351,8 +356,9 @@ func (d *PythonDefinition_0_3) getAbsoluteEntrypoint() (string, error) {
 }
 
 func (d *PythonDefinition_0_3) getKindOptions() (build.KindOptions, error) {
-	ko := build.KindOptions{
-		"entrypoint": d.Entrypoint,
+	ko := build.KindOptions{}
+	if d.Entrypoint != "" {
+		ko["entrypoint"] = d.Entrypoint
 	}
 	if d.Base != "" {
 		ko["base"] = d.Base
