@@ -36,6 +36,7 @@ type Server struct {
 
 const containerAddress = "0.0.0.0"
 const loopbackAddress = "127.0.0.1"
+const defaultPort = 4000
 
 // address returns the TCP address that the API server listens on.
 func address(port int, expose bool) string {
@@ -93,7 +94,7 @@ func NewRouter(state *state.State) *mux.Router {
 
 // Options are options when starting the local dev server.
 type Options struct {
-	// Port is the desired port to listen on. If 0, a random port will be chosen.
+	// Port is the desired port to listen on. If 0, the first open port after 4000 will be used.
 	Port int
 	// Expose is used to bind the server to the default route (0.0.0.0) so that it can be accessed outside a container.
 	Expose bool
@@ -103,6 +104,20 @@ type Options struct {
 func newServer(router *mux.Router, state *state.State, port int, expose bool) (*Server, error) {
 	srv := &http.Server{
 		Handler: router,
+	}
+
+	// If the port is 0, try to find an open port starting at 4000. Note that this is subject to a small race condition,
+	// since we could potentially find an open port but not have it be available by the time we want to listen on it.
+	// We cannot use net.Listen to find an open port since we want to check if the port is available on any network
+	// interface (i.e. 0.0.0.0), but this causes a pop-up on macOS.
+	if port == 0 {
+		var err error
+		port, err = findOpenPort(defaultPort, 100)
+		if err != nil {
+			return nil, err
+		}
+	} else if !isPortOpen(port) {
+		return nil, errors.Errorf("port %d is already in use - select a different port or remove the --port flag to automatically find an open port", port)
 	}
 
 	listener, err := net.Listen("tcp", address(port, expose))
@@ -116,6 +131,28 @@ func newServer(router *mux.Router, state *state.State, port int, expose bool) (*
 		listener: listener,
 		state:    state,
 	}, nil
+}
+
+// findOpenPart finds an open port on the host machine, starting at the given port.
+func findOpenPort(basePort, numAttempts int) (int, error) {
+	for port := basePort; port <= basePort+numAttempts; port++ {
+		if isPortOpen(port) {
+			return port, nil
+		}
+	}
+
+	return 0, errors.Errorf("could not find an open port in %d attempts - you can use the --port flag to manually set a port", numAttempts)
+}
+
+// isPortOpen returns whether the given port is bound to any network interface.
+func isPortOpen(port int) bool {
+	// Attempt to dial the port. If we establish a connection, it's in use.
+	conn, _ := net.DialTimeout("tcp", fmt.Sprintf(":%d", port), time.Second)
+	if conn == nil {
+		return true
+	}
+	defer conn.Close()
+	return false
 }
 
 // Start starts and returns a new instance of the Airplane API server along with the port it is listening on.
