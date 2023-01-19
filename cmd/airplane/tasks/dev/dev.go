@@ -48,6 +48,7 @@ type taskDevConfig struct {
 	useFallbackEnv   bool
 	disableWatchMode bool
 	sandbox          bool
+	tunnel           bool
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -148,8 +149,12 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().BoolVar(&cfg.studio, "editor", true, "Run the local Studio")
 	cmd.Flags().BoolVar(&cfg.disableWatchMode, "no-watch", false, "Disable watch mode. Changes require restarting the studio to take effect.")
 	cmd.Flags().BoolVar(&cfg.sandbox, "sandbox", false, "Run the Studio in a sandbox context (i.e. non-interactive, remote)")
+	cmd.Flags().BoolVar(&cfg.tunnel, "tunnel", false, "Run the Studio with an ngrok tunnel")
 	if err := cmd.Flags().MarkHidden("sandbox"); err != nil {
-		logger.Debug("marking --non-interactive as hidden: %s", err)
+		logger.Debug("marking --sandbox as hidden: %v", err)
+	}
+	if err := cmd.Flags().MarkHidden("tunnel"); err != nil {
+		logger.Debug("marking --tunnel as hidden: %v", err)
 	}
 
 	if err := cmd.Flags().MarkDeprecated("editor", "launching the Studio is now the default behavior."); err != nil {

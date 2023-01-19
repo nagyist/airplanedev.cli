@@ -3,6 +3,7 @@ package dev
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -20,6 +21,8 @@ import (
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
+	"golang.ngrok.com/ngrok"
+	"golang.ngrok.com/ngrok/config"
 )
 
 func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
@@ -51,16 +54,42 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		return errors.Wrap(err, "getting absolute directory of dev server root")
 	}
 
+	localClientDevServerHost := ""
+	studioUIHost := ""
+	var ln net.Listener
+	if cfg.tunnel {
+		// Obtain user-specific ngrok auth token.
+		tokenResp, err := cfg.root.Client.GetTunnelToken(ctx)
+		if err != nil {
+			return errors.Wrap(err, "unable to acquire tunnel token")
+		}
+
+		localClientDevServerHost = fmt.Sprintf("%s.ngrok.io", authInfo.User.ID)
+		ln, err = ngrok.Listen(ctx,
+			config.HTTPEndpoint(config.WithDomain(localClientDevServerHost)),
+			ngrok.WithAuthtoken(tokenResp.Token),
+		)
+		if err != nil {
+			return errors.Wrap(err, "failed to start ngrok tunnel")
+		}
+		studioUIHost = fmt.Sprintf("https://%s", localClientDevServerHost)
+	}
+
 	apiServer, port, err := server.Start(server.Options{
-		Port:   cfg.port,
-		Expose: cfg.sandbox,
+		Port:     cfg.port,
+		Expose:   cfg.sandbox,
+		Listener: ln,
 	})
 	if err != nil {
 		return errors.Wrap(err, "starting local dev server")
 	}
 
+	if !cfg.tunnel {
+		localClientDevServerHost = fmt.Sprintf("127.0.0.1:%d", port)
+		studioUIHost = fmt.Sprintf("http://localhost:%d", port)
+	}
 	localClient := &api.Client{
-		Host:   fmt.Sprintf("127.0.0.1:%d", port),
+		Host:   localClientDevServerHost,
 		Token:  cfg.root.Client.Token,
 		Source: cfg.root.Client.Source,
 		APIKey: cfg.root.Client.APIKey,
@@ -192,7 +221,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	logger.Log("")
-	studioURL := fmt.Sprintf("%s/studio?__airplane_host=http://localhost:%d&__env=%s", appURL, port, remoteEnv.Slug)
+	studioURL := fmt.Sprintf("%s/studio?__airplane_host=%s&__env=%s", appURL, studioUIHost, remoteEnv.Slug)
 	logger.Log("Started studio session at %s (^C to quit)", logger.Blue(studioURL))
 
 	// Execute the flow to open the studio in the browser in a separate goroutine so fmt.Scanln doesn't capture

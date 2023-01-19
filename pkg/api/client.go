@@ -673,6 +673,11 @@ func (c Client) GetToken() string {
 	return c.Token
 }
 
+func (c Client) GetTunnelToken(ctx context.Context) (res GetTunnelTokenResponse, err error) {
+	err = c.get(ctx, "/studio/tunnelToken/get", &res)
+	return
+}
+
 // get sends a GET request.
 func (c Client) get(ctx context.Context, path string, reply interface{}) error {
 	return c.do(ctx, http.MethodGet, path, nil, &reply)

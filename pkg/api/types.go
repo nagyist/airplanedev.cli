@@ -491,3 +491,7 @@ type User struct {
 type GetUserResponse struct {
 	User User `json:"user"`
 }
+
+type GetTunnelTokenResponse struct {
+	Token string `json:"token"`
+}

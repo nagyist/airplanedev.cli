@@ -98,37 +98,44 @@ type Options struct {
 	Port int
 	// Expose is used to bind the server to the default route (0.0.0.0) so that it can be accessed outside a container.
 	Expose bool
+
+	// Optional listener that will be used in lieu of port/expose configuration. This is used for ngrok tunnels.
+	Listener net.Listener
 }
 
 // newServer returns a new HTTP server with API routes
-func newServer(router *mux.Router, state *state.State, port int, expose bool) (*Server, error) {
+func newServer(router *mux.Router, state *state.State, opts Options) (*Server, error) {
 	srv := &http.Server{
 		Handler: router,
 	}
 
-	// If the port is 0, try to find an open port starting at 4000. Note that this is subject to a small race condition,
-	// since we could potentially find an open port but not have it be available by the time we want to listen on it.
-	// We cannot use net.Listen to find an open port since we want to check if the port is available on any network
-	// interface (i.e. 0.0.0.0), but this causes a pop-up on macOS.
-	if port == 0 {
+	if opts.Listener == nil {
+		// If the port is 0, try to find an open port starting at 4000. Note that this is subject to a small race condition,
+		// since we could potentially find an open port but not have it be available by the time we want to listen on it.
+		// We cannot use net.Listen to find an open port since we want to check if the port is available on any network
+		// interface (i.e. 0.0.0.0), but this causes a pop-up on macOS.
 		var err error
-		port, err = findOpenPort(defaultPort, 100)
-		if err != nil {
-			return nil, err
-		}
-	} else if !isPortOpen(port) {
-		return nil, errors.Errorf("port %d is already in use - select a different port or remove the --port flag to automatically find an open port", port)
-	}
 
-	listener, err := net.Listen("tcp", address(port, expose))
-	if err != nil {
-		return nil, errors.Wrap(err, "listening on port")
+		if opts.Port == 0 {
+			var err error
+			opts.Port, err = findOpenPort(defaultPort, 100)
+			if err != nil {
+				return nil, err
+			}
+		} else if !isPortOpen(opts.Port) {
+			return nil, errors.Errorf("port %d is already in use - select a different port or remove the --port flag to automatically find an open port", opts.Port)
+		}
+
+		opts.Listener, err = net.Listen("tcp", address(opts.Port, opts.Expose))
+		if err != nil {
+			return nil, errors.Wrap(err, "listening on port")
+		}
 	}
 
 	router.Handle("/shutdown", ShutdownHandler(srv))
 	return &Server{
 		srv:      srv,
-		listener: listener,
+		listener: opts.Listener,
 		state:    state,
 	}, nil
 }
@@ -163,7 +170,7 @@ func Start(opts Options) (*Server, int, error) {
 	}
 
 	r := NewRouter(s)
-	apiServer, err := newServer(r, s, opts.Port, opts.Expose)
+	apiServer, err := newServer(r, s, opts)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -176,7 +183,13 @@ func Start(opts Options) (*Server, int, error) {
 		}
 	}()
 
-	return apiServer, apiServer.listener.Addr().(*net.TCPAddr).Port, nil
+	var port int
+	tcpAddr, ok := apiServer.listener.Addr().(*net.TCPAddr)
+	if ok {
+		// If using an ngrok tunnel, the returned port will be invalid
+		port = tcpAddr.Port
+	}
+	return apiServer, port, nil
 }
 
 // RegisterState updates the server's state with the given state.
