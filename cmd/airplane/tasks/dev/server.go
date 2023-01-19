@@ -64,7 +64,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 			return errors.Wrap(err, "unable to acquire tunnel token")
 		}
 
-		localClientDevServerHost = fmt.Sprintf("%s.ngrok.io", authInfo.User.ID)
+		localClientDevServerHost = fmt.Sprintf("%s.t.airplane.sh", authInfo.User.ID)
 		ln, err = ngrok.Listen(ctx,
 			config.HTTPEndpoint(config.WithDomain(localClientDevServerHost)),
 			ngrok.WithAuthtoken(tokenResp.Token),
