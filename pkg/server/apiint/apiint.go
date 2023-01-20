@@ -53,6 +53,7 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/runs/cancel", handlers.HandlerWithBody(state, CancelRunHandler)).Methods("POST", "OPTIONS")
 
 	r.Handle("/tasks/get", handlers.Handler(state, GetTaskInfoHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/views/get", handlers.Handler(state, GetViewInfoHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/users/get", handlers.Handler(state, GetUserHandler)).Methods("GET", "OPTIONS")
 
@@ -555,7 +556,7 @@ func ListRunsHandler(ctx context.Context, state *state.State, r *http.Request) (
 func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.Task, error) {
 	taskSlug := r.URL.Query().Get("slug")
 	if taskSlug == "" {
-		return libapi.Task{}, errors.New("Task slug was not supplied, request path must be of the form /v0/tasks?slug=<task_slug>")
+		return libapi.Task{}, errors.New("Task slug was not supplied, request path must be of the form /i/tasks?slug=<task_slug>")
 	}
 	taskConfig, ok := state.TaskConfigs.Get(taskSlug)
 	if !ok {
@@ -602,6 +603,25 @@ func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request
 	req.Kind = kind
 	req.KindOptions = options
 	return req, nil
+}
+
+// GetViewInfoHandler handles requests to the /i/views/get?slug=<view_slug> endpoint.
+func GetViewInfoHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.View, error) {
+	viewSlug := r.URL.Query().Get("slug")
+	if viewSlug == "" {
+		return libapi.View{}, errors.New("View slug was not supplied, request path must be of the form /i/views?slug=<view_slug>")
+	}
+	viewConfig, ok := state.ViewConfigs.Get(viewSlug)
+	if !ok {
+		return libapi.View{}, errors.Errorf("View with slug %q not found", viewSlug)
+	}
+
+	return libapi.View{
+		Slug:        viewConfig.Def.Slug,
+		Name:        viewConfig.Def.Name,
+		Description: viewConfig.Def.Description,
+		ID:          viewConfig.ID,
+	}, nil
 }
 
 type GetConfigResponse struct {
