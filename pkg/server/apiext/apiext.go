@@ -262,8 +262,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			EnvSlug:     state.RemoteEnv.Slug,
 		})
 		if err != nil {
-			var taskMissingError *libapi.TaskMissingError
-			if errors.As(err, taskMissingError) {
+			if _, ok := err.(*libapi.TaskMissingError); ok {
 				return api.RunTaskResponse{}, errors.Errorf("task with slug %s is not registered locally or remotely", req.Slug)
 			} else {
 				return api.RunTaskResponse{}, err
@@ -362,8 +361,7 @@ func GetTaskReviewersHandler(ctx context.Context, state *state.State, r *http.Re
 
 	resp, err := state.RemoteClient.GetTaskReviewers(ctx, taskSlug)
 	if err != nil {
-		var taskMissingError *libapi.TaskMissingError
-		if errors.As(err, taskMissingError) {
+		if _, ok := err.(*libapi.TaskMissingError); ok {
 			return api.GetTaskReviewersResponse{}, errors.Errorf("task with slug %s is not registered locally or remotely", taskSlug)
 		} else {
 			return api.GetTaskReviewersResponse{}, err
