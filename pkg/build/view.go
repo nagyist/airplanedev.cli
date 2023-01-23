@@ -41,7 +41,7 @@ func view(root string, options KindOptions) (string, error) {
 		return "", err
 	}
 
-	mainTsxStr, err := MainTsxString("./src/" + entrypoint)
+	mainTsxStr, err := MainTsxString("./src/"+entrypoint, false)
 	if err != nil {
 		return "", err
 	}
@@ -181,7 +181,10 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 			fsx.TrimExtension(fileToBuild))
 	}
 
-	mainTsxStr := mainTsxTemplateStr
+	mainTsxStr, err := MainTsxString("{{.Entrypoint}}", false)
+	if err != nil {
+		return "", err
+	}
 	indexHtmlStr, err := IndexHtmlString("Airplane")
 	if err != nil {
 		return "", err
@@ -410,11 +413,13 @@ func IndexHtmlString(title string) (string, error) {
 //go:embed views/main.tsx
 var mainTsxTemplateStr string
 
-func MainTsxString(entrypoint string) (string, error) {
+func MainTsxString(entrypoint string, isInStudio bool) (string, error) {
 	entrypoint = strings.TrimSuffix(entrypoint, ".tsx")
 	return applyTemplate(mainTsxTemplateStr, struct {
 		Entrypoint string
+		IsInStudio bool
 	}{
 		Entrypoint: entrypoint,
+		IsInStudio: isInStudio,
 	})
 }
