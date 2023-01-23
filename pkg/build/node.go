@@ -1093,23 +1093,14 @@ func nodeBundle(
 		{{.Args}}
 		{{.Instructions}}
 
-		FROM {{.Base}} as workflow-build
+		FROM base as workflow-build
 		ENV NODE_ENV=production
 		WORKDIR /airplane{{.Workdir}}
-
-		{{if .UseSlimImage}}
-		RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-			&& apt-get -y install --no-install-recommends \
-				curl ca-certificates \
-			&& apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-		{{end}}
 		
 		RUN mkdir -p /airplane/.airplane && \
 			cd /airplane/.airplane && \
 			{{.InlineWorkflowShimPackageJSON}} > package.json && \
 			npm install --legacy-peer-deps
-
-		COPY --from=base /airplane /airplane
 
 		RUN {{.InlineWorkerShim}} > /airplane/.airplane/universal-shim.js && \
 			node /airplane/.airplane/esbuild.js \
@@ -1124,16 +1115,9 @@ func nodeBundle(
 		RUN node /airplane/.airplane/workflow-bundler.js
 		ENTRYPOINT ["node", "/airplane/.airplane/dist/universal-shim.js"]
 
-		FROM {{.Base}} as task-build
+		FROM base as task-build
 		ENV NODE_ENV=production
 		WORKDIR /airplane{{.Workdir}}
-
-		{{if .UseSlimImage}}
-		RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-			&& apt-get -y install --no-install-recommends \
-				curl ca-certificates \
-			&& apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-		{{end}}
 
 		# npm >= 7 will automatically install peer dependencies, even if they're satisfied by the root. This is
 		# problematic because we need the @airplane/workflow-runtime package to register the workflow runtime in the
@@ -1143,8 +1127,6 @@ func nodeBundle(
 			cd /airplane/.airplane && \
 			{{.InlineShimPackageJSON}} > package.json && \
 			npm install --legacy-peer-deps
-		
-		COPY --from=base /airplane /airplane
 
 		RUN {{.InlineTaskShim}} > /airplane/.airplane/universal-shim.js && \
 			node /airplane/.airplane/esbuild.js \

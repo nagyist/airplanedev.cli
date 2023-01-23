@@ -223,7 +223,7 @@ func TestNodeBuilder(t *testing.T) {
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
-			SearchString: "hello from preinstall",
+			SearchString: "rolldice, v1.16",
 		},
 		{
 			Root: "typescript/installhooksviashellsubdirectory",
@@ -779,7 +779,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 					ExportName:    "default",
 				},
 			},
-			SearchString: "hello from preinstall",
+			SearchString: "rolldice, v1.16",
 		},
 		{
 			Root: "typescript/installhooksviashellsubdirectory",

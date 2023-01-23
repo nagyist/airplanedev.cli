@@ -5,7 +5,7 @@ import airplane from "airplane";
 // @ts-ignore
 import * as prettier from "prettier";
 // @ts-ignore
-import * as fs from 'fs';
+import { execSync } from 'child_process';
 
 type Params = {
   id: string;
@@ -13,7 +13,7 @@ type Params = {
 
 export default async function (params: Params) {
   airplane.appendOutput(params.id);
-  airplane.appendOutput(fs.readFileSync('./preinstall.txt','utf8'));
+  airplane.appendOutput(execSync("/usr/games/rolldice --version").toString());
   airplane.appendOutput(Object.keys(airplane));
   airplane.appendOutput(Object.keys(prettier));
 }
