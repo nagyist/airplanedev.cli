@@ -1,6 +1,7 @@
 package apidev
 
 import (
+	"bytes"
 	"context"
 	"net"
 	"net/http"
@@ -16,12 +17,14 @@ import (
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/state"
+	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/version"
 	"github.com/airplanedev/cli/pkg/version/latest"
 	"github.com/airplanedev/cli/pkg/views"
 	"github.com/airplanedev/cli/pkg/views/viewdir"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/build/ignore"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -36,9 +39,11 @@ func AttachDevRoutes(r *mux.Router, s *state.State) {
 
 	// TODO: Remove this endpoint once the studio UI is updated to use /dev/files/list
 	r.Handle("/list", handlers.Handler(s, ListEntrypointsHandler)).Methods("GET", "OPTIONS")
+
 	r.Handle("/files/list", handlers.Handler(s, ListFilesHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/files/get", handlers.Handler(s, GetFileHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/files/update", handlers.HandlerWithBody(s, UpdateFileHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/files/downloadBundle", handlers.HandlerZip(s, DownloadBundleHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/startView/{view_slug}", handlers.Handler(s, StartViewHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/logs/{run_id}", handlers.HandlerSSE(s, LogsHandler)).Methods("GET", "OPTIONS")
@@ -472,4 +477,18 @@ func GetTaskErrorsHandler(ctx context.Context, state *state.State, r *http.Reque
 		}
 	}
 	return GetTaskErrorResponse{Info: info, Errors: errors, Warnings: warnings}, nil
+}
+
+func DownloadBundleHandler(ctx context.Context, state *state.State, r *http.Request) ([]byte, string, error) {
+	buf := new(bytes.Buffer)
+	include, err := ignore.Func(state.Dir)
+	if err != nil {
+		return nil, "", errors.Wrap(err, "creating include function")
+	}
+
+	if err := utils.Zip(buf, state.Dir, include); err != nil {
+		return nil, "", err
+	}
+
+	return buf.Bytes(), filepath.Base(state.Dir), nil
 }

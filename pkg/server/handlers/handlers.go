@@ -95,6 +95,24 @@ func HandlerSSE[Resp any](state *state.State, f func(ctx context.Context, state 
 	})
 }
 
+// HandlerZip is an API handler used for returning zip files in HTTP responses.
+func HandlerZip(state *state.State,
+	f func(ctx context.Context, state *state.State, r *http.Request) ([]byte, string, error)) http.HandlerFunc {
+	return Wrap(func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		contents, name, err := f(ctx, state, r)
+		if err != nil {
+			return err
+		}
+		w.Header().Set("Content-Type", "application/zip")
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.zip\"", name))
+		if _, err := w.Write(contents); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
 // WriteHTTPError writes an error to response and optionally logs it
 func WriteHTTPError(w http.ResponseWriter, r *http.Request, err error) {
 	w.Header().Set("Content-Type", "application/json")
