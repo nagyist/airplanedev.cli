@@ -35,7 +35,6 @@ import (
 	"github.com/airplanedev/ojson"
 	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -84,7 +83,8 @@ type LocalRunConfig struct {
 
 	ConfigAttachments []libapi.ConfigAttachment
 	ConfigVars        map[string]devenv.ConfigWithEnv
-	EnvVars           libapi.TaskEnv
+	EnvVars           map[string]string
+	TaskEnvVars       libapi.TaskEnv
 
 	IsBuiltin bool
 	LogBroker logs.LogBroker
@@ -209,27 +209,21 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	cmd.Env = os.Environ()
 	// only non builtins have a runtime
 	if r != nil {
-		envVars, err := materializeEnvVars(
+		envVars := applyEnvVarOverrides(config, r, entrypoint)
+
+		materializedEnvVars, err := materializeEnvVars(
 			ctx,
 			config.RemoteClient,
-			config.EnvVars,
+			envVars,
 			config.ConfigVars,
 			config.UseFallbackEnv,
 		)
 		if err != nil {
 			return api.Outputs{}, err
 		}
-		// Load environment variables from .env files
-		// TODO: Deprecate support for .env files
-		dotEnvEnvVars, err := getDevEnvVars(r, entrypoint)
-		if err != nil {
-			return api.Outputs{}, err
-		}
-		// Env vars declared in .env files take precedence to those declared in the task definition.
-		maps.Copy(envVars, dotEnvEnvVars)
 
 		// Interpolate any JSTs in environment variables
-		if len(envVars) > 0 {
+		if len(materializedEnvVars) > 0 {
 			result, err := interpolate(ctx, config.RemoteClient, baseInterpolateRequest, envVars)
 			if err != nil {
 				return api.Outputs{}, err
@@ -323,6 +317,8 @@ func GetKindAndOptions(taskConfig discover.TaskConfig) (build.TaskKind, build.Ki
 	return kind, kindOptions, nil
 }
 
+// materializeEnvVars materializes any environment variables that derive their values from local or remote config
+// variables.
 func materializeEnvVars(
 	ctx context.Context,
 	remoteClient api.APIClient,
@@ -416,13 +412,46 @@ func scanLogLine(config LocalRunConfig, line string, mu *sync.Mutex, o *ojson.Va
 	}
 }
 
-// getDevEnvVars will return a map of env vars, loading from .env and airplane.env
+// applyEnvVarOverrides applies any overrides from dotenv or dev config files to the task's environment variables.
+func applyEnvVarOverrides(config LocalRunConfig, r runtime.Interface, entrypoint string) libapi.TaskEnv {
+	envVars := libapi.TaskEnv{}
+	for k, v := range config.TaskEnvVars {
+		envVars[k] = v
+	}
+
+	// Load environment variables from .env files
+	// TODO: Deprecate support for .env files
+	dotEnvEnvVars, err := getDotEnvEnvVars(r, entrypoint)
+	if err != nil {
+		return nil
+	}
+	// Env vars declared in .env files take precedence to those declared in the task definition.
+	for k, v := range dotEnvEnvVars {
+		v := v // capture loop variable
+		envVars[k] = libapi.EnvVarValue{
+			Value: &v,
+		}
+	}
+
+	// Env vars declared in the dev config file take precedence to those declared in the task definition or .env
+	// files
+	for k, v := range config.EnvVars {
+		v := v // capture loop variable
+		envVars[k] = libapi.EnvVarValue{
+			Value: &v,
+		}
+	}
+
+	return envVars
+}
+
+// getDotEnvEnvVars will return a map of env vars from .env and airplane.env
 // files inside the task root.
 //
 // Env variables are first loaded by looking for any .env files between the root
 // and entrypoint dir (inclusive). A second pass is done to look for airplane.env
 // files. Env vars from successive files are merged in and overwrite duplicate keys.
-func getDevEnvVars(r runtime.Interface, path string) (map[string]string, error) {
+func getDotEnvEnvVars(r runtime.Interface, path string) (map[string]string, error) {
 	root, err := r.Root(path)
 	if err != nil {
 		return nil, err

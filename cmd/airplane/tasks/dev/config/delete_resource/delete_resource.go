@@ -36,7 +36,7 @@ func New(c *cli.DevCLI) *cobra.Command {
 
 func run(ctx context.Context, cfg config) error {
 	devConfig := cfg.devCLI.DevConfig
-	if err := devConfig.RemoveResource(cfg.slug); err != nil {
+	if err := devConfig.DeleteResource(cfg.slug); err != nil {
 		return errors.Wrap(err, "removing resource from dev config file")
 	}
 

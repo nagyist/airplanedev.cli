@@ -111,6 +111,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			LogBroker:      run.LogBroker,
 			WorkingDir:     state.Dir,
 			StudioURL:      state.StudioURL,
+			EnvVars:        state.DevConfig.EnvVars,
 		}
 		resourceAttachments := map[string]string{}
 		mergedResources, err := resources.MergeRemoteResources(ctx, state)
@@ -165,7 +166,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			if err != nil {
 				return api.RunTaskResponse{}, errors.Wrap(err, "getting resource attachments")
 			}
-			if runConfig.EnvVars, err = localTaskConfig.Def.GetEnv(); err != nil {
+			if runConfig.TaskEnvVars, err = localTaskConfig.Def.GetEnv(); err != nil {
 				return api.RunTaskResponse{}, errors.Wrap(err, "getting task env vars")
 			}
 			if runConfig.ConfigAttachments, err = localTaskConfig.Def.GetConfigAttachments(); err != nil {

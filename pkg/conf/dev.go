@@ -24,6 +24,7 @@ type DevConfig struct {
 	RawResources []map[string]interface{} `json:"resources" yaml:"resources"`
 	// Configs is a map of config variables in the format that the user sees in the dev config file.
 	RawConfigVars map[string]string `json:"configVars" yaml:"configVars"`
+	EnvVars       map[string]string `json:"envVars" yaml:"envVars"`
 
 	// Resources is a mapping from slug to external resource.
 	Resources  map[string]env.ResourceWithEnv `json:"-" yaml:"-"`
@@ -105,8 +106,8 @@ func (d *DevConfig) SetResource(slug string, r libresources.Resource) error {
 	return nil
 }
 
-// RemoveResource removes the resource in the dev config file with the given slug, if it exists.
-func (d *DevConfig) RemoveResource(slug string) error {
+// DeleteResource removes the resource in the dev config file with the given slug, if it exists.
+func (d *DevConfig) DeleteResource(slug string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -123,8 +124,8 @@ func (d *DevConfig) RemoveResource(slug string) error {
 	return nil
 }
 
-// updateRawConfigs needs to be called whenever ConfigVars is mutated to keep RawConfigVars in sync
-// the caller of updateRawConfigs should have the lock on the DevConfig
+// updateRawConfigs needs to be called whenever ConfigVars is mutated to keep RawConfigVars in sync.
+// The caller of updateRawConfigs should have the lock on the DevConfig
 func (d *DevConfig) updateRawConfigs() error {
 	configMap := make(map[string]string, len(d.ConfigVars))
 	for _, c := range d.ConfigVars {
@@ -167,8 +168,8 @@ func (d *DevConfig) SetConfigVar(key string, value string) error {
 	return nil
 }
 
-// RemoveConfigVar deletes the config from the dev config file, if it exists.
-func (d *DevConfig) RemoveConfigVar(key string) error {
+// DeleteConfigVar deletes the config from the dev config file, if it exists.
+func (d *DevConfig) DeleteConfigVar(key string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if _, ok := d.ConfigVars[key]; !ok {
@@ -189,21 +190,59 @@ func (d *DevConfig) RemoveConfigVar(key string) error {
 	return nil
 }
 
-// LoadConfigFile reads the contents of the dev config file at the path
-func (d *DevConfig) LoadConfigFile() error {
+// SetEnvVar updates an env var in the dev config file, creating it if necessary.
+func (d *DevConfig) SetEnvVar(key string, value string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	config, err := NewDevConfigFile(d.Path)
+	d.EnvVars[key] = value
+
+	if err := writeDevConfig(d); err != nil {
+		return err
+	}
+
+	logger.Log("Successfully wrote environment variable %q to dev config file.", key)
+	return nil
+}
+
+// DeleteEnvVar deletes an env var from the dev config file, if it exists.
+func (d *DevConfig) DeleteEnvVar(key string) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if _, ok := d.EnvVars[key]; !ok {
+		return errors.Errorf("Environment variable %q not found in dev config file", key)
+	}
+
+	delete(d.EnvVars, key)
+
+	if err := writeDevConfig(d); err != nil {
+		return err
+	}
+
+	logger.Log("Deleted environment variable %q from dev config file.", key)
+	return nil
+}
+
+// Update reads the contents of the dev config file.
+func (d *DevConfig) Update() error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	config, err := LoadDevConfigFile(d.Path)
 	if err != nil {
 		return err
 	}
+
+	// We want to avoid concurrent updates to the dev config file, so we maintain a mutex in the dev config struct,
+	// and copy the contents of the dev config file into the struct whenever we update it.
 	d.RawConfigVars = config.RawConfigVars
 	d.ConfigVars = config.ConfigVars
 	d.RawResources = config.RawResources
 	d.Resources = config.Resources
+	d.EnvVars = config.EnvVars
 	return nil
 }
 
+// readDevConfig reads in the dev config file at the given path and converts the raw config fields into structs that
+// are used during local development.
 func readDevConfig(path string) (*DevConfig, error) {
 	cfg := &DevConfig{}
 
@@ -283,6 +322,10 @@ func readDevConfig(path string) (*DevConfig, error) {
 	}
 	cfg.ConfigVars = nameToConfig
 
+	if cfg.EnvVars == nil {
+		cfg.EnvVars = map[string]string{}
+	}
+
 	cfg.Path = path
 
 	return cfg, nil
@@ -317,9 +360,10 @@ func writeDevConfig(config *DevConfig) error {
 	return nil
 }
 
-// NewDevConfigFile attempts to load in the dev config file at the provided path
-// and returns a new DevConfig
-func NewDevConfigFile(devConfigPath string) (*DevConfig, error) {
+// LoadDevConfigFile attempts to load in the dev config file at the provided path and returns a new DevConfig struct.
+// If no such dev config file exists at the given path, an empty dev config struct is returned with the path set to the
+// provided path such that on the next save, the dev config file will be created at that path.
+func LoadDevConfigFile(devConfigPath string) (*DevConfig, error) {
 	var devConfig *DevConfig
 	var devConfigLoaded bool
 	if devConfigPath != "" {

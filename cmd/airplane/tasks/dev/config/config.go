@@ -6,8 +6,10 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/delete_config"
+	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/delete_envvar"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/delete_resource"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/set_config"
+	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/set_envvar"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/set_resource"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
@@ -28,6 +30,8 @@ func New(c *cli.Config) *cobra.Command {
 		Example: heredoc.Doc(`
 			airplane dev config set-configvar API_KEY=test
 			airplane dev config delete-configvar API_KEY
+			airplane dev config set-envvar TOKEN=test
+			airplane dev config delete-envvar TOKEN
 			airplane dev config set-resource --kind postgres db
 			airplane dev config delete-resource db
 		`),
@@ -46,7 +50,7 @@ func New(c *cli.Config) *cobra.Command {
 			}
 
 			var err error
-			cfg.DevConfig, err = conf.NewDevConfigFile(cfg.Filepath)
+			cfg.DevConfig, err = conf.LoadDevConfigFile(cfg.Filepath)
 			if err != nil {
 				return err
 			}
@@ -68,6 +72,9 @@ func New(c *cli.Config) *cobra.Command {
 
 	cmd.AddCommand(set_resource.New(cfg))
 	cmd.AddCommand(delete_resource.New(cfg))
+
+	cmd.AddCommand(set_envvar.New(cfg))
+	cmd.AddCommand(delete_envvar.New(cfg))
 
 	return cmd
 }

@@ -131,7 +131,7 @@ func New(c *cli.Config) *cobra.Command {
 				cfg.entrypointFunc = fileAndFunction[1]
 			}
 
-			cfg.devConfig, err = conf.NewDevConfigFile(cfg.devConfigPath)
+			cfg.devConfig, err = conf.LoadDevConfigFile(cfg.devConfigPath)
 			if err != nil {
 				return errors.Wrap(err, "loading dev config file")
 			}
@@ -285,7 +285,8 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		AliasToResource:   aliasToResource,
 		ConfigAttachments: configAttachments,
 		ConfigVars:        cfg.devConfig.ConfigVars,
-		EnvVars:           taskEnv,
+		EnvVars:           cfg.devConfig.EnvVars,
+		TaskEnvVars:       taskEnv,
 		PrintLogs:         true,
 		StudioURL:         *cfg.root.Client.AppURL(),
 	}

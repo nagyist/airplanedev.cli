@@ -308,7 +308,7 @@ func (s *Server) ReloadApps(ctx context.Context, wd string, e filewatcher.Event)
 
 	reload := func() {
 		if path == s.state.DevConfig.Path {
-			if err := s.state.DevConfig.LoadConfigFile(); err != nil {
+			if err := s.state.DevConfig.Update(); err != nil {
 				logger.Error("Loading dev config file: %s", err.Error())
 			}
 		}

@@ -296,7 +296,7 @@ func UpdateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 	// Remove the old resource first - we need to do this since DevConfig.Resources is a mapping from slug to resource,
 	// and if the update resource request involves updating the slug, we don't want to leave the old resource (under the
 	// old slug) in the dev config file.
-	if err := state.DevConfig.RemoveResource(oldSlug); err != nil {
+	if err := state.DevConfig.DeleteResource(oldSlug); err != nil {
 		return UpdateResourceResponse{}, errors.Wrap(err, "deleting old resource")
 	}
 
@@ -319,7 +319,7 @@ func DeleteResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 	id := req.ID
 	for _, r := range state.DevConfig.Resources {
 		if r.Resource.GetID() == id {
-			if err := state.DevConfig.RemoveResource(r.Resource.GetSlug()); err != nil {
+			if err := state.DevConfig.DeleteResource(r.Resource.GetSlug()); err != nil {
 				return struct{}{}, errors.Wrap(err, "removing resource from dev config")
 			}
 			return struct{}{}, nil
@@ -665,7 +665,7 @@ type DeleteConfigRequest struct {
 func DeleteConfigHandler(ctx context.Context, state *state.State, r *http.Request, req DeleteConfigRequest) (struct{}, error) {
 	for _, c := range state.DevConfig.ConfigVars {
 		if c.ID == req.ID {
-			if err := state.DevConfig.RemoveConfigVar(c.Name); err != nil {
+			if err := state.DevConfig.DeleteConfigVar(c.Name); err != nil {
 				return struct{}{}, errors.Wrap(err, "deleting config var")
 			}
 			return struct{}{}, nil

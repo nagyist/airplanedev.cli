@@ -1,4 +1,4 @@
-package delete_config
+package delete_envvar
 
 import (
 	"context"
@@ -16,11 +16,11 @@ type config struct {
 func New(c *cli.DevCLI) *cobra.Command {
 	var cfg = config{devCLI: c}
 	cmd := &cobra.Command{
-		Use:   "delete-configvar",
-		Short: "Deletes a config variable from the dev config file",
+		Use:   "delete-envvar",
+		Short: "Deletes an environment variable from the dev config file",
 		Example: heredoc.Doc(`
-			airplane dev config delete-configvar <key>
-			airplane dev config delete-configvar <key1> <key2> ...
+			airplane dev config delete-envvar <key>
+			airplane dev config delete-envvar <key1> <key2> ...
 		`),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -34,5 +34,5 @@ func New(c *cli.DevCLI) *cobra.Command {
 
 // Run runs the open command.
 func run(ctx context.Context, cfg config) error {
-	return cfg.devCLI.DevConfig.DeleteConfigVar(cfg.key)
+	return cfg.devCLI.DevConfig.DeleteEnvVar(cfg.key)
 }
