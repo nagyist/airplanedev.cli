@@ -12,6 +12,8 @@ func ConvertToInternalResource(r resources.Resource) (kind_configs.InternalResou
 	switch resource := r.(type) {
 	case *kinds.BigQueryResource:
 		base = resource.BaseResource
+	case *kinds.GraphQLResource:
+		base = resource.BaseResource
 	case *kinds.MailgunResource:
 		base = resource.BaseResource
 	case *kinds.MongoDBResource:
@@ -35,7 +37,7 @@ func ConvertToInternalResource(r resources.Resource) (kind_configs.InternalResou
 	case *kinds.SQLServerResource:
 		base = resource.BaseResource
 	default:
-		return kind_configs.InternalResource{}, errors.Errorf("Unkonwn resource type %T", resource)
+		return kind_configs.InternalResource{}, errors.Errorf("Unknown resource type %T", resource)
 	}
 	return kind_configs.InternalResource{
 		ID:             base.ID,
