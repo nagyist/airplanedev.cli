@@ -99,6 +99,10 @@ func promptForNewView(config *config) error {
 }
 
 func createViewScaffolding(ctx context.Context, cfg *config) error {
+	if cfg.name == "" {
+		return errors.New("missing new view name")
+	}
+
 	slug := utils.MakeSlug(cfg.name)
 	cfg.slug = slug
 

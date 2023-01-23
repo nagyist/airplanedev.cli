@@ -178,8 +178,11 @@ func initTask(ctx context.Context, cfg config) error {
 			return err
 		}
 	} else {
-		if cfg.newTaskInfo.name == "" || cfg.newTaskInfo.kind == "" {
-			return errors.New("missing new task info")
+		if cfg.newTaskInfo.name == "" {
+			return errors.New("missing new task name")
+		}
+		if cfg.newTaskInfo.kind == "" {
+			return errors.New("missing new task kind")
 		}
 
 		var err error
@@ -1036,7 +1039,7 @@ func writeNewAirplaneConfig(writer io.Writer, opts getNewAirplaneConfigOptions) 
 	}
 
 	e := yaml.NewEncoder(writer)
-	defer e.Close()
+	defer e.Close() //nolint:errcheck
 	e.SetIndent(2)
 	if err := e.Encode(&opts.cfg); err != nil {
 		return errors.Wrapf(err, "writing %s", deployconfig.FileName)
