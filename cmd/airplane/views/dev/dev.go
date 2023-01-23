@@ -70,11 +70,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 // StartView starts a view development server.
 func StartView(ctx context.Context, cfg Config) error {
-	rootDir, err := viewdir.FindRoot(cfg.FileOrDir)
-	if err != nil {
-		return err
-	}
-	vd, err := viewdir.NewViewDirectory(ctx, cfg.Root.Client, rootDir, cfg.FileOrDir, cfg.EnvSlug)
+	vd, err := viewdir.NewViewDirectory(ctx, cfg.Root.Client, cfg.FileOrDir, cfg.EnvSlug)
 	if err != nil {
 		return err
 	}

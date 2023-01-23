@@ -10,7 +10,6 @@ import (
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
-	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
 )
 
@@ -46,32 +45,7 @@ func missingViewHandler(ctx context.Context, defn definitions.ViewDefinition) (*
 	}, nil
 }
 
-func FindRoot(fileOrDir string) (string, error) {
-	var err error
-	fileOrDir, err = filepath.Abs(fileOrDir)
-	if err != nil {
-		return "", errors.Wrap(err, "getting absolute path")
-	}
-	fileInfo, err := os.Stat(fileOrDir)
-	if err != nil {
-		return "", errors.Wrapf(err, "describing %s", fileOrDir)
-	}
-	if !fileInfo.IsDir() {
-		fileOrDir = filepath.Dir(fileOrDir)
-	}
-
-	if p, ok := fsx.Find(fileOrDir, "package.json"); ok {
-		return p, nil
-	}
-	return filepath.Dir(fileOrDir), nil
-}
-
-func NewViewDirectory(ctx context.Context, client *api.Client, root string, searchPath string, envSlug string) (ViewDirectory, error) {
-	absRoot, err := filepath.Abs(root)
-	if err != nil {
-		return ViewDirectory{}, errors.Wrap(err, "getting absolute root filepath")
-	}
-
+func NewViewDirectory(ctx context.Context, client *api.Client, searchPath string, envSlug string) (ViewDirectory, error) {
 	d := &discover.Discoverer{
 		ViewDiscoverers: []discover.ViewDiscoverer{
 			&discover.ViewDefnDiscoverer{
@@ -96,11 +70,12 @@ func NewViewDirectory(ctx context.Context, client *api.Client, root string, sear
 			return ViewDirectory{}, errors.Wrap(err, "reading view config")
 		}
 
-		return ViewDirectory{
-			root:           absRoot,
-			entrypointPath: vc.Def.Entrypoint,
-			slug:           vc.Def.Slug,
-		}, nil
+		vd, err := NewViewDirectoryFromViewConfig(*vc)
+		if err != nil {
+			return ViewDirectory{}, err
+		}
+
+		return vd, nil
 	}
 
 	// If pointing towards a non-view-definition file, we use the directory around
@@ -125,6 +100,21 @@ func NewViewDirectory(ctx context.Context, client *api.Client, root string, sear
 		return ViewDirectory{}, errors.New("no views found!")
 	}
 	vc := viewConfigs[0]
+
+	vd, err := NewViewDirectoryFromViewConfig(vc)
+	if err != nil {
+		return ViewDirectory{}, err
+	}
+
+	return vd, nil
+}
+
+// NewViewDirectoryFromViewConfig constructs a new ViewDirectory from a ViewConfig.
+func NewViewDirectoryFromViewConfig(vc discover.ViewConfig) (ViewDirectory, error) {
+	absRoot, err := filepath.Abs(vc.Root)
+	if err != nil {
+		return ViewDirectory{}, errors.Wrap(err, "getting absolute root filepath")
+	}
 
 	return ViewDirectory{
 		root:           absRoot,

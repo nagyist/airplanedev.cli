@@ -342,12 +342,7 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 		return StartViewResponse{}, errors.Errorf("View with slug %s not found", viewSlug)
 	}
 
-	rootDir, err := viewdir.FindRoot(viewConfig.Root)
-	if err != nil {
-		return StartViewResponse{}, err
-	}
-
-	vd, err := viewdir.NewViewDirectory(ctx, s.LocalClient, rootDir, viewConfig.Def.DefnFilePath, "")
+	vd, err := viewdir.NewViewDirectoryFromViewConfig(viewConfig)
 	if err != nil {
 		return StartViewResponse{}, err
 	}
