@@ -16,6 +16,9 @@ func TestDockerignorePatterns(tt *testing.T) {
 		{"!node_modules", "!**/node_modules"},
 		{"/node_modules", "node_modules"},
 		{"!/node_modules", "!node_modules"},
+		{"/.yarn", ".yarn"},
+		{"!/.yarn/plugins", "!.yarn/plugins"},
+		{"!/.yarn", "!.yarn"},
 	} {
 		tt.Run(test.In, func(t *testing.T) {
 			require.Equal(t, test.Out, toDockerignore(test.In))
