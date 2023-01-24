@@ -21,7 +21,7 @@ func GetHttpExpect(ctx context.Context, t *testing.T, router *mux.Router) *httpe
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				return http.ErrUseLastResponse
 			},
-			Jar: httpexpect.NewJar(),
+			Jar: httpexpect.NewCookieJar(),
 		},
 		Context: ctx,
 	})
