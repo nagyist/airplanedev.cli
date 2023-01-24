@@ -57,8 +57,12 @@ var corsOrigins = []string{
 	`^http://127.0.0.1:`,
 }
 
+type RouterOptions struct {
+	Token *string
+}
+
 // NewRouter returns a new router for the local api server
-func NewRouter(state *state.State) *mux.Router {
+func NewRouter(state *state.State, opts RouterOptions) *mux.Router {
 	r := mux.NewRouter()
 	r.Use(handlers.CORS(
 		handlers.AllowCredentials(),
@@ -83,8 +87,20 @@ func NewRouter(state *state.State) *mux.Router {
 			"x-airplane-client-version",
 			"x-airplane-client-source",
 			"idempotency-key",
+			"x-airplane-dev-token",
 		}),
 	))
+	if opts.Token != nil {
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Header.Get("X-Airplane-Dev-Token") != *opts.Token {
+					w.WriteHeader(http.StatusUnauthorized)
+					return
+				}
+				next.ServeHTTP(w, r)
+			})
+		})
+	}
 
 	apiext.AttachExternalAPIRoutes(r.NewRoute().Subrouter(), state)
 	apiint.AttachInternalAPIRoutes(r.NewRoute().Subrouter(), state)
@@ -101,6 +117,10 @@ type Options struct {
 
 	// Optional listener that will be used in lieu of port/expose configuration. This is used for ngrok tunnels.
 	Listener net.Listener
+
+	// Optional token that will install auth middleware for all non-OPTIONS requests. Auth will need to be passed
+	// in the "Authorization" header with format "Bearer <token>".
+	Token *string
 }
 
 // newServer returns a new HTTP server with API routes
@@ -169,7 +189,7 @@ func Start(opts Options) (*Server, int, error) {
 		return nil, 0, err
 	}
 
-	r := NewRouter(s)
+	r := NewRouter(s, RouterOptions{Token: opts.Token})
 	apiServer, err := newServer(r, s, opts)
 	if err != nil {
 		return nil, 0, err

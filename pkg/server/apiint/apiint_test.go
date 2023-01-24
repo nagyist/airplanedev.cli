@@ -71,7 +71,7 @@ func TestListResources(t *testing.T) {
 					},
 				},
 			},
-		}),
+		}, server.RouterOptions{}),
 	)
 
 	body := h.GET("/i/resources/list").
@@ -158,7 +158,7 @@ func TestSubmitPrompts(t *testing.T) {
 			TaskConfigs:  state.NewStore[string, discover.TaskConfig](nil),
 			DevConfig:    &conf.DevConfig{},
 			RemoteClient: &api.MockClient{},
-		}),
+		}, server.RouterOptions{}),
 	)
 
 	var resp apiext.PromptResponse
@@ -241,7 +241,7 @@ func TestSkipSleeps(t *testing.T) {
 			TaskConfigs:  state.NewStore[string, discover.TaskConfig](nil),
 			DevConfig:    &conf.DevConfig{},
 			RemoteClient: &api.MockClient{},
-		}),
+		}, server.RouterOptions{}),
 	)
 
 	var resp apiint.SkipSleepResponse
@@ -304,7 +304,7 @@ func TestListRuns(t *testing.T) {
 		server.NewRouter(&state.State{
 			Runs:        runstore,
 			TaskConfigs: state.NewStore[string, discover.TaskConfig](nil),
-		}),
+		}, server.RouterOptions{}),
 	)
 	var resp apiext.ListRunsResponse
 	body := h.GET("/i/runs/list").
@@ -336,7 +336,7 @@ func TestGetUser(t *testing.T) {
 			RemoteClient: &api.MockClient{
 				Users: map[string]api.User{"usr1234": user},
 			},
-		}),
+		}, server.RouterOptions{}),
 	)
 	var resp api.GetUserResponse
 	body := h.GET("/i/users/get").
@@ -397,7 +397,7 @@ func TestConfigsCRUD(t *testing.T) {
 				},
 				Path: path,
 			},
-		}),
+		}, server.RouterOptions{}),
 	)
 
 	// Test listing
@@ -522,7 +522,7 @@ func TestRemoteConfigs(t *testing.T) {
 			},
 			RemoteEnv:      remoteEnv,
 			UseFallbackEnv: true,
-		}),
+		}, server.RouterOptions{}),
 	)
 
 	// Test listing
@@ -557,7 +557,7 @@ func TestUploadCreateGet(t *testing.T) {
 			RemoteClient: &api.MockClient{
 				Uploads: map[string]libapi.Upload{},
 			},
-		}),
+		}, server.RouterOptions{}),
 	)
 
 	var createResp libapi.CreateUploadResponse

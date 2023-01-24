@@ -56,6 +56,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 
 	localClientDevServerHost := ""
 	studioUIHost := ""
+	var studioUIToken *string
 	var ln net.Listener
 	if cfg.tunnel {
 		// Obtain user-specific ngrok auth token.
@@ -64,9 +65,13 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 			return errors.Wrap(err, "unable to acquire tunnel token")
 		}
 
+		randString := utils.RandomString(20, utils.CharsetAlphaNumeric)
+		studioUIToken = &randString
 		localClientDevServerHost = fmt.Sprintf("%s.t.airplane.sh", authInfo.User.ID)
 		ln, err = ngrok.Listen(ctx,
-			config.HTTPEndpoint(config.WithDomain(localClientDevServerHost)),
+			config.HTTPEndpoint(
+				config.WithDomain(localClientDevServerHost),
+			),
 			ngrok.WithAuthtoken(tokenResp.Token),
 		)
 		if err != nil {
@@ -79,6 +84,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		Port:     cfg.port,
 		Expose:   cfg.sandbox,
 		Listener: ln,
+		Token:    studioUIToken,
 	})
 	if err != nil {
 		return errors.Wrap(err, "starting local dev server")
@@ -221,7 +227,12 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	logger.Log("")
-	studioURL := fmt.Sprintf("%s/studio?__airplane_host=%s&__env=%s", appURL, studioUIHost, remoteEnv.Slug)
+	var studioURL string
+	if studioUIToken != nil {
+		studioURL = fmt.Sprintf("%s/studio?__airplane_host=%s&__airplane_tunnel_token=%s&__env=%s", appURL, studioUIHost, *studioUIToken, remoteEnv.Slug)
+	} else {
+		studioURL = fmt.Sprintf("%s/studio?__airplane_host=%s&__env=%s", appURL, studioUIHost, remoteEnv.Slug)
+	}
 	logger.Log("Started studio session at %s (^C to quit)", logger.Blue(studioURL))
 
 	// Execute the flow to open the studio in the browser in a separate goroutine so fmt.Scanln doesn't capture

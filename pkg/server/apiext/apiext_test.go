@@ -65,7 +65,7 @@ func TestExecute(t *testing.T) {
 				},
 			}),
 			DevConfig: &conf.DevConfig{},
-		}),
+		}, server.RouterOptions{}),
 	)
 
 	paramValues := api.Values{
@@ -127,7 +127,7 @@ func TestExecuteFallback(t *testing.T) {
 			TaskConfigs:    state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{}),
 			DevConfig:      &conf.DevConfig{},
 			UseFallbackEnv: true,
-		}),
+		}, server.RouterOptions{}),
 	)
 
 	paramValues := api.Values{
@@ -204,7 +204,7 @@ func TestExecuteBuiltin(t *testing.T) {
 					Remote:   false,
 				},
 			}},
-		}))
+		}, server.RouterOptions{}))
 
 	paramValues := api.Values{
 		"query":           "select * from users limit 1",
@@ -258,7 +258,7 @@ func TestGetRun(t *testing.T) {
 		server.NewRouter(&state.State{
 			Runs:        runstore,
 			TaskConfigs: state.NewStore[string, discover.TaskConfig](nil),
-		}),
+		}, server.RouterOptions{}),
 	)
 	body := h.GET("/v0/runs/get").
 		WithQuery("id", runID).
@@ -286,7 +286,7 @@ func TestGetOutput(t *testing.T) {
 		server.NewRouter(&state.State{
 			Runs:        runstore,
 			TaskConfigs: state.NewStore[string, discover.TaskConfig](nil),
-		}),
+		}, server.RouterOptions{}),
 	)
 
 	body := h.GET("/v0/runs/getOutputs").

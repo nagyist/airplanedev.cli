@@ -27,7 +27,7 @@ func TestVersion(t *testing.T) {
 	h := test_utils.GetHttpExpect(
 		context.Background(),
 		t,
-		server.NewRouter(&state.State{}),
+		server.NewRouter(&state.State{}, server.RouterOptions{}),
 	)
 
 	body := h.GET("/dev/version").
@@ -93,7 +93,7 @@ func TestListEntrypoints(t *testing.T) {
 				},
 			},
 			UseFallbackEnv: true,
-		}),
+		}, server.RouterOptions{}),
 	)
 
 	body := h.GET("/dev/list").
@@ -177,7 +177,7 @@ func TestListFilesHandler(t *testing.T) {
 				},
 			}),
 			Dir: absoluteDir,
-		}),
+		}, server.RouterOptions{}),
 	)
 
 	body := h.GET("/dev/files/list").
@@ -237,7 +237,7 @@ func TestGetFileHandler(t *testing.T) {
 		t,
 		server.NewRouter(&state.State{
 			Dir: absoluteDir,
-		}),
+		}, server.RouterOptions{}),
 	)
 
 	subfilePath := filepath.Join(absoluteDir, "subfile")
@@ -300,7 +300,7 @@ func TestUpdateFileHandler(t *testing.T) {
 		t,
 		server.NewRouter(&state.State{
 			Dir: os.TempDir(),
-		}),
+		}, server.RouterOptions{}),
 	)
 
 	// Valid path
