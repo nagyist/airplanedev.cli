@@ -408,6 +408,27 @@ type yarnListResults struct {
 // getYarnLockPackageVersion runs yarn to get the specific version of a package.
 // If yarn isn't in use or the package isn't found, an error is returned.
 func getYarnLockPackageVersion(dir string, packageName string) (string, error) {
+	yarnBerry, err := isYarnBerry(filepath.Join(dir, "package.json"))
+	if err != nil {
+		return "", err
+	}
+	if yarnBerry {
+		cmd := exec.Command("yarn", "info", packageName, "--json", "--name-only")
+		cmd.Dir = dir
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			return "", errors.Wrap(
+				err,
+				fmt.Sprintf("getting airplane version via yarn: %s", string(out)),
+			)
+		}
+		var res string
+		if err := json.Unmarshal(out, &res); err != nil {
+			return "", errors.Wrap(err, "parsing yarn info results")
+		}
+		// res looks like: airplane@npm:0.2.30
+		return strings.Split(res, ":")[1], nil
+	}
 	cmd := exec.Command(
 		"yarn",
 		"list",

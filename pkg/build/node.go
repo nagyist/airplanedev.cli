@@ -94,6 +94,34 @@ func getNodeBundleBuildInstructions(
 	pathPackageLock := filepath.Join(root, "package-lock.json")
 	hasPackageLock := fsx.AssertExistsAll(pathPackageLock) == nil
 
+	dotYarn := filepath.Join(root, ".yarn")
+	hasDotYarn := fsx.Exists(dotYarn)
+	dotAirplaneDotYarn := filepath.Join(root, ".airplane.yarn")
+	hasDotAirplaneDotYarn := fsx.Exists(dotAirplaneDotYarn)
+
+	yarnRC := filepath.Join(root, ".yarnrc.yml")
+	hasYarnRC := fsx.Exists(yarnRC)
+
+	// This case is solely for testing purposes. We are unable to test .yarn
+	// because of permissions errors with the Docker daemon.
+	if hasDotAirplaneDotYarn {
+		instructions = append(instructions, InstallInstruction{
+			SrcPath: "./.airplane.yarn",
+			DstPath: "/airplane/.airplane.yarn/",
+		})
+	} else if hasDotYarn {
+		instructions = append(instructions, InstallInstruction{
+			SrcPath: "./.yarn",
+			DstPath: "/airplane/.yarn/",
+		})
+	}
+	if hasYarnRC {
+		instructions = append(instructions, InstallInstruction{
+			SrcPath: ".yarnrc.yml",
+			DstPath: "/airplane",
+		})
+	}
+
 	var pkg PackageJSON
 	if hasPackageJSON {
 		pkg, err = ReadPackageJSON(rootPackageJSON)
