@@ -5,16 +5,16 @@ go 1.19
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/airplanedev/lib v0.5.142
+	github.com/airplanedev/lib v0.5.143
 	github.com/airplanedev/ojson v0.1.0
 	github.com/airplanedev/trap v0.1.0
 	github.com/bep/debounce v1.2.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/briandowns/spinner v1.20.0
-	github.com/dustin/go-humanize v1.0.0
-	github.com/fatih/color v1.13.0
+	github.com/dustin/go-humanize v1.0.1
+	github.com/fatih/color v1.14.1
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568
-	github.com/gavv/httpexpect/v2 v2.8.0
+	github.com/gavv/httpexpect/v2 v2.9.0
 	github.com/getsentry/sentry-go v0.17.0
 	github.com/go-git/go-billy/v5 v5.4.0
 	github.com/go-git/go-git-fixtures/v4 v4.3.1

@@ -174,7 +174,7 @@ func createWrapperTemplates(airplaneViewDir string, viewSubdir string, entrypoin
 		logger.Warning("unable to remove deprecated .airplane-view/index.html file: %v", err)
 	}
 
-	mainTsxStr, err := libbuild.MainTsxString(entrypointModule)
+	mainTsxStr, err := libbuild.MainTsxString(entrypointModule, true)
 	if err != nil {
 		return errors.Wrap(err, "loading main.tsx value")
 	}
