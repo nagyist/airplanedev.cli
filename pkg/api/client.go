@@ -323,7 +323,8 @@ func (c Client) RunTask(ctx context.Context, req RunTaskRequest) (RunTaskRespons
 	if err := c.post(ctx, encodeQueryString("/tasks/execute", url.Values{
 		"envSlug": []string{req.EnvSlug},
 	}), req, &res); err != nil {
-		if err, ok := err.(Error); ok && err.Code == 404 {
+		var apiErr Error
+		if errors.As(err, &apiErr); apiErr.Code == 404 {
 			if req.TaskSlug != nil {
 				return res, &libapi.TaskMissingError{
 					AppURL: c.AppURL().String(),
@@ -400,7 +401,8 @@ func (c Client) GetTask(ctx context.Context, req libapi.GetTaskRequest) (res lib
 		"envSlug": []string{req.EnvSlug},
 	}), &res)
 
-	if err, ok := err.(Error); ok && err.Code == 404 {
+	var apiErr Error
+	if errors.As(err, &apiErr); apiErr.Code == 404 {
 		return res, &libapi.TaskMissingError{
 			AppURL: c.AppURL().String(),
 			Slug:   req.Slug,
@@ -419,7 +421,8 @@ func (c Client) GetTaskByID(ctx context.Context, id string) (res libapi.Task, er
 		"id": []string{id},
 	}), &res)
 
-	if err, ok := err.(Error); ok && err.Code == 404 {
+	var apiErr Error
+	if errors.As(err, &apiErr); apiErr.Code == 404 {
 		return res, &libapi.TaskMissingError{
 			AppURL: c.AppURL().String(),
 		}
@@ -436,7 +439,8 @@ func (c Client) GetTaskMetadata(ctx context.Context, slug string) (res libapi.Ta
 		"slug": []string{slug},
 	}), &res)
 
-	if err, ok := err.(Error); ok && err.Code == 404 {
+	var apiErr Error
+	if errors.As(err, &apiErr); apiErr.Code == 404 {
 		return res, &libapi.TaskMissingError{
 			AppURL: c.AppURL().String(),
 			Slug:   slug,
@@ -452,7 +456,8 @@ func (c Client) GetTaskReviewers(ctx context.Context, slug string) (res GetTaskR
 		"taskSlug": []string{slug},
 	}), &res)
 
-	if err, ok := err.(Error); ok && err.Code == 404 {
+	var apiErr Error
+	if errors.As(err, &apiErr); apiErr.Code == 404 {
 		return res, &libapi.TaskMissingError{
 			AppURL: c.AppURL().String(),
 			Slug:   slug,
@@ -469,7 +474,8 @@ func (c Client) GetView(ctx context.Context, req libapi.GetViewRequest) (res lib
 		"id":   []string{req.ID},
 	}), &res)
 
-	if err, ok := err.(Error); ok && err.Code == 404 {
+	var apiErr Error
+	if errors.As(err, &apiErr); apiErr.Code == 404 {
 		return res, &libapi.ViewMissingError{
 			AppURL: c.AppURL().String(),
 			Slug:   req.Slug,
@@ -609,7 +615,8 @@ func (c Client) GetResource(ctx context.Context, req GetResourceRequest) (res li
 		"envSlug":              []string{req.EnvSlug},
 		"includeSensitiveData": []string{strconv.FormatBool(req.IncludeSensitiveData)},
 	}), &res)
-	if err, ok := err.(Error); ok && err.Code == 404 {
+	var apiErr Error
+	if errors.As(err, &apiErr); apiErr.Code == 404 {
 		return res, libapi.ResourceMissingError{
 			AppURL: c.AppURL().String(),
 			Slug:   req.Slug,

@@ -288,7 +288,8 @@ func (d *deployer) getDeployTask(ctx context.Context, tc discover.TaskConfig, up
 		// If the task does not exist in the default environment, this task was created after we
 		// launched environments which is well after we deprecated handlebars templating. We can
 		// assume the interpolation mode is JSTs.
-		if _, ok := err.(*libapi.TaskMissingError); !ok {
+		var taskMissingError *libapi.TaskMissingError
+		if errors.As(err, &taskMissingError) {
 			return api.DeployTask{}, errors.Wrap(err, "unable to look up interpolation mode")
 		}
 	} else {
@@ -605,7 +606,8 @@ func (d *deployer) getDefinitionDiff(ctx context.Context, taskConfig discover.Ta
 		EnvSlug: d.cfg.envSlug,
 	})
 	if err != nil {
-		if _, ok := err.(*libapi.TaskMissingError); ok {
+		var taskMissingError *libapi.TaskMissingError
+		if errors.As(err, &taskMissingError) {
 			// The task is being promoted into a new environment, proceed as normal.
 			return []string{"(task created in new environment)"}, nil
 		}

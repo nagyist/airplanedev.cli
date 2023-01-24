@@ -34,7 +34,8 @@ func run(ctx context.Context, c *cli.Config, apiKeyIDs []string) error {
 		logger.Log("  Deleting key %s...", logger.Red(apiKeyID))
 
 		if err := client.DeleteAPIKey(ctx, req); err != nil {
-			if e, ok := err.(api.Error); ok && e.Code == 404 {
+			var apiErr api.Error
+			if errors.As(err, &apiErr); apiErr.Code == 404 {
 				logger.Log("  Key not found.")
 				return nil
 			}

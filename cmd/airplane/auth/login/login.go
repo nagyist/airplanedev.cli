@@ -66,7 +66,8 @@ func validateToken(ctx context.Context, c *cli.Config) (bool, error) {
 	}
 
 	_, err := c.Client.AuthInfo(ctx)
-	if e, ok := err.(api.Error); ok && e.Code == 401 {
+	var apiErr api.Error
+	if errors.As(err, &apiErr); apiErr.Code == 401 {
 		logger.Debug("Found an expired token. Re-authenticating.")
 		return false, nil
 	} else if err != nil {
