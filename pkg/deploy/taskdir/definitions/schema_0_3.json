@@ -105,7 +105,10 @@
                 },
                 "command": {
                   "description": "The Docker command to run. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
-                  "examples": ["echo \"hello world\"", "echo \"{{params.input}}\""],
+                  "examples": [
+                    "echo \"hello world\"",
+                    "echo \"{{params.input}}\""
+                  ],
                   "type": "string"
                 },
                 "entrypoint": {
@@ -363,7 +366,10 @@
         },
         "options": {
           "description": "A list of options to constrain the parameter values. For configvar types, each option needs to be an object with a label (value to show to user) and a config (name of the config var). For all other types, each option can be a single value or an object with a label and a value.",
-          "examples": ["Alfred Pennyworth", { "label": "Batman", "value": "Bruce Wayne" }],
+          "examples": [
+            "Alfred Pennyworth",
+            { "label": "Batman", "value": "Bruce Wayne" }
+          ],
           "type": "array",
           "items": {
             "anyOf": [
@@ -375,7 +381,11 @@
                 "properties": {
                   "label": { "type": "string" },
                   "value": {
-                    "anyOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }]
+                    "anyOf": [
+                      { "type": "string" },
+                      { "type": "number" },
+                      { "type": "boolean" }
+                    ]
                   }
                 },
                 "required": ["label", "value"],
@@ -470,7 +480,8 @@
                   "type": "string",
                   "pattern": "^[a-z0-9_]{1,50}$"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             {
               "type": "array",
@@ -539,6 +550,7 @@
               "required": ["cron"]
             }
           },
+          "additionalProperties": false,
           "examples": [
             {
               "run_at_midnight": {

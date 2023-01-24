@@ -672,6 +672,55 @@ func TestDiscover(t *testing.T) {
 			defnFilePaths: []string{fixturesPath + "/taskInline/codeOnlyTask.airplane.ts"},
 		},
 		{
+			name:  "node code definition with schedule",
+			paths: []string{"./fixtures/taskInlineSchedule/codeOnlyTask.airplane.ts"},
+			existingTasks: map[string]api.Task{
+				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+			},
+			expectedTaskConfigs: []TaskConfig{
+				{
+					TaskID:         "tsk123",
+					TaskRoot:       fixturesPath,
+					TaskEntrypoint: fixturesPath + "/taskInlineSchedule/codeOnlyTask.airplane.ts",
+					Def: &definitions.Definition_0_3{
+						Name: "Collatz Conjecture Step",
+						Slug: "collatz",
+						Parameters: []definitions.ParameterDefinition_0_3{
+							{
+								Name: "Num",
+								Slug: "num",
+								Type: "integer",
+							},
+						},
+						Node: &definitions.NodeDefinition_0_3{},
+						Schedules: map[string]definitions.ScheduleDefinition_0_3{
+							"foo_bar": {Name: "Foo Bar", CronExpr: "0 0 * * *"},
+						},
+					},
+					Source: ConfigSourceCode,
+				},
+			},
+			buildConfigs: []build.BuildConfig{
+				{
+					"entrypoint":     "taskInlineSchedule/codeOnlyTask.airplane.ts",
+					"entrypointFunc": "collatz",
+					"workdir":        "",
+				},
+			},
+			absEntrypoints: []string{
+				fixturesPath + "/taskInlineSchedule/codeOnlyTask.airplane.ts",
+			},
+			defnFilePaths: []string{fixturesPath + "/taskInlineSchedule/codeOnlyTask.airplane.ts"},
+		},
+		{
+			name:  "node code definition with schedule with error",
+			paths: []string{"./fixtures/taskInlineScheduleError/codeOnlyTask.airplane.ts"},
+			existingTasks: map[string]api.Task{
+				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+			},
+			expectedErr: true,
+		},
+		{
 			name:  "node code definition with an esm dep",
 			paths: []string{"./fixtures/taskInlineEsm/codeOnlyTask.airplane.ts"},
 			existingTasks: map[string]api.Task{
