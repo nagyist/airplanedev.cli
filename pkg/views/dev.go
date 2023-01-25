@@ -120,6 +120,19 @@ func Dev(ctx context.Context, v viewdir.ViewDirectoryInterface, viteOpts ViteOpt
 		return nil, "", nil, errors.Wrap(err, "closing new package.json file")
 	}
 
+	// Add postcss config if tailwind config is detected.
+	tailwindConfig := filepath.Join(root, "tailwind.config.js")
+	if _, err := os.Stat(tailwindConfig); err == nil {
+		postcssConfigStr, err := libbuild.PostcssConfigString("../tailwind.config.js")
+		if err != nil {
+			return nil, "", nil, errors.Wrap(err, "loading postcss.config.js value")
+		}
+		postcssConfigPath := filepath.Join(airplaneViewDir, "postcss.config.js")
+		if err := os.WriteFile(postcssConfigPath, []byte(postcssConfigStr), 0644); err != nil {
+			return nil, "", nil, errors.Wrap(err, "writing postcss.config.js")
+		}
+	}
+
 	// Create vite config.
 	if err := createViteConfig(airplaneViewDir); err != nil {
 		return nil, "", nil, errors.Wrap(err, "creating vite config")
