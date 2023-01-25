@@ -193,6 +193,13 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 	if err != nil {
 		return "", err
 	}
+	postcssConfigStr, err := PostcssConfigString("src/tailwind.config.js")
+	if err != nil {
+		return "", err
+	}
+
+	tailwindPath := filepath.Join(root, "tailwind.config.js")
+	hasTailwind := fsx.Exists(tailwindPath)
 
 	packageJSONPath := filepath.Join(root, "package.json")
 	var packageJSON interface{}
@@ -302,6 +309,8 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		DirectoryToBuildTo           string
 		NodeVersion                  string
 		UseSlimImage                 bool
+		HasTailwind                  bool
+		InlinePostcssConfig          string
 	}{
 		Base: base,
 		// Because the install command is running in the context of a docker build, the yarn cache
@@ -322,6 +331,8 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		DirectoryToBuildTo:           directoryToBuildTo,
 		NodeVersion:                  nodeVersion,
 		UseSlimImage:                 useSlimImage,
+		HasTailwind:                  hasTailwind,
+		InlinePostcssConfig:          inlineString(postcssConfigStr),
 	}
 
 	return applyTemplate(heredoc.Doc(`
@@ -340,7 +351,7 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		# Copy build tools.
 		COPY .airplane-build-tools .airplane-build-tools/
 		RUN npm install -g esbuild@0.12 --unsafe-perm
-		
+
 		# Support setting BUILD_NPM_RC or BUILD_NPM_TOKEN to configure private registry auth
 		ARG BUILD_NPM_RC
 		ARG BUILD_NPM_TOKEN
@@ -350,6 +361,9 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		# Copy and install dependencies.
 		COPY package*.json yarn.* /airplane/
 		RUN {{.InlinePackageJSON}} > /airplane/package.json && {{.InstallCommand}}
+		{{if .HasTailwind}}
+		RUN {{.InlinePostcssConfig}} > /airplane/postcss.config.js
+		{{end}}
 
 		# Copy all source code to /src.
 		COPY . src/
@@ -367,7 +381,7 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 
 		# Generate index.html and main.tsx for each entrypoint.
 		RUN {{.InlineIndexHtml}} > index.html && {{.InlineMainTsx}} > main.tsx && .airplane-build-tools/gen_view.sh "{{.FilesToBuildWithoutExtension}}" index.html main.tsx
-		
+
 		# Copy in universal Vite config and build view
 		RUN {{.InlineViteConfig}} > vite.config.ts && /airplane/node_modules/.bin/vite build --outDir {{.OutDir}}
 		RUN yarn list --pattern @airplane/views | grep @airplane/views | sed "s/^.*@airplane\/views@\(.*\)$/\1/" > /airplane/{{.OutDir}}/.airplane-views-version
@@ -421,5 +435,16 @@ func MainTsxString(entrypoint string, isInStudio bool) (string, error) {
 	}{
 		Entrypoint: entrypoint,
 		IsInStudio: isInStudio,
+	})
+}
+
+//go:embed views/postcss.config.js
+var postcssConfigTemplateStr string
+
+func PostcssConfigString(tailwindLocation string) (string, error) {
+	return applyTemplate(postcssConfigTemplateStr, struct {
+		TailwindLocation string
+	}{
+		TailwindLocation: tailwindLocation,
 	})
 }
