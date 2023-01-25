@@ -54,6 +54,18 @@
         }
       },
       "additionalProperties": false
+    },
+    "view": {
+      "type": "object",
+      "properties": {
+        "envVars": { "$ref": "#/$defs/envVars" },
+        "base": {
+          "description": "The type of base image to use; if not specified, defaults to full.",
+          "enum": ["", "full", "slim"],
+          "default": ""
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false,

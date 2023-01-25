@@ -946,6 +946,30 @@ func TestDiscover(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:  "view code definition with env vars",
+			paths: []string{"./fixtures/envvars/myView.airplane.tsx"},
+			existingViews: map[string]api.View{
+				"my_view": {ID: "view123", Slug: "my_view", Name: "My View"},
+			},
+			expectedViewConfigs: []ViewConfig{
+				{
+					ID: "view123",
+					Def: definitions.ViewDefinition{
+						Name:         "My View",
+						Slug:         "my_view",
+						Entrypoint:   fixturesPath + "/envvars/myView.airplane.tsx",
+						DefnFilePath: fixturesPath + "/envvars/myView.airplane.tsx",
+						EnvVars: api.EnvVars{
+							"ENV4": api.EnvVarValue{Value: pointers.String("4")},
+							"ENV5": api.EnvVarValue{Value: pointers.String("5")},
+						},
+					},
+					Root:   fixturesPath + "/envvars",
+					Source: ConfigSourceCode,
+				},
+			},
+		},
 	}
 	for _, tC := range tests {
 		t.Run(tC.name, func(t *testing.T) {

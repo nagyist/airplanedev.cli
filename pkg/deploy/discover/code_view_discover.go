@@ -39,6 +39,10 @@ func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 	if err != nil {
 		return nil, err
 	}
+	bc, err := ViewBuildContext(pm.RootDir)
+	if err != nil {
+		return nil, err
+	}
 
 	if err := esbuildUserFiles(dd.Logger, pm.RootDir); err != nil {
 		// TODO: convert to an error once inline discovery is more stable.
@@ -87,6 +91,20 @@ func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 		default:
 			return nil, errors.Wrap(err, "unmarshalling view definition")
 		}
+	}
+
+	envVars := make(api.EnvVars)
+	envVarsFromDefn := d.EnvVars
+	// Calculate the full list of env vars. This is the env vars (from airplane config)
+	// plus the env vars from the view. Set this new list on the def.
+	for k, v := range bc.EnvVars {
+		envVars[k] = api.EnvVarValue(v)
+	}
+	for k, v := range envVarsFromDefn {
+		envVars[k] = v
+	}
+	if len(envVars) > 0 {
+		d.EnvVars = envVars
 	}
 
 	var view api.View

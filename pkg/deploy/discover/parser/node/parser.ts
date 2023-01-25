@@ -43,6 +43,7 @@ type ViewDef = {
   name: string;
   description?: string;
   entrypoint: string;
+  envVars?: Record<string, string | { config: string } | { value: string }>;
 };
 
 type AirplaneConfigs = {
@@ -65,9 +66,11 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
         if (item.__airplane.type === "view") {
           viewConfigs.push({
             slug: config.slug,
-            name: config.name,
+            // Default to slug if name is not provided.
+            name: config.name || config.slug,
             description: config.description,
             entrypoint: file,
+            envVars: config.envVars,
           });
         } else {
           const params: TaskParam[] = [];
@@ -83,7 +86,8 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
             } else {
               params.push({
                 slug: uParamSlug,
-                name: uParamConfig["name"] ? uParamConfig["name"] : uParamSlug,
+                // Default to slug if name is not provided.
+                name: uParamConfig["name"] || uParamSlug,
                 type: uParamConfig["type"],
                 description: uParamConfig["description"],
                 default: uParamConfig["default"],

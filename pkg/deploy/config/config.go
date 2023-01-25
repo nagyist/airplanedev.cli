@@ -37,9 +37,14 @@ type PythonConfig struct {
 	PostInstall string  `yaml:"postinstall,omitempty" json:"postinstall,omitempty"`
 }
 
+type ViewConfig struct {
+	EnvVars TaskEnv `yaml:"envVars,omitempty" json:"envVars,omitempty"`
+}
+
 type AirplaneConfig struct {
 	Javascript JavaScriptConfig `yaml:"javascript,omitempty" json:"javascript,omitempty"`
 	Python     PythonConfig     `yaml:"python,omitempty" json:"python,omitempty"`
+	View       ViewConfig       `yaml:"view,omitempty" json:"view,omitempty"`
 }
 
 func HasAirplaneConfig(dir string) bool {

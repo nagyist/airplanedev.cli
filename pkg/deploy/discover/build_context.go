@@ -59,13 +59,31 @@ func TaskBuildContext(taskroot string, taskRuntime runtime.Interface) (build.Bui
 
 // ViewBuildContext gets the build context for a view.
 func ViewBuildContext(viewroot string) (build.BuildContext, error) {
-	bc, err := TaskBuildContext(viewroot, javascript.Runtime{})
+	buildVersion, err := javascript.Runtime{}.Version(viewroot)
 	if err != nil {
 		return build.BuildContext{}, err
 	}
-	// Default to slim base for views.
-	if bc.Base == build.BuildBaseNone {
-		bc.Base = build.BuildBaseSlim
+
+	var c config.AirplaneConfig
+	hasAirplaneConfig := fsx.Exists(filepath.Join(viewroot, config.FileName))
+	if hasAirplaneConfig {
+		c, err = config.NewAirplaneConfigFromFile(viewroot)
+		if err != nil {
+			return build.BuildContext{}, err
+		}
 	}
-	return bc, nil
+
+	envVars := make(map[string]build.EnvVarValue)
+	for k, v := range c.View.EnvVars {
+		envVars[k] = build.EnvVarValue(v)
+	}
+	if len(envVars) == 0 {
+		envVars = nil
+	}
+
+	return build.BuildContext{
+		Version: buildVersion,
+		Base:    build.BuildBaseSlim,
+		EnvVars: envVars,
+	}, nil
 }

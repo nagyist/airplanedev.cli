@@ -46,6 +46,20 @@ func (dd *ViewDefnDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 	}
 	d.Base = bc.Base
 
+	envVars := make(api.EnvVars)
+	envVarsFromDefn := d.EnvVars
+	// Calculate the full list of env vars. This is the env vars (from airplane config)
+	// plus the env vars from the view. Set this new list on the def.
+	for k, v := range bc.EnvVars {
+		envVars[k] = api.EnvVarValue(v)
+	}
+	for k, v := range envVarsFromDefn {
+		envVars[k] = v
+	}
+	if len(envVars) > 0 {
+		d.EnvVars = envVars
+	}
+
 	var view api.View
 	if !dd.DoNotVerifyMissingViews {
 		view, err = dd.Client.GetView(ctx, api.GetViewRequest{Slug: d.Slug})

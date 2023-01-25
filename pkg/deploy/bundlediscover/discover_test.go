@@ -224,6 +224,30 @@ func TestDiscover(t *testing.T) {
 			},
 		},
 		{
+			desc:  "inline view with env vars",
+			paths: []string{"./fixtures/viewInlineWithEnvVars"},
+			expectedBundles: []Bundle{
+				{
+					RootPath:    path.Join(fixturesPath, "viewInlineWithEnvVars"),
+					TargetPaths: []string{"myView.airplane.tsx"},
+					BuildContext: build.BuildContext{
+						Type: build.ViewBuildType,
+						Base: build.BuildBaseSlim,
+						EnvVars: map[string]build.EnvVarValue{
+							"foo": {Value: pointers.String("bar")},
+						},
+					}},
+				{
+					RootPath:    path.Join(fixturesPath, "viewInlineWithEnvVars"),
+					TargetPaths: []string{"myView.airplane.tsx"},
+					BuildContext: build.BuildContext{
+						Type: build.NodeBuildType,
+						Base: build.BuildBaseSlim,
+					},
+				},
+			},
+		},
+		{
 			desc:  "task with defn by script name",
 			paths: []string{"./fixtures/tasksWithDefn/defn.js"},
 			expectedBundles: []Bundle{

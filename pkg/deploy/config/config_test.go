@@ -41,6 +41,11 @@ func TestNewAirplaneConfigFromFile(t *testing.T) {
 					PreInstall:  "preinstall",
 					PostInstall: "postinstall",
 				},
+				View: ViewConfig{
+					EnvVars: TaskEnv{
+						"fromValue": EnvVarValue{Value: pointers.String("viewValue")},
+					},
+				},
 			},
 		},
 	}

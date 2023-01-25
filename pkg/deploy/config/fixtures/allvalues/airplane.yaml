@@ -20,3 +20,6 @@ python:
   base: full
   preinstall: preinstall
   postinstall: postinstall
+view:
+  envVars:
+    fromValue: viewValue
