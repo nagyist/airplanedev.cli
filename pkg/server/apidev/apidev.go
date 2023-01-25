@@ -48,6 +48,8 @@ func AttachDevRoutes(r *mux.Router, s *state.State) {
 	r.Handle("/startView/{view_slug}", handlers.Handler(s, StartViewHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/logs/{run_id}", handlers.HandlerSSE(s, LogsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/tasks/errors", handlers.Handler(s, GetTaskErrorsHandler)).Methods("GET", "OPTIONS")
+
+	r.Handle("/dependencies/reinstall", handlers.Handler(s, ReinstallDependenciesHandler)).Methods("POST", "OPTIONS")
 }
 
 func GetVersionHandler(ctx context.Context, s *state.State, r *http.Request) (version.Metadata, error) {
@@ -66,10 +68,14 @@ func GetVersionHandler(ctx context.Context, s *state.State, r *http.Request) (ve
 }
 
 type StudioInfo struct {
-	Workspace   string      `json:"workspace"`
-	DefaultEnv  libapi.Env  `json:"defaultEnv"`
-	FallbackEnv *libapi.Env `json:"fallbackEnv"`
-	Host        string      `json:"host"`
+	Workspace            string      `json:"workspace"`
+	DefaultEnv           libapi.Env  `json:"defaultEnv"`
+	FallbackEnv          *libapi.Env `json:"fallbackEnv"`
+	Host                 string      `json:"host"`
+	IsSandbox            bool        `json:"isSandbox"`
+	IsRebuilding         bool        `json:"isRebuilding"`
+	OutdatedDependencies bool        `json:"outdatedDependencies"`
+	HasDependencyError   bool        `json:"hasDependencyError"`
 }
 
 func GetInfoHandler(ctx context.Context, s *state.State, r *http.Request) (StudioInfo, error) {
@@ -79,12 +85,21 @@ func GetInfoHandler(ctx context.Context, s *state.State, r *http.Request) (Studi
 	}
 
 	// TODO: Fix default env and host for remote studio.
-	return StudioInfo{
+	info := StudioInfo{
 		Workspace:   s.Dir,
 		DefaultEnv:  env.NewLocalEnv(),
 		FallbackEnv: fallbackEnv,
 		Host:        strings.Replace(s.LocalClient.Host, "127.0.0.1", "localhost", 1),
-	}, nil
+	}
+
+	if s.SandboxState != nil {
+		info.IsSandbox = true
+		info.IsRebuilding = s.SandboxState.IsRebuilding
+		info.OutdatedDependencies = s.SandboxState.OutdatedDependencies
+		info.HasDependencyError = s.SandboxState.HasDependencyError
+	}
+
+	return info, nil
 }
 
 type EntityKind string
@@ -319,6 +334,14 @@ func UpdateFileHandler(ctx context.Context, s *state.State, r *http.Request, req
 		return struct{}{}, errors.Wrap(err, "writing file")
 	}
 
+	// TODO: check embedded requirements
+	if s.SandboxState != nil {
+		base := filepath.Base(req.Path)
+		if base == "requirements.txt" || base == "package.json" || base == "yarn.lock" || base == "package-lock.json" {
+			s.SandboxState.MarkDependenciesOutdated()
+		}
+	}
+
 	return struct{}{}, nil
 }
 
@@ -477,6 +500,28 @@ func GetTaskErrorsHandler(ctx context.Context, state *state.State, r *http.Reque
 		}
 	}
 	return GetTaskErrorResponse{Info: info, Errors: errors, Warnings: warnings}, nil
+}
+
+type ReinstallDependenciesResponse struct {
+	Status ReinstallDependenciesStatus `json:"status"`
+}
+
+type ReinstallDependenciesStatus string
+
+const (
+	ReinstallDependenciesStatusDone       ReinstallDependenciesStatus = "done"
+	ReinstallDependenciesStatusInProgress ReinstallDependenciesStatus = "in progress"
+)
+
+func ReinstallDependenciesHandler(ctx context.Context, s *state.State, r *http.Request) (ReinstallDependenciesResponse, error) {
+	inProgress := s.SandboxState.RebuildWithTimeout(ctx, s.BundleDiscoverer, s.Dir)
+	resp := ReinstallDependenciesResponse{}
+	if inProgress {
+		resp.Status = ReinstallDependenciesStatusInProgress
+	} else {
+		resp.Status = ReinstallDependenciesStatusDone
+	}
+	return resp, nil
 }
 
 func DownloadBundleHandler(ctx context.Context, state *state.State, r *http.Request) ([]byte, string, error) {

@@ -6,11 +6,10 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/build"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
-	"github.com/airplanedev/lib/pkg/deploy/bundlediscover"
-	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/spf13/cobra"
 )
 
@@ -67,31 +66,7 @@ func Deploy(ctx context.Context, cfg Config) error {
 	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{WithLoader: true})
 	defer l.StopLoader()
 
-	d := &bundlediscover.Discoverer{
-		TaskDiscoverers: []discover.TaskDiscoverer{
-			&discover.ScriptDiscoverer{
-				Client:  cfg.Client,
-				Logger:  l,
-				EnvSlug: cfg.EnvSlug,
-			},
-			&discover.DefnDiscoverer{
-				Client: cfg.Client,
-				Logger: l,
-			},
-			&discover.CodeTaskDiscoverer{
-				Client: cfg.Client,
-				Logger: l,
-			},
-		},
-		ViewDiscoverers: []discover.ViewDiscoverer{
-			&discover.ViewDefnDiscoverer{Client: cfg.Client, Logger: l},
-			&discover.CodeViewDiscoverer{Client: cfg.Client, Logger: l},
-		},
-		Client:  cfg.Client,
-		Logger:  l,
-		EnvSlug: cfg.EnvSlug,
-	}
-
+	d := build.BundleDiscoverer(cfg.Client, l, cfg.EnvSlug)
 	bundles, err := d.Discover(ctx, cfg.Paths...)
 	if err != nil {
 		return err

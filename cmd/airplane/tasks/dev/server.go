@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/build"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server"
@@ -134,17 +135,26 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		Client:  localClient,
 	}
 
+	bd := build.BundleDiscoverer(localClient, l, "")
+	var sandboxState *state.SandboxState
+	if cfg.sandbox {
+		sandboxState = state.NewSandboxState(l)
+		sandboxState.Rebuild(ctx, bd, absoluteDir)
+	}
+
 	apiServer.RegisterState(&state.State{
-		LocalClient:    localClient,
-		RemoteClient:   cfg.root.Client,
-		RemoteEnv:      remoteEnv,
-		UseFallbackEnv: cfg.useFallbackEnv,
-		DevConfig:      cfg.devConfig,
-		Executor:       dev.NewLocalExecutor(absoluteDir),
-		Dir:            absoluteDir,
-		AuthInfo:       authInfo,
-		Discoverer:     d,
-		StudioURL:      *appURL,
+		LocalClient:      localClient,
+		RemoteClient:     cfg.root.Client,
+		RemoteEnv:        remoteEnv,
+		UseFallbackEnv:   cfg.useFallbackEnv,
+		DevConfig:        cfg.devConfig,
+		Executor:         dev.NewLocalExecutor(absoluteDir),
+		Dir:              absoluteDir,
+		AuthInfo:         authInfo,
+		Discoverer:       d,
+		BundleDiscoverer: bd,
+		StudioURL:        *appURL,
+		SandboxState:     sandboxState,
 	})
 
 	stop := make(chan os.Signal, 1)

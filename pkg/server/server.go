@@ -223,7 +223,9 @@ func (s *Server) RegisterState(newState *state.State) {
 	s.state.Dir = newState.Dir
 	s.state.AuthInfo = newState.AuthInfo
 	s.state.Discoverer = newState.Discoverer
+	s.state.BundleDiscoverer = newState.BundleDiscoverer
 	s.state.StudioURL = newState.StudioURL
+	s.state.SandboxState = newState.SandboxState
 }
 
 func supportsLocalExecution(name string, entrypoint string, kind build.TaskKind) bool {

@@ -15,6 +15,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/version"
 	libapi "github.com/airplanedev/lib/pkg/api"
+	"github.com/airplanedev/lib/pkg/deploy/bundlediscover"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/bep/debounce"
 	lrucache "github.com/hashicorp/golang-lru/v2"
@@ -49,7 +50,8 @@ type State struct {
 	// AppCondition holds info about task such as errors to display and time registered
 	AppCondition Store[string, AppCondition]
 
-	Discoverer *discover.Discoverer
+	Discoverer       *discover.Discoverer
+	BundleDiscoverer *bundlediscover.Discoverer
 	//Debouncer returns the debouncing function for a given key
 	Debouncer DebounceStore
 
@@ -60,6 +62,9 @@ type State struct {
 
 	AuthInfo     api.AuthInfoResponse
 	VersionCache version.Cache
+
+	// Non-nil if the server is running in remote/sandbox mode.
+	SandboxState *SandboxState
 }
 
 type AppCondition struct {

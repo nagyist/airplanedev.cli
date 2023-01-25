@@ -1,6 +1,7 @@
 package dev
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,6 +14,21 @@ import (
 	"github.com/flynn/go-shlex"
 	"github.com/pkg/errors"
 )
+
+func InstallAllBundleDependencies(ctx context.Context, discoverer *bundlediscover.Discoverer, paths ...string) error {
+	bundles, err := discoverer.Discover(ctx, paths...)
+	if err != nil {
+		return err
+	}
+
+	for _, bundle := range bundles {
+		if err := InstallBundleDependencies(bundle); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
 
 func InstallBundleDependencies(bundle bundlediscover.Bundle) error {
 	instructions, err := build.GetBundleBuildInstructions(build.BundleDockerfileConfig{
@@ -66,13 +82,17 @@ func InstallBundleDependencies(bundle bundlediscover.Bundle) error {
 		}
 	}
 
-	contents := b.String()
-	if err := os.WriteFile(path.Join(bundle.RootPath, "airplane_build.sh"), []byte(contents), 0777); err != nil {
+	tmpdir, err := os.MkdirTemp("", filepath.Base(bundle.RootPath))
+	if err != nil {
 		return err
 	}
-	defer os.Remove(path.Join(bundle.RootPath, "airplane_build.sh"))
+	defer os.RemoveAll(tmpdir)
 
-	cmd := exec.Command("./airplane_build.sh")
+	if err := os.WriteFile(path.Join(tmpdir, "airplane_build.sh"), []byte(b.String()), 0777); err != nil {
+		return err
+	}
+
+	cmd := exec.Command(path.Join(tmpdir, "/airplane_build.sh"))
 	cmd.Dir = bundle.RootPath
 	for key, envVar := range bundle.BuildContext.EnvVars {
 		// TODO: handle env-from-config

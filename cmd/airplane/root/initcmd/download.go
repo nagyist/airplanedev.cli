@@ -7,11 +7,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/airplanedev/cli/pkg/build"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
-	"github.com/airplanedev/lib/pkg/deploy/bundlediscover"
-	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
@@ -45,29 +44,7 @@ func initializeCodeWorkspace(ctx context.Context, cfg config) error {
 
 	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{WithLoader: true})
 	defer l.StopLoader()
-	d := &bundlediscover.Discoverer{
-		TaskDiscoverers: []discover.TaskDiscoverer{
-			&discover.ScriptDiscoverer{
-				Client: cfg.client,
-				Logger: l,
-			},
-			&discover.DefnDiscoverer{
-				Client: cfg.client,
-				Logger: l,
-			},
-			&discover.CodeTaskDiscoverer{
-				Client: cfg.client,
-				Logger: l,
-			},
-		},
-		ViewDiscoverers: []discover.ViewDiscoverer{
-			&discover.ViewDefnDiscoverer{Client: cfg.client, Logger: l},
-			&discover.CodeViewDiscoverer{Client: cfg.client, Logger: l},
-		},
-		Client: cfg.client,
-		Logger: l,
-	}
-
+	d := build.BundleDiscoverer(cfg.client, l, "")
 	bundles, err := d.Discover(ctx, cfg.workspace)
 	if err != nil {
 		return err
