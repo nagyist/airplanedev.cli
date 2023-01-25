@@ -55,7 +55,7 @@ setEnvVars(
 for (const [key, value] of getAllQueryParams()) {
   if (key.startsWith("__")) {
     const camel = key.slice(2);
-    const title = camelToSnakeCase(camel);
+    let title = camelToSnakeCase(camel);
     let val = value;
     if (isInStudio) {
       if (camel === "envSlug" || camel === "envId" || camel === "envName" || camel==="env") {
@@ -65,7 +65,12 @@ for (const [key, value] of getAllQueryParams()) {
         val = "true";
       }
     }
-    process.env[`AIRPLANE_${title}`] = val;
+
+    if (!title.startsWith("AIRPLANE_")) {
+      title = `AIRPLANE_${title}`;
+    }
+
+    process.env[title] = val;
   } else {
     process.env[key] = value;
   }
