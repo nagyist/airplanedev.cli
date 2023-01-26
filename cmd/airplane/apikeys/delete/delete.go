@@ -6,6 +6,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
+	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -34,8 +35,8 @@ func run(ctx context.Context, c *cli.Config, apiKeyIDs []string) error {
 		logger.Log("  Deleting key %s...", logger.Red(apiKeyID))
 
 		if err := client.DeleteAPIKey(ctx, req); err != nil {
-			var apiErr api.Error
-			if errors.As(err, &apiErr); apiErr.Code == 404 {
+			var errsc libhttp.ErrStatusCode
+			if errors.As(err, &errsc) && errsc.StatusCode == 404 {
 				logger.Log("  Key not found.")
 				return nil
 			}

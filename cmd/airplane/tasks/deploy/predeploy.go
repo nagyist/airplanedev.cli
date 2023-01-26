@@ -10,6 +10,7 @@ import (
 	"github.com/airplanedev/cli/pkg/configs"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
+	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/pkg/errors"
 )
@@ -66,14 +67,8 @@ func ensureConfigVarExists(ctx context.Context, client api.APIClient, l logger.L
 		Tag:     cn.Tag,
 		EnvSlug: params.EnvSlug,
 	})
-	if err == nil {
-		return nil
-	}
-	switch err := errors.Cause(err).(type) {
-	case api.Error:
-		if err.Code != 404 {
-			return err
-		}
+	var errsc libhttp.ErrStatusCode
+	if errors.As(err, &errsc) && errsc.StatusCode == 404 {
 		if !utils.CanPrompt() {
 			return errors.Errorf("config %s does not exist", params.ConfigName)
 		}
@@ -90,9 +85,9 @@ func ensureConfigVarExists(ctx context.Context, client api.APIClient, l logger.L
 			return errors.Errorf("config %s does not exist", params.ConfigName)
 		}
 		return createConfig(ctx, client, cn, params.EnvSlug)
-	default:
-		return err
 	}
+
+	return err
 }
 
 func createConfig(ctx context.Context, client api.APIClient, cn configs.NameTag, envSlug string) error {

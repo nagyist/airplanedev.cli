@@ -691,7 +691,7 @@ func TestDeploy(t *testing.T) {
 		t.Run(tC.desc, func(t *testing.T) {
 			require := require.New(t)
 			assert := assert.New(t)
-			client := &api.MockClient{
+			mockClient := &api.MockClient{
 				Tasks:                 tC.existingTasks,
 				Views:                 tC.existingViews,
 				GetDeploymentResponse: tC.getDeploymentResponse,
@@ -705,15 +705,16 @@ func TestDeploy(t *testing.T) {
 			for k, v := range tC.envVars {
 				os.Setenv(k, v)
 			}
+			client := api.NewClient(api.ClientOpts{
+				Host: api.Host,
+			})
 			cfg := config{
 				changedFiles: tC.changedFiles,
-				client:       client,
+				client:       mockClient,
 				local:        tC.local,
 				envSlug:      tC.envSlug,
 				root: &cli.Config{
-					Client: &api.Client{
-						Host: api.Host,
-					},
+					Client: &client,
 				},
 			}
 			d := NewDeployer(cfg, &logger.MockLogger{}, DeployerOpts{
@@ -733,8 +734,8 @@ func TestDeploy(t *testing.T) {
 				require.NoError(err)
 			}
 
-			assert.Equal(tC.existingTasks, client.Tasks)
-			assert.Equal(tC.deploys, client.Deploys)
+			assert.Equal(tC.existingTasks, mockClient.Tasks)
+			assert.Equal(tC.deploys, mockClient.Deploys)
 		})
 	}
 }

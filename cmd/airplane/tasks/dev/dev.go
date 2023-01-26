@@ -192,16 +192,16 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	}()
 
 	localExecutor := dev.NewLocalExecutor(filepath.Dir(cfg.fileOrDir))
-	localClient := &api.Client{
+	localClient := api.NewClient(api.ClientOpts{
 		Host:   fmt.Sprintf("127.0.0.1:%d", port),
 		Token:  cfg.root.Client.Token,
 		Source: cfg.root.Client.Source,
 		APIKey: cfg.root.Client.APIKey,
 		TeamID: cfg.root.Client.TeamID,
-	}
+	})
 
 	apiServer.RegisterState(&state.State{
-		LocalClient:  localClient,
+		LocalClient:  &localClient,
 		RemoteClient: cfg.root.Client,
 		Executor:     localExecutor,
 		DevConfig:    cfg.devConfig,
@@ -282,7 +282,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		Kind:              kind,
 		KindOptions:       kindOptions,
 		ParamValues:       paramValues,
-		LocalClient:       localClient,
+		LocalClient:       &localClient,
 		RemoteClient:      cfg.root.Client,
 		UseFallbackEnv:    false,
 		File:              cfg.fileOrDir,

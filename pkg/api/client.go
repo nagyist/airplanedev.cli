@@ -4,7 +4,6 @@ package api
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,34 +15,9 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/version"
 	libapi "github.com/airplanedev/lib/pkg/api"
-	"github.com/hashicorp/go-retryablehttp"
+	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/pkg/errors"
 )
-
-var (
-	// Client tolerates minor outages and retries.
-	client *http.Client
-)
-
-func init() {
-	rc := retryablehttp.NewClient()
-	rc.RetryMax = 5
-	rc.RetryWaitMin = 50 * time.Millisecond
-	rc.RetryWaitMax = 1 * time.Second
-	rc.Logger = logger.HTTPLogger{} // Logs messages as debug output
-	client = rc.StandardClient()
-}
-
-// Error represents an API error.
-type Error struct {
-	Code    int
-	Message string `json:"error"`
-}
-
-// Error implementation.
-func (err Error) Error() string {
-	return fmt.Sprintf("api: %d - %s", err.Code, err.Message)
-}
 
 const (
 	// Host is the default API host.
@@ -51,14 +25,12 @@ const (
 )
 
 // Client implements Airplane client.
-//
-// The token must be configured, otherwise all methods will
-// return an error.
-//
-// TODO(amir): probably need to configure the host and token somewhere
-// globally, token might be read once in the beginning and passed down
-// through the context?
 type Client struct {
+	ClientOpts
+	http libhttp.Client
+}
+
+type ClientOpts struct {
 	// Host is the API host to use.
 	//
 	// If empty, it uses the global `api.Host`.
@@ -66,7 +38,7 @@ type Client struct {
 
 	// Token is the token to use for authentication.
 	//
-	// When empty the client will return an error.
+	// The token must be set, otherwise all methods will return an error.
 	Token string
 
 	// Extra information about what context the CLI is being used.
@@ -76,6 +48,54 @@ type Client struct {
 	// Alternative to token-based authn.
 	APIKey string
 	TeamID string
+}
+
+func NewClient(opts ClientOpts) Client {
+	headers := map[string]string{
+		"X-Airplane-Client-Kind":    "cli",
+		"X-Airplane-Client-Version": version.Get(),
+	}
+	if opts.Source != "" {
+		headers["X-Airplane-Client-Source"] = opts.Source
+	}
+
+	return Client{
+		ClientOpts: opts,
+		http: libhttp.NewClient(libhttp.ClientOpts{
+			Headers:   headers,
+			UserAgent: "airplane/cli/" + version.Get(),
+			// Temporarily bump the default timeout to 30s.
+			// TODO: revert to the default 10s after optimizing the long-tail of slow API endpoints.
+			Timeout: 30 * time.Second,
+			RequestLogHook: func(req *http.Request, attempt int) {
+				msg := "requesting..."
+				if attempt > 1 {
+					msg = fmt.Sprintf("retrying... (attempt #%d)", attempt)
+				}
+				logger.Debug("%s %s: %s", req.Method, req.URL.Path, msg)
+			},
+			ResponseLogHook: func(resp *http.Response) {
+				if !logger.EnableDebug {
+					return
+				}
+
+				// Print out the response body for debugging. Reset resp.Body since we read it to completion.
+				body, err := io.ReadAll(resp.Body)
+				resp.Body.Close()
+				resp.Body = io.NopCloser(bytes.NewReader(body))
+
+				if err != nil {
+					logger.Debug("%s %s (%d): failed to read response body: %v", resp.Request.Method, resp.Request.URL.Path, resp.StatusCode, err)
+				} else {
+					b := string(body)
+					if len(b) == 0 {
+						b = "(no response)"
+					}
+					logger.Debug("%s %s (%d): %s", resp.Request.Method, resp.Request.URL.Path, resp.StatusCode, b)
+				}
+			},
+		}),
+	}
 }
 
 type APIClient interface {
@@ -139,6 +159,8 @@ type APIClient interface {
 	GetWebHost(ctx context.Context) (string, error)
 
 	GetUser(ctx context.Context, userID string) (GetUserResponse, error)
+
+	GetTunnelToken(ctx context.Context) (GetTunnelTokenResponse, error)
 }
 
 var _ APIClient = Client{}
@@ -156,6 +178,10 @@ func (c Client) AppURL() *url.URL {
 // HostURL returns the api URL, e.g. api.airstage.app
 func (c Client) HostURL() string {
 	return c.scheme() + c.host()
+}
+
+func (c Client) GetToken() string {
+	return c.Token
 }
 
 func (c Client) TokenURL() string {
@@ -323,8 +349,8 @@ func (c Client) RunTask(ctx context.Context, req RunTaskRequest) (RunTaskRespons
 	if err := c.post(ctx, encodeQueryString("/tasks/execute", url.Values{
 		"envSlug": []string{req.EnvSlug},
 	}), req, &res); err != nil {
-		var apiErr Error
-		if errors.As(err, &apiErr); apiErr.Code == 404 {
+		var errsc libhttp.ErrStatusCode
+		if errors.As(err, &errsc) && errsc.StatusCode == 404 {
 			if req.TaskSlug != nil {
 				return res, &libapi.TaskMissingError{
 					AppURL: c.AppURL().String(),
@@ -401,8 +427,8 @@ func (c Client) GetTask(ctx context.Context, req libapi.GetTaskRequest) (res lib
 		"envSlug": []string{req.EnvSlug},
 	}), &res)
 
-	var apiErr Error
-	if errors.As(err, &apiErr); apiErr.Code == 404 {
+	var errsc libhttp.ErrStatusCode
+	if errors.As(err, &errsc) && errsc.StatusCode == 404 {
 		return res, &libapi.TaskMissingError{
 			AppURL: c.AppURL().String(),
 			Slug:   req.Slug,
@@ -421,8 +447,8 @@ func (c Client) GetTaskByID(ctx context.Context, id string) (res libapi.Task, er
 		"id": []string{id},
 	}), &res)
 
-	var apiErr Error
-	if errors.As(err, &apiErr); apiErr.Code == 404 {
+	var errsc libhttp.ErrStatusCode
+	if errors.As(err, &errsc) && errsc.StatusCode == 404 {
 		return res, &libapi.TaskMissingError{
 			AppURL: c.AppURL().String(),
 		}
@@ -439,8 +465,8 @@ func (c Client) GetTaskMetadata(ctx context.Context, slug string) (res libapi.Ta
 		"slug": []string{slug},
 	}), &res)
 
-	var apiErr Error
-	if errors.As(err, &apiErr); apiErr.Code == 404 {
+	var errsc libhttp.ErrStatusCode
+	if errors.As(err, &errsc) && errsc.StatusCode == 404 {
 		return res, &libapi.TaskMissingError{
 			AppURL: c.AppURL().String(),
 			Slug:   slug,
@@ -456,8 +482,8 @@ func (c Client) GetTaskReviewers(ctx context.Context, slug string) (res GetTaskR
 		"taskSlug": []string{slug},
 	}), &res)
 
-	var apiErr Error
-	if errors.As(err, &apiErr); apiErr.Code == 404 {
+	var errsc libhttp.ErrStatusCode
+	if errors.As(err, &errsc) && errsc.StatusCode == 404 {
 		return res, &libapi.TaskMissingError{
 			AppURL: c.AppURL().String(),
 			Slug:   slug,
@@ -474,8 +500,8 @@ func (c Client) GetView(ctx context.Context, req libapi.GetViewRequest) (res lib
 		"id":   []string{req.ID},
 	}), &res)
 
-	var apiErr Error
-	if errors.As(err, &apiErr); apiErr.Code == 404 {
+	var errsc libhttp.ErrStatusCode
+	if errors.As(err, &errsc) && errsc.StatusCode == 404 {
 		return res, &libapi.ViewMissingError{
 			AppURL: c.AppURL().String(),
 			Slug:   req.Slug,
@@ -615,8 +641,8 @@ func (c Client) GetResource(ctx context.Context, req GetResourceRequest) (res li
 		"envSlug":              []string{req.EnvSlug},
 		"includeSensitiveData": []string{strconv.FormatBool(req.IncludeSensitiveData)},
 	}), &res)
-	var apiErr Error
-	if errors.As(err, &apiErr); apiErr.Code == 404 {
+	var errsc libhttp.ErrStatusCode
+	if errors.As(err, &errsc) && errsc.StatusCode == 404 {
 		return res, libapi.ResourceMissingError{
 			AppURL: c.AppURL().String(),
 			Slug:   req.Slug,
@@ -676,121 +702,61 @@ func (c Client) GetUser(ctx context.Context, userID string) (res GetUserResponse
 	return
 }
 
-func (c Client) GetToken() string {
-	return c.Token
-}
-
 func (c Client) GetTunnelToken(ctx context.Context) (res GetTunnelTokenResponse, err error) {
 	err = c.get(ctx, "/studio/tunnelToken/get", &res)
 	return
 }
 
-// get sends a GET request.
-func (c Client) get(ctx context.Context, path string, reply interface{}) error {
-	return c.do(ctx, http.MethodGet, path, nil, &reply)
-}
-
-// post sends a POST request.
-func (c Client) post(ctx context.Context, path string, payload, reply interface{}) error {
-	return c.do(ctx, http.MethodPost, path, payload, &reply)
-}
-
-// do sends a request with `method`, `path`, `payload` and `reply`.
-//
-// In general, you should call get() or post() instead.
-func (c Client) do(ctx context.Context, method, path string, payload, reply interface{}) error {
-	var url = c.scheme() + c.host() + "/v0" + path
-	var body io.Reader
-
-	if payload != nil {
-		buf, err := json.Marshal(payload)
-		if err != nil {
-			return errors.Wrap(err, "api: marshal payload")
-		}
-		body = bytes.NewReader(buf)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
-	if err != nil {
-		return errors.Wrap(err, "api: new request")
-	}
-
-	// Authn
-	if c.Token == "" && c.APIKey == "" {
-		return errors.New("api: authentication is missing")
-	}
+func (c Client) headers() (map[string]string, error) {
+	headers := map[string]string{}
 	if c.Token != "" {
-		req.Header.Set("X-Airplane-Token", c.Token)
-	} else {
-		req.Header.Set("X-Airplane-API-Key", c.APIKey)
+		headers["X-Airplane-Token"] = c.Token
+	} else if c.APIKey != "" {
+		headers["X-Airplane-API-Key"] = c.APIKey
 		if c.TeamID == "" {
-			return errors.New("api: team ID is missing")
+			return nil, errors.New("team ID is missing")
 		}
-		req.Header.Set("X-Team-ID", c.TeamID)
+		headers["X-Team-ID"] = c.TeamID
+	} else {
+		return nil, errors.Errorf("authentication is missing: %s", c.APIKey)
 	}
 
-	req.Header.Set("X-Airplane-Client-Kind", "cli")
-	req.Header.Set("X-Airplane-Client-Version", version.Get())
-	if c.Source != "" {
-		req.Header.Set("X-Airplane-Client-Source", c.Source)
-	}
+	return headers, nil
+}
 
-	resp, err := client.Do(req)
+func (c Client) get(ctx context.Context, path string, reply interface{}) error {
+	headers, err := c.headers()
 	if err != nil {
-		return errors.Wrapf(err, "api: %s %s", method, url)
+		return err
 	}
 
-	if resp != nil {
-		defer func() {
-			if _, err := io.Copy(io.Discard, resp.Body); err != nil {
-				logger.Error("%s %s: failed to read request body: %+v", method, path, err)
-			}
-			resp.Body.Close()
-		}()
+	pathname := "/v0" + path
+	url := c.scheme() + c.host() + pathname
+	err = c.http.GetJSON(ctx, url, reply, libhttp.ReqOpts{
+		Headers: headers,
+	})
+	if err != nil {
+		logger.Debug("GET %s: request failed: %v", pathname, err)
+		return err
 	}
 
-	if resp.StatusCode >= 400 && resp.StatusCode < 600 {
-		errt := Error{
-			Code: resp.StatusCode,
-		}
+	return nil
+}
 
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			logger.Error("%s %s: failed to read response body: %+v", method, path, err)
-			return errt
-		}
-
-		contentType := resp.Header.Get("Content-Type")
-		if contentType == "application/json" {
-			var errResponse struct {
-				Message string `json:"message"`
-				Error   string `json:"error"`
-			}
-			if err := json.Unmarshal(body, &errResponse); err != nil {
-				logger.Error("%s %s: failed to deserialize JSON body from error response: %+v", method, path, err)
-			} else {
-				errt.Message = errResponse.Message
-				if errt.Message == "" {
-					errt.Message = errResponse.Error
-				}
-			}
-		} else {
-			logger.Error("%s %s: response has unsupported Content-Type (%s) with body: %s", method, path, contentType, string(body))
-		}
-
-		return errt
+func (c Client) post(ctx context.Context, path string, payload, reply interface{}) error {
+	headers, err := c.headers()
+	if err != nil {
+		return err
 	}
 
-	if reply != nil {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-		logger.Debug("%s %s: responded with body: %s", method, path, string(body))
-
-		if err := json.Unmarshal(body, &reply); err != nil {
-			return errors.Wrapf(err, "api: %s %s - decoding json", method, url)
-		}
+	pathname := "/v0" + path
+	url := c.scheme() + c.host() + pathname
+	err = c.http.PostJSON(ctx, url, payload, reply, libhttp.ReqOpts{
+		Headers: headers,
+	})
+	if err != nil {
+		logger.Debug("POST %s: request failed: %v", pathname, err)
+		return err
 	}
 
 	return nil

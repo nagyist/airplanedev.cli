@@ -36,8 +36,9 @@ import (
 // New returns a new root cobra command.
 func New() *cobra.Command {
 	var output string
+	client := api.NewClient(api.ClientOpts{})
 	var cfg = &cli.Config{
-		Client: &api.Client{},
+		Client: &client,
 	}
 
 	cmd := &cobra.Command{

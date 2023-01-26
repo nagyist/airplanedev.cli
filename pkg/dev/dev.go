@@ -22,6 +22,7 @@ import (
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
+	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/builtins"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
@@ -600,9 +601,9 @@ func interpolate(ctx context.Context, remoteClient api.APIClient, baseRequest li
 		ParamValues: baseRequest.ParamValues,
 	})
 	if err != nil {
-		var apiErr api.Error
-		if errors.As(err, &apiErr) {
-			return nil, errors.New(apiErr.Message)
+		var errsc libhttp.ErrStatusCode
+		if errors.As(err, &errsc) {
+			return nil, errors.New(errsc.Msg)
 		}
 		return nil, err
 	}

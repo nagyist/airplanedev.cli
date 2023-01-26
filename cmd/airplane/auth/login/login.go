@@ -6,12 +6,12 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/airplanedev/cli/pkg/analytics"
-	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/token"
 	"github.com/airplanedev/cli/pkg/utils"
+	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -66,8 +66,8 @@ func validateToken(ctx context.Context, c *cli.Config) (bool, error) {
 	}
 
 	_, err := c.Client.AuthInfo(ctx)
-	var apiErr api.Error
-	if errors.As(err, &apiErr); apiErr.Code == 401 {
+	var errsc libhttp.ErrStatusCode
+	if errors.As(err, &errsc) && errsc.StatusCode == 401 {
 		logger.Debug("Found an expired token. Re-authenticating.")
 		return false, nil
 	} else if err != nil {
