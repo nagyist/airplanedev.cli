@@ -399,13 +399,24 @@ func backoffExponential(min, max time.Duration, attempt int, resp *http.Response
 // errorPropagatedRetryPolicy is a modified version of retryablehttp.ErrorPropagatedRetryPolicy.
 func errorPropagatedRetryPolicy(ctx context.Context, resp *http.Response, err error) (bool, error) {
 	retry, err := retryablehttp.ErrorPropagatedRetryPolicy(ctx, resp, err)
+	if err != nil {
+		// ErrorPropagatedRetryPolicy will return an "unexpected HTTP status" error when a 5xx error
+		// is returned from the server. This makes converting 5xx errors into ErrStatusCode harder,
+		// because that error will get returned rather than an `*http.Response` that we can inspect
+		// like we do for 4xx errors. We overwrite this behavior here.
+		if strings.HasPrefix(err.Error(), "unexpected HTTP status") {
+			return retry, nil
+		}
 
-	// ErrorPropagatedRetryPolicy will return an "unexpected HTTP status" error when a 5xx error
-	// is returned from the server. This makes converting 5xx errors into ErrStatusCode harder,
-	// because that error will get returned rather than an `*http.Response` that we can inspect
-	// like we do for 4xx errors. We overwrite this behavior here.
-	if err != nil && strings.HasPrefix(err.Error(), "unexpected HTTP status") {
-		return retry, nil
+		return false, err
+	}
+
+	// Certain status codes, e.g. 409, can sometimes be transient and should be retried. This is indicated
+	// by a header.
+	if resp != nil {
+		if v := resp.Header.Get("X-Airplane-Retryable"); v == "true" {
+			return true, nil
+		}
 	}
 
 	return retry, err

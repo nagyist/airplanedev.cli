@@ -302,6 +302,43 @@ func TestClientRetries(t *testing.T) {
 	require.Equal("OK", string(body))
 }
 
+func TestClientRetryHeader(t *testing.T) {
+	require := require.New(t)
+	ctx := context.Background()
+
+	failuresRemaining := 15
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		if failuresRemaining > 0 {
+			failuresRemaining--
+			rw.Header().Set("X-Airplane-Retryable", "true")
+			rw.WriteHeader(409)
+			_, _ = rw.Write([]byte("Conflict"))
+			return
+		}
+		rw.Header().Set("X-Airplane-Retryable", "false")
+		_, _ = rw.Write([]byte(`OK`))
+	}))
+	defer server.Close()
+
+	client := NewClient(ClientOpts{
+		Headers:      requiredHeaderValues,
+		UserAgent:    "airplane/test/1",
+		retryWaitMin: time.Millisecond,
+		retryWaitMax: time.Millisecond,
+	})
+	body, err := client.Get(ctx, server.URL+"/foobar", ReqOpts{})
+	require.Nil(body)
+	var errsc ErrStatusCode
+	require.ErrorAs(err, &errsc)
+	require.Equal(409, errsc.StatusCode)
+	require.Equal("Conflict", errsc.Msg)
+
+	// Since the handler only fails 15 times, the next request will succeed halfway through retrying.
+	body, err = client.Get(ctx, server.URL+"/foobar", ReqOpts{})
+	require.NoError(err)
+	require.Equal("OK", string(body))
+}
+
 func TestClientTimeout(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
