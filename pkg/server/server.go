@@ -76,6 +76,7 @@ func NewRouter(state *state.State, opts RouterOptions) *mux.Router {
 			"x-airplane-client-source",
 			"idempotency-key",
 			"x-airplane-dev-token",
+			"x-airplane-sandbox-token",
 		}),
 	))
 	if opts.Token != nil {
