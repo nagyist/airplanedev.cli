@@ -7,7 +7,7 @@
     "build": "tsx build.ts"
   },
   "dependencies": {
-    "jsdom": "^20.0.0"
+    "jsdom": "^21.0.0"
   },
   "devDependencies": {
     "@types/jsdom": "20.0.1",
