@@ -3,6 +3,7 @@ package state
 import (
 	"fmt"
 	"io"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"sync"
@@ -13,6 +14,7 @@ import (
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
+	"github.com/airplanedev/cli/pkg/server/network"
 	"github.com/airplanedev/cli/pkg/version"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/bundlediscover"
@@ -63,6 +65,13 @@ type State struct {
 	AuthInfo     api.AuthInfoResponse
 	VersionCache version.Cache
 
+	PortProxy *httputil.ReverseProxy
+	// ServerHost is the URL that the local dev server should be accessed from. It does not necessarily represent the
+	// localhost address relative to the host machine. For example, if the host machine is running in a sandbox, we
+	// want to access the local dev server from some.sandbox.url, not localhost:*. This is used throughout the dev
+	// server, but primarily used to proxy requests from the local dev server to the Vite server so that views work
+	// remotely.
+	ServerHost string
 	// Non-nil if the server is running in remote/sandbox mode.
 	SandboxState *SandboxState
 }
@@ -108,6 +117,7 @@ func New() (*State, error) {
 		ViewConfigs:  NewStore[string, discover.ViewConfig](nil),
 		Debouncer:    NewDebouncer(),
 		ViteContexts: viteContextCache,
+		PortProxy:    network.ViewPortProxy(),
 		Logger:       logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
 	}, nil
 }

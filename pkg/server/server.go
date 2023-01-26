@@ -18,6 +18,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/apiint"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/filewatcher"
+	"github.com/airplanedev/cli/pkg/server/network"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/build"
@@ -34,20 +35,7 @@ type Server struct {
 	state    *state.State
 }
 
-const containerAddress = "0.0.0.0"
-const loopbackAddress = "127.0.0.1"
 const defaultPort = 4000
-
-// address returns the TCP address that the API server listens on.
-func address(port int, expose bool) string {
-	var addr string
-	if expose {
-		addr = containerAddress
-	} else {
-		addr = loopbackAddress
-	}
-	return fmt.Sprintf("%s:%d", addr, port)
-}
 
 var corsOrigins = []string{
 	`\.airplane\.so:5000$`,
@@ -138,48 +126,26 @@ func newServer(router *mux.Router, state *state.State, opts Options) (*Server, e
 
 		if opts.Port == 0 {
 			var err error
-			opts.Port, err = findOpenPort(defaultPort, 100)
+			opts.Port, err = network.FindOpenPortFrom(defaultPort, 100)
 			if err != nil {
 				return nil, err
 			}
-		} else if !isPortOpen(opts.Port) {
+		} else if !network.IsPortOpen(opts.Port) {
 			return nil, errors.Errorf("port %d is already in use - select a different port or remove the --port flag to automatically find an open port", opts.Port)
 		}
 
-		opts.Listener, err = net.Listen("tcp", address(opts.Port, opts.Expose))
+		addr := network.LocalAddress(opts.Port, opts.Expose)
+		opts.Listener, err = net.Listen("tcp", addr)
 		if err != nil {
 			return nil, errors.Wrap(err, "listening on port")
 		}
 	}
 
-	router.Handle("/shutdown", ShutdownHandler(srv))
 	return &Server{
 		srv:      srv,
 		listener: opts.Listener,
 		state:    state,
 	}, nil
-}
-
-// findOpenPart finds an open port on the host machine, starting at the given port.
-func findOpenPort(basePort, numAttempts int) (int, error) {
-	for port := basePort; port <= basePort+numAttempts; port++ {
-		if isPortOpen(port) {
-			return port, nil
-		}
-	}
-
-	return 0, errors.Errorf("could not find an open port in %d attempts - you can use the --port flag to manually set a port", numAttempts)
-}
-
-// isPortOpen returns whether the given port is bound to any network interface.
-func isPortOpen(port int) bool {
-	// Attempt to dial the port. If we establish a connection, it's in use.
-	conn, _ := net.DialTimeout("tcp", fmt.Sprintf(":%d", port), time.Second)
-	if conn == nil {
-		return true
-	}
-	defer conn.Close()
-	return false
 }
 
 // Start starts and returns a new instance of the Airplane API server along with the port it is listening on.
@@ -226,6 +192,7 @@ func (s *Server) RegisterState(newState *state.State) {
 	s.state.BundleDiscoverer = newState.BundleDiscoverer
 	s.state.StudioURL = newState.StudioURL
 	s.state.SandboxState = newState.SandboxState
+	s.state.ServerHost = newState.ServerHost
 }
 
 func supportsLocalExecution(name string, entrypoint string, kind build.TaskKind) bool {
@@ -460,20 +427,4 @@ func (s *Server) RegisterTasksAndViews(ctx context.Context, opts DiscoverOpts) (
 func (s *Server) Stop(ctx context.Context) error {
 	s.state.ViteContexts.Purge()
 	return s.srv.Shutdown(ctx)
-}
-
-// ShutdownHandler manages shutdown requests. Shutdowns currently happen whenever the airplane dev logic has finished
-// running, but in the future will be called when the user explicitly shuts down a long-running local dev api server.
-func ShutdownHandler(s *http.Server) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if _, err := w.Write([]byte("OK")); err != nil {
-			logger.Error("failed to write response for /shutdown")
-		}
-		// Call shutdown in a different goroutine so that the server can write a response first.
-		go func() {
-			if err := s.Shutdown(context.Background()); err != nil {
-				panic(err)
-			}
-		}()
-	}
 }

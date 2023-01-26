@@ -155,6 +155,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		BundleDiscoverer: bd,
 		StudioURL:        *appURL,
 		SandboxState:     sandboxState,
+		ServerHost:       cfg.serverHost,
 	})
 
 	stop := make(chan os.Signal, 1)

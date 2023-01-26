@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -134,7 +135,7 @@ func Dev(ctx context.Context, v viewdir.ViewDirectoryInterface, viteOpts ViteOpt
 	}
 
 	// Create vite config.
-	if err := createViteConfig(airplaneViewDir); err != nil {
+	if err := createViteConfig(root, airplaneViewDir, viteOpts.Port); err != nil {
 		return nil, "", nil, errors.Wrap(err, "creating vite config")
 	}
 
@@ -268,8 +269,12 @@ func ensureAirplaneViewDir(airplaneViewDir string, l logger.Logger) error {
 	return nil
 }
 
-func createViteConfig(airplaneViewDir string) error {
-	viteConfigStr, err := libbuild.ViteConfigString()
+func createViteConfig(root string, airplaneViewDir string, port int) error {
+	viteConfigStr, err := libbuild.ViteConfigString(libbuild.ViteConfigOpts{
+		Root: root,
+		Port: port,
+	})
+
 	if err != nil {
 		return errors.Wrap(err, "loading vite.config.ts value")
 	}
@@ -336,6 +341,7 @@ type ViteOpts struct {
 	TTY                  bool
 	RebundleDependencies bool
 	UsesYarn             bool
+	Port                 int
 }
 
 func runVite(ctx context.Context, opts ViteOpts, airplaneViewDir string, viewSlug string) (*exec.Cmd, string, error) {
@@ -348,6 +354,13 @@ func runVite(ctx context.Context, opts ViteOpts, airplaneViewDir string, viewSlu
 	if opts.RebundleDependencies {
 		logger.Debug("package.json changed, forcing Vite to re-bundle")
 		args = append(args, "--force")
+	}
+
+	if opts.Port != 0 {
+		logger.Debug("starting Vite server on port %d", opts.Port)
+		// --port will find the next available port after the specified port, so we need to also specify --strictPort to
+		// ensure that this is fixed.
+		args = append(args, "--port", strconv.Itoa(opts.Port), "--strictPort")
 	}
 
 	cmd := exec.Command("node_modules/.bin/vite", args...)

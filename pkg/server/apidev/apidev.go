@@ -3,8 +3,10 @@ package apidev
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -16,6 +18,7 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/handlers"
+	"github.com/airplanedev/cli/pkg/server/network"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/version"
@@ -46,9 +49,11 @@ func AttachDevRoutes(r *mux.Router, s *state.State) {
 	r.Handle("/files/downloadBundle", handlers.HandlerZip(s, DownloadBundleHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/startView/{view_slug}", handlers.Handler(s, StartViewHandler)).Methods("POST", "OPTIONS")
+
 	r.Handle("/logs/{run_id}", handlers.HandlerSSE(s, LogsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/tasks/errors", handlers.Handler(s, GetTaskErrorsHandler)).Methods("GET", "OPTIONS")
 
+	r.PathPrefix("/views").HandlerFunc(ProxyViewHandler(s.PortProxy)).Methods("GET", "POST", "OPTIONS")
 	r.Handle("/dependencies/reinstall", handlers.Handler(s, ReinstallDependenciesHandler)).Methods("POST", "OPTIONS")
 }
 
@@ -345,14 +350,6 @@ func UpdateFileHandler(ctx context.Context, s *state.State, r *http.Request, req
 	return struct{}{}, nil
 }
 
-type CreateRunResponse struct {
-	RunID string `json:"runID"`
-}
-
-type CreateRunRequest struct {
-	TaskSlug string `json:"taskSlug"`
-}
-
 type StartViewResponse struct {
 	ViteServer string `json:"viteServer"`
 }
@@ -405,11 +402,24 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 		}
 	}
 
+	var port int
+	var serverURL string
+	if s.ServerHost != "" {
+		// This is potentially subject to a race condition, but we need to allocate the port before starting Vite in
+		// order to construct Vite config options.
+		port, err = network.FindOpenPort()
+		if err != nil {
+			return StartViewResponse{}, err
+		}
+		serverURL = fmt.Sprintf("%s/dev/views/%d/", s.ServerHost, port)
+	}
+
 	cmd, viteServer, closer, err := views.Dev(ctx, &vd, views.ViteOpts{
 		Client:               s.LocalClient,
 		TTY:                  false,
 		RebundleDependencies: !depHashesEqual,
 		UsesYarn:             usesYarn,
+		Port:                 port,
 	})
 	if err != nil {
 		return StartViewResponse{}, errors.Wrap(err, "starting views dev")
@@ -430,13 +440,19 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 		time.Sleep(300 * time.Millisecond)
 	}
 
+	// If no address is set, we don't fix a port for the vite server, and so we just use the URL that the vite command
+	// returns.
+	if s.ServerHost == "" {
+		serverURL = viteServer
+	}
+
 	s.ViteContexts.Add(viewSlug, state.ViteContext{
 		Process:   cmd.Process,
 		Closer:    closer,
-		ServerURL: viteServer,
+		ServerURL: serverURL,
 	})
 
-	return StartViewResponse{ViteServer: viteServer}, nil
+	return StartViewResponse{ViteServer: serverURL}, nil
 }
 
 func LogsHandler(ctx context.Context, state *state.State, r *http.Request, flush func(log api.LogItem) error) error {
@@ -536,4 +552,11 @@ func DownloadBundleHandler(ctx context.Context, state *state.State, r *http.Requ
 	}
 
 	return buf.Bytes(), filepath.Base(state.Dir), nil
+}
+
+// ProxyViewHandler proxies requests to the Vite server for a view.
+func ProxyViewHandler(portProxy *httputil.ReverseProxy) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		portProxy.ServeHTTP(w, r)
+	}
 }

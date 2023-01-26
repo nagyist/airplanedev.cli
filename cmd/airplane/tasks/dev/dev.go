@@ -49,6 +49,7 @@ type taskDevConfig struct {
 	disableWatchMode bool
 	sandbox          bool
 	tunnel           bool
+	serverHost       string
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -150,11 +151,15 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().BoolVar(&cfg.disableWatchMode, "no-watch", false, "Disable watch mode. Changes require restarting the studio to take effect.")
 	cmd.Flags().BoolVar(&cfg.sandbox, "sandbox", false, "Run the Studio in a sandbox context (i.e. non-interactive, remote)")
 	cmd.Flags().BoolVar(&cfg.tunnel, "tunnel", false, "Run the Studio with an ngrok tunnel")
+	cmd.Flags().StringVar(&cfg.serverHost, "server-host", "", "Set the host from which the Studio should be accessed")
 	if err := cmd.Flags().MarkHidden("sandbox"); err != nil {
 		logger.Debug("marking --sandbox as hidden: %v", err)
 	}
 	if err := cmd.Flags().MarkHidden("tunnel"); err != nil {
 		logger.Debug("marking --tunnel as hidden: %v", err)
+	}
+	if err := cmd.Flags().MarkHidden("server-host"); err != nil {
+		logger.Debug("marking --server-host as hidden: %v", err)
 	}
 
 	if err := cmd.Flags().MarkDeprecated("editor", "launching the Studio is now the default behavior."); err != nil {
