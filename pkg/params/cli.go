@@ -108,7 +108,7 @@ func promptForParamValues(taskName string, parameters libapi.Parameters, paramVa
 			opts = append(opts, survey.WithValidator(survey.Required))
 		}
 		if param.Constraints.Regex != "" {
-			opts = append(opts, survey.WithValidator(regexValidator(param.Constraints.Regex)))
+			opts = append(opts, survey.WithValidator(regexValidator(param.Constraints.Regex, param.Constraints.Optional)))
 		}
 		var inputValue string
 		if err := survey.AskOne(prompt, &inputValue, opts...); err != nil {
@@ -189,11 +189,14 @@ func validateInput(param libapi.Parameter) func(interface{}) error {
 }
 
 // regexValidator returns a Survey validator from the pattern
-func regexValidator(pattern string) func(interface{}) error {
+func regexValidator(pattern string, optional bool) func(interface{}) error {
 	return func(val interface{}) error {
 		str, ok := val.(string)
 		if !ok {
 			return errors.New("expected string")
+		}
+		if str == "" && optional {
+			return nil
 		}
 		matched, err := regexp.MatchString(pattern, str)
 		if err != nil {
