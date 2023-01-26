@@ -49,7 +49,7 @@ func view(root string, options KindOptions) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	viteConfigStr, err := ViteConfigString()
+	viteConfigStr, err := ViteConfigString(ViteConfigOpts{})
 	if err != nil {
 		return "", err
 	}
@@ -398,8 +398,31 @@ var viteConfigTemplateStr string
 //go:embed views/universal-vite.config.ts
 var universalViteConfigTemplateStr string
 
-func ViteConfigString() (string, error) {
-	return viteConfigTemplateStr, nil
+type ViteConfigOpts struct {
+	Port int
+	Root string
+}
+
+func ViteConfigString(opts ViteConfigOpts) (string, error) {
+	var base string
+	if opts.Port != 0 {
+		// If a port is specified, we are proxying requests to Vite. Additionally, in local dev, we embed views in an
+		// iframe, and Vite will by default request assets from the origin of the iframe. For example, if we are
+		// proxying from localhost:4000, and Vite requests main.tsx, it will request it from localhost:4000/main.tsx.
+		// Instead, we want it to request it from localhost:4000/dev/views/{port}/main.tsx, so that the request can be
+		// properly forwarded to the Vite server (running on localhost:{port}). We can accomplish this by setting the
+		// base to /dev/views/{port}/, which prefixes all HTTP request paths with `base`. For more information, see
+		// https://vitejs.dev/config/server-options.html#server-base
+		base = fmt.Sprintf("/dev/views/%d/", opts.Port)
+	}
+
+	return applyTemplate(viteConfigTemplateStr, struct {
+		Base string
+		Root string
+	}{
+		Base: base,
+		Root: opts.Root,
+	})
 }
 
 func UniversalViteConfigString(entrypoints []string) (string, error) {
