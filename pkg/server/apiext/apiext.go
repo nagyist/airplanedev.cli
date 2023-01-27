@@ -599,7 +599,7 @@ func GetPromptHandler(ctx context.Context, state *state.State, r *http.Request) 
 	return GetPromptResponse{}, errors.New("prompt not found")
 }
 
-// ListResourcesHandler handles requests to the /i/resources/list endpoint
+// ListResourcesHandler handles requests to the /v0/resources/list endpoint
 func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.ListResourcesResponse, error) {
 	resources := make([]libapi.Resource, 0, len(state.DevConfig.RawResources))
 	for slug, r := range state.DevConfig.Resources {

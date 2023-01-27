@@ -41,6 +41,9 @@ type ClientOpts struct {
 	// The token must be set, otherwise all methods will return an error.
 	Token string
 
+	// TunnelToken is a token used for authenticating with an ngrok tunnel for local development.
+	TunnelToken *string
+
 	// Extra information about what context the CLI is being used.
 	// e.g. in a GitHub action.
 	Source string
@@ -719,6 +722,10 @@ func (c Client) headers() (map[string]string, error) {
 		headers["X-Team-ID"] = c.TeamID
 	} else {
 		return nil, errors.Errorf("authentication is missing: %s", c.APIKey)
+	}
+
+	if c.TunnelToken != nil {
+		headers["X-Airplane-Dev-Token"] = *c.TunnelToken
 	}
 
 	return headers, nil

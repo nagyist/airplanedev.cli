@@ -95,12 +95,14 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		localClientDevServerHost = fmt.Sprintf("127.0.0.1:%d", port)
 		studioUIHost = fmt.Sprintf("http://localhost:%d", port)
 	}
+
 	localClient := api.NewClient(api.ClientOpts{
-		Host:   localClientDevServerHost,
-		Token:  cfg.root.Client.Token,
-		Source: cfg.root.Client.Source,
-		APIKey: cfg.root.Client.APIKey,
-		TeamID: cfg.root.Client.TeamID,
+		Host:        localClientDevServerHost,
+		Token:       cfg.root.Client.Token,
+		TunnelToken: studioUIToken,
+		Source:      cfg.root.Client.Source,
+		APIKey:      cfg.root.Client.APIKey,
+		TeamID:      cfg.root.Client.TeamID,
 	})
 
 	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{})
