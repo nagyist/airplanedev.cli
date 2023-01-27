@@ -407,6 +407,8 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 		}
 	}
 
+	// client represents the client that Vite will use to communicate with the dev server.
+	client := s.LocalClient
 	var port int
 	var serverURL string
 	if s.ServerHost != "" {
@@ -417,10 +419,16 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 			return StartViewResponse{}, err
 		}
 		serverURL = fmt.Sprintf("%s/dev/views/%d/", s.ServerHost, port)
+		// If a server host is specified, we send (Airplane) API requests to that host.
+		client = &api.Client{
+			ClientOpts: api.ClientOpts{
+				Host: s.ServerHost,
+			},
+		}
 	}
 
 	cmd, viteServer, closer, err := views.Dev(ctx, &vd, views.ViteOpts{
-		Client:               s.LocalClient,
+		Client:               client,
 		TTY:                  false,
 		RebundleDependencies: !depHashesEqual,
 		UsesYarn:             usesYarn,
