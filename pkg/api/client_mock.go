@@ -278,7 +278,18 @@ func (mc *MockClient) GetToken() string {
 }
 
 func (mc *MockClient) EvaluateTemplate(ctx context.Context, req libapi.EvaluateTemplateRequest) (res libapi.EvaluateTemplateResponse, err error) {
-	panic("not implemented")
+	switch requestVal := req.Value.(type) {
+	case map[string]string: // Just convert map[string]string to map[string]interface{}, which is what our prod API returns.
+		value := make(map[string]interface{}, len(requestVal))
+		for k, v := range requestVal {
+			value[k] = v
+		}
+		return libapi.EvaluateTemplateResponse{Value: value}, nil
+	}
+
+	return libapi.EvaluateTemplateResponse{
+		Value: req.Value,
+	}, nil
 }
 
 func (mc *MockClient) GetPermissions(ctx context.Context, taskSlug string, actions []string) (res GetPermissionsResponse, err error) {
