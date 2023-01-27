@@ -78,6 +78,7 @@ func NewRouter(state *state.State, opts RouterOptions) *mux.Router {
 			"x-airplane-dev-token",
 			"x-airplane-sandbox-token",
 		}),
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
 	))
 	if opts.Token != nil {
 		r.Use(func(next http.Handler) http.Handler {

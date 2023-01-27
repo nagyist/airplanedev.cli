@@ -407,7 +407,7 @@ func TestConfigsCRUD(t *testing.T) {
 		Status(http.StatusOK).Body()
 	err = json.Unmarshal([]byte(body.Raw()), &listResp)
 	require.NoError(err)
-	// sort so we can compare, since resources are stored as a map
+	// sort so we can compare, since configs are stored as a map
 	expected := []env.ConfigWithEnv{cfg0, cfg1}
 	sort.Slice(expected, func(i, j int) bool {
 		return expected[i].ID < expected[j].ID

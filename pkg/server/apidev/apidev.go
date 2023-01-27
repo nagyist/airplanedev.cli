@@ -40,6 +40,11 @@ func AttachDevRoutes(r *mux.Router, s *state.State) {
 	r.Handle("/info", handlers.Handler(s, GetInfoHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/version", handlers.Handler(s, GetVersionHandler)).Methods("GET", "OPTIONS")
 
+	r.Handle("/envVars/get", handlers.Handler(s, GetEnvVarHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/envVars/upsert", handlers.HandlerWithBody(s, UpsertEnvVarHandler)).Methods("PUT", "OPTIONS")
+	r.Handle("/envVars/delete", handlers.HandlerWithBody(s, DeleteEnvVarHandler)).Methods("DELETE", "OPTIONS")
+	r.Handle("/envVars/list", handlers.Handler(s, ListEnvVarsHandler)).Methods("GET", "OPTIONS")
+
 	// TODO: Remove this endpoint once the studio UI is updated to use /dev/files/list
 	r.Handle("/list", handlers.Handler(s, ListEntrypointsHandler)).Methods("GET", "OPTIONS")
 
