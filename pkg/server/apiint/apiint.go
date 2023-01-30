@@ -651,11 +651,38 @@ func GetViewInfoHandler(ctx context.Context, state *state.State, r *http.Request
 		return libapi.View{}, errors.Errorf("View with slug %q not found", viewSlug)
 	}
 
+	configVars := state.DevConfig.ConfigVars
+	if len(state.DevConfig.EnvVars) > 0 || len(viewConfig.Def.EnvVars) > 0 {
+		var err error
+		configVars, err = configs.MergeRemoteConfigs(ctx, state)
+		if err != nil {
+			return libapi.View{}, errors.Wrap(err, "merging local and remote configs")
+		}
+	}
+
+	apiPort := state.LocalClient.AppURL().Port()
+	viewURL := utils.StudioURL(state.StudioURL.Host, apiPort, "/view/"+viewConfig.Def.Slug)
+
+	envVars, err := dev.GetEnvVarsForView(ctx, state.RemoteClient, dev.GetEnvVarsForViewConfig{
+		ViewEnvVars:      viewConfig.Def.EnvVars,
+		DevConfigEnvVars: state.DevConfig.EnvVars,
+		ConfigVars:       configVars,
+		UseFallbackEnv:   state.UseFallbackEnv,
+		AuthInfo:         state.AuthInfo,
+		Name:             viewConfig.Def.Name,
+		Slug:             viewConfig.Def.Slug,
+		ViewURL:          viewURL,
+	})
+	if err != nil {
+		return libapi.View{}, errors.Wrap(err, "getting env vars for view")
+	}
+
 	return libapi.View{
+		ID:          viewConfig.Def.Slug,
 		Slug:        viewConfig.Def.Slug,
 		Name:        viewConfig.Def.Name,
 		Description: viewConfig.Def.Description,
-		ID:          viewConfig.ID,
+		EnvVars:     envVars,
 	}, nil
 }
 

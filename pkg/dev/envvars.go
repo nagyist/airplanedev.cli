@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/airplanedev/cli/pkg/api"
 	devenv "github.com/airplanedev/cli/pkg/dev/env"
@@ -17,7 +18,58 @@ import (
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/maps"
 )
+
+type GetEnvVarsForViewConfig struct {
+	ViewEnvVars      map[string]libapi.EnvVarValue
+	DevConfigEnvVars map[string]string
+	ConfigVars       map[string]devenv.ConfigWithEnv
+	UseFallbackEnv   bool
+	AuthInfo         api.AuthInfoResponse
+	Name             string
+	Slug             string
+	ViewURL          string
+}
+
+func GetEnvVarsForView(
+	ctx context.Context,
+	remoteClient api.APIClient,
+	config GetEnvVarsForViewConfig,
+) (map[string]string, error) {
+	envVars := make(map[string]string)
+	for _, env := range os.Environ() {
+		parts := strings.SplitN(env, "=", 2)
+		envVars[parts[0]] = parts[1]
+	}
+
+	// Note that views do not pull env vars from dotenv files.
+	unmaterializedEnvVars := applyEnvVarFileOverrides(config.ViewEnvVars, config.DevConfigEnvVars, nil, "")
+
+	// Materialize configs to values.
+	materializedEnvVars, err := materializeEnvVars(
+		ctx,
+		remoteClient,
+		unmaterializedEnvVars,
+		config.ConfigVars,
+		config.UseFallbackEnv,
+	)
+	if err != nil {
+		return nil, err
+	}
+	maps.Copy(envVars, materializedEnvVars)
+
+	// We skip interpolating JSTs. We may add this in the future, but this
+	// is probably not useful for views.
+
+	airplaneEnvVars, err := getBuiltInViewEnvVars(config)
+	if err != nil {
+		return nil, err
+	}
+	maps.Copy(envVars, airplaneEnvVars)
+
+	return envVars, nil
+}
 
 // getEnvVars sets the environment variables for the run command.
 func getEnvVars(
@@ -33,7 +85,7 @@ func getEnvVars(
 	// only non builtins have a runtime
 	if r != nil {
 		// Collect all environment variables for the current run.
-		runEnvVars := applyEnvVarOverrides(config, r, entrypoint)
+		runEnvVars := applyEnvVarFileOverrides(config.TaskEnvVars, config.EnvVars, r, entrypoint)
 
 		// Convert configs to values.
 		materializedEnvVars, err := materializeEnvVars(
@@ -64,7 +116,7 @@ func getEnvVars(
 		}
 	}
 
-	airplaneEnvVars, err := getAirplaneEnvVars(config)
+	airplaneEnvVars, err := getBuiltInTaskEnvVars(config)
 	if err != nil {
 		return nil, err
 	}
@@ -106,31 +158,32 @@ func materializeEnvVars(
 	return envVars, nil
 }
 
-// applyEnvVarOverrides applies any overrides from dotenv or dev config files to the task's environment variables.
-func applyEnvVarOverrides(config LocalRunConfig, r runtime.Interface, entrypoint string) libapi.TaskEnv {
-	envVars := libapi.TaskEnv{}
-	for k, v := range config.TaskEnvVars {
-		envVars[k] = v
-	}
+// applyEnvVarFileOverrides applies any overrides from dotenv or dev config files to the entity's environment variables.
+func applyEnvVarFileOverrides(entityEnvVars map[string]libapi.EnvVarValue, devConfigEnvVars map[string]string,
+	r runtime.Interface, entrypoint string) libapi.TaskEnv {
+	envVars := make(map[string]libapi.EnvVarValue)
+	maps.Copy(envVars, entityEnvVars)
 
-	// Load environment variables from .env files
-	// TODO: Deprecate support for .env files
-	dotEnvEnvVars, err := getDotEnvEnvVars(r, entrypoint)
-	if err != nil {
-		return nil
-	}
-	// Env vars declared in .env files take precedence to those declared in the task definition.
-	for k, v := range dotEnvEnvVars {
-		v := v // capture loop variable
-		envVars[k] = libapi.EnvVarValue{
-			Value: &v,
+	if r != nil {
+		// Load environment variables from .env files
+		// TODO: Deprecate support for .env files
+		dotEnvEnvVars, err := getDotEnvEnvVars(r, entrypoint)
+		if err != nil {
+			return nil
+		}
+		// Env vars declared in .env files take precedence to those declared in the task definition.
+		for k, v := range dotEnvEnvVars {
+			v := v // capture loop variable
+			envVars[k] = libapi.EnvVarValue{
+				Value: &v,
+			}
 		}
 	}
 
 	// Env vars declared in the dev config file take precedence to those declared in the task definition or .env
 	// files
-	for k, v := range config.EnvVars {
-		v := v // capture loop variable
+	for k, v := range devConfigEnvVars {
+		v := v
 		envVars[k] = libapi.EnvVarValue{
 			Value: &v,
 		}
@@ -182,8 +235,8 @@ func getDotEnvEnvVars(r runtime.Interface, path string) (map[string]string, erro
 	return env, errors.Wrap(err, "reading .env")
 }
 
-// appendAirplaneEnvVars appends Airplane-specific environment variables to the given environment variables slice.
-func getAirplaneEnvVars(config LocalRunConfig) ([]string, error) {
+// getBuiltInTaskEnvVars gets all built in task environment variables.
+func getBuiltInTaskEnvVars(config LocalRunConfig) ([]string, error) {
 	var env []string
 
 	env = append(env, fmt.Sprintf("AIRPLANE_API_HOST=%s", config.LocalClient.HostURL()))
@@ -213,11 +266,6 @@ func getAirplaneEnvVars(config LocalRunConfig) ([]string, error) {
 	// - AIRPLANE_TRIGGER_ID
 	// because there is no requester, session, task revision, or triggers in the context of local dev.
 	env = append(env,
-		fmt.Sprintf("AIRPLANE_ENV_ID=%s", devenv.StudioEnvID),
-		fmt.Sprintf("AIRPLANE_ENV_SLUG=%s", devenv.StudioEnvID),
-		fmt.Sprintf("AIRPLANE_ENV_NAME=%s", devenv.StudioEnvID),
-		fmt.Sprintf("AIRPLANE_ENV_IS_DEFAULT=%v", true), // For local dev, there is one env.
-
 		fmt.Sprintf("AIRPLANE_RUN_ID=%s", config.ID),
 		fmt.Sprintf("AIRPLANE_PARENT_RUN_ID=%s", pointers.ToString(config.ParentRunID)),
 		fmt.Sprintf("AIRPLANE_RUNNER_EMAIL=%s", runnerEmail),
@@ -230,6 +278,9 @@ func getAirplaneEnvVars(config LocalRunConfig) ([]string, error) {
 		fmt.Sprintf("AIRPLANE_TASK_URL=%s", taskURL),
 		fmt.Sprintf("AIRPLANE_RUN_URL=%s", runURL),
 	)
+	for k, v := range getCommonEnvVars() {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
 
 	token, err := GenerateInsecureAirplaneToken(AirplaneTokenClaims{
 		RunID: config.ID,
@@ -245,4 +296,45 @@ func getAirplaneEnvVars(config LocalRunConfig) ([]string, error) {
 	}
 	env = append(env, fmt.Sprintf("AIRPLANE_RESOURCES=%s", string(serialized)))
 	return env, nil
+}
+
+// getBuiltInViewEnvVars gets all built in view environment variables.
+func getBuiltInViewEnvVars(config GetEnvVarsForViewConfig) (map[string]string, error) {
+	env := make(map[string]string)
+
+	var userID, userEmail, userName string
+	if config.AuthInfo.User != nil {
+		userID = config.AuthInfo.User.ID
+		userEmail = config.AuthInfo.User.Email
+		userName = config.AuthInfo.User.Name
+	}
+
+	var teamID string
+	if config.AuthInfo.Team != nil {
+		teamID = config.AuthInfo.Team.ID
+	}
+
+	env["AIRPLANE_USER_EMAIL"] = userEmail
+	env["AIRPLANE_USER_ID"] = userID
+	env["AIRPLANE_USER_NAME"] = userName
+
+	env["AIRPLANE_VIEW_ID"] = config.Slug // For local dev, we use the view's slug as its id.
+	env["AIRPLANE_VIEW_SLUG"] = config.Slug
+	env["AIRPLANE_VIEW_NAME"] = config.Name
+	env["AIRPLANE_VIEW_URL"] = config.ViewURL
+
+	env["AIRPLANE_TEAM_ID"] = teamID
+	maps.Copy(env, getCommonEnvVars())
+
+	return env, nil
+}
+
+// getCommonEnvVars gets environment variables that are common to both tasks and views.
+func getCommonEnvVars() map[string]string {
+	return map[string]string{
+		"AIRPLANE_ENV_ID":         devenv.StudioEnvID,
+		"AIRPLANE_ENV_SLUG":       devenv.StudioEnvID,
+		"AIRPLANE_ENV_NAME":       devenv.StudioEnvID,
+		"AIRPLANE_ENV_IS_DEFAULT": "true", // For local dev, there is one env.
+	}
 }
