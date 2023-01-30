@@ -7,9 +7,6 @@ import (
 )
 
 const (
-	DeployBundles            = "deploy-bundles-rollout"
-	AirplaneConfg            = "airplane-config-rollout"
-	DefaultInlineConfigViews = "default-inline"
 	DefaultInlineConfigTasks = "default-inline-tasks"
 )
 

@@ -3,7 +3,7 @@ package tasks
 import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
-	"github.com/airplanedev/cli/cmd/airplane/tasks/deploy"
+	"github.com/airplanedev/cli/cmd/airplane/root/deploy"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/execute"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/get"
@@ -24,7 +24,7 @@ func New(c *cli.Config) *cobra.Command {
 		Aliases: []string{"task"},
 		Example: heredoc.Doc(`
 			airplane tasks init
-			airplane tasks deploy my_task.task.yaml
+			airplane tasks deploy my_task.airplane.ts
 			airplane tasks get my_task
 			airplane tasks execute my_task
 		`),

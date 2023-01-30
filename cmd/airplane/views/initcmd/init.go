@@ -14,7 +14,6 @@ import (
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/flags/flagsiface"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/node"
 	"github.com/airplanedev/cli/pkg/utils"
@@ -52,7 +51,7 @@ func New(c *cli.Config) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&cfg.from, "from", "", "Path to an existing github URL to initialize from")
-	cmd.Flags().BoolVar(&cfg.inline, "inline", false, "If true, the view will be configured with inline configuration")
+	cmd.Flags().BoolVar(&cfg.inline, "inline", true, "If true, the view will be configured with inline configuration")
 	cfg.cmd = cmd
 
 	return cmd
@@ -63,12 +62,6 @@ func GetConfig(c *cli.Config) config {
 }
 
 func Run(ctx context.Context, cfg config) error {
-	inlineSetByUser := cfg.cmd != nil && cfg.cmd.Flags().Changed("inline")
-	if !inlineSetByUser {
-		if cfg.root.Flagger.Bool(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), flagsiface.DefaultInlineConfigViews) {
-			cfg.inline = true
-		}
-	}
 	if cfg.from != "" {
 		if err := utils.CopyFromGithubPath(cfg.from); err != nil {
 			return err

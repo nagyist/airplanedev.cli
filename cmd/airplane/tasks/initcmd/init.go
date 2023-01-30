@@ -924,23 +924,21 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 			return err
 		}
 
-		if cfg.root.Flagger.Bool(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), flagsiface.AirplaneConfg) {
-			_, nodeVersion, buildBase, err := def.GetBuildType()
-			if err != nil {
-				return err
-			}
-			if nodeVersion == "" {
-				nodeVersion = build.DefaultNodeVersion
-			}
+		_, nodeVersion, buildBase, err := def.GetBuildType()
+		if err != nil {
+			return err
+		}
+		if nodeVersion == "" {
+			nodeVersion = build.DefaultNodeVersion
+		}
 
-			if err := createOrUpdateAirplaneConfig(packageJSONDir, deployconfig.AirplaneConfig{
-				Javascript: deployconfig.JavaScriptConfig{
-					NodeVersion: string(nodeVersion),
-					Base:        string(buildBase),
-				},
-			}); err != nil {
-				return err
-			}
+		if err := createOrUpdateAirplaneConfig(packageJSONDir, deployconfig.AirplaneConfig{
+			Javascript: deployconfig.JavaScriptConfig{
+				NodeVersion: string(nodeVersion),
+				Base:        string(buildBase),
+			},
+		}); err != nil {
+			return err
 		}
 		if filepath.Ext(entrypoint) == ".ts" || filepath.Ext(entrypoint) == ".tsx" {
 			// Create/update tsconfig in the same directory as the package.json file
@@ -950,39 +948,37 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 		}
 		return nil
 	case build.TaskKindPython:
-		if cfg.root.Flagger.Bool(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), flagsiface.AirplaneConfg) {
-			entrypoint, err := def.GetAbsoluteEntrypoint()
-			if err != nil {
-				return err
+		entrypoint, err := def.GetAbsoluteEntrypoint()
+		if err != nil {
+			return err
+		}
+		var deps []python.PythonDependency
+		if cfg.inline {
+			deps = []python.PythonDependency{
+				{Name: "airplanesdk", Version: "~=0.3.14"},
 			}
-			var deps []python.PythonDependency
-			if cfg.inline {
-				deps = []python.PythonDependency{
-					{Name: "airplanesdk", Version: "~=0.3.14"},
-				}
-			}
-			requirementsTxtDir, err := python.CreateRequirementsTxt(filepath.Dir(entrypoint), python.RequirementsTxtOptions{
-				Dependencies: deps,
-			})
-			if err != nil {
-				return err
-			}
+		}
+		requirementsTxtDir, err := python.CreateRequirementsTxt(filepath.Dir(entrypoint), python.RequirementsTxtOptions{
+			Dependencies: deps,
+		})
+		if err != nil {
+			return err
+		}
 
-			_, pythonVersion, buildBase, err := def.GetBuildType()
-			if err != nil {
-				return err
-			}
-			if pythonVersion == "" {
-				pythonVersion = build.DefaultPythonVersion
-			}
-			if err := createOrUpdateAirplaneConfig(requirementsTxtDir, deployconfig.AirplaneConfig{
-				Python: deployconfig.PythonConfig{
-					Version: string(pythonVersion),
-					Base:    string(buildBase),
-				},
-			}); err != nil {
-				return err
-			}
+		_, pythonVersion, buildBase, err := def.GetBuildType()
+		if err != nil {
+			return err
+		}
+		if pythonVersion == "" {
+			pythonVersion = build.DefaultPythonVersion
+		}
+		if err := createOrUpdateAirplaneConfig(requirementsTxtDir, deployconfig.AirplaneConfig{
+			Python: deployconfig.PythonConfig{
+				Version: string(pythonVersion),
+				Base:    string(buildBase),
+			},
+		}); err != nil {
+			return err
 		}
 		return nil
 	default:

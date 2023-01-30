@@ -3,7 +3,7 @@ package views
 import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
-	"github.com/airplanedev/cli/cmd/airplane/tasks/deploy"
+	"github.com/airplanedev/cli/cmd/airplane/root/deploy"
 	"github.com/airplanedev/cli/cmd/airplane/views/dev"
 	"github.com/airplanedev/cli/cmd/airplane/views/initcmd"
 	"github.com/airplanedev/cli/pkg/cli"

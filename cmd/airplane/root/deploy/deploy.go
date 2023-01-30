@@ -19,6 +19,8 @@ type Config struct {
 	Paths        []string
 	ChangedFiles utils.NewlineFileValue
 	EnvSlug      string
+	assumeYes    bool
+	assumeNo     bool
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -28,14 +30,14 @@ func New(c *cli.Config) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "deploybundle",
+		Use:   "deploy",
 		Short: "Deploy tasks and views",
 		Long:  "Deploy code from a local directory as an Airplane task or view.",
 		Example: heredoc.Doc(`
 			airplane deploy
 			airplane deploy my_directory
-			airplane tasks deploy ./my_task.ts
-			airplane tasks deploy my_directory ./my_task1.ts
+			airplane tasks deploy my_task.airplane.ts
+			airplane tasks deploy my_directory my_task1.airplane.ts
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
@@ -54,6 +56,15 @@ func New(c *cli.Config) *cobra.Command {
 
 	cmd.Flags().Var(&cfg.ChangedFiles, "changed-files", "A file with a list of file paths that were changed, one path per line. Only tasks with changed files will be deployed")
 	cmd.Flags().StringVar(&cfg.EnvSlug, "env", "", "The slug of the environment to query. Defaults to your team's default environment.")
+	cmd.Flags().BoolVarP(&cfg.assumeYes, "yes", "y", false, "True to specify automatic yes to prompts.")
+	cmd.Flags().BoolVarP(&cfg.assumeNo, "no", "n", false, "True to specify automatic no to prompts.")
+
+	if err := cmd.Flags().MarkHidden("yes"); err != nil {
+		logger.Debug("error: %s", err)
+	}
+	if err := cmd.Flags().MarkHidden("no"); err != nil {
+		logger.Debug("error: %s", err)
+	}
 
 	return cmd
 }

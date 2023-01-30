@@ -15,7 +15,6 @@ import (
 	"github.com/airplanedev/cli/cmd/airplane/root/initcmd"
 	"github.com/airplanedev/cli/cmd/airplane/runs"
 	"github.com/airplanedev/cli/cmd/airplane/tasks"
-	tasksdeploy "github.com/airplanedev/cli/cmd/airplane/tasks/deploy"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/execute"
 	"github.com/airplanedev/cli/cmd/airplane/version"
@@ -118,7 +117,6 @@ func New() *cobra.Command {
 	cmd.AddCommand(deploy.New(cfg))
 
 	// Aliases for popular namespaced commands:
-	cmd.AddCommand(tasksdeploy.New(cfg))
 	cmd.AddCommand(dev.New(cfg))
 	cmd.AddCommand(execute.New(cfg))
 	cmd.AddCommand(login.New(cfg))
