@@ -23,7 +23,7 @@ func TestPostgresResource(t *testing.T) {
 	}
 	err := resource.Calculate()
 	require.NoError(err)
-	require.Equal("postgres://username:password@hostname:5432/database?sslmode=require", resource.DSN)
+	require.Equal("postgres://username:password@hostname:5432/database?application_name=Airplane&sslmode=require", resource.DSN)
 	err = resource.Validate()
 	require.NoError(err)
 

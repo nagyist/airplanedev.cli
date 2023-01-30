@@ -157,6 +157,7 @@ func (r *PostgresResource) UpdateBaseResource(br resources.BaseResource) error {
 func (r PostgresResource) dsn() string {
 	q := url.Values{}
 	q.Set("sslmode", r.SSLMode)
+	q.Set("application_name", "Airplane")
 	u := url.URL{
 		Scheme:   "postgres",
 		User:     url.UserPassword(r.Username, r.Password),
