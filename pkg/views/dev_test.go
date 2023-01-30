@@ -9,24 +9,27 @@ import (
 
 func TestGetAdditionalEnvs(t *testing.T) {
 	testCases := []struct {
-		desc    string
-		envSlug string
-		host    string
-		apiKey  string
-		token   string
-		osEnvs  map[string]string
-		envs    []string
+		desc        string
+		envSlug     string
+		host        string
+		apiKey      string
+		token       string
+		tunnelToken string
+		osEnvs      map[string]string
+		envs        []string
 	}{
 		{
-			desc:    "all vars passed in",
-			envSlug: "env",
-			host:    "host",
-			apiKey:  "apiKey",
-			token:   "token",
+			desc:        "all vars passed in",
+			envSlug:     "env",
+			host:        "host",
+			apiKey:      "apiKey",
+			token:       "token",
+			tunnelToken: "tunnel_token",
 			envs: []string{
 				"AIRPLANE_API_HOST=https://host",
 				"AIRPLANE_ENV_SLUG=env",
 				"AIRPLANE_TOKEN=token",
+				"AIRPLANE_TUNNEL_TOKEN=tunnel_token",
 			},
 		},
 		{
@@ -67,7 +70,12 @@ func TestGetAdditionalEnvs(t *testing.T) {
 			for k, v := range tC.osEnvs {
 				os.Setenv(k, v)
 			}
-			e := getAdditionalEnvs(tC.host, tC.apiKey, tC.token, tC.envSlug)
+			var tunnelTokenPtr *string
+			if tC.tunnelToken != "" {
+				tunnelTokenPtr = &tC.tunnelToken
+			}
+
+			e := getAdditionalEnvs(tC.host, tC.apiKey, tC.token, tC.envSlug, tunnelTokenPtr)
 			assert.Equal(tC.envs, e)
 		})
 	}

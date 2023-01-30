@@ -139,7 +139,7 @@ func TestDevConfigResources(t *testing.T) {
 				Password: "password",
 				Port:     "5432",
 				SSLMode:  "disable",
-				DSN:      "postgres://postgres:password@:5432?sslmode=disable", // Calculated fields should be set
+				DSN:      "postgres://postgres:password@:5432?application_name=Airplane&sslmode=disable", // Calculated fields should be set
 			},
 			Remote: false,
 		},

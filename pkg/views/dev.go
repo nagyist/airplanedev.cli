@@ -27,11 +27,12 @@ import (
 )
 
 const (
-	hostEnvKey    = "AIRPLANE_API_HOST"
-	tokenEnvKey   = "AIRPLANE_TOKEN"
-	apiKeyEnvKey  = "AIRPLANE_API_KEY"
-	envSlugEnvKey = "AIRPLANE_ENV_SLUG"
-	depHashFile   = "dep-hash"
+	hostEnvKey        = "AIRPLANE_API_HOST"
+	tokenEnvKey       = "AIRPLANE_TOKEN"
+	apiKeyEnvKey      = "AIRPLANE_API_KEY"
+	envSlugEnvKey     = "AIRPLANE_ENV_SLUG"
+	tunnelTokenEnvKey = "AIRPLANE_TUNNEL_TOKEN"
+	depHashFile       = "dep-hash"
 )
 
 func Dev(ctx context.Context, v viewdir.ViewDirectoryInterface, viteOpts ViteOpts) (*exec.Cmd, string, io.Closer, error) {
@@ -365,7 +366,7 @@ func runVite(ctx context.Context, opts ViteOpts, airplaneViewDir string, viewSlu
 
 	cmd := exec.Command("node_modules/.bin/vite", args...)
 	cmd.Dir = airplaneViewDir
-	cmd.Env = append(os.Environ(), getAdditionalEnvs(opts.Client.Host, opts.Client.APIKey, opts.Client.Token, opts.EnvSlug)...)
+	cmd.Env = append(os.Environ(), getAdditionalEnvs(opts.Client.Host, opts.Client.APIKey, opts.Client.Token, opts.EnvSlug, opts.Client.TunnelToken)...)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -433,7 +434,7 @@ func runVite(ctx context.Context, opts ViteOpts, airplaneViewDir string, viewSlu
 	return cmd, viteServer, nil
 }
 
-func getAdditionalEnvs(host, apiKey, token, envSlug string) []string {
+func getAdditionalEnvs(host, apiKey, token, envSlug string, tunnelToken *string) []string {
 	var envs []string
 	if _, ok := os.LookupEnv(hostEnvKey); !ok && host != "" {
 		if !strings.HasPrefix(host, "http") {
@@ -456,5 +457,12 @@ func getAdditionalEnvs(host, apiKey, token, envSlug string) []string {
 	} else if _, ok := os.LookupEnv(apiKeyEnvKey); !ok && apiKey != "" {
 		envs = append(envs, fmt.Sprintf("%s=%s", apiKeyEnvKey, apiKey))
 	}
+
+	if tunnelToken != nil {
+		if _, ok := os.LookupEnv(tunnelTokenEnvKey); !ok {
+			envs = append(envs, fmt.Sprintf("%s=%s", tunnelTokenEnvKey, *tunnelToken))
+		}
+	}
+
 	return envs
 }
