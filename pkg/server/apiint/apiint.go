@@ -14,6 +14,7 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/server/handlers"
+	"github.com/airplanedev/cli/pkg/server/outputs"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
@@ -51,6 +52,7 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/runs/getDescendants", handlers.Handler(state, GetDescendantsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/list", handlers.Handler(state, ListRunsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/cancel", handlers.HandlerWithBody(state, CancelRunHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/runs/getOutputs", handlers.Handler(state, outputs.GetOutputsHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/tasks/get", handlers.Handler(state, GetTaskInfoHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/views/get", handlers.Handler(state, GetViewInfoHandler)).Methods("GET", "OPTIONS")
@@ -498,14 +500,47 @@ type GetRunResponse struct {
 
 func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (GetRunResponse, error) {
 	runID := r.URL.Query().Get("id")
+	if runID == "" {
+		runID = r.URL.Query().Get("runID")
+	}
 	run, ok := state.Runs.Get(runID)
 	if !ok {
 		return GetRunResponse{}, errors.Errorf("run with id %s not found", runID)
 	}
+	if run.Remote {
+		resp, err := state.RemoteClient.GetRun(ctx, runID)
+		if err != nil {
+			return GetRunResponse{}, errors.Wrap(err, "getting remote run")
+		}
+		remoteRun := resp.Run
+		run = dev.LocalRun{
+			ID:          runID,
+			RunID:       runID,
+			Status:      remoteRun.Status,
+			CreatedAt:   remoteRun.CreatedAt,
+			CreatorID:   remoteRun.CreatorID,
+			SucceededAt: remoteRun.SucceededAt,
+			FailedAt:    remoteRun.FailedAt,
+			ParamValues: remoteRun.ParamValues,
+			Parameters:  remoteRun.Parameters,
+			TaskID:      remoteRun.TaskID,
+			TaskName:    remoteRun.TaskName,
+			Remote:      true,
+		}
+		response := GetRunResponse{Run: run}
+		task, err := state.RemoteClient.GetTaskByID(ctx, remoteRun.TaskID)
+		if err != nil {
+			return GetRunResponse{}, errors.Wrap(err, "getting remote task")
+		}
+		response.Task = &task
+		return response, nil
+	}
+
 	response := GetRunResponse{Run: run}
 
 	if run.TaskRevision.Def != nil {
 		utr, err := run.TaskRevision.Def.GetUpdateTaskRequest(ctx, state.LocalClient, false)
+		run.Parameters = &utr.Parameters
 		if err != nil {
 			logger.Error("Encountered error while getting task info: %v", err)
 			return GetRunResponse{}, errors.Errorf("error getting task %s", run.TaskRevision.Def.GetSlug())

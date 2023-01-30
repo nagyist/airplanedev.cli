@@ -19,6 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/apiext"
 	"github.com/airplanedev/cli/pkg/server/apiint"
+	"github.com/airplanedev/cli/pkg/server/outputs"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/server/test_utils"
 	"github.com/airplanedev/cli/pkg/utils"
@@ -579,4 +580,32 @@ func TestUploadCreateGet(t *testing.T) {
 	err = json.Unmarshal([]byte(body.Raw()), &getResp)
 	require.NoError(err)
 	require.Equal(upload, getResp.Upload)
+}
+
+func TestGetOutput(t *testing.T) {
+	require := require.New(t)
+	runID := "run1234"
+
+	runstore := state.NewRunStore()
+	runstore.Add("task1", runID, dev.LocalRun{Outputs: api.Outputs{V: "hello"}})
+	h := test_utils.GetHttpExpect(
+		context.Background(),
+		t,
+		server.NewRouter(&state.State{
+			Runs:        runstore,
+			TaskConfigs: state.NewStore[string, discover.TaskConfig](nil),
+		}, server.RouterOptions{}),
+	)
+
+	body := h.GET("/i/runs/getOutputs").
+		WithQuery("id", runID).
+		Expect().
+		Status(http.StatusOK).Body()
+
+	var resp outputs.GetOutputsResponse
+	err := json.Unmarshal([]byte(body.Raw()), &resp)
+	require.NoError(err)
+	require.Equal(api.Outputs{
+		V: "hello",
+	}, resp.Output)
 }

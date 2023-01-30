@@ -16,6 +16,7 @@ import (
 	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/apiext"
+	"github.com/airplanedev/cli/pkg/server/outputs"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/server/test_utils"
 	"github.com/airplanedev/cli/pkg/utils"
@@ -294,7 +295,7 @@ func TestGetOutput(t *testing.T) {
 		Expect().
 		Status(http.StatusOK).Body()
 
-	var resp apiext.GetOutputsResponse
+	var resp outputs.GetOutputsResponse
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
 	require.Equal(api.Outputs{

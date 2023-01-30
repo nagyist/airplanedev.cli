@@ -14,6 +14,7 @@ import (
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/server/handlers"
+	"github.com/airplanedev/cli/pkg/server/outputs"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
@@ -38,7 +39,7 @@ func AttachExternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/entities/search", handlers.Handler(state, SearchEntitiesHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runners/createScaleSignal", handlers.HandlerWithBody(state, CreateScaleSignalHandler)).Methods("POST", "OPTIONS")
 
-	r.Handle("/runs/getOutputs", handlers.Handler(state, GetOutputsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/getOutputs", handlers.Handler(state, outputs.GetOutputsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runs/get", handlers.Handler(state, GetRunHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/resources/list", handlers.Handler(state, ListResourcesHandler)).Methods("GET", "OPTIONS")
@@ -414,34 +415,6 @@ func ListRunsHandler(ctx context.Context, state *state.State, r *http.Request) (
 	runs := state.Runs.GetRunHistory(taskSlug)
 	return ListRunsResponse{
 		Runs: runs,
-	}, nil
-}
-
-type GetOutputsResponse struct {
-	// Outputs from this run.
-	Output api.Outputs `json:"output"`
-}
-
-// GetOutputsHandler handles requests to the /v0/runs/getOutputs endpoint
-func GetOutputsHandler(ctx context.Context, state *state.State, r *http.Request) (GetOutputsResponse, error) {
-	runID := r.URL.Query().Get("id")
-	run, ok := state.Runs.Get(runID)
-	if !ok {
-		return GetOutputsResponse{}, errors.Errorf("run with id %s not found", runID)
-	}
-	outputs := run.Outputs
-
-	if run.Remote {
-		resp, err := state.RemoteClient.GetOutputs(ctx, runID)
-		if err != nil {
-			return GetOutputsResponse{}, errors.Wrap(err, "getting remote run")
-		}
-
-		outputs = resp.Outputs
-	}
-
-	return GetOutputsResponse{
-		Output: outputs,
 	}, nil
 }
 

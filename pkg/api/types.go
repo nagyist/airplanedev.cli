@@ -264,21 +264,22 @@ func (r RunStatus) IsTerminal() bool {
 
 // Run represents a run.
 type Run struct {
-	RunID       string     `json:"runID"`
-	TaskID      string     `json:"taskID"`
-	TaskName    string     `json:"taskName"`
-	TeamID      string     `json:"teamID"`
-	Status      RunStatus  `json:"status"`
-	ParamValues Values     `json:"paramValues"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	CreatorID   string     `json:"creatorID"`
-	QueuedAt    *time.Time `json:"queuedAt"`
-	ActiveAt    *time.Time `json:"activeAt"`
-	SucceededAt *time.Time `json:"succeededAt"`
-	FailedAt    *time.Time `json:"failedAt"`
-	CancelledAt *time.Time `json:"cancelledAt"`
-	CancelledBy *string    `json:"cancelledBy"`
-	EnvSlug     string     `json:"envSlug"`
+	RunID       string             `json:"runID"`
+	TaskID      string             `json:"taskID"`
+	TaskName    string             `json:"taskName"`
+	TeamID      string             `json:"teamID"`
+	Status      RunStatus          `json:"status"`
+	ParamValues Values             `json:"paramValues"`
+	Parameters  *libapi.Parameters `json:"parameters"`
+	CreatedAt   time.Time          `json:"createdAt"`
+	CreatorID   string             `json:"creatorID"`
+	QueuedAt    *time.Time         `json:"queuedAt"`
+	ActiveAt    *time.Time         `json:"activeAt"`
+	SucceededAt *time.Time         `json:"succeededAt"`
+	FailedAt    *time.Time         `json:"failedAt"`
+	CancelledAt *time.Time         `json:"cancelledAt"`
+	CancelledBy *string            `json:"cancelledBy"`
+	EnvSlug     string             `json:"envSlug"`
 }
 
 // ListRunsRequest represents a list runs request.
