@@ -48,7 +48,10 @@ setEnvVars(
   import.meta.env.AIRPLANE_API_HOST || "https://api.airplane.dev",
   import.meta.env.AIRPLANE_TOKEN,
   import.meta.env.AIRPLANE_API_KEY,
-  getQueryParam("__env") || import.meta.env.AIRPLANE_ENV_SLUG
+  getQueryParam("__env") || import.meta.env.AIRPLANE_ENV_SLUG,
+  {
+    AIRPLANE_TUNNEL_TOKEN: import.meta.env.AIRPLANE_TUNNEL_TOKEN,
+  }
 );
 
 // Set runtime environment variables.
