@@ -710,6 +710,12 @@ func (c Client) GetTunnelToken(ctx context.Context) (res GetTunnelTokenResponse,
 	return
 }
 
+func (c Client) SetDevSecret(ctx context.Context, token string) (err error) {
+	return c.post(ctx, "/studio/tunnelToken/setDevSecret", &SetDevSecretRequest{
+		Token: token,
+	}, nil)
+}
+
 func (c Client) headers() (map[string]string, error) {
 	headers := map[string]string{}
 	if c.Token != "" {

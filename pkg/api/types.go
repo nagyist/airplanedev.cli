@@ -496,3 +496,7 @@ type GetUserResponse struct {
 type GetTunnelTokenResponse struct {
 	Token string `json:"token"`
 }
+
+type SetDevSecretRequest struct {
+	Token string `json:"token"`
+}

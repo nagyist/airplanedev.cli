@@ -76,9 +76,12 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 			ngrok.WithAuthtoken(tokenResp.Token),
 		)
 		if err != nil {
-			return errors.Wrap(err, "failed to start ngrok tunnel")
+			return errors.Wrap(err, "failed to start tunnel")
 		}
 		studioUIHost = fmt.Sprintf("https://%s", localClientDevServerHost)
+		if err := cfg.root.Client.SetDevSecret(ctx, randString); err != nil {
+			return errors.Wrap(err, "setting dev token")
+		}
 	}
 
 	apiServer, port, err := server.Start(server.Options{
@@ -240,12 +243,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	logger.Log("")
-	var studioURL string
-	if studioUIToken != nil {
-		studioURL = fmt.Sprintf("%s/studio?__airplane_host=%s&__airplane_tunnel_token=%s&__env=%s", appURL, studioUIHost, *studioUIToken, remoteEnv.Slug)
-	} else {
-		studioURL = fmt.Sprintf("%s/studio?__airplane_host=%s&__env=%s", appURL, studioUIHost, remoteEnv.Slug)
-	}
+	studioURL := fmt.Sprintf("%s/studio?__airplane_host=%s&__env=%s", appURL, studioUIHost, remoteEnv.Slug)
 	logger.Log("Started studio session at %s (^C to quit)", logger.Blue(studioURL))
 
 	// Execute the flow to open the studio in the browser in a separate goroutine so fmt.Scanln doesn't capture
