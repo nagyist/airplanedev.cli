@@ -39,12 +39,32 @@ type DevConfig struct {
 // NewDevConfig returns a default dev config.
 func NewDevConfig(path string) *DevConfig {
 	return &DevConfig{
-		RawConfigVars: map[string]string{},
 		RawResources:  []map[string]interface{}{},
-		ConfigVars:    map[string]env.ConfigWithEnv{},
 		Resources:     map[string]env.ResourceWithEnv{},
+		RawConfigVars: map[string]string{},
+		ConfigVars:    map[string]env.ConfigWithEnv{},
+		EnvVars:       map[string]string{},
 		Path:          path,
 	}
+}
+
+// Update reads the contents of the dev config file.
+func (d *DevConfig) Update() error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	config, err := LoadDevConfigFile(d.Path)
+	if err != nil {
+		return err
+	}
+
+	// We want to avoid concurrent updates to the dev config file, so we maintain a mutex in the dev config struct,
+	// and copy the contents of the dev config file into the struct whenever we update it.
+	d.RawConfigVars = config.RawConfigVars
+	d.ConfigVars = config.ConfigVars
+	d.RawResources = config.RawResources
+	d.Resources = config.Resources
+	d.EnvVars = config.EnvVars
+	return nil
 }
 
 // updateRawResources needs to be called whenever Resources is mutated, to keep RawResources in sync
@@ -219,25 +239,6 @@ func (d *DevConfig) DeleteEnvVar(key string) error {
 	}
 
 	logger.Log("Deleted environment variable %q from dev config file.", key)
-	return nil
-}
-
-// Update reads the contents of the dev config file.
-func (d *DevConfig) Update() error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	config, err := LoadDevConfigFile(d.Path)
-	if err != nil {
-		return err
-	}
-
-	// We want to avoid concurrent updates to the dev config file, so we maintain a mutex in the dev config struct,
-	// and copy the contents of the dev config file into the struct whenever we update it.
-	d.RawConfigVars = config.RawConfigVars
-	d.ConfigVars = config.ConfigVars
-	d.RawResources = config.RawResources
-	d.Resources = config.Resources
-	d.EnvVars = config.EnvVars
 	return nil
 }
 
