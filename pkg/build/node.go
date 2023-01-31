@@ -659,24 +659,29 @@ func GenShimPackageJSON(rootDir string, packageJSONs []string, isWorkflow, isBun
 		return nil, err
 	}
 
+	var buildToolsPackageJSON PackageJSON
+	if err := json.Unmarshal([]byte(BuildToolsPackageJSON), &buildToolsPackageJSON); err != nil {
+		return nil, errors.Wrap(err, "unmarshaling build tools package.json")
+	}
+
 	var pjson shimPackageJSON
 	if isWorkflow {
 		pjson = shimPackageJSON{
 			Dependencies: map[string]string{
-				"airplane":         defaultSDKVersion,
-				workflowRuntimePkg: defaultSDKVersion,
+				"airplane":         buildToolsPackageJSON.Dependencies["airplane"],
+				workflowRuntimePkg: buildToolsPackageJSON.Dependencies[workflowRuntimePkg],
 			},
 		}
 	} else {
 		pjson = shimPackageJSON{
 			Dependencies: map[string]string{
-				"airplane": defaultSDKVersion,
+				"airplane": buildToolsPackageJSON.Dependencies["airplane"],
 			},
 		}
 	}
 	if isBundle {
-		pjson.Dependencies["esbuild"] = "~0.12.0"
-		pjson.Dependencies["jsdom"] = "~20.0.3"
+		pjson.Dependencies["esbuild"] = buildToolsPackageJSON.Dependencies["esbuild"]
+		pjson.Dependencies["jsdom"] = buildToolsPackageJSON.Dependencies["jsdom"]
 	}
 
 	// Allow users to override any shim dependencies. Given shim code is bundled
@@ -740,6 +745,9 @@ var universalWorkflowShim string
 
 //go:embed esbuild.js
 var Esbuild string
+
+//go:embed package.json
+var BuildToolsPackageJSON string
 
 type NodeShimParams struct {
 	Entrypoint     string

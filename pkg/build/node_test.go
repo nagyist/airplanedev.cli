@@ -956,6 +956,10 @@ func TestNodeWorkflowBuilder(t *testing.T) {
 }
 
 func TestGenShimPackageJSON(t *testing.T) {
+	var buildToolsPackageJSON PackageJSON
+	err := json.Unmarshal([]byte(BuildToolsPackageJSON), &buildToolsPackageJSON)
+	require.NoError(t, err)
+
 	testCases := []struct {
 		desc                    string
 		packageJSON             string
@@ -969,8 +973,8 @@ func TestGenShimPackageJSON(t *testing.T) {
 			isWorkflow:  true,
 			expectedShimPackageJSON: shimPackageJSON{
 				Dependencies: map[string]string{
-					"airplane":                   defaultSDKVersion,
-					"@airplane/workflow-runtime": defaultSDKVersion,
+					"airplane":                   buildToolsPackageJSON.Dependencies["airplane"],
+					"@airplane/workflow-runtime": buildToolsPackageJSON.Dependencies["@airplane/workflow-runtime"],
 				},
 			},
 		},
@@ -981,10 +985,10 @@ func TestGenShimPackageJSON(t *testing.T) {
 			isBundle:    true,
 			expectedShimPackageJSON: shimPackageJSON{
 				Dependencies: map[string]string{
-					"airplane":                   defaultSDKVersion,
-					"@airplane/workflow-runtime": defaultSDKVersion,
-					"esbuild":                    "~0.12.0",
-					"jsdom":                      "~20.0.3",
+					"airplane":                   buildToolsPackageJSON.Dependencies["airplane"],
+					"@airplane/workflow-runtime": buildToolsPackageJSON.Dependencies["@airplane/workflow-runtime"],
+					"esbuild":                    buildToolsPackageJSON.Dependencies["esbuild"],
+					"jsdom":                      buildToolsPackageJSON.Dependencies["jsdom"],
 				},
 			},
 		},

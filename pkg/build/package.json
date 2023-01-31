@@ -1,0 +1,8 @@
+{
+    "dependencies": {
+        "esbuild": "0.17.5",
+        "jsdom": "21.1.0",
+        "airplane": "0.2.33",
+        "@airplane/workflow-runtime": "0.2.33"
+    }
+}

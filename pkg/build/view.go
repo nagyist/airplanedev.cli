@@ -285,6 +285,11 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		return "", errors.Wrap(err, "writing gen view script")
 	}
 
+	var buildToolsPackageJSON PackageJSON
+	if err := json.Unmarshal([]byte(BuildToolsPackageJSON), &buildToolsPackageJSON); err != nil {
+		return "", errors.Wrap(err, "unmarshaling build tools package.json")
+	}
+
 	if len(filesToDiscover) > 0 {
 		// Generate parser and store on context
 		parserPath := path.Join(buildToolsPath, "inlineParser.js")
@@ -311,6 +316,7 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		UseSlimImage                 bool
 		HasTailwind                  bool
 		InlinePostcssConfig          string
+		EsbuildVersion               string
 	}{
 		Base: base,
 		// Because the install command is running in the context of a docker build, the yarn cache
@@ -333,6 +339,7 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		UseSlimImage:                 useSlimImage,
 		HasTailwind:                  hasTailwind,
 		InlinePostcssConfig:          inlineString(postcssConfigStr),
+		EsbuildVersion:               buildToolsPackageJSON.Dependencies["esbuild"],
 	}
 
 	return applyTemplate(heredoc.Doc(`
@@ -350,7 +357,7 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 
 		# Copy build tools.
 		COPY .airplane-build-tools .airplane-build-tools/
-		RUN npm install -g esbuild@0.12 --unsafe-perm
+		RUN npm install -g esbuild@{{.EsbuildVersion}} --unsafe-perm
 
 		# Support setting BUILD_NPM_RC or BUILD_NPM_TOKEN to configure private registry auth
 		ARG BUILD_NPM_RC
