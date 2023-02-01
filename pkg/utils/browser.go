@@ -20,6 +20,6 @@ func Open(url string) bool {
 	return err == nil
 }
 
-func StudioURL(baseURL, port, page string) string {
-	return fmt.Sprintf("%s/studio%s?__airplane_host=http://localhost:%s", baseURL, page, port)
+func StudioURL(webHost, studioPort, page string) string {
+	return fmt.Sprintf("https://%s/studio%s?__airplane_host=http://localhost:%s", webHost, page, studioPort)
 }
