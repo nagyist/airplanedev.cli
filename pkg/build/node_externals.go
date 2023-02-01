@@ -25,6 +25,7 @@ var (
 		"lodash-es":       true,
 		"p-limit":         true,
 		"p-retry":         true,
+		"humanize-string": true,
 	}
 
 	installHookScripts = []string{
