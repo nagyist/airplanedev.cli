@@ -89,7 +89,7 @@ func CheckNodeVersion() error {
 		return errors.New("Invalid nodejs version: " + string(out))
 	}
 
-	version, err := semver.Make(strings.Trim(string(out[1:]), "\n"))
+	version, err := semver.Make(strings.TrimSpace(string(out[1:])))
 	if err != nil {
 		return err
 	}

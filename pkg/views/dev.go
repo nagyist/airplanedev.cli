@@ -19,10 +19,12 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/server/network"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/views/viewdir"
 	libbuild "github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
+	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
 )
 
@@ -166,11 +168,10 @@ func Dev(ctx context.Context, v viewdir.ViewDirectoryInterface, viteOpts ViteOpt
 }
 
 func createWrapperTemplates(airplaneViewDir string, viewSubdir string, entrypointFile string) error {
-	entrypointFile = filepath.Join("../../", entrypointFile)
-	if !strings.HasSuffix(entrypointFile, ".tsx") {
-		return errors.New("expected entrypoint file to end in .tsx")
-	}
-	entrypointModule := entrypointFile[:len(entrypointFile)-4]
+	// We use slashes instead of filepath.Join because this string is templated into
+	// a JS file as an import.
+	entrypointFile = fmt.Sprintf("../../%s", entrypointFile)
+	entrypointModule := fsx.TrimExtension(entrypointFile)
 
 	indexHtmlPath := filepath.Join(viewSubdir, "index.html")
 	title := strings.Split(filepath.Base(entrypointFile), ".")[0]
@@ -357,14 +358,20 @@ func runVite(ctx context.Context, opts ViteOpts, airplaneViewDir string, viewSlu
 		args = append(args, "--force")
 	}
 
-	if opts.Port != 0 {
-		logger.Debug("starting Vite server on port %d", opts.Port)
-		// --port will find the next available port after the specified port, so we need to also specify --strictPort to
-		// ensure that this is fixed.
-		args = append(args, "--port", strconv.Itoa(opts.Port), "--strictPort")
+	if opts.Port == 0 {
+		var err error
+		opts.Port, err = network.FindOpenPortFrom(5173, 100)
+		if err != nil {
+			return nil, "", err
+		}
 	}
+	logger.Debug("starting Vite server on port %d", opts.Port)
+	// --port will find the next available port after the specified port, so we need to also specify --strictPort to
+	// ensure that this is fixed.
+	args = append(args, "--port", strconv.Itoa(opts.Port), "--strictPort")
+	viteServer := fmt.Sprintf("http://localhost:%d", opts.Port)
 
-	cmd := exec.Command("node_modules/.bin/vite", args...)
+	cmd := exec.Command(filepath.Join("node_modules", ".bin", "vite"), args...)
 	cmd.Dir = airplaneViewDir
 	cmd.Env = append(os.Environ(), getAdditionalEnvs(opts.Client.Host, opts.Client.APIKey, opts.Client.Token, opts.EnvSlug, opts.Client.TunnelToken)...)
 
@@ -374,19 +381,17 @@ func runVite(ctx context.Context, opts ViteOpts, airplaneViewDir string, viewSlu
 	}
 	cmd.Stderr = cmd.Stdout
 	scanner := bufio.NewScanner(stdout)
-	var viteServer string
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		// TODO: write integration test to make sure this doesn't break
-		viteServerRegex := regexp.MustCompile(`[>|➜]\s+Local:\s+(http.+)`)
+		viteServerRegex := regexp.MustCompile(`.*http.*`)
 		for scanner.Scan() {
 			// Wait until Vite prints out the server URL.
 			m := scanner.Text()
 			logger.Debug(m)
-			if submatch := viteServerRegex.FindStringSubmatch(m); submatch != nil {
-				viteServer = submatch[1]
+			if viteServerRegex.MatchString(m) {
 				if opts.TTY {
 					logger.Log("Started development server at %s (^C to quit)", logger.Blue("%s", viteServer))
 					logger.Log("Press ENTER to preview your view in the browser")
