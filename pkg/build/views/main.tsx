@@ -3,6 +3,7 @@ import {
   ViewProvider,
   setEnvVars,
   ErrorBoundary,
+  useRouter,
 } from "@airplane/views";
 import React from "react";
 import ReactDOM from "react-dom/client";
@@ -79,12 +80,17 @@ for (const [key, value] of getAllQueryParams()) {
   }
 }
 
+const AppWrapper = () => {
+  const { params } = useRouter();
+  return <App params={params} />;
+};
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ViewProvider>
       <ErrorBoundary>
         <Container p="xl">
-          <App />
+          <AppWrapper />
         </Container>
       </ErrorBoundary>
     </ViewProvider>
