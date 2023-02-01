@@ -1,0 +1,7 @@
+name: sunt in tempor eu
+slug: my_task
+node:
+  entrypoint: ./defn3.js
+  nodeVersion: "14"
+  # No env vars
+description: ut dolor sit officia ea

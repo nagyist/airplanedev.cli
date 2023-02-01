@@ -156,6 +156,44 @@ func TestDiscover(t *testing.T) {
 			},
 		},
 		{
+			desc:  "defn task with env vars",
+			paths: []string{"./fixtures/tasksWithDefnEnvVars"},
+			expectedBundles: []Bundle{
+				{
+					RootPath: path.Join(fixturesPath),
+					TargetPaths: []string{
+						"tasksWithDefnEnvVars/defn.js",
+						"tasksWithDefnEnvVars/defn.task.yaml",
+						// Although defn3 could be in either bundle since it does not have any env vars,
+						// We want to make sure it only exists in one and only one bundle.
+						"tasksWithDefnEnvVars/defn3.js",
+						"tasksWithDefnEnvVars/defn3.task.yaml",
+					},
+					BuildContext: build.BuildContext{
+						Type:    build.NodeBuildType,
+						Version: build.BuildTypeVersionNode14,
+						EnvVars: map[string]build.EnvVarValue{
+							"foo": {Value: pointers.String("bar")},
+						},
+					},
+				},
+				{
+					RootPath: path.Join(fixturesPath),
+					TargetPaths: []string{
+						"tasksWithDefnEnvVars/defn2.js",
+						"tasksWithDefnEnvVars/defn2.task.yaml",
+					},
+					BuildContext: build.BuildContext{
+						Type:    build.NodeBuildType,
+						Version: build.BuildTypeVersionNode14,
+						EnvVars: map[string]build.EnvVarValue{
+							"foo": {Value: pointers.String("another")},
+						},
+					},
+				},
+			},
+		},
+		{
 			desc:  "non build task (sql, rest, docker)",
 			paths: []string{"./fixtures/nonbuildtask"},
 			expectedBundles: []Bundle{

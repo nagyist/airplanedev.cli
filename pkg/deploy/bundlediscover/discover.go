@@ -50,11 +50,11 @@ func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]Bundle, e
 	// Dedupe discovered bundles.
 	var dedupedBundles []Bundle
 	for _, b := range discoveredBundles {
-		var alreadyAdded bool
+		var duplicate bool
 		for j, addedBundle := range dedupedBundles {
 			if equal(addedBundle, b) {
-				alreadyAdded = true
-				// The bundle was already added. Add its target paths if they don't exist.
+				// These two bundles are equal. Collapse them into one.
+				duplicate = true
 				for _, target := range b.TargetPaths {
 					if err := updateBundleWithTarget(&addedBundle, path.Join(addedBundle.RootPath, target)); err != nil {
 						return nil, err
@@ -69,8 +69,33 @@ func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]Bundle, e
 				dedupedBundles[j] = addedBundle
 			}
 		}
-		if !alreadyAdded {
+		if !duplicate {
 			dedupedBundles = append(dedupedBundles, b)
+		}
+	}
+
+	// Dedupe targets in each bundle.
+	for i := 0; i < len(dedupedBundles); i++ {
+		for j := i + 1; j < len(dedupedBundles); j++ {
+			b1 := dedupedBundles[i]
+			b2 := dedupedBundles[j]
+			if equalRootTypeVersionBase(b1, b2) {
+				// These two bundles have the same root, type, version, and base, but clashing env vars.
+				// We want to make sure that files only exist in one of the bundles.
+				// There is no usecase for building the same file with different env vars.
+				b1Targets := make(map[string]interface{})
+				for _, target := range b1.TargetPaths {
+					b1Targets[target] = struct{}{}
+				}
+				var b2Targets []string
+				for _, target := range b2.TargetPaths {
+					if _, ok := b1Targets[target]; !ok {
+						b2Targets = append(b2Targets, target)
+					}
+				}
+				b2.TargetPaths = b2Targets
+				dedupedBundles[j] = b2
+			}
 		}
 	}
 
@@ -207,6 +232,10 @@ func equal(b1, b2 Bundle) bool {
 			}
 		}
 	}
+	return equalRootTypeVersionBase(b1, b2)
+}
+
+func equalRootTypeVersionBase(b1, b2 Bundle) bool {
 	return b1.RootPath == b2.RootPath &&
 		b2.BuildContext.Type == b1.BuildContext.Type &&
 		b2.BuildContext.Version == b1.BuildContext.Version &&
