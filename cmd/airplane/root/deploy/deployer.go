@@ -70,7 +70,9 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 		return nil
 	}
 
-	d.printPreDeploySummary(ctx, bundles)
+	if err := d.printPreDeploySummary(ctx, bundles); err != nil {
+		return err
+	}
 
 	var uploadIDs map[string]string
 	uploadIDs, err = d.tarAndUploadBatch(ctx, bundles)
@@ -242,7 +244,7 @@ func (d *deployer) filterBundlesByChangedFiles(ctx context.Context, bundles []bu
 	return filteredBundles, nil
 }
 
-func (d *deployer) printPreDeploySummary(ctx context.Context, bundles []bundlediscover.Bundle) {
+func (d *deployer) printPreDeploySummary(ctx context.Context, bundles []bundlediscover.Bundle) error {
 	projects := make(map[string][]string)
 	for _, b := range bundles {
 		var typeName string
@@ -267,7 +269,7 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, bundles []bundledi
 		noun = fmt.Sprintf("%ss", noun)
 	}
 	if len(projects) > 0 {
-		d.logger.Log("Deploying %v %v:\n", len(projects), noun)
+		d.logger.Log("Found %v %v:\n", len(projects), noun)
 	}
 
 	for projectName, projectTypes := range projects {
@@ -275,6 +277,22 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, bundles []bundledi
 		d.logger.Log("Building for: %s", strings.Join(projectTypes, ", "))
 		d.logger.Log("")
 	}
+
+	isDefaultEnv := d.cfg.EnvSlug == ""
+	if isDefaultEnv {
+		wasActive := d.logger.StopLoader()
+		if wasActive {
+			defer d.logger.StartLoader()
+		}
+
+		question := "Continue deploying to the default environment?"
+		if ok, err := utils.ConfirmWithAssumptions(question, d.cfg.assumeYes, d.cfg.assumeNo); err != nil {
+			return err
+		} else if !ok {
+			return errors.New("Deployment cancelled")
+		}
+	}
+	return nil
 }
 
 func (d *deployer) waitForDeploy(ctx context.Context, client api.APIClient, deploymentID string) error {

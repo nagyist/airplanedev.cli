@@ -9,6 +9,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
+	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/archive"
 	"github.com/airplanedev/lib/pkg/deploy/bundlediscover"
@@ -210,6 +211,9 @@ func TestDeploy(t *testing.T) {
 						Name: "API_KEY",
 					},
 				},
+				Envs: map[string]libapi.Env{
+					"myEnv": {Slug: "myEnv"},
+				},
 			}
 			for k, v := range tC.envVars {
 				os.Setenv(k, v)
@@ -224,6 +228,7 @@ func TestDeploy(t *testing.T) {
 				Root: &cli.Config{
 					Client: &client,
 				},
+				assumeYes: true,
 			}
 			d := NewDeployer(cfg, &logger.MockLogger{}, DeployerOpts{
 				Archiver:   &archive.MockArchiver{},
