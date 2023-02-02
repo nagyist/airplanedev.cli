@@ -681,6 +681,8 @@ func GenShimPackageJSON(rootDir string, packageJSONs []string, isWorkflow, isBun
 	}
 	if isBundle {
 		pjson.Dependencies["esbuild"] = buildToolsPackageJSON.Dependencies["esbuild"]
+		pjson.Dependencies["esbuild-plugin-tsc"] = buildToolsPackageJSON.Dependencies["esbuild-plugin-tsc"]
+		pjson.Dependencies["typescript"] = buildToolsPackageJSON.Dependencies["typescript"]
 		pjson.Dependencies["jsdom"] = buildToolsPackageJSON.Dependencies["jsdom"]
 	}
 

@@ -9,5 +9,15 @@
   "ignorePaths": [
     "pkg/runtime/javascript/fixtures/version/gt15lt18/package.json",
     "pkg/examples/typescript/airplaneoverride/package.json"
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": ["jsdom"],
+      "schedule": ["before 5am on the first Thursday of the month"]
+    },
+    {
+      "matchPackageNames": ["typescript"],
+      "schedule": ["before 5am on the first Thursday of the month"]
+    }
   ]
 }

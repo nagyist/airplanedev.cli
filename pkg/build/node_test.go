@@ -840,6 +840,50 @@ func TestNodeBundleBuilder(t *testing.T) {
 			},
 		},
 		{
+			Root: "typescript/decorator",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.airplane.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.airplane.js",
+					ExportName:    "default",
+					SearchString:  "Decorated",
+				},
+			},
+		},
+		{
+			Root: "typescript/emitDecoratorMetadata",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToBuild: []string{
+				"main.airplane.ts",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main.airplane.js",
+					ExportName:    "default",
+					SearchString:  "attr1 type: String",
+				},
+			},
+		},
+		{
 			Root: "typescript/bundle",
 			Options: KindOptions{
 				"shim": "true",
@@ -991,6 +1035,8 @@ func TestGenShimPackageJSON(t *testing.T) {
 					"@airplane/workflow-runtime": buildToolsPackageJSON.Dependencies["@airplane/workflow-runtime"],
 					"esbuild":                    buildToolsPackageJSON.Dependencies["esbuild"],
 					"jsdom":                      buildToolsPackageJSON.Dependencies["jsdom"],
+					"typescript":                 buildToolsPackageJSON.Dependencies["typescript"],
+					"esbuild-plugin-tsc":         buildToolsPackageJSON.Dependencies["esbuild-plugin-tsc"],
 				},
 			},
 		},

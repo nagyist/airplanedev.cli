@@ -1,5 +1,7 @@
 const esbuild = require("esbuild");
+const esbuildPluginTsc = require("esbuild-plugin-tsc");
 const fs = require("fs");
+const typescript = require("typescript");
 
 const jsdomPatch = {
   name: "jsdom-patch",
@@ -40,6 +42,17 @@ const outfile = process.argv[5] || undefined;
 const outdir = process.argv[6] || undefined;
 const outbase = process.argv[7] || undefined;
 
+const tsconfigFile = typescript.findConfigFile(
+  process.cwd(),
+  typescript.sys.fileExists,
+  "tsconfig.json"
+);
+
+const plugins = [jsdomPatch, removeCSS];
+if (tsconfigFile) {
+  plugins.push(esbuildPluginTsc({ tsconfigPath: tsconfigFile }));
+}
+
 esbuild
   .build({
     entryPoints,
@@ -50,7 +63,7 @@ esbuild
     external: [...external, "canvas"],
     outdir,
     outbase,
-    plugins: [jsdomPatch, removeCSS],
+    plugins,
   })
   .catch((e) => {
     process.exit(1);
