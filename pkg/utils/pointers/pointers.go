@@ -1,5 +1,7 @@
 package pointers
 
+import "time"
+
 // String returns a pointer to a string - nil if string is empty
 func String(s string) *string {
 	if s == "" {
@@ -18,4 +20,19 @@ func ToString(s *string) string {
 
 func Bool(b bool) *bool {
 	return &b
+}
+
+func Int64(i int64) *int64 {
+	return &i
+}
+
+func Time(t time.Time) *time.Time {
+	return &t
+}
+
+func ToTime(t *time.Time) time.Time {
+	if t == nil {
+		return time.Time{}
+	}
+	return *t
 }

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/airplanedev/cli/cmd/airplane/agents"
 	"github.com/airplanedev/cli/cmd/airplane/apikeys"
 	"github.com/airplanedev/cli/cmd/airplane/auth"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
@@ -123,6 +124,7 @@ func New() *cobra.Command {
 	cmd.AddCommand(logout.New(cfg))
 
 	// Sub-commands:
+	cmd.AddCommand(agents.New(cfg))
 	cmd.AddCommand(apikeys.New(cfg))
 	cmd.AddCommand(auth.New(cfg))
 	cmd.AddCommand(configs.New(cfg))
