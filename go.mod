@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/airplanedev/lib v0.5.150
+	github.com/airplanedev/lib v0.5.152
 	github.com/airplanedev/ojson v0.1.0
 	github.com/airplanedev/trap v0.1.0
 	github.com/aws/aws-sdk-go-v2 v1.17.3
@@ -41,7 +41,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.1
 	golang.ngrok.com/ngrok v0.0.0-20221215203300-45a13036a1ff
-	golang.org/x/exp v0.0.0-20230125214544-b3c2aaf6208d
+	golang.org/x/exp v0.0.0-20230129154200-a960b3787bd2
 	golang.org/x/sync v0.1.0
 	golang.org/x/term v0.4.0
 	golang.org/x/text v0.6.0
