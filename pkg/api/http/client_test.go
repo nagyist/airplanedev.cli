@@ -339,6 +339,33 @@ func TestClientRetryHeader(t *testing.T) {
 	require.Equal("OK", string(body))
 }
 
+func TestClientRetryHeader500(t *testing.T) {
+	require := require.New(t)
+	ctx := context.Background()
+
+	retries := 0
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		retries++
+		rw.Header().Set("X-Airplane-Retryable", "false")
+		rw.WriteHeader(500)
+	}))
+	defer server.Close()
+
+	client := NewClient(ClientOpts{
+		Headers:      requiredHeaderValues,
+		UserAgent:    "airplane/test/1",
+		retryWaitMin: time.Millisecond,
+		retryWaitMax: time.Millisecond,
+	})
+	body, err := client.Get(ctx, server.URL+"/foobar", ReqOpts{})
+	require.Nil(body)
+	var errsc ErrStatusCode
+	require.ErrorAs(err, &errsc)
+	require.Equal(500, errsc.StatusCode)
+	// This request should not have been retried because of the response header.
+	require.Equal(1, retries)
+}
+
 func TestClientTimeout(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
