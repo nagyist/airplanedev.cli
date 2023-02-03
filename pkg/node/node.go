@@ -9,15 +9,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"strings"
-	"text/tabwriter"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
+	"github.com/hexops/gotextdiff"
+	"github.com/hexops/gotextdiff/myers"
+	"github.com/hexops/gotextdiff/span"
 	"github.com/pkg/errors"
 )
 
@@ -262,7 +263,12 @@ func mergeTSConfig(configDir string, configFile []byte, strategy MergeStrategy) 
 			mergeMapsRecursively(newTSConfig, templateTSConfig)
 		}
 
-		if printTSConfigChanges(newTSConfig, existingTSConfig, "") {
+		changesNeeded, err := printTSConfigChanges(configPath, existingTSConfig, newTSConfig)
+		if err != nil {
+			return err
+		}
+
+		if changesNeeded {
 			var ok bool
 			err = survey.AskOne(
 				&survey.Confirm{
@@ -314,33 +320,31 @@ func mergeMapsRecursively(dest, src map[string]interface{}) {
 }
 
 // prints changes between two maps and returns whether there are differences
-func printTSConfigChanges(superset, subset map[string]interface{}, parentName string) bool {
-	var hasChanges bool
-	b := new(bytes.Buffer)
-	w := new(tabwriter.Writer)
-	w.Init(b, 0, 4, 2, ' ', 0)
-	for key, newVal := range superset {
-		existingVal, ok := subset[key]
-		keyName := key
-		if parentName != "" {
-			keyName = fmt.Sprintf("%s.%s", parentName, key)
-		}
-		if existingSubMap, isSubMap := existingVal.(map[string]interface{}); isSubMap {
-			if printTSConfigChanges(newVal.(map[string]interface{}), existingSubMap, keyName) {
-				hasChanges = true
-			}
-		} else if !ok || !reflect.DeepEqual(newVal, existingVal) {
-			existingJSON, _ := json.Marshal(existingVal)
-			newJSON, _ := json.Marshal(newVal)
-			_, _ = w.Write([]byte(fmt.Sprintf("%s:\t(%s) -> (%s)\n", keyName, string(existingJSON), string(newJSON))))
-			hasChanges = true
-		}
+func printTSConfigChanges(configPath string, oldConfig, newConfig map[string]interface{}) (bool, error) {
+	oldBytes, err := json.MarshalIndent(oldConfig, "", "  ")
+	if err != nil {
+		return false, errors.Wrap(err, "marshalling old tsconfig")
 	}
-	w.Flush()
-	if b.String() != "" {
-		logger.Log("\n" + b.String())
+	oldStr := string(oldBytes)
+
+	newBytes, err := json.MarshalIndent(newConfig, "", "  ")
+	if err != nil {
+		return false, errors.Wrap(err, "marshalling new tsconfig")
 	}
-	return hasChanges
+	newStr := string(newBytes)
+
+	if oldStr == newStr {
+		return false, nil
+	}
+
+	edits := myers.ComputeEdits(span.URIFromPath(configPath), oldStr, newStr)
+	diff := fmt.Sprint(gotextdiff.ToUnified(configPath, fmt.Sprintf("%s (updated)", configPath), oldStr, edits))
+
+	logger.Log(
+		"\nSome updates to your tsconfig are needed for Airplane tasks and/or views:\n%s",
+		diff,
+	)
+	return true, nil
 }
 
 const defaultMaxParentDirs = 2
