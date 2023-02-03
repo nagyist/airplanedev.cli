@@ -5,20 +5,20 @@ go 1.19
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/airplanedev/lib v0.5.152
+	github.com/airplanedev/lib v0.5.153
 	github.com/airplanedev/ojson v0.1.0
 	github.com/airplanedev/trap v0.1.0
 	github.com/aws/aws-sdk-go-v2 v1.17.3
-	github.com/aws/aws-sdk-go-v2/config v1.17.7
+	github.com/aws/aws-sdk-go-v2/config v1.18.11
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.20.1
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.23.1
 	github.com/bep/debounce v1.2.1
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/briandowns/spinner v1.20.0
+	github.com/briandowns/spinner v1.21.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.14.1
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568
-	github.com/gavv/httpexpect/v2 v2.9.0
+	github.com/gavv/httpexpect/v2 v2.11.0
 	github.com/getsentry/sentry-go v0.17.0
 	github.com/go-git/go-billy/v5 v5.4.0
 	github.com/go-git/go-git-fixtures/v4 v4.3.1
@@ -42,7 +42,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.1
 	golang.ngrok.com/ngrok v0.0.0-20221215203300-45a13036a1ff
-	golang.org/x/exp v0.0.0-20230129154200-a960b3787bd2
+	golang.org/x/exp v0.0.0-20230202163644-54bba9f4231b
 	golang.org/x/sync v0.1.0
 	golang.org/x/term v0.4.0
 	golang.org/x/text v0.6.0
@@ -71,21 +71,21 @@ require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.4.8 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.12.20 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.17 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.13.11 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.21 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.11.33 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.27 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.21 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.24 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.28 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.0.14 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.9.9 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.1.18 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.17 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.21 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.13.17 // indirect
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.27.11 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.11.23 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.13.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.16.19 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.12.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.18.2 // indirect
 	github.com/aws/smithy-go v1.13.5 // indirect
 	github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
