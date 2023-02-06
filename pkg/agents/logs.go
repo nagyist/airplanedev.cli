@@ -38,6 +38,7 @@ type ContainerLog struct {
 	LogStream string
 	RawLog    string
 	ParsedLog map[string]interface{}
+	Timestamp int64
 }
 
 // IsForAgentService returns whether the given TaskInfo is for the Airplane agent
@@ -71,7 +72,8 @@ func (t *TaskInfo) PopulateLogs(
 	ctx context.Context,
 	ecsClient *ecs.Client,
 	cwClient *cloudwatchlogs.Client,
-	maxLogsAge time.Duration,
+	maxLogAge time.Duration,
+	maxLogLines int,
 ) error {
 	now := time.Now().UTC()
 	var err error
@@ -100,7 +102,8 @@ func (t *TaskInfo) PopulateLogs(
 			cwClient,
 			logGroup,
 			logStream,
-			now.Add(-maxLogsAge),
+			now.Add(-maxLogAge),
+			maxLogLines,
 		)
 		if err != nil {
 			return err
@@ -114,7 +117,8 @@ func (t *TaskInfo) PopulateLogs(
 type GetTaskInfosOptions struct {
 	ClusterName      string
 	TaskFilterRegexp *regexp.Regexp
-	MaxLogsAge       time.Duration
+	MaxLogAge        time.Duration
+	MaxLogLines      int
 }
 
 // GetTaskInfos gets information about all Airplane-related tasks in the
@@ -209,7 +213,8 @@ func GetTaskInfos(
 				ctx,
 				ecsClient,
 				cwClient,
-				opts.MaxLogsAge,
+				opts.MaxLogAge,
+				opts.MaxLogLines,
 			); err != nil {
 				return nil, err
 			}
@@ -254,6 +259,7 @@ func getLogs(
 	logGroup string,
 	logStream string,
 	startTime time.Time,
+	maxLines int,
 ) ([]ContainerLog, error) {
 	logger.Log("Getting logs for group %s, stream %s", logGroup, logStream)
 
@@ -264,7 +270,7 @@ func getLogs(
 		logEventsResp, err := cwClient.GetLogEvents(
 			ctx,
 			&cloudwatchlogs.GetLogEventsInput{
-				StartFromHead: pointers.Bool(true),
+				StartFromHead: pointers.Bool(false),
 				LogStreamName: pointers.String(logStream),
 				LogGroupName:  pointers.String(logGroup),
 				NextToken:     pointers.String(nextToken),
@@ -281,6 +287,7 @@ func getLogs(
 				LogStream: logStream,
 				RawLog:    pointers.ToString(event.Message),
 				ParsedLog: map[string]interface{}{},
+				Timestamp: pointers.ToInt64(event.Timestamp),
 			}
 
 			err := json.Unmarshal([]byte(cl.RawLog), &cl.ParsedLog)
@@ -292,12 +299,24 @@ func getLogs(
 			containerLogs = append(containerLogs, cl)
 		}
 
-		respNextToken := pointers.ToString(logEventsResp.NextForwardToken)
+		if len(containerLogs) >= maxLines {
+			break
+		}
+
+		respNextToken := pointers.ToString(logEventsResp.NextBackwardToken)
 
 		if respNextToken == nextToken {
 			break
 		}
 		nextToken = respNextToken
+	}
+
+	sort.Slice(containerLogs, func(a, b int) bool {
+		return containerLogs[a].Timestamp < containerLogs[b].Timestamp
+	})
+
+	if len(containerLogs) > maxLines {
+		containerLogs = containerLogs[len(containerLogs)-1-maxLines : len(containerLogs)-1]
 	}
 
 	return containerLogs, nil

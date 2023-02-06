@@ -21,7 +21,8 @@ type config struct {
 
 	ecsClusterName      string
 	logTaskDefs         bool
-	maxLogsAge          time.Duration
+	maxLogAge           time.Duration
+	maxLogLines         int
 	region              string
 	taskFilterRegexpStr string
 }
@@ -52,9 +53,15 @@ func New(c *cli.Config) *cobra.Command {
 		false,
 		"Log out task definitions for Airplane agent service tasks",
 	)
+	cmd.Flags().IntVar(
+		&cfg.maxLogLines,
+		"max-log-lines",
+		500,
+		"Maximum number of logs to fetch for each container",
+	)
 	cmd.Flags().DurationVar(
-		&cfg.maxLogsAge,
-		"max-logs-age",
+		&cfg.maxLogAge,
+		"max-log-age",
 		6*time.Hour,
 		"Number of hours back to start log fetching",
 	)
@@ -106,7 +113,8 @@ func run(ctx context.Context, cfg config) error {
 		cwClient,
 		agents.GetTaskInfosOptions{
 			ClusterName:      cfg.ecsClusterName,
-			MaxLogsAge:       cfg.maxLogsAge,
+			MaxLogAge:        cfg.maxLogAge,
+			MaxLogLines:      cfg.maxLogLines,
 			TaskFilterRegexp: taskFilterRegexp,
 		},
 	)
