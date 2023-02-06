@@ -89,7 +89,7 @@ def extract_task_configs(files: List[str]) -> List[Def]:
             if callable(obj) and hasattr(obj, "__airplane"):
                 conf = obj.__airplane
                 # Only select tasks that were defined in the file, not imported.
-                if inspect.getabsfile(conf.func) != os.path.abspath(file):
+                if inspect.getabsfile(conf.func) != os.path.normcase(os.path.abspath(file)):
                     continue
                 defs.append(
                     Def(
