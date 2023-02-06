@@ -242,6 +242,11 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		defer fileWatcher.Stop()
 	}
 
+	// The --server-host flag takes precedence over the tunnel and local hosts.
+	if cfg.serverHost != "" {
+		studioUIHost = cfg.serverHost
+	}
+
 	logger.Log("")
 	studioURL := fmt.Sprintf("%s/studio?__airplane_host=%s&__env=%s", appURL, studioUIHost, remoteEnv.Slug)
 	logger.Log("Started studio session at %s (^C to quit)", logger.Blue(studioURL))

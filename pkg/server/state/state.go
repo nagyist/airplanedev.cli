@@ -15,6 +15,7 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/network"
+	"github.com/airplanedev/cli/pkg/server/status"
 	"github.com/airplanedev/cli/pkg/version"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/bundlediscover"
@@ -74,6 +75,9 @@ type State struct {
 	ServerHost string
 	// Non-nil if the server is running in remote/sandbox mode.
 	SandboxState *SandboxState
+
+	ServerStatus      status.ServerStatus
+	ServerStatusMutex sync.Mutex
 }
 
 type AppCondition struct {
@@ -119,6 +123,7 @@ func New() (*State, error) {
 		ViteContexts: viteContextCache,
 		PortProxy:    network.ViewPortProxy(),
 		Logger:       logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
+		ServerStatus: status.ServerDiscovering,
 	}, nil
 }
 
@@ -229,4 +234,10 @@ func (r *DebounceStore) Get(key string) func(f func()) {
 		r.debouncers[key] = debouncer
 		return debouncer
 	}
+}
+
+func (s *State) SetServerStatus(status status.ServerStatus) {
+	s.ServerStatusMutex.Lock()
+	defer s.ServerStatusMutex.Unlock()
+	s.ServerStatus = status
 }

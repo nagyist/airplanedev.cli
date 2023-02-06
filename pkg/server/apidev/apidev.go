@@ -20,6 +20,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/network"
 	"github.com/airplanedev/cli/pkg/server/state"
+	"github.com/airplanedev/cli/pkg/server/status"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/version"
 	"github.com/airplanedev/cli/pkg/version/latest"
@@ -79,14 +80,15 @@ func GetVersionHandler(ctx context.Context, s *state.State, r *http.Request) (ve
 }
 
 type StudioInfo struct {
-	Workspace            string      `json:"workspace"`
-	DefaultEnv           libapi.Env  `json:"defaultEnv"`
-	FallbackEnv          *libapi.Env `json:"fallbackEnv"`
-	Host                 string      `json:"host"`
-	IsSandbox            bool        `json:"isSandbox"`
-	IsRebuilding         bool        `json:"isRebuilding"`
-	OutdatedDependencies bool        `json:"outdatedDependencies"`
-	HasDependencyError   bool        `json:"hasDependencyError"`
+	Workspace            string              `json:"workspace"`
+	DefaultEnv           libapi.Env          `json:"defaultEnv"`
+	FallbackEnv          *libapi.Env         `json:"fallbackEnv"`
+	Host                 string              `json:"host"`
+	IsSandbox            bool                `json:"isSandbox"`
+	IsRebuilding         bool                `json:"isRebuilding"`
+	OutdatedDependencies bool                `json:"outdatedDependencies"`
+	HasDependencyError   bool                `json:"hasDependencyError"`
+	ServerStatus         status.ServerStatus `json:"serverStatus"`
 }
 
 func GetInfoHandler(ctx context.Context, s *state.State, r *http.Request) (StudioInfo, error) {
@@ -95,12 +97,16 @@ func GetInfoHandler(ctx context.Context, s *state.State, r *http.Request) (Studi
 		fallbackEnv = &s.RemoteEnv
 	}
 
-	// TODO: Fix default env and host for remote studio.
+	host := strings.Replace(s.LocalClient.Host, "127.0.0.1", "localhost", 1)
+	if s.ServerHost != "" {
+		host = s.ServerHost
+	}
 	info := StudioInfo{
-		Workspace:   s.Dir,
-		DefaultEnv:  env.NewLocalEnv(),
-		FallbackEnv: fallbackEnv,
-		Host:        strings.Replace(s.LocalClient.Host, "127.0.0.1", "localhost", 1),
+		Workspace:    s.Dir,
+		DefaultEnv:   env.NewLocalEnv(),
+		FallbackEnv:  fallbackEnv,
+		Host:         host,
+		ServerStatus: s.ServerStatus,
 	}
 
 	if s.SandboxState != nil {

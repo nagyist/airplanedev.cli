@@ -20,6 +20,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/filewatcher"
 	"github.com/airplanedev/cli/pkg/server/network"
 	"github.com/airplanedev/cli/pkg/server/state"
+	"github.com/airplanedev/cli/pkg/server/status"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
@@ -422,6 +423,9 @@ func (s *Server) RegisterTasksAndViews(ctx context.Context, opts DiscoverOpts) (
 	for _, cfg := range opts.Views {
 		s.state.ViewConfigs.Add(cfg.Def.Slug, cfg)
 	}
+
+	s.state.SetServerStatus(status.ServerReady)
+
 	return warnings, err
 }
 
