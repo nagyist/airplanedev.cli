@@ -18,6 +18,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
+	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	libresources "github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/resources/conversion"
 	"github.com/airplanedev/lib/pkg/resources/kind_configs"
@@ -33,39 +34,39 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 	const basePath = "/i/"
 	r = r.NewRoute().PathPrefix(basePath).Subrouter()
 
-	r.Handle("/resources/create", handlers.HandlerWithBody(state, CreateResourceHandler)).Methods("POST", "OPTIONS")
-	r.Handle("/resources/get", handlers.Handler(state, GetResourceHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/resources/list", handlers.Handler(state, ListResourcesHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/resources/update", handlers.HandlerWithBody(state, UpdateResourceHandler)).Methods("POST", "OPTIONS")
-	r.Handle("/resources/delete", handlers.HandlerWithBody(state, DeleteResourceHandler)).Methods("POST", "OPTIONS")
-	r.Handle("/resources/isSlugAvailable", handlers.Handler(state, IsResourceSlugAvailableHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/resources/create", handlers.WithBody(state, CreateResourceHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/resources/get", handlers.New(state, GetResourceHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/resources/list", handlers.New(state, ListResourcesHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/resources/update", handlers.WithBody(state, UpdateResourceHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/resources/delete", handlers.WithBody(state, DeleteResourceHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/resources/isSlugAvailable", handlers.New(state, IsResourceSlugAvailableHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/displays/list", handlers.Handler(state, ListDisplaysHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/displays/list", handlers.New(state, ListDisplaysHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/prompts/list", handlers.Handler(state, ListPromptHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/prompts/submit", handlers.HandlerWithBody(state, SubmitPromptHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/prompts/list", handlers.New(state, ListPromptHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/prompts/submit", handlers.WithBody(state, SubmitPromptHandler)).Methods("POST", "OPTIONS")
 
-	r.Handle("/sleeps/list", handlers.Handler(state, ListSleepsHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/sleeps/skip", handlers.HandlerWithBody(state, SkipSleepHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/sleeps/list", handlers.New(state, ListSleepsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/sleeps/skip", handlers.WithBody(state, SkipSleepHandler)).Methods("POST", "OPTIONS")
 
-	r.Handle("/runs/get", handlers.Handler(state, GetRunHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/runs/getDescendants", handlers.Handler(state, GetDescendantsHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/runs/list", handlers.Handler(state, ListRunsHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/runs/cancel", handlers.HandlerWithBody(state, CancelRunHandler)).Methods("POST", "OPTIONS")
-	r.Handle("/runs/getOutputs", handlers.Handler(state, outputs.GetOutputsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/get", handlers.New(state, GetRunHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/getDescendants", handlers.New(state, GetDescendantsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/list", handlers.New(state, ListRunsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/cancel", handlers.WithBody(state, CancelRunHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/runs/getOutputs", handlers.New(state, outputs.GetOutputsHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/tasks/get", handlers.Handler(state, GetTaskInfoHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/views/get", handlers.Handler(state, GetViewInfoHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/tasks/get", handlers.New(state, GetTaskInfoHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/views/get", handlers.New(state, GetViewInfoHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/users/get", handlers.Handler(state, GetUserHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/users/get", handlers.New(state, GetUserHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/configs/get", handlers.Handler(state, GetConfigHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/configs/upsert", handlers.HandlerWithBody(state, UpsertConfigHandler)).Methods("POST", "OPTIONS")
-	r.Handle("/configs/delete", handlers.HandlerWithBody(state, DeleteConfigHandler)).Methods("POST", "OPTIONS")
-	r.Handle("/configs/list", handlers.Handler(state, ListConfigsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/configs/get", handlers.New(state, GetConfigHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/configs/upsert", handlers.WithBody(state, UpsertConfigHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/configs/delete", handlers.WithBody(state, DeleteConfigHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/configs/list", handlers.New(state, ListConfigsHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/uploads/create", handlers.HandlerWithBody(state, CreateUploadHandler)).Methods("POST", "OPTIONS")
-	r.Handle("/uploads/get", handlers.HandlerWithBody(state, GetUploadHandler)).Methods("POST", "OPTIONS") // Our web app expects POST for this endpoint
+	r.Handle("/uploads/create", handlers.WithBody(state, CreateUploadHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/uploads/get", handlers.WithBody(state, GetUploadHandler)).Methods("POST", "OPTIONS") // Our web app expects POST for this endpoint
 }
 
 type CreateResourceRequest struct {
@@ -119,11 +120,11 @@ func CreateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 				return ok, nil
 			},
 		}); err != nil {
-			return CreateResourceResponse{}, errors.New("Could not generate unique resource slug")
+			return CreateResourceResponse{}, errors.Errorf("could not generate unique resource slug: %s", err.Error())
 		}
 	} else {
 		if _, ok := state.DevConfig.Resources[resourceSlug]; ok {
-			return CreateResourceResponse{}, errors.Errorf("Resource with slug %s already exists", resourceSlug)
+			return CreateResourceResponse{}, libhttp.NewErrBadRequest("Resource with slug %s already exists", resourceSlug)
 		}
 	}
 
@@ -157,7 +158,7 @@ type GetResourceResponse struct {
 func GetResourceHandler(ctx context.Context, state *state.State, r *http.Request) (GetResourceResponse, error) {
 	slug := r.URL.Query().Get("slug")
 	if slug == "" {
-		return GetResourceResponse{}, errors.Errorf("Resource slug was not supplied")
+		return GetResourceResponse{}, libhttp.NewErrBadRequest("resource slug was not supplied")
 	}
 
 	for s, r := range state.DevConfig.Resources {
@@ -170,7 +171,7 @@ func GetResourceHandler(ctx context.Context, state *state.State, r *http.Request
 		}
 	}
 
-	return GetResourceResponse{}, errors.Errorf("Resource with slug %s is not in dev config file", slug)
+	return GetResourceResponse{}, libhttp.NewErrNotFound("resource with slug %s is not in dev config file", slug)
 }
 
 type APIResourceWithEnv struct {
@@ -282,7 +283,7 @@ func UpdateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 		}
 	}
 	if !foundResource {
-		return UpdateResourceResponse{}, errors.Errorf("resource with slug %s not found in dev config file", req.Slug)
+		return UpdateResourceResponse{}, libhttp.NewErrNotFound("resource with slug %s not found in dev config file", req.Slug)
 	}
 
 	if err := resource.Update(req.ExportResource); err != nil {
@@ -328,7 +329,7 @@ func DeleteResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 		}
 	}
 
-	return struct{}{}, errors.Errorf("resource with id %s does not exist in dev config file", id)
+	return struct{}{}, libhttp.NewErrNotFound("resource with id %q does not exist in dev config file", id)
 }
 
 type IsResourceSlugAvailableResponse struct {
@@ -352,7 +353,7 @@ func ListDisplaysHandler(ctx context.Context, state *state.State, r *http.Reques
 	runID := r.URL.Query().Get("runID")
 	run, ok := state.Runs.Get(runID)
 	if !ok {
-		return ListDisplaysResponse{}, errors.Errorf("run with id %q not found", runID)
+		return ListDisplaysResponse{}, libhttp.NewErrNotFound("run with id %q not found", runID)
 	}
 
 	return ListDisplaysResponse{
@@ -367,12 +368,12 @@ type ListPromptsResponse struct {
 func ListPromptHandler(ctx context.Context, state *state.State, r *http.Request) (ListPromptsResponse, error) {
 	runID := r.URL.Query().Get("runID")
 	if runID == "" {
-		return ListPromptsResponse{}, errors.New("runID is required")
+		return ListPromptsResponse{}, libhttp.NewErrBadRequest("runID is required")
 	}
 
 	run, ok := state.Runs.Get(runID)
 	if !ok {
-		return ListPromptsResponse{}, errors.New("run not found")
+		return ListPromptsResponse{}, libhttp.NewErrNotFound("run not found")
 	}
 
 	return ListPromptsResponse{Prompts: run.Prompts}, nil
@@ -391,10 +392,10 @@ type PromptResponse struct {
 
 func SubmitPromptHandler(ctx context.Context, state *state.State, r *http.Request, req SubmitPromptRequest) (PromptResponse, error) {
 	if req.ID == "" {
-		return PromptResponse{}, errors.New("prompt ID is required")
+		return PromptResponse{}, libhttp.NewErrBadRequest("prompt ID is required")
 	}
 	if req.RunID == "" {
-		return PromptResponse{}, errors.New("run ID is required")
+		return PromptResponse{}, libhttp.NewErrBadRequest("run ID is required")
 	}
 
 	userID := cli.ParseTokenForAnalytics(state.RemoteClient.GetToken()).UserID
@@ -416,7 +417,7 @@ func SubmitPromptHandler(ctx context.Context, state *state.State, r *http.Reques
 				return nil
 			}
 		}
-		return errors.New("prompt does not exist")
+		return libhttp.NewErrNotFound("prompt does not exist")
 	})
 	if err != nil {
 		return PromptResponse{}, err
@@ -431,7 +432,7 @@ type GetDescendantsResponse struct {
 func GetDescendantsHandler(ctx context.Context, state *state.State, r *http.Request) (GetDescendantsResponse, error) {
 	runID := r.URL.Query().Get("runID")
 	if runID == "" {
-		return GetDescendantsResponse{}, errors.New("runID cannot be empty")
+		return GetDescendantsResponse{}, libhttp.NewErrBadRequest("runID cannot be empty")
 	}
 
 	descendants := state.Runs.GetDescendants(runID)
@@ -471,7 +472,7 @@ func GetDescendantsHandler(ctx context.Context, state *state.State, r *http.Requ
 func GetUserHandler(ctx context.Context, state *state.State, r *http.Request) (api.GetUserResponse, error) {
 	userID := r.URL.Query().Get("userID")
 	if userID == "" {
-		return api.GetUserResponse{}, errors.New("userID cannot be empty")
+		return api.GetUserResponse{}, libhttp.NewErrBadRequest("userID cannot be empty")
 	}
 
 	resp, err := state.RemoteClient.GetUser(ctx, userID)
@@ -505,7 +506,7 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (Ge
 	}
 	run, ok := state.Runs.Get(runID)
 	if !ok {
-		return GetRunResponse{}, errors.Errorf("run with id %s not found", runID)
+		return GetRunResponse{}, libhttp.NewErrNotFound("run with id %q not found", runID)
 	}
 	if run.Remote {
 		resp, err := state.RemoteClient.GetRun(ctx, runID)
@@ -591,16 +592,16 @@ func ListRunsHandler(ctx context.Context, state *state.State, r *http.Request) (
 func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.Task, error) {
 	taskSlug := r.URL.Query().Get("slug")
 	if taskSlug == "" {
-		return libapi.Task{}, errors.New("Task slug was not supplied, request path must be of the form /i/tasks?slug=<task_slug>")
+		return libapi.Task{}, libhttp.NewErrBadRequest("task slug was not supplied")
 	}
 	taskConfig, ok := state.TaskConfigs.Get(taskSlug)
 	if !ok {
-		return libapi.Task{}, errors.Errorf("Task with slug %q not found", taskSlug)
+		return libapi.Task{}, libhttp.NewErrNotFound("task with slug %q not found", taskSlug)
 	}
 
 	metadata, ok := state.AppCondition.Get(taskSlug)
 	if !ok {
-		return libapi.Task{}, errors.Errorf("Task with slug %q not found", taskSlug)
+		return libapi.Task{}, libhttp.NewErrNotFound("task with slug %q not found", taskSlug)
 	}
 	// For our purposes, the libapi.Task and libapi.UpdateTaskRequest structs contain the same critical data.
 	// Using UpdateTaskRequest and taskConfig.Def.GetUpdateTaskRequest() conveniently
@@ -644,11 +645,11 @@ func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request
 func GetViewInfoHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.View, error) {
 	viewSlug := r.URL.Query().Get("slug")
 	if viewSlug == "" {
-		return libapi.View{}, errors.New("View slug was not supplied, request path must be of the form /i/views?slug=<view_slug>")
+		return libapi.View{}, libhttp.NewErrBadRequest("view slug was not supplied")
 	}
 	viewConfig, ok := state.ViewConfigs.Get(viewSlug)
 	if !ok {
-		return libapi.View{}, errors.Errorf("View with slug %q not found", viewSlug)
+		return libapi.View{}, libhttp.NewErrBadRequest("view with slug %q not found", viewSlug)
 	}
 
 	configVars := state.DevConfig.ConfigVars
@@ -693,7 +694,7 @@ type GetConfigResponse struct {
 func GetConfigHandler(ctx context.Context, state *state.State, r *http.Request) (GetConfigResponse, error) {
 	id := r.URL.Query().Get("id")
 	if id == "" {
-		return GetConfigResponse{}, errors.New("id cannot be empty")
+		return GetConfigResponse{}, libhttp.NewErrBadRequest("id cannot be empty")
 	}
 
 	for _, c := range state.DevConfig.ConfigVars {
@@ -704,7 +705,7 @@ func GetConfigHandler(ctx context.Context, state *state.State, r *http.Request) 
 		}
 	}
 
-	return GetConfigResponse{}, errors.Errorf("config with id %s not found", id)
+	return GetConfigResponse{}, libhttp.NewErrBadRequest("config with id %q not found", id)
 }
 
 type UpsertConfigRequest struct {
@@ -734,7 +735,7 @@ func DeleteConfigHandler(ctx context.Context, state *state.State, r *http.Reques
 		}
 	}
 
-	return struct{}{}, errors.Errorf("config with id %s not found", req.ID)
+	return struct{}{}, libhttp.NewErrNotFound("config not found: %s", req.ID)
 }
 
 type ListConfigsResponse struct {

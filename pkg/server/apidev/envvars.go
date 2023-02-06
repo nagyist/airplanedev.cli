@@ -7,7 +7,7 @@ import (
 	"sort"
 
 	"github.com/airplanedev/cli/pkg/server/state"
-	"github.com/pkg/errors"
+	libhttp "github.com/airplanedev/lib/pkg/api/http"
 )
 
 type GetEnvVarResponse struct {
@@ -17,7 +17,7 @@ type GetEnvVarResponse struct {
 func GetEnvVarHandler(ctx context.Context, state *state.State, r *http.Request) (GetEnvVarResponse, error) {
 	name := r.URL.Query().Get("name")
 	if name == "" {
-		return GetEnvVarResponse{}, errors.New("name cannot be empty")
+		return GetEnvVarResponse{}, libhttp.NewErrBadRequest("env var name cannot be empty")
 	}
 
 	if val, ok := state.DevConfig.EnvVars[name]; ok {
@@ -29,25 +29,21 @@ func GetEnvVarHandler(ctx context.Context, state *state.State, r *http.Request) 
 		}, nil
 	}
 
-	return GetEnvVarResponse{}, errors.Errorf("env var with name %s not found", name)
+	return GetEnvVarResponse{}, libhttp.NewErrNotFound("env var with name %q not found", name)
 }
 
 func UpsertEnvVarHandler(ctx context.Context, state *state.State, r *http.Request, req LocalEnvVar) (struct{}, error) {
 	if req.Name == "" {
-		return struct{}{}, errors.New("name cannot be empty")
+		return struct{}{}, libhttp.NewErrBadRequest("name cannot be empty")
 	}
 
 	// Verify that env var name is valid
 	match, _ := regexp.MatchString("^[A-Za-z_]+[A-Za-z0-9_]*$", req.Name)
 	if !match {
-		return struct{}{}, errors.Errorf("invalid env var name %s, must consist only of alphanumeric characters and underscores", req.Name)
+		return struct{}{}, libhttp.NewErrBadRequest("invalid env var name %q, must consist only of alphanumeric characters and underscores and may not begin with a number", req.Name)
 	}
 
-	if err := state.DevConfig.SetEnvVar(req.Name, req.Value); err != nil {
-		return struct{}{}, errors.Wrap(err, "setting env var")
-	}
-
-	return struct{}{}, nil
+	return struct{}{}, state.DevConfig.SetEnvVar(req.Name, req.Value)
 }
 
 type DeleteEnvVarRequest struct {
@@ -55,11 +51,7 @@ type DeleteEnvVarRequest struct {
 }
 
 func DeleteEnvVarHandler(ctx context.Context, state *state.State, r *http.Request, req DeleteEnvVarRequest) (struct{}, error) {
-	if err := state.DevConfig.DeleteEnvVar(req.Name); err != nil {
-		return struct{}{}, errors.Wrap(err, "deleting env var")
-	}
-
-	return struct{}{}, nil
+	return struct{}{}, state.DevConfig.DeleteEnvVar(req.Name)
 }
 
 type LocalEnvVar struct {

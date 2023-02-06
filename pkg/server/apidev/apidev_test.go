@@ -15,6 +15,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/test_utils"
 	"github.com/airplanedev/cli/pkg/version"
 	libapi "github.com/airplanedev/lib/pkg/api"
+	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
@@ -260,7 +261,7 @@ func TestGetFileHandler(t *testing.T) {
 		Expect().
 		Status(http.StatusInternalServerError).Body()
 
-	var errResp test_utils.ErrorResponse
+	var errResp libhttp.ErrorResponse
 	err = json.Unmarshal([]byte(body.Raw()), &errResp)
 	require.NoError(err)
 	require.Contains(errResp.Error, "no such file or directory")
@@ -270,21 +271,21 @@ func TestGetFileHandler(t *testing.T) {
 	body = h.GET("/dev/files/get").
 		WithQuery("path", pathOutsideRoot).
 		Expect().
-		Status(http.StatusInternalServerError).Body()
+		Status(http.StatusBadRequest).Body()
 
 	err = json.Unmarshal([]byte(body.Raw()), &errResp)
 	require.NoError(err)
-	require.Contains(errResp.Error, "path is outside dev root")
+	require.Contains(errResp.Error, "Path is outside dev root")
 
 	// Traversal elements
 	body = h.GET("/dev/files/get").
 		WithQuery("path", subfilePath+"/../path").
 		Expect().
-		Status(http.StatusInternalServerError).Body()
+		Status(http.StatusBadRequest).Body()
 
 	err = json.Unmarshal([]byte(body.Raw()), &errResp)
 	require.NoError(err)
-	require.Contains(errResp.Error, "path may not contain directory traversal elements (`..`)")
+	require.Contains(errResp.Error, "Path may not contain directory traversal elements (`..`)")
 }
 
 func TestUpdateFileHandler(t *testing.T) {
@@ -328,12 +329,12 @@ func TestUpdateFileHandler(t *testing.T) {
 			Content: "hello",
 		}).
 		Expect().
-		Status(http.StatusInternalServerError).Body()
+		Status(http.StatusBadRequest).Body()
 
-	var errResp test_utils.ErrorResponse
+	var errResp libhttp.ErrorResponse
 	err = json.Unmarshal([]byte(body.Raw()), &errResp)
 	require.NoError(err)
-	require.Contains(errResp.Error, "path is outside dev root")
+	require.Contains(errResp.Error, "Path is outside dev root")
 
 	// Traversal elements
 	body = h.POST("/dev/files/update").
@@ -342,9 +343,9 @@ func TestUpdateFileHandler(t *testing.T) {
 			Content: "hello",
 		}).
 		Expect().
-		Status(http.StatusInternalServerError).Body()
+		Status(http.StatusBadRequest).Body()
 
 	err = json.Unmarshal([]byte(body.Raw()), &errResp)
 	require.NoError(err)
-	require.Contains(errResp.Error, "path may not contain directory traversal elements (`..`)")
+	require.Contains(errResp.Error, "Path may not contain directory traversal elements (`..`)")
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/apidev"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/server/test_utils"
+	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/stretchr/testify/require"
 )
 
@@ -127,14 +128,14 @@ func TestEnvVarsInvalidName(t *testing.T) {
 		}, server.RouterOptions{}),
 	)
 
-	// Test update
+	// Test bad update
 	//nolint: staticcheck
 	body := h.PUT("/dev/envVars/upsert").
 		WithJSON(apidev.LocalEnvVar{Name: "ENV_VAR=asdf", Value: "0"}).
 		Expect().
-		Status(http.StatusInternalServerError).Body()
+		Status(http.StatusBadRequest).Body()
 
-	var errResp test_utils.ErrorResponse
+	var errResp libhttp.ErrorResponse
 	err = json.Unmarshal([]byte(body.Raw()), &errResp)
 	require.NoError(err)
 	require.Contains(errResp.Error, "must consist only of alphanumeric characters and underscores")

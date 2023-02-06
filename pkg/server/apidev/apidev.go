@@ -26,6 +26,7 @@ import (
 	"github.com/airplanedev/cli/pkg/views"
 	"github.com/airplanedev/cli/pkg/views/viewdir"
 	libapi "github.com/airplanedev/lib/pkg/api"
+	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/build/ignore"
 	"github.com/gorilla/mux"
@@ -37,29 +38,29 @@ func AttachDevRoutes(r *mux.Router, s *state.State) {
 	const basePath = "/dev/"
 	r = r.NewRoute().PathPrefix(basePath).Subrouter()
 
-	r.Handle("/info", handlers.Handler(s, GetInfoHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/version", handlers.Handler(s, GetVersionHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/info", handlers.New(s, GetInfoHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/version", handlers.New(s, GetVersionHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/envVars/get", handlers.Handler(s, GetEnvVarHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/envVars/upsert", handlers.HandlerWithBody(s, UpsertEnvVarHandler)).Methods("PUT", "OPTIONS")
-	r.Handle("/envVars/delete", handlers.HandlerWithBody(s, DeleteEnvVarHandler)).Methods("DELETE", "OPTIONS")
-	r.Handle("/envVars/list", handlers.Handler(s, ListEnvVarsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/envVars/get", handlers.New(s, GetEnvVarHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/envVars/upsert", handlers.WithBody(s, UpsertEnvVarHandler)).Methods("PUT", "OPTIONS")
+	r.Handle("/envVars/delete", handlers.WithBody(s, DeleteEnvVarHandler)).Methods("DELETE", "OPTIONS")
+	r.Handle("/envVars/list", handlers.New(s, ListEnvVarsHandler)).Methods("GET", "OPTIONS")
 
 	// TODO: Remove this endpoint once the studio UI is updated to use /dev/files/list
-	r.Handle("/list", handlers.Handler(s, ListEntrypointsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/list", handlers.New(s, ListEntrypointsHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/files/list", handlers.Handler(s, ListFilesHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/files/get", handlers.Handler(s, GetFileHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/files/update", handlers.HandlerWithBody(s, UpdateFileHandler)).Methods("POST", "OPTIONS")
-	r.Handle("/files/downloadBundle", handlers.HandlerZip(s, DownloadBundleHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/files/list", handlers.New(s, ListFilesHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/files/get", handlers.New(s, GetFileHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/files/update", handlers.WithBody(s, UpdateFileHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/files/downloadBundle", handlers.Zip(s, DownloadBundleHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/startView/{view_slug}", handlers.Handler(s, StartViewHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/startView/{view_slug}", handlers.New(s, StartViewHandler)).Methods("POST", "OPTIONS")
 
-	r.Handle("/logs/{run_id}", handlers.HandlerSSE(s, LogsHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/tasks/errors", handlers.Handler(s, GetTaskErrorsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/logs/{run_id}", handlers.SSE(s, LogsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/tasks/errors", handlers.New(s, GetTaskErrorsHandler)).Methods("GET", "OPTIONS")
 
 	r.PathPrefix("/views").HandlerFunc(ProxyViewHandler(s.PortProxy)).Methods("GET", "POST", "OPTIONS")
-	r.Handle("/dependencies/reinstall", handlers.Handler(s, ReinstallDependenciesHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/dependencies/reinstall", handlers.New(s, ReinstallDependenciesHandler)).Methods("POST", "OPTIONS")
 }
 
 func GetVersionHandler(ctx context.Context, s *state.State, r *http.Request) (version.Metadata, error) {
@@ -303,16 +304,16 @@ type GetFileResponse struct {
 func GetFileHandler(ctx context.Context, state *state.State, r *http.Request) (GetFileResponse, error) {
 	path := r.URL.Query().Get("path")
 	if path == "" {
-		return GetFileResponse{}, errors.New("path is required")
+		return GetFileResponse{}, libhttp.NewErrBadRequest("path is required")
 	}
 
 	// Ensure the path is within the dev server root.
 	if !strings.HasPrefix(path, state.Dir) {
-		return GetFileResponse{}, errors.New("path is outside dev root")
+		return GetFileResponse{}, libhttp.NewErrBadRequest("path is outside dev root")
 	}
 
 	if strings.Contains(path, "..") {
-		return GetFileResponse{}, errors.New("path may not contain directory traversal elements (`..`)")
+		return GetFileResponse{}, libhttp.NewErrBadRequest("path may not contain directory traversal elements (`..`)")
 	}
 
 	contents, err := os.ReadFile(path)
@@ -331,13 +332,17 @@ type UpdateFileRequest struct {
 // UpdateFileHandler updates the file at the requested location. It takes in the new file contents in the request body,
 // and updates the specified file only if the file path is within the development root.
 func UpdateFileHandler(ctx context.Context, s *state.State, r *http.Request, req UpdateFileRequest) (struct{}, error) {
+	if req.Path == "" {
+		return struct{}{}, libhttp.NewErrBadRequest("path is required")
+	}
+
 	// Ensure the path is within the dev server root.
 	if !strings.HasPrefix(req.Path, s.Dir) {
-		return struct{}{}, errors.New("path is outside dev root")
+		return struct{}{}, libhttp.NewErrBadRequest("path is outside dev root")
 	}
 
 	if strings.Contains(req.Path, "..") {
-		return struct{}{}, errors.New("path may not contain directory traversal elements (`..`)")
+		return struct{}{}, libhttp.NewErrBadRequest("path may not contain directory traversal elements (`..`)")
 	}
 
 	if err := os.WriteFile(req.Path, []byte(req.Content), 0644); err != nil {
@@ -364,12 +369,12 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 	vars := mux.Vars(r)
 	viewSlug, ok := vars["view_slug"]
 	if !ok {
-		return StartViewResponse{}, errors.Errorf("View slug was not supplied, request path must be of the form /dev/startView/<view_slug>")
+		return StartViewResponse{}, libhttp.NewErrBadRequest("view slug was not supplied")
 	}
 
 	viewConfig, ok := s.ViewConfigs.Get(viewSlug)
 	if !ok {
-		return StartViewResponse{}, errors.Errorf("View with slug %s not found", viewSlug)
+		return StartViewResponse{}, libhttp.NewErrBadRequest("view with slug %q not found", viewSlug)
 	}
 
 	vd, err := viewdir.NewViewDirectoryFromViewConfig(viewConfig)
@@ -435,7 +440,7 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 		Port:                 port,
 	})
 	if err != nil {
-		return StartViewResponse{}, errors.Wrap(err, "starting views dev")
+		return StartViewResponse{}, err
 	}
 
 	u, err := url.Parse(viteServer)
@@ -472,12 +477,12 @@ func LogsHandler(ctx context.Context, state *state.State, r *http.Request, flush
 	vars := mux.Vars(r)
 	runID, ok := vars["run_id"]
 	if !ok {
-		return errors.Errorf("Run id was not supplied, request path must be of the form /dev/logs/<run_id>")
+		return libhttp.NewErrBadRequest("run id was not supplied")
 	}
 
 	run, ok := state.Runs.Get(runID)
 	if !ok {
-		return errors.Errorf("Run with id %s not found", runID)
+		return libhttp.NewErrNotFound("run with id %q not found", runID)
 	}
 
 	watcher := run.LogBroker.NewWatcher()
@@ -515,17 +520,17 @@ func GetTaskErrorsHandler(ctx context.Context, state *state.State, r *http.Reque
 	if !ok {
 		return GetTaskErrorResponse{}, nil
 	}
+	info := []dev_errors.AppError{}
 	warnings := []dev_errors.AppError{}
 	errors := []dev_errors.AppError{}
-	info := []dev_errors.AppError{}
 
 	for _, e := range metadata.Errors {
-		if e.Level == dev_errors.LevelWarning {
+		if e.Level == dev_errors.LevelInfo {
+			info = append(info, e)
+		} else if e.Level == dev_errors.LevelWarning {
 			warnings = append(warnings, e)
 		} else if e.Level == dev_errors.LevelError {
 			errors = append(errors, e)
-		} else if e.Level == dev_errors.LevelInfo {
-			info = append(info, e)
 		}
 	}
 	return GetTaskErrorResponse{Info: info, Errors: errors, Warnings: warnings}, nil
@@ -557,7 +562,7 @@ func DownloadBundleHandler(ctx context.Context, state *state.State, r *http.Requ
 	buf := new(bytes.Buffer)
 	include, err := ignore.Func(state.Dir)
 	if err != nil {
-		return nil, "", errors.Wrap(err, "creating include function")
+		return nil, "", errors.Wrap(err, "creating function to filter files")
 	}
 
 	if err := utils.Zip(buf, state.Dir, include); err != nil {

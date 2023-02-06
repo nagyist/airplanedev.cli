@@ -2,12 +2,14 @@ package resources
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/state"
 	libapi "github.com/airplanedev/lib/pkg/api"
+	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/pkg/errors"
 )
@@ -19,6 +21,7 @@ const slackSlug = "team_slack"
 // fail during team creation.
 const DemoDBSlug = "demo_db"
 
+// Always add remote Demo DB for convenience, even when no fallback environment is set.
 var defaultRemoteResourceSlugs = []string{DemoDBSlug}
 var defaultRemoteVirtualResourceSlugs = []string{slackSlug}
 
@@ -36,7 +39,12 @@ func GenerateAliasToResourceMap(
 		var resource resources.Resource
 		resourceWithEnv, ok := LookupResource(slugToResource, ref)
 		if !ok {
-			return nil, errors.Errorf("Cannot find resource with ref %s in dev config file or remotely", ref)
+			msg := fmt.Sprintf("cannot find resource %q. Is it defined in your dev config file", ref)
+			if state.UseFallbackEnv {
+				msg += fmt.Sprintf(" or in your %s environment", state.RemoteEnv.Name)
+			}
+			msg += "? You can add it using the resource sidebar to the left."
+			return nil, libhttp.NewErrNotFound(msg)
 		}
 
 		if resourceWithEnv.Remote {
@@ -130,7 +138,6 @@ func ListRemoteResources(ctx context.Context, state *state.State) ([]libapi.Reso
 		return resp.Resources, nil
 	}
 
-	// Always add remote Demo DB for convenience, even when no fallback environment is set.
 	resources := make([]libapi.Resource, 0)
 	for _, slug := range defaultRemoteResourceSlugs {
 		remoteResource, err := state.RemoteClient.GetResource(ctx, api.GetResourceRequest{
@@ -163,7 +170,7 @@ func LookupResource(resourcesBySlug map[string]env.ResourceWithEnv, ref string) 
 	return env.ResourceWithEnv{}, false
 }
 
-// Creates a map of the resource alias to resource ID
+// GenerateResourceAliasToID creates a map of the resource alias to resource ID
 func GenerateResourceAliasToID(aliasToResource map[string]resources.Resource) map[string]string {
 	resourceAliasToID := map[string]string{}
 	for alias, resource := range aliasToResource {

@@ -20,7 +20,7 @@ func GetOutputsHandler(ctx context.Context, state *state.State, r *http.Request)
 	}
 	run, ok := state.Runs.Get(runID)
 	if !ok {
-		return GetOutputsResponse{}, errors.Errorf("run with id %s not found", runID)
+		return GetOutputsResponse{}, errors.Errorf("run with id %q not found", runID)
 	}
 	outputs := run.Outputs
 

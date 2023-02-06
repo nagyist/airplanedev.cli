@@ -9,6 +9,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
+	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/pkg/errors"
 )
 
@@ -57,7 +58,7 @@ type GetSleepResponse struct {
 func GetSleepHandler(ctx context.Context, state *state.State, r *http.Request) (GetSleepResponse, error) {
 	sleepID := r.URL.Query().Get("id")
 	if sleepID == "" {
-		return GetSleepResponse{}, errors.New("id is required")
+		return GetSleepResponse{}, libhttp.NewErrBadRequest("id is required")
 	}
 	runID, err := getRunIDFromToken(r)
 	if err != nil {
@@ -69,7 +70,7 @@ func GetSleepHandler(ctx context.Context, state *state.State, r *http.Request) (
 
 	run, ok := state.Runs.Get(runID)
 	if !ok {
-		return GetSleepResponse{}, errors.New("run not found")
+		return GetSleepResponse{}, libhttp.NewErrNotFound("run not found")
 	}
 
 	for _, s := range run.Sleeps {
@@ -77,7 +78,8 @@ func GetSleepHandler(ctx context.Context, state *state.State, r *http.Request) (
 			return GetSleepResponse{Sleep: s}, nil
 		}
 	}
-	return GetSleepResponse{}, errors.New("sleep not found")
+
+	return GetSleepResponse{}, libhttp.NewErrNotFound("sleep not found")
 }
 
 type ListSleepsResponse struct {
@@ -87,12 +89,13 @@ type ListSleepsResponse struct {
 func ListSleepsHandler(ctx context.Context, state *state.State, r *http.Request) (ListSleepsResponse, error) {
 	runID := r.URL.Query().Get("runID")
 	if runID == "" {
-		return ListSleepsResponse{}, errors.New("runID is required")
+		return ListSleepsResponse{}, libhttp.NewErrBadRequest("runID is required")
 	}
 
 	run, ok := state.Runs.Get(runID)
 	if !ok {
-		return ListSleepsResponse{}, errors.New("run not found")
+		return ListSleepsResponse{}, libhttp.NewErrNotFound("run not found")
+
 	}
 
 	return ListSleepsResponse{Sleeps: run.Sleeps}, nil

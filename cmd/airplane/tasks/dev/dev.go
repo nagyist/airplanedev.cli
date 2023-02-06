@@ -77,7 +77,7 @@ func New(c *cli.Config) *cobra.Command {
 				if len(args) == 0 {
 					cfg.fileOrDir = wd
 				} else if len(args) > 1 {
-					return errors.New("Multiple dev server roots detected, please supply only one directory to discover tasks and views")
+					return errors.New("detected multiple arguments to `airplane dev`. Please pass in at most one directory to discover tasks and views")
 				} else {
 					cfg.fileOrDir = args[0]
 				}
@@ -161,10 +161,10 @@ func New(c *cli.Config) *cobra.Command {
 	if err := cmd.Flags().MarkHidden("server-host"); err != nil {
 		logger.Debug("marking --server-host as hidden: %v", err)
 	}
-
 	if err := cmd.Flags().MarkDeprecated("editor", "launching the Studio is now the default behavior."); err != nil {
 		logger.Debug("marking --editor as deprecated: %s", err)
 	}
+
 	return cmd
 }
 

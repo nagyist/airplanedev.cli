@@ -19,6 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
+	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/airplanedev/lib/pkg/builtins"
 	"github.com/airplanedev/ojson"
 	"github.com/gorilla/mux"
@@ -32,42 +33,36 @@ func AttachExternalAPIRoutes(r *mux.Router, state *state.State) {
 	const basePath = "/v0/"
 	r = r.NewRoute().PathPrefix(basePath).Subrouter()
 
-	r.Handle("/tasks/execute", handlers.HandlerWithBody(state, ExecuteTaskHandler)).Methods("POST", "OPTIONS")
-	r.Handle("/tasks/getMetadata", handlers.Handler(state, GetTaskMetadataHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/tasks/getTaskReviewers", handlers.Handler(state, GetTaskReviewersHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/tasks/execute", handlers.WithBody(state, ExecuteTaskHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/tasks/getMetadata", handlers.New(state, GetTaskMetadataHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/tasks/getTaskReviewers", handlers.New(state, GetTaskReviewersHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/entities/search", handlers.Handler(state, SearchEntitiesHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/runners/createScaleSignal", handlers.HandlerWithBody(state, CreateScaleSignalHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/entities/search", handlers.New(state, SearchEntitiesHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/runners/createScaleSignal", handlers.WithBody(state, CreateScaleSignalHandler)).Methods("POST", "OPTIONS")
 
-	r.Handle("/runs/getOutputs", handlers.Handler(state, outputs.GetOutputsHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/runs/get", handlers.Handler(state, GetRunHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/getOutputs", handlers.New(state, outputs.GetOutputsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/runs/get", handlers.New(state, GetRunHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/resources/list", handlers.Handler(state, ListResourcesHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/resources/listMetadata", handlers.Handler(state, ListResourceMetadataHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/resources/list", handlers.New(state, ListResourcesHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/resources/listMetadata", handlers.New(state, ListResourceMetadataHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/views/get", handlers.Handler(state, GetViewHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/views/get", handlers.New(state, GetViewHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/displays/create", handlers.HandlerWithBody(state, CreateDisplayHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/displays/create", handlers.WithBody(state, CreateDisplayHandler)).Methods("POST", "OPTIONS")
 
-	r.Handle("/prompts/get", handlers.Handler(state, GetPromptHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/prompts/create", handlers.HandlerWithBody(state, CreatePromptHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/prompts/get", handlers.New(state, GetPromptHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/prompts/create", handlers.WithBody(state, CreatePromptHandler)).Methods("POST", "OPTIONS")
 
 	// Run sleeps
-	r.Handle("/sleeps/create", handlers.HandlerWithBody(state, CreateSleepHandler)).Methods("POST", "OPTIONS")
-	r.Handle("/sleeps/list", handlers.Handler(state, ListSleepsHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/sleeps/get", handlers.Handler(state, GetSleepHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/sleeps/create", handlers.WithBody(state, CreateSleepHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/sleeps/list", handlers.New(state, ListSleepsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/sleeps/get", handlers.New(state, GetSleepHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/permissions/get", handlers.Handler(state, GetPermissionsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/permissions/get", handlers.New(state, GetPermissionsHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/hosts/web", handlers.Handler(state, WebHostHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/hosts/web", handlers.New(state, WebHostHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/uploads/create", handlers.HandlerWithBody(state, CreateUploadHandler)).Methods("POST", "OPTIONS")
-}
-
-type ExecuteTaskRequest struct {
-	Slug        string            `json:"slug"`
-	ParamValues api.Values        `json:"paramValues"`
-	Resources   map[string]string `json:"resources"`
+	r.Handle("/uploads/create", handlers.WithBody(state, CreateUploadHandler)).Methods("POST", "OPTIONS")
 }
 
 func getRunIDFromToken(r *http.Request) (string, error) {
@@ -79,6 +74,12 @@ func getRunIDFromToken(r *http.Request) (string, error) {
 		return claims.RunID, nil
 	}
 	return "", nil
+}
+
+type ExecuteTaskRequest struct {
+	Slug        string            `json:"slug"`
+	ParamValues api.Values        `json:"paramValues"`
+	Resources   map[string]string `json:"resources"`
 }
 
 // ExecuteTaskHandler handles requests to the /v0/tasks/execute endpoint
@@ -124,7 +125,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		if isBuiltin {
 			// The SDK should provide us with exactly one resource for builtins.
 			if len(req.Resources) != 1 {
-				return api.RunTaskResponse{}, errors.Errorf("unable to determine resource required by builtin, there is not exactly one resource in request: %+v", req.Resources)
+				return api.RunTaskResponse{}, libhttp.NewErrBadRequest("unable to determine resource required by builtin, there is not exactly one resource in request: %+v", req.Resources)
 			}
 
 			// Get the only entry in the request resource map.
@@ -141,10 +142,11 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			}
 
 			if !foundResource {
+				message := fmt.Sprintf("resource with id %q not found in dev config file or remotely", resourceID)
 				if resourceID == resources.SlackID {
-					return api.RunTaskResponse{}, errors.New("Your team has not configured Slack. Please visit https://docs.airplane.dev/platform/slack-integration#connect-to-slack to authorize Slack to perform actions in your workspace.")
+					message = "your team has not configured Slack. Please visit https://docs.airplane.dev/platform/slack-integration#connect-to-slack to authorize Slack to perform actions in your workspace."
 				}
-				return api.RunTaskResponse{}, errors.Errorf("Resource with id %s not found in dev config file or remotely.", resourceID)
+				return api.RunTaskResponse{}, libhttp.NewErrNotFound(message)
 			}
 			run.IsStdAPI = true
 			stdapiReq, err := builtins.Request(req.Slug, req.ParamValues)
@@ -198,7 +200,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			mergedResources,
 		)
 		if err != nil {
-			return api.RunTaskResponse{}, errors.Wrap(err, "generating alias to resource map")
+			return api.RunTaskResponse{}, err
 		}
 		runConfig.AliasToResource = aliasToResourceMap
 		run.Resources = resources.GenerateResourceAliasToID(aliasToResourceMap)
@@ -255,7 +257,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		}()
 	} else {
 		if !state.UseFallbackEnv {
-			return api.RunTaskResponse{}, errors.Errorf("task with slug %s is not registered locally", req.Slug)
+			return api.RunTaskResponse{}, libhttp.NewErrNotFound("task with slug %q is not registered locally", req.Slug)
 		}
 
 		resp, err := state.RemoteClient.RunTask(ctx, api.RunTaskRequest{
@@ -266,7 +268,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		if err != nil {
 			var taskMissingError *libapi.TaskMissingError
 			if errors.As(err, &taskMissingError) {
-				return api.RunTaskResponse{}, errors.Errorf("task with slug %s is not registered locally or remotely", req.Slug)
+				return api.RunTaskResponse{}, libhttp.NewErrNotFound("task with slug %q is not registered locally or remotely", req.Slug)
 			} else {
 				return api.RunTaskResponse{}, err
 			}
@@ -287,7 +289,7 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (de
 	runID := r.URL.Query().Get("id")
 	run, ok := state.Runs.Get(runID)
 	if !ok {
-		return dev.LocalRun{}, errors.Errorf("run with id %s not found", runID)
+		return dev.LocalRun{}, libhttp.NewErrNotFound("run with id %q not found", runID)
 	}
 
 	if run.Remote {
@@ -359,14 +361,14 @@ func GetTaskReviewersHandler(ctx context.Context, state *state.State, r *http.Re
 		}, nil
 	}
 	if !state.UseFallbackEnv {
-		return api.GetTaskReviewersResponse{}, errors.Errorf("task with slug %s is not registered locally", taskSlug)
+		return api.GetTaskReviewersResponse{}, libhttp.NewErrNotFound("task with slug %q is not registered locally", taskSlug)
 	}
 
 	resp, err := state.RemoteClient.GetTaskReviewers(ctx, taskSlug)
 	if err != nil {
 		var taskMissingError *libapi.TaskMissingError
 		if errors.As(err, &taskMissingError) {
-			return api.GetTaskReviewersResponse{}, errors.Errorf("task with slug %s is not registered locally or remotely", taskSlug)
+			return api.GetTaskReviewersResponse{}, libhttp.NewErrNotFound("task with slug %q is not registered locally or remotely", taskSlug)
 		} else {
 			return api.GetTaskReviewersResponse{}, err
 		}
@@ -381,7 +383,7 @@ func GetTaskReviewersHandler(ctx context.Context, state *state.State, r *http.Re
 func GetViewHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.View, error) {
 	slug := r.URL.Query().Get("slug")
 	if slug == "" {
-		return libapi.View{}, errors.New("slug cannot be empty")
+		return libapi.View{}, libhttp.NewErrBadRequest("slug cannot be empty")
 	}
 
 	_, ok := state.ViewConfigs.Get(slug)
@@ -429,11 +431,11 @@ type CreateDisplayResponse struct {
 func CreateDisplayHandler(ctx context.Context, state *state.State, r *http.Request, req CreateDisplayRequest) (CreateDisplayResponse, error) {
 	token := r.Header.Get("X-Airplane-Token")
 	if token == "" {
-		return CreateDisplayResponse{}, errors.Errorf("expected a X-Airplane-Token header")
+		return CreateDisplayResponse{}, libhttp.NewErrBadRequest("expected a X-Airplane-Token header")
 	}
 	claims, err := dev.ParseInsecureAirplaneToken(token)
 	if err != nil {
-		return CreateDisplayResponse{}, errors.Errorf("invalid airplane token: %s", err.Error())
+		return CreateDisplayResponse{}, libhttp.NewErrBadRequest("invalid airplane token: %s", err.Error())
 	}
 	runID := claims.RunID
 
@@ -451,7 +453,7 @@ func CreateDisplayHandler(ctx context.Context, state *state.State, r *http.Reque
 
 		maxMarkdownLength := 100000
 		if len(display.Content) > maxMarkdownLength {
-			return CreateDisplayResponse{}, errors.Errorf("content too long: expected at most %d characters, got %d", maxMarkdownLength, len(display.Content))
+			return CreateDisplayResponse{}, libhttp.NewErrBadRequest("content too long: expected at most %d characters, got %d", maxMarkdownLength, len(display.Content))
 		}
 	case "table":
 		display.Rows = req.Display.Rows
@@ -459,12 +461,12 @@ func CreateDisplayHandler(ctx context.Context, state *state.State, r *http.Reque
 
 		maxRows := 10000
 		if len(display.Rows) > maxRows {
-			return CreateDisplayResponse{}, errors.Errorf("too many table rows: expected at most %d, got %d", maxRows, len(display.Rows))
+			return CreateDisplayResponse{}, libhttp.NewErrBadRequest("too many table rows: expected at most %d, got %d", maxRows, len(display.Rows))
 		}
 
 		maxColumns := 100
 		if len(display.Columns) > maxColumns {
-			return CreateDisplayResponse{}, errors.Errorf("too many table columns: expected at most %d, got %d", maxColumns, len(display.Columns))
+			return CreateDisplayResponse{}, libhttp.NewErrBadRequest("too many table columns: expected at most %d, got %d", maxColumns, len(display.Columns))
 		}
 	case "json":
 		display.Value = req.Display.Value
@@ -497,7 +499,7 @@ func CreatePromptHandler(ctx context.Context, state *state.State, r *http.Reques
 		return PromptResponse{}, err
 	}
 	if runID == "" {
-		return PromptResponse{}, errors.Errorf("expected runID from airplane token: %s", err.Error())
+		return PromptResponse{}, libhttp.NewErrBadRequest("expected runID from airplane token: %s", err.Error())
 	}
 
 	if req.Values == nil {
@@ -549,19 +551,19 @@ type GetPromptResponse struct {
 func GetPromptHandler(ctx context.Context, state *state.State, r *http.Request) (GetPromptResponse, error) {
 	promptID := r.URL.Query().Get("id")
 	if promptID == "" {
-		return GetPromptResponse{}, errors.New("id is required")
+		return GetPromptResponse{}, libhttp.NewErrBadRequest("id is required")
 	}
 	runID, err := getRunIDFromToken(r)
 	if err != nil {
 		return GetPromptResponse{}, err
 	}
 	if runID == "" {
-		return GetPromptResponse{}, errors.Errorf("expected runID from airplane token")
+		return GetPromptResponse{}, libhttp.NewErrBadRequest("expected runID from airplane token")
 	}
 
 	run, ok := state.Runs.Get(runID)
 	if !ok {
-		return GetPromptResponse{}, errors.New("run not found")
+		return GetPromptResponse{}, libhttp.NewErrNotFound("run not found")
 	}
 
 	for _, p := range run.Prompts {
@@ -569,7 +571,7 @@ func GetPromptHandler(ctx context.Context, state *state.State, r *http.Request) 
 			return GetPromptResponse{Prompt: p}, nil
 		}
 	}
-	return GetPromptResponse{}, errors.New("prompt not found")
+	return GetPromptResponse{}, libhttp.NewErrNotFound("prompt not found")
 }
 
 // ListResourcesHandler handles requests to the /v0/resources/list endpoint

@@ -44,6 +44,16 @@ func TestExecute(t *testing.T) {
 			Entrypoint:  "my_task.ts",
 			NodeVersion: "18",
 		},
+		Parameters: []definitions.ParameterDefinition_0_3{
+			{
+				Slug: "param1",
+				Type: "shorttext",
+			},
+			{
+				Slug: "param2",
+				Type: "shorttext",
+			},
+		},
 	}
 	taskDefinition.SetDefnFilePath("my_task.task.yaml")
 
