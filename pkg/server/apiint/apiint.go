@@ -426,7 +426,8 @@ func SubmitPromptHandler(ctx context.Context, state *state.State, r *http.Reques
 }
 
 type GetDescendantsResponse struct {
-	Descendants []dev.LocalRun `json:"descendants"`
+	Descendants     []dev.LocalRun `json:"descendants"`
+	DescendantTasks []libapi.Task  `json:"descendantTasks"`
 }
 
 func GetDescendantsHandler(ctx context.Context, state *state.State, r *http.Request) (GetDescendantsResponse, error) {
@@ -437,6 +438,8 @@ func GetDescendantsHandler(ctx context.Context, state *state.State, r *http.Requ
 
 	descendants := state.Runs.GetDescendants(runID)
 	processedDescendants := make([]dev.LocalRun, len(descendants))
+	descendantTasks := []libapi.Task{}
+	taskIDsSeen := map[string]struct{}{}
 
 	for i, descendant := range state.Runs.GetDescendants(runID) {
 		if descendant.Remote {
@@ -460,12 +463,41 @@ func GetDescendantsHandler(ctx context.Context, state *state.State, r *http.Requ
 				ParentID:    runID,
 				Remote:      true,
 			}
+			if _, ok := taskIDsSeen[run.TaskID]; !ok {
+				task, err := state.RemoteClient.GetTaskByID(ctx, run.TaskID)
+				if err != nil {
+					return GetDescendantsResponse{}, errors.Wrap(err, "getting remote task")
+				}
+				descendantTasks = append(descendantTasks, task)
+				taskIDsSeen[run.TaskID] = struct{}{}
+			}
+		} else {
+			if descendant.TaskRevision.Def != nil {
+				// There is no task ID for local task revisions so we use the slug
+				taskID := descendant.TaskRevision.Def.GetSlug()
+				if _, ok := taskIDsSeen[taskID]; !ok {
+					utr, err := descendant.TaskRevision.Def.GetUpdateTaskRequest(ctx, state.LocalClient, false)
+					if err != nil {
+						return GetDescendantsResponse{}, errors.Errorf("error getting task %s", descendant.TaskRevision.Def.GetSlug())
+					}
+					localTask := libapi.Task{
+						ID:          taskID,
+						Name:        descendant.TaskRevision.Def.GetName(),
+						Slug:        descendant.TaskRevision.Def.GetSlug(),
+						Description: descendant.TaskRevision.Def.GetDescription(),
+						Parameters:  utr.Parameters,
+					}
+					descendantTasks = append(descendantTasks, localTask)
+					taskIDsSeen[taskID] = struct{}{}
+				}
+			}
 		}
 		processedDescendants[i] = descendant
 	}
 
 	return GetDescendantsResponse{
-		Descendants: processedDescendants,
+		Descendants:     processedDescendants,
+		DescendantTasks: descendantTasks,
 	}, nil
 }
 
