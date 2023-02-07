@@ -129,11 +129,11 @@ func newServer(router *mux.Router, state *state.State, opts Options) (*Server, e
 
 		if opts.Port == 0 {
 			var err error
-			opts.Port, err = network.FindOpenPortFrom(defaultPort, 100)
+			opts.Port, err = network.FindOpenPortFrom("", defaultPort, 100)
 			if err != nil {
 				return nil, err
 			}
-		} else if !network.IsPortOpen(opts.Port) {
+		} else if !network.IsPortOpen("", opts.Port) {
 			return nil, errors.Errorf("port %d is already in use - select a different port or remove the --port flag to automatically find an open port", opts.Port)
 		}
 

@@ -13,10 +13,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-// IsPortOpen returns whether the given port is bound to any network interface.
-func IsPortOpen(port int) bool {
+// IsPortOpen returns whether the given port is bound to the given prefix. If prefix is empty, this is assumed to be
+// 0.0.0.0. Note that 0.0.0.0 does not necessarily mean all network interfaces have been checked. For example, Vite
+// ports (bound to localhost) will not be discovered on 0.0.0.0.
+func IsPortOpen(prefix string, port int) bool {
 	// Attempt to dial the port. If we establish a connection, it's in use.
-	conn, _ := net.DialTimeout("tcp", fmt.Sprintf(":%d", port), time.Second)
+	conn, _ := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", prefix, port), time.Second)
 	if conn == nil {
 		return true
 	}
@@ -35,9 +37,9 @@ func FindOpenPort() (int, error) {
 }
 
 // FindOpenPortFrom finds an open port on the host machine, starting at the given port.
-func FindOpenPortFrom(basePort, numAttempts int) (int, error) {
+func FindOpenPortFrom(prefix string, basePort, numAttempts int) (int, error) {
 	for port := basePort; port <= basePort+numAttempts; port++ {
-		if IsPortOpen(port) {
+		if IsPortOpen(prefix, port) {
 			return port, nil
 		}
 	}

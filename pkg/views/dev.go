@@ -360,7 +360,7 @@ func runVite(ctx context.Context, opts ViteOpts, airplaneViewDir string, viewSlu
 
 	if opts.Port == 0 {
 		var err error
-		opts.Port, err = network.FindOpenPortFrom(5173, 100)
+		opts.Port, err = network.FindOpenPortFrom("localhost", 5173, 100)
 		if err != nil {
 			return nil, "", err
 		}
