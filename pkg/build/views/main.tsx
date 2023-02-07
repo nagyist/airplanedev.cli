@@ -42,7 +42,7 @@ const getAllQueryParams = () => {
   return new URL(window.location.href).searchParams.entries();
 };
 
-const camelToSnakeCase = (str: string) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).toUpperCase(); 
+const camelToSnakeCase = (str: string) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).toUpperCase();
 
 // Plumb environment variables that are passed into the view -> @airplane/views.
 setEnvVars(
@@ -52,6 +52,7 @@ setEnvVars(
   getQueryParam("__env") || import.meta.env.AIRPLANE_ENV_SLUG,
   {
     AIRPLANE_TUNNEL_TOKEN: import.meta.env.AIRPLANE_TUNNEL_TOKEN,
+    AIRPLANE_SANDBOX_TOKEN: getQueryParam("__airplane_sandbox_token"),
   }
 );
 
