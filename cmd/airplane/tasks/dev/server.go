@@ -74,6 +74,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 				config.WithDomain(localClientDevServerHost),
 			),
 			ngrok.WithAuthtoken(tokenResp.Token),
+			ngrok.WithRegion("us"),
 		)
 		if err != nil {
 			return errors.Wrap(err, "failed to start tunnel")
