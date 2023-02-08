@@ -67,6 +67,7 @@ type State struct {
 	VersionCache version.Cache
 
 	PortProxy *httputil.ReverseProxy
+	DevToken  *string
 	// ServerHost is the URL that the local dev server should be accessed from. It does not necessarily represent the
 	// localhost address relative to the host machine. For example, if the host machine is running in a sandbox, we
 	// want to access the local dev server from some.sandbox.url, not localhost:*. This is used throughout the dev
@@ -98,7 +99,7 @@ type runsStore struct {
 }
 
 // New initializes a new state.
-func New() (*State, error) {
+func New(devToken *string) (*State, error) {
 	onEvict := func(key string, viteContext ViteContext) {
 		if err := viteContext.Process.Kill(); err != nil {
 			logger.Error(fmt.Sprintf("could not shutdown existing vite process: %v", err))
@@ -121,7 +122,8 @@ func New() (*State, error) {
 		ViewConfigs:  NewStore[string, discover.ViewConfig](nil),
 		Debouncer:    NewDebouncer(),
 		ViteContexts: viteContextCache,
-		PortProxy:    network.ViewPortProxy(),
+		PortProxy:    network.ViewPortProxy(devToken),
+		DevToken:     devToken,
 		Logger:       logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
 		ServerStatus: status.ServerDiscovering,
 	}, nil

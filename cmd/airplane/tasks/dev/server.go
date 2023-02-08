@@ -57,6 +57,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 
 	localClientDevServerHost := ""
 	studioUIHost := ""
+	var serverHost string
 	var studioUIToken *string
 	var ln net.Listener
 	if cfg.tunnel {
@@ -83,6 +84,8 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		if err := cfg.root.Client.SetDevSecret(ctx, randString); err != nil {
 			return errors.Wrap(err, "setting dev token")
 		}
+
+		serverHost = studioUIHost
 	}
 
 	apiServer, port, err := server.Start(server.Options{
@@ -148,6 +151,11 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		sandboxState.Rebuild(ctx, bd, absoluteDir)
 	}
 
+	// The passed in --server-host always takes precedence.
+	if cfg.serverHost != "" {
+		serverHost = cfg.serverHost
+	}
+
 	apiServer.RegisterState(&state.State{
 		LocalClient:      &localClient,
 		RemoteClient:     cfg.root.Client,
@@ -161,7 +169,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		BundleDiscoverer: bd,
 		StudioURL:        *appURL,
 		SandboxState:     sandboxState,
-		ServerHost:       cfg.serverHost,
+		ServerHost:       serverHost,
 	})
 
 	stop := make(chan os.Signal, 1)

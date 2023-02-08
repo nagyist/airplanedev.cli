@@ -295,6 +295,11 @@ func getBuiltInTaskEnvVars(config LocalRunConfig) ([]string, error) {
 		return nil, errors.Wrap(err, "marshaling resources")
 	}
 	env = append(env, fmt.Sprintf("AIRPLANE_RESOURCES=%s", string(serialized)))
+
+	if config.TunnelToken != nil {
+		env = append(env, fmt.Sprintf("AIRPLANE_TUNNEL_TOKEN=%s", *config.TunnelToken))
+	}
+
 	return env, nil
 }
 

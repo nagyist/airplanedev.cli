@@ -72,6 +72,7 @@ type LocalRunConfig struct {
 	LocalClient    *api.Client
 	RemoteClient   api.APIClient
 	UseFallbackEnv bool
+	TunnelToken    *string
 
 	// Mapping from alias to resource
 	AliasToResource map[string]resources.Resource

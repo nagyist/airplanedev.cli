@@ -84,11 +84,22 @@ func NewRouter(state *state.State, opts RouterOptions) *mux.Router {
 	if opts.Token != nil {
 		r.Use(func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Header.Get("X-Airplane-Dev-Token") != *opts.Token {
-					w.WriteHeader(http.StatusUnauthorized)
+				// Requests to /dev/views are authenticated by the token in the path, since Vite does not support
+				// appending query parameters or headers to source paths.
+				if strings.HasPrefix(r.URL.Path, "/dev/views/") {
+					if _, err := network.VerifyDevViewPath(r.URL.Path, opts.Token); err == nil {
+						next.ServeHTTP(w, r)
+						return
+					}
+				}
+
+				if r.URL.Query().Get("__airplane_tunnel_token") == *opts.Token ||
+					r.Header.Get("X-Airplane-Dev-Token") == *opts.Token {
+					next.ServeHTTP(w, r)
 					return
 				}
-				next.ServeHTTP(w, r)
+
+				w.WriteHeader(http.StatusUnauthorized)
 			})
 		})
 	}
@@ -153,7 +164,7 @@ func newServer(router *mux.Router, state *state.State, opts Options) (*Server, e
 
 // Start starts and returns a new instance of the Airplane API server along with the port it is listening on.
 func Start(opts Options) (*Server, int, error) {
-	s, err := state.New()
+	s, err := state.New(opts.Token)
 	if err != nil {
 		return nil, 0, err
 	}

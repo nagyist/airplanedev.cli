@@ -47,32 +47,49 @@ func FindOpenPortFrom(prefix string, basePort, numAttempts int) (int, error) {
 	return 0, errors.Errorf("could not find an open port in %d attempts", numAttempts)
 }
 
+// VerifyDevViewPath verifies that the encoded token in the path matches the dev server token (if provided), and
+// returns the port that views are proxied to.
+func VerifyDevViewPath(path string, token *string) (int, error) {
+	// The components of the path should look like ["", "dev", "views", {port}, {token}, ...]
+	pathComponents := strings.Split(path, "/")
+	if token != nil {
+		if len(pathComponents) < 5 {
+			return 0, errors.New("request path is malformed, not of the form /dev/views/{port}/{token}...")
+		}
+
+		if pathComponents[4] != *token {
+			return 0, errors.New("request token does not match dev token")
+		}
+	} else if len(pathComponents) < 4 {
+		return 0, errors.New("request path is malformed, not of the form /dev/views/{port}...")
+	}
+
+	port, err := strconv.Atoi(pathComponents[3])
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to parse port")
+	}
+
+	return port, nil
+}
+
 // ViewPortProxy returns a reverse proxy that proxies requests with path beginning with /dev/views/{port} to the given
 // port.
-func ViewPortProxy() *httputil.ReverseProxy {
+func ViewPortProxy(devToken *string) *httputil.ReverseProxy {
 	director := func(req *http.Request) {
 		if req.URL == nil {
 			logger.Error("request URL is nil")
 			return
 		}
 
-		// We proxy requests of the form /dev/views/{port}/...
+		// We proxy requests of the form /dev/views/{port}/{token}/...
 		if !strings.HasPrefix(req.URL.Path, "/dev/views/") {
 			logger.Error("request path does not start with /dev/views/")
 			return
 		}
 
-		pathComponents := strings.Split(req.URL.Path, "/")
-		if len(pathComponents) < 4 {
-			logger.Error("request path is malformed, not of the form /dev/views/{port}/...")
-			return
-		}
-
-		// The components of the path should look like ["", "dev", "views", {port}, ...]
-		portComponent := pathComponents[3]
-		port, err := strconv.Atoi(portComponent)
+		port, err := VerifyDevViewPath(req.URL.Path, devToken)
 		if err != nil {
-			logger.Error("failed to parse port from path: %s", req.URL.Path)
+			logger.Error(err.Error())
 			return
 		}
 

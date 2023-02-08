@@ -105,6 +105,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			ParamValues:    req.ParamValues,
 			LocalClient:    state.LocalClient,
 			RemoteClient:   state.RemoteClient,
+			TunnelToken:    state.DevToken,
 			UseFallbackEnv: state.UseFallbackEnv,
 			Slug:           req.Slug,
 			ParentRunID:    pointers.String(parentID),
