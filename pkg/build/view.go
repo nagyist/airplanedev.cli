@@ -406,13 +406,14 @@ var viteConfigTemplateStr string
 var universalViteConfigTemplateStr string
 
 type ViteConfigOpts struct {
-	Port int
-	Root string
+	Port  int
+	Token *string
+	Root  string
 }
 
-func ViteConfigString(opts ViteConfigOpts) (string, error) {
+func BasePath(port int, token *string) string {
 	var base string
-	if opts.Port != 0 {
+	if port != 0 {
 		// If a port is specified, we are proxying requests to Vite. Additionally, in local dev, we embed views in an
 		// iframe, and Vite will by default request assets from the origin of the iframe. For example, if we are
 		// proxying from localhost:4000, and Vite requests main.tsx, it will request it from localhost:4000/main.tsx.
@@ -420,14 +421,25 @@ func ViteConfigString(opts ViteConfigOpts) (string, error) {
 		// properly forwarded to the Vite server (running on localhost:{port}). We can accomplish this by setting the
 		// base to /dev/views/{port}/, which prefixes all HTTP request paths with `base`. For more information, see
 		// https://vitejs.dev/config/server-options.html#server-base
-		base = fmt.Sprintf("/dev/views/%d/", opts.Port)
-	}
+		base = fmt.Sprintf("/dev/views/%d/", port)
 
+		// If a token is specified, we are proxying requests to Vite, and we are using a token to authenticate the
+		// request. The dev server has middleware that will verify the token, and then forward the request to Vite.
+		// Vite does not support appending query params or headers to requests, so we need to include the token in the
+		// base path. The resulting URL will be /dev/views/{port}/{token}/main.tsx.
+		if token != nil {
+			base = fmt.Sprintf("%s%s/", base, *token)
+		}
+	}
+	return base
+}
+
+func ViteConfigString(opts ViteConfigOpts) (string, error) {
 	return applyTemplate(viteConfigTemplateStr, struct {
 		Base string
 		Root string
 	}{
-		Base: base,
+		Base: BasePath(opts.Port, opts.Token),
 		Root: opts.Root,
 	})
 }
