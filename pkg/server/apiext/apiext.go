@@ -426,7 +426,7 @@ type CreateDisplayRequest struct {
 }
 
 type CreateDisplayResponse struct {
-	Display libapi.Display `json:"display"`
+	ID string `json:"id"`
 }
 
 func CreateDisplayHandler(ctx context.Context, state *state.State, r *http.Request, req CreateDisplayRequest) (CreateDisplayResponse, error) {
@@ -486,7 +486,7 @@ func CreateDisplayHandler(ctx context.Context, state *state.State, r *http.Reque
 	print.BoxPrintWithPrefix(content, prefix)
 
 	return CreateDisplayResponse{
-		Display: display,
+		ID: display.ID,
 	}, nil
 }
 
