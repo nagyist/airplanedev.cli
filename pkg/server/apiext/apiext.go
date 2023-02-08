@@ -13,6 +13,7 @@ import (
 	"github.com/airplanedev/cli/pkg/params"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/resources"
+	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/outputs"
 	"github.com/airplanedev/cli/pkg/server/state"
@@ -238,9 +239,17 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 					// If an error output isn't already set, set it here.
 					if outputs.V == nil {
 						outputs = api.Outputs{
-
 							V: ojson.NewObject().SetAndReturn("error", err.Error()),
 						}
+					}
+				}
+
+				// If the error is a signal killed error, the builtins binary is likely corrupt. Manually trigger a
+				// re-download of the builtins binary.
+				builtinErr := dev_errors.SignalKilled
+				if errors.As(err, &builtinErr) {
+					if err := state.Executor.Refresh(); err != nil {
+						logger.Debug("refreshing executor: %+v", err)
 					}
 				}
 			}

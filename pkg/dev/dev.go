@@ -36,6 +36,7 @@ import (
 // Executor is an interface that contains methods for executing task code.
 type Executor interface {
 	Execute(ctx context.Context, config LocalRunConfig) (api.Outputs, error)
+	Refresh() error
 }
 
 // LocalExecutor is an implementation of Executor that runs task code locally.
@@ -259,6 +260,18 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	logger.Log("%v Finished running task %s (runID=%s).", logger.Yellow(time.Now().Format(logger.TimeFormatNoDate)), logger.Bold(config.Slug), logger.Gray(config.ID))
 
 	return outputs, err
+}
+
+func (l *LocalExecutor) Refresh() error {
+	if l.BuiltinsClient != nil {
+		logger.Debug("Redownloading builtins binary")
+		_, err := l.BuiltinsClient.Download()
+		if err != nil {
+			return errors.Wrap(err, "downloading builtins binary")
+		}
+	}
+
+	return nil
 }
 
 func GetKindAndOptions(taskConfig discover.TaskConfig) (build.TaskKind, build.KindOptions, error) {
