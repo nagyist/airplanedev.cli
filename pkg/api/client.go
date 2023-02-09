@@ -164,6 +164,7 @@ type APIClient interface {
 	GetUser(ctx context.Context, userID string) (GetUserResponse, error)
 
 	GetTunnelToken(ctx context.Context) (GetTunnelTokenResponse, error)
+	CreateSandbox(ctx context.Context, req CreateSandboxRequest) (CreateSandboxResponse, error)
 }
 
 var _ APIClient = Client{}
@@ -716,6 +717,11 @@ func (c Client) SetDevSecret(ctx context.Context, token string) (err error) {
 	}, nil)
 }
 
+func (c Client) CreateSandbox(ctx context.Context, req CreateSandboxRequest) (res CreateSandboxResponse, err error) {
+	err = c.post(ctx, "/studio/createSandbox", req, &res)
+	return
+}
+
 func (c Client) headers() (map[string]string, error) {
 	headers := map[string]string{}
 	if c.Token != "" {
@@ -796,8 +802,8 @@ func (c Client) scheme() string {
 		return "https://"
 	}
 
-	// If the host didn't come with a scheme, force a "//" in front of it.
 	host := c.Host
+	// If the host didn't come with a scheme, force a "//" in front of it.
 	if !strings.HasPrefix(host, "http") {
 		host = fmt.Sprintf("//%s", host)
 	}

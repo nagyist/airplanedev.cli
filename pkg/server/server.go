@@ -46,12 +46,8 @@ var corsOrigins = []string{
 	`^http://127.0.0.1:`,
 }
 
-type RouterOptions struct {
-	Token *string
-}
-
 // NewRouter returns a new router for the local api server
-func NewRouter(state *state.State, opts RouterOptions) *mux.Router {
+func NewRouter(state *state.State, opts Options) *mux.Router {
 	r := mux.NewRouter()
 	r.Use(handlers.CORS(
 		handlers.AllowCredentials(),
@@ -81,7 +77,10 @@ func NewRouter(state *state.State, opts RouterOptions) *mux.Router {
 		}),
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
 	))
-	if opts.Token != nil {
+
+	// Only validate token if the user is running the dev server in tunnel mode. In sandbox mode, the token is
+	// validated upstream by the API server.
+	if opts.Token != nil && !opts.Sandbox {
 		r.Use(func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				// Requests to /dev/views are authenticated by the token in the path, since Vite does not support
@@ -114,8 +113,9 @@ func NewRouter(state *state.State, opts RouterOptions) *mux.Router {
 type Options struct {
 	// Port is the desired port to listen on. If 0, the first open port after 4000 will be used.
 	Port int
-	// Expose is used to bind the server to the default route (0.0.0.0) so that it can be accessed outside a container.
-	Expose bool
+	// Sandbox is used to configure sandbox-specific settings, such as binding the server to (0.0.0.0) so that it can be
+	// accessed outside a container.
+	Sandbox bool
 
 	// Optional listener that will be used in lieu of port/expose configuration. This is used for ngrok tunnels.
 	Listener net.Listener
@@ -148,7 +148,7 @@ func newServer(router *mux.Router, state *state.State, opts Options) (*Server, e
 			return nil, errors.Errorf("port %d is already in use - select a different port or remove the --port flag to automatically find an open port", opts.Port)
 		}
 
-		addr := network.LocalAddress(opts.Port, opts.Expose)
+		addr := network.LocalAddress(opts.Port, opts.Sandbox)
 		opts.Listener, err = net.Listen("tcp", addr)
 		if err != nil {
 			return nil, errors.Wrap(err, "listening on port")
@@ -169,7 +169,7 @@ func Start(opts Options) (*Server, int, error) {
 		return nil, 0, err
 	}
 
-	r := NewRouter(s, RouterOptions{Token: opts.Token})
+	r := NewRouter(s, opts)
 	apiServer, err := newServer(r, s, opts)
 	if err != nil {
 		return nil, 0, err

@@ -35,7 +35,7 @@ func TestEnvVarsCRUD(t *testing.T) {
 				},
 				Path: path,
 			},
-		}, server.RouterOptions{}),
+		}, server.Options{}),
 	)
 
 	// Test listing
@@ -125,7 +125,7 @@ func TestEnvVarsInvalidName(t *testing.T) {
 				EnvVars: map[string]string{},
 				Path:    path,
 			},
-		}, server.RouterOptions{}),
+		}, server.Options{}),
 	)
 
 	// Test bad update

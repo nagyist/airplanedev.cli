@@ -50,6 +50,8 @@ type taskDevConfig struct {
 	sandbox          bool
 	tunnel           bool
 	serverHost       string
+	namespace        string
+	key              string
 }
 
 func New(c *cli.Config) *cobra.Command {
@@ -152,6 +154,9 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().BoolVar(&cfg.sandbox, "sandbox", false, "Run the Studio in a sandbox context (i.e. non-interactive, remote)")
 	cmd.Flags().BoolVar(&cfg.tunnel, "tunnel", false, "Run the Studio with an ngrok tunnel")
 	cmd.Flags().StringVar(&cfg.serverHost, "server-host", "", "Set the host from which the Studio should be accessed")
+	// Namespace and key allow the Studio to get the token for the appropriate sandbox machine.
+	cmd.Flags().StringVar(&cfg.namespace, "namespace", "", "The namespace when running the Studio in sandbox mode.")
+	cmd.Flags().StringVar(&cfg.key, "key", "", "The namespace-specific key when running the Studio in sandbox mode")
 	if err := cmd.Flags().MarkHidden("sandbox"); err != nil {
 		logger.Debug("marking --sandbox as hidden: %v", err)
 	}
@@ -160,6 +165,12 @@ func New(c *cli.Config) *cobra.Command {
 	}
 	if err := cmd.Flags().MarkHidden("server-host"); err != nil {
 		logger.Debug("marking --server-host as hidden: %v", err)
+	}
+	if err := cmd.Flags().MarkHidden("namespace"); err != nil {
+		logger.Debug("marking --namespace as hidden: %v", err)
+	}
+	if err := cmd.Flags().MarkHidden("key"); err != nil {
+		logger.Debug("marking --key as hidden: %v", err)
 	}
 	if err := cmd.Flags().MarkDeprecated("editor", "launching the Studio is now the default behavior."); err != nil {
 		logger.Debug("marking --editor as deprecated: %s", err)
