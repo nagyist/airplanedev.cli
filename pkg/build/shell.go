@@ -58,7 +58,7 @@ func shellBundle(root string) (string, error) {
 		WORKDIR {{.Workdir}}
 		RUN mkdir -p .airplane && {{.InlineShim}} > .airplane/shim.sh
 
-		COPY --chmod=700 . .
+		COPY --chmod=755 . .
 		# Set an empty entrypoint to override any entrypoints that may be set in the base image.
 		ENTRYPOINT []
 	`)
