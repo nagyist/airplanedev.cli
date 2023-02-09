@@ -931,75 +931,73 @@ func TestNodeBundleBuilder(t *testing.T) {
 				},
 			},
 		},
-		// TODO: disabled temporarily due to live issue
-		// {
-		// 	Root: "typescript/workflowbundle",
-		// 	Options: KindOptions{
-		// 		"shim":    "true",
-		// 		"runtime": TaskRuntimeWorkflow,
-		// 	},
-		// 	Bundle: true,
-		// 	Target: "workflow-build",
-		// 	BuildContext: BuildContext{
-		// 		Type:    NodeBuildType,
-		// 		Version: BuildTypeVersionNode18,
-		// 	},
-		// 	FilesToDiscover: []string{
-		// 		"workflow.airplane.ts",
-		// 		"nested/nested.airplane.ts",
-		// 	},
-		// 	FilesToBuild: []string{
-		// 		"workflow.airplane.ts",
-		// 		"nested/nested.airplane.ts",
-		// 	},
-		// },
+		{
+			Root: "typescript/workflowbundle",
+			Options: KindOptions{
+				"shim":    "true",
+				"runtime": TaskRuntimeWorkflow,
+			},
+			Bundle: true,
+			Target: "workflow-build",
+			BuildContext: BuildContext{
+				Type:    NodeBuildType,
+				Version: BuildTypeVersionNode18,
+			},
+			FilesToDiscover: []string{
+				"workflow.airplane.ts",
+				"nested/nested.airplane.ts",
+			},
+			FilesToBuild: []string{
+				"workflow.airplane.ts",
+				"nested/nested.airplane.ts",
+			},
+		},
 	}
 
 	RunTests(t, ctx, tests)
 }
 
-// TODO: disabled temporarily due to live issue
-// func TestNodeWorkflowBuilder(t *testing.T) {
-// 	ctx := context.Background()
+func TestNodeWorkflowBuilder(t *testing.T) {
+	ctx := context.Background()
 
-// 	tests := []Test{
-// 		{
-// 			Root: "javascript/workflow",
-// 			Kind: TaskKindNode,
-// 			Options: KindOptions{
-// 				"shim":       "true",
-// 				"entrypoint": "main.js",
-// 				"runtime":    TaskRuntimeWorkflow,
-// 			},
-// 			SkipRun: true,
-// 		},
-// 		{
-// 			Root: "javascript/workflowslim",
-// 			Kind: TaskKindNode,
-// 			Options: KindOptions{
-// 				"shim":       "true",
-// 				"entrypoint": "main.js",
-// 				"runtime":    TaskRuntimeWorkflow,
-// 				"base":       BuildBaseSlim,
-// 			},
-// 			SkipRun: true,
-// 		},
-// 		// Test is failing in CI. We should fix this.
-// 		// {
-// 		// 	Root: "javascript/workflowbadimport",
-// 		// 	Kind: TaskKindNode,
-// 		// 	Options: KindOptions{
-// 		// 		"shim":       "true",
-// 		// 		"entrypoint": "main.js",
-// 		// 		"runtime":    TaskRuntimeWorkflow,
-// 		// 	},
-// 		// 	ExpectedError: true,
-// 		// 	SkipRun:       true,
-// 		// },
-// 	}
+	tests := []Test{
+		{
+			Root: "javascript/workflow",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "main.js",
+				"runtime":    TaskRuntimeWorkflow,
+			},
+			SkipRun: true,
+		},
+		{
+			Root: "javascript/workflowslim",
+			Kind: TaskKindNode,
+			Options: KindOptions{
+				"shim":       "true",
+				"entrypoint": "main.js",
+				"runtime":    TaskRuntimeWorkflow,
+				"base":       BuildBaseSlim,
+			},
+			SkipRun: true,
+		},
+		// Test is failing in CI. We should fix this.
+		// {
+		// 	Root: "javascript/workflowbadimport",
+		// 	Kind: TaskKindNode,
+		// 	Options: KindOptions{
+		// 		"shim":       "true",
+		// 		"entrypoint": "main.js",
+		// 		"runtime":    TaskRuntimeWorkflow,
+		// 	},
+		// 	ExpectedError: true,
+		// 	SkipRun:       true,
+		// },
+	}
 
-// 	RunTests(t, ctx, tests)
-// }
+	RunTests(t, ctx, tests)
+}
 
 func TestGenShimPackageJSON(t *testing.T) {
 	var buildToolsPackageJSON PackageJSON
