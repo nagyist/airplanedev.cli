@@ -679,18 +679,21 @@ func GenShimPackageJSON(rootDir string, packageJSONs []string, isWorkflow, isBun
 			},
 		}
 	}
-	if isBundle {
-		pjson.Dependencies["esbuild"] = buildToolsPackageJSON.Dependencies["esbuild"]
-		pjson.Dependencies["esbuild-plugin-tsc"] = buildToolsPackageJSON.Dependencies["esbuild-plugin-tsc"]
-		pjson.Dependencies["typescript"] = buildToolsPackageJSON.Dependencies["typescript"]
-		pjson.Dependencies["jsdom"] = buildToolsPackageJSON.Dependencies["jsdom"]
-	}
 
 	// Allow users to override any shim dependencies. Given shim code is bundled
 	// with user code, we cannot use separate versions of these dependencies so
 	// default to whichever version the user requests.
 	for dep := range deps {
 		delete(pjson.Dependencies, dep)
+	}
+
+	// These dependencies must be included in order to build the universal task shim. We do not install user
+	// dependencies before building the shim in bundle builds, so we include them here.
+	if isBundle {
+		pjson.Dependencies["esbuild"] = getLockPackageVersion(rootDir, "esbuild", buildToolsPackageJSON.Dependencies["esbuild"])
+		pjson.Dependencies["esbuild-plugin-tsc"] = getLockPackageVersion(rootDir, "esbuild-plugin-tsc", buildToolsPackageJSON.Dependencies["esbuild-plugin-tsc"])
+		pjson.Dependencies["typescript"] = getLockPackageVersion(rootDir, "typescript", buildToolsPackageJSON.Dependencies["typescript"])
+		pjson.Dependencies["jsdom"] = getLockPackageVersion(rootDir, "jsdom", buildToolsPackageJSON.Dependencies["jsdom"])
 	}
 
 	// Always keep the versions of airplane and @airplane/workflow-runtime in sync, unless the task's dependencies

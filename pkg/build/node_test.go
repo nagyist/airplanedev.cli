@@ -1023,7 +1023,7 @@ func TestGenShimPackageJSON(t *testing.T) {
 			},
 		},
 		{
-			desc:        "Yarn workspace with no shim dependencies bundle",
+			desc:        "Yarn workspace with no bundle shim dependencies",
 			packageJSON: "typescript/yarnworkspacesnoairplane/package.json",
 			isWorkflow:  true,
 			isBundle:    true,
@@ -1034,6 +1034,22 @@ func TestGenShimPackageJSON(t *testing.T) {
 					"esbuild":                    buildToolsPackageJSON.Dependencies["esbuild"],
 					"jsdom":                      buildToolsPackageJSON.Dependencies["jsdom"],
 					"typescript":                 buildToolsPackageJSON.Dependencies["typescript"],
+					"esbuild-plugin-tsc":         buildToolsPackageJSON.Dependencies["esbuild-plugin-tsc"],
+				},
+			},
+		},
+		{
+			desc:        "Yarn workspace with shim dependencies bundle",
+			packageJSON: "typescript/yarnworkspacesbundleshimdeps/package.json",
+			isWorkflow:  true,
+			isBundle:    true,
+			expectedShimPackageJSON: shimPackageJSON{
+				Dependencies: map[string]string{
+					"airplane":                   buildToolsPackageJSON.Dependencies["airplane"],
+					"@airplane/workflow-runtime": buildToolsPackageJSON.Dependencies["@airplane/workflow-runtime"],
+					"esbuild":                    buildToolsPackageJSON.Dependencies["esbuild"],
+					"jsdom":                      buildToolsPackageJSON.Dependencies["jsdom"],
+					"typescript":                 "4.8.2",
 					"esbuild-plugin-tsc":         buildToolsPackageJSON.Dependencies["esbuild-plugin-tsc"],
 				},
 			},

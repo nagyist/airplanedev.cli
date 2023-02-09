@@ -1,0 +1,10 @@
+{
+  "name": "pkg1",
+  "version": "1.0.0",
+  "airplane": {
+    "root": ".."
+  },
+  "dependencies": {
+    "typescript": "4.8.2"
+  }
+}
