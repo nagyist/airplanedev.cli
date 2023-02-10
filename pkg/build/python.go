@@ -10,7 +10,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/MakeNowJust/heredoc"
+	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/discover/parser"
 	"github.com/airplanedev/lib/pkg/utils/fsx"

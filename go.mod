@@ -134,7 +134,7 @@ require (
 )
 
 require (
-	github.com/MakeNowJust/heredoc v1.0.0
+	github.com/MakeNowJust/heredoc/v2 v2.0.1
 	github.com/airplanedev/dlog v0.0.0-20210615011719-ca8d3becde5e
 	github.com/docker/docker v23.0.0-rc.1+incompatible
 	github.com/mattn/go-isatty v0.0.17

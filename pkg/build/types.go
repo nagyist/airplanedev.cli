@@ -3,7 +3,7 @@ package build
 import (
 	"fmt"
 
-	"github.com/MakeNowJust/heredoc"
+	"github.com/MakeNowJust/heredoc/v2"
 	"golang.org/x/exp/slices"
 )
 
