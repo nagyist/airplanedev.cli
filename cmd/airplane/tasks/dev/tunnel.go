@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/utils"
@@ -29,6 +30,12 @@ func configureTunnel(ctx context.Context, client *api.Client, authInfo api.AuthI
 		ngrok.WithAuthtoken(tokenResp.Token),
 		ngrok.WithRegion("us"),
 	); err != nil {
+		if strings.Contains(err.Error(), "is already bound to another tunnel session") {
+			// This is a heuristic since we don't have direct exposure to the ngrok error object (where
+			// we could check the error code). Further, the error code is wrong according to their
+			// documentation.
+			return nil, "", nil, errors.New("Tunnel already bound, do you have another studio session running?")
+		}
 		return nil, "", nil, errors.Wrap(err, "failed to start tunnel")
 	}
 
