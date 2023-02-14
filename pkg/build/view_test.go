@@ -88,6 +88,25 @@ func TestViewBundleBuilder(t *testing.T) {
 				"src/nested/App.view.tsx",
 			},
 		},
+		{
+			Root: "view/css",
+			Kind: "view",
+			Options: KindOptions{
+				"apiHost": "https://api:5000",
+			},
+			SkipRun: true,
+			Bundle:  true,
+			BuildContext: BuildContext{
+				Type:    ViewBuildType,
+				Version: BuildTypeVersionUnspecified,
+			},
+			FilesToBuild: []string{
+				"myView.airplane.tsx",
+			},
+			FilesToDiscover: []string{
+				"myView.airplane.tsx",
+			},
+		},
 	}
 
 	RunTests(t, ctx, tests)

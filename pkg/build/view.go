@@ -218,33 +218,19 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		packageJSONMap = packageJSON.(map[string]interface{})
 	}
 
-	packagesToCheck := []string{"vite", "@vitejs/plugin-react", "react", "react-dom", "@airplane/views"}
-	packagesToAdd := []string{}
-	deps, depsOk := packageJSONMap["dependencies"].(map[string]interface{})
-	devDeps, devDepsOk := packageJSONMap["devDependencies"].(map[string]interface{})
-	for _, pkg := range packagesToCheck {
-		hasPackage := false
-		if depsOk {
-			if _, ok := deps[pkg]; ok {
-				hasPackage = true
-			}
-		}
-		if devDepsOk {
-			if _, ok := devDeps[pkg]; ok {
-				hasPackage = true
-			}
-		}
-		if !hasPackage {
-			packagesToAdd = append(packagesToAdd, pkg)
-		}
+	packagesToAdd, err := getRequiredViewsDependencies([]string{packageJSONPath})
+	if err != nil {
+		return "", err
 	}
 	if len(packagesToAdd) > 0 {
+		// Add required views dependencies to the root package.json.
+		deps, depsOk := packageJSONMap["dependencies"].(map[string]interface{})
 		if !depsOk {
 			packageJSONMap["dependencies"] = map[string]interface{}{}
 			deps = packageJSONMap["dependencies"].(map[string]interface{})
 		}
-		for _, pkg := range packagesToAdd {
-			deps[pkg] = "*"
+		for pkg, version := range packagesToAdd {
+			deps[pkg] = version
 		}
 	}
 
@@ -259,10 +245,11 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 	if err != nil {
 		return "", err
 	}
-	var esbuildFlags []string
+	var flags []string
 	for _, dep := range externalPackages {
-		esbuildFlags = append(esbuildFlags, fmt.Sprintf("--external:%s", dep))
+		flags = append(flags, fmt.Sprintf(`"%s"`, dep))
 	}
+	esbuildFlags := strings.Join(flags, ", ")
 
 	directoryToBuildTo := ".airplane"
 
@@ -275,6 +262,12 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 			filepath.Join("/airplane", directoryToBuildTo, strings.TrimSuffix(fileToDiscover, fileToDiscoverExt)+".js"))
 	}
 
+	var buildEntrypoints []string
+	for _, fileToBuild := range filesToBuild {
+		buildEntrypoints = append(buildEntrypoints, fmt.Sprintf(`"%s"`, fileToBuild))
+	}
+	esbuildFilesToBuild := strings.Join(buildEntrypoints, ", ")
+
 	// Add build tools.
 	buildToolsPath := path.Join(root, ".airplane-build-tools")
 	if err := os.MkdirAll(buildToolsPath, 0755); err != nil {
@@ -283,6 +276,9 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 
 	if err := os.WriteFile(path.Join(buildToolsPath, "gen_view.sh"), []byte(genViewStr), 0755); err != nil {
 		return "", errors.Wrap(err, "writing gen view script")
+	}
+	if err := os.WriteFile(path.Join(buildToolsPath, "esbuild.js"), []byte(Esbuild), 0755); err != nil {
+		return "", errors.Wrap(err, "writing esbuild script")
 	}
 
 	var buildToolsPackageJSON PackageJSON
@@ -316,7 +312,6 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		UseSlimImage                 bool
 		HasTailwind                  bool
 		InlinePostcssConfig          string
-		EsbuildVersion               string
 	}{
 		Base: base,
 		// Because the install command is running in the context of a docker build, the yarn cache
@@ -330,8 +325,8 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		InlineViteConfig:             inlineString(viteConfigStr),
 		APIHost:                      apiHost,
 		InlinePackageJSON:            inlineString(string(packageJSONByte)),
-		EsbuildFlags:                 strings.Join(esbuildFlags, " "),
-		FilesToBuild:                 strings.Join(filesToBuild, " "),
+		EsbuildFlags:                 esbuildFlags,
+		FilesToBuild:                 esbuildFilesToBuild,
 		FilesToBuildWithoutExtension: strings.Join(filesToBuildWithoutExtension, " "),
 		FilesToDiscover:              strings.Join(discoverEntrypoints, " "),
 		DirectoryToBuildTo:           directoryToBuildTo,
@@ -339,7 +334,6 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		UseSlimImage:                 useSlimImage,
 		HasTailwind:                  hasTailwind,
 		InlinePostcssConfig:          inlineString(postcssConfigStr),
-		EsbuildVersion:               buildToolsPackageJSON.Dependencies["esbuild"],
 	}
 
 	return applyTemplate(heredoc.Doc(`
@@ -357,7 +351,6 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 
 		# Copy build tools.
 		COPY .airplane-build-tools .airplane-build-tools/
-		RUN npm install -g esbuild@{{.EsbuildVersion}} --unsafe-perm
 
 		# Support setting BUILD_NPM_RC or BUILD_NPM_TOKEN to configure private registry auth
 		ARG BUILD_NPM_RC
@@ -377,13 +370,15 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 
 		{{if .FilesToDiscover}}
 		# Build and discover inline views.
-		RUN cd src && esbuild {{.FilesToBuild}} \
-			--bundle \
-			--platform=node {{.EsbuildFlags}} \
-			--target=node{{.NodeVersion}} \
-			--outdir=/airplane/{{.DirectoryToBuildTo}} \
-			--outbase=/airplane/src
-		RUN node .airplane-build-tools/inlineParser.js {{.FilesToDiscover}}
+		RUN cd src && node .airplane-build-tools/esbuild.js \
+			'[{{.FilesToBuild}}]' \
+			node{{.NodeVersion}} \
+			'[{{.EsbuildFlags}}]' \
+			"" \
+			/airplane/{{.DirectoryToBuildTo}} \
+			/airplane/src \
+			true
+		RUN node /airplane/.airplane-build-tools/inlineParser.js {{.FilesToDiscover}}
 		{{end}}
 
 		# Generate index.html and main.tsx for each entrypoint.
@@ -397,6 +392,36 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		FROM scratch
 		COPY --from=builder /airplane/{{.OutDir}}/ .
 	`), cfg)
+}
+
+// getRequiredViewsDependencies gets dependencies that required to build and run a view.
+func getRequiredViewsDependencies(packageJSONs []string) (map[string]string, error) {
+	deps, err := ListDependenciesFromPackageJSONs(packageJSONs)
+	if err != nil {
+		return nil, err
+	}
+
+	var buildToolsPackageJSON PackageJSON
+	if err := json.Unmarshal([]byte(BuildToolsPackageJSON), &buildToolsPackageJSON); err != nil {
+		return nil, errors.Wrap(err, "unmarshaling build tools package.json")
+	}
+
+	requiredDeps := []string{"@airplane/views", "react", "react-dom", "vite", "esbuild", "@vitejs/plugin-react"}
+	requiredDepsMap := make(map[string]string, len(requiredDeps))
+	for _, de := range requiredDeps {
+		requiredDepsMap[de] = buildToolsPackageJSON.Dependencies[de]
+	}
+
+	// Allow users to override dependencies.
+	// TODO: don't do this. We want to install our own versions of "toolchain"
+	// dependencies (esbuild, vite, etc) to ensure they're compatible with our
+	// build system. We're doing this for now because we add these deps to the
+	// user's package.json rather than creating a higher package.json.
+	for dep := range deps {
+		delete(requiredDepsMap, dep)
+	}
+
+	return requiredDepsMap, nil
 }
 
 //go:embed views/vite.config.ts

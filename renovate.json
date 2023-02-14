@@ -12,12 +12,8 @@
   ],
   "packageRules": [
     {
-      "matchPackageNames": ["jsdom"],
-      "schedule": ["before 5am on the first Thursday of the month"]
-    },
-    {
-      "matchPackageNames": ["typescript"],
-      "schedule": ["before 5am on the first Thursday of the month"]
+      "matchPackageNames": ["jsdom", "typescript", "react", "react-dom"],
+      "schedule": ["every 2 months on the first day of the month"]
     }
   ]
 }

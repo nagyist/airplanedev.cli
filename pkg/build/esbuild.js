@@ -1,7 +1,5 @@
 const esbuild = require("esbuild");
-const esbuildPluginTsc = require("esbuild-plugin-tsc");
 const fs = require("fs");
-const typescript = require("typescript");
 
 const jsdomPatch = {
   name: "jsdom-patch",
@@ -41,16 +39,24 @@ const external = JSON.parse(process.argv[4]);
 const outfile = process.argv[5] || undefined;
 const outdir = process.argv[6] || undefined;
 const outbase = process.argv[7] || undefined;
-
-const tsconfigFile = typescript.findConfigFile(
-  process.cwd(),
-  typescript.sys.fileExists,
-  "tsconfig.json"
-);
+const isView = process.argv[8] || false;
 
 const plugins = [jsdomPatch, removeCSS];
-if (tsconfigFile) {
-  plugins.push(esbuildPluginTsc({ tsconfigPath: tsconfigFile }));
+if (!isView) {
+  // Add the esbuild-plugin-tsc plugin if a tsconfig.json file exists.
+  // This supports more advanced TypeScript features that esbuild doesn't
+  // support out of the box.
+  const typescript = require("typescript");
+  const tsconfigFile = typescript.findConfigFile(
+    process.cwd(),
+    typescript.sys.fileExists,
+    "tsconfig.json"
+  );
+
+  if (tsconfigFile) {
+    const esbuildPluginTsc = require("esbuild-plugin-tsc");
+    plugins.push(esbuildPluginTsc({ tsconfigPath: tsconfigFile }));
+  }
 }
 
 esbuild
