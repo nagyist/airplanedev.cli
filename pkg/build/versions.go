@@ -8,11 +8,14 @@ import (
 )
 
 // If you change the versions in this file, make sure to:
+//
 //  1. Update the digest to match. The tags are just a convenience to note
-//     which version the digest correlates to without consulting DockerHub.
-//  2. Manually push the new base images into the public cache in the
-//     Airplane Registry. See Slab:
-//     https://airplane.slab.com/posts/publishing-to-the-public-cache-registry-8bzwq93d
+//     which version the digest correlates to without consulting DockerHub. The
+//     digest should be for the multi-platform version of the image- run
+//     'docker buildx imagetools inspect [uri]' to get the digest. Note that this is
+//     different from the (single platform) digest that is shown in the Dockerhub UI
+//     or that you see when pulling the image locally.
+//  2. Run the copy_cache_images.py script to update the images in our public cache.
 //  3. Alpine-based images will not work with shim-based builders, but it's
 //     a straightforward change if we end up wanting it (different echo
 //     semantics than debian-based images). These base images are cached on
