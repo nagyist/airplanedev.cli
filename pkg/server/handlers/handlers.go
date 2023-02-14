@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 	"unicode"
 
 	"github.com/airplanedev/cli/pkg/analytics"
+	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/state"
 	libhttp "github.com/airplanedev/lib/pkg/api/http"
+	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
 )
 
@@ -18,6 +21,14 @@ import (
 // will be written to the HTTP response using WriteHTTPError.
 func Wrap(f func(ctx context.Context, w http.ResponseWriter, r *http.Request) error) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				logger.Debug("Panic detected: %v", err)
+				sentry.CurrentHub().Recover(err)
+				sentry.Flush(time.Second * 5)
+			}
+		}()
+
 		if err := f(r.Context(), w, r); err != nil {
 			WriteHTTPError(w, r, err, analytics.ReportError)
 			return

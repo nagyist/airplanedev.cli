@@ -7,6 +7,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/server/state"
+	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/maps"
 )
@@ -71,6 +72,10 @@ func MergeRemoteConfigs(ctx context.Context, state *state.State) (map[string]env
 }
 
 func ListRemoteConfigs(ctx context.Context, state *state.State) ([]api.Config, error) {
+	if state.RemoteClient == nil {
+		return nil, libhttp.NewErrBadRequest("no remote client, dev server is likely not ready yet")
+	}
+
 	resp, err := state.RemoteClient.ListConfigs(ctx, api.ListConfigsRequest{
 		EnvSlug: state.RemoteEnv.Slug,
 	})

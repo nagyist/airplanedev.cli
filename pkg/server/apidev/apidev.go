@@ -97,10 +97,15 @@ func GetInfoHandler(ctx context.Context, s *state.State, r *http.Request) (Studi
 		fallbackEnv = &s.RemoteEnv
 	}
 
-	host := strings.Replace(s.LocalClient.Host, "127.0.0.1", "localhost", 1)
+	var host string
+	if s.LocalClient != nil {
+		host = strings.Replace(s.LocalClient.Host, "127.0.0.1", "localhost", 1)
+	}
+
 	if s.ServerHost != "" {
 		host = s.ServerHost
 	}
+
 	info := StudioInfo{
 		Workspace:    s.Dir,
 		DefaultEnv:   env.NewLocalEnv(),

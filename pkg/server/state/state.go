@@ -126,6 +126,7 @@ func New(devToken *string) (*State, error) {
 		DevToken:     devToken,
 		Logger:       logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
 		ServerStatus: status.ServerDiscovering,
+		DevConfig:    conf.NewDevConfig(""), // Set dev config to a zero value initially.
 	}, nil
 }
 
