@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"io"
@@ -14,6 +15,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/pkg/errors"
+)
+
+const (
+	// Minimum size in bytes of a request body to do gzip compression. This
+	// is the same threshold that is used by the klauspost/compress library in
+	// the API when deciding whether to gzip request responses.
+	compressionSizeThreshold = 1024
 )
 
 // RequiredHeaders are HTTP headers that must be set on every HTTP request.
@@ -312,6 +320,29 @@ func (c Client) doJSON(ctx context.Context, method string, url string, req []byt
 }
 
 func (c Client) do(ctx context.Context, method string, url string, req []byte, opts ReqOpts) ([]byte, http.Header, error) {
+	contentEncoding := c.opts.Headers["Content-Encoding"]
+	if c := opts.Headers["Content-Encoding"]; c != "" {
+		contentEncoding = c
+	}
+
+	// Compress the body if the request is big enough and there isn't already a
+	// Content-Encoding set in the client or on the request (meaning that data compression
+	// happened elsewhere).
+	if len(req) >= compressionSizeThreshold && contentEncoding == "" {
+		var err error
+
+		// Gzip compress the body
+		req, err = gzipBytes(req)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if opts.Headers == nil {
+			opts.Headers = map[string]string{}
+		}
+		opts.Headers["Content-Encoding"] = "gzip"
+	}
+
 	httpreq, err := retryablehttp.NewRequestWithContext(ctx, method, url, req)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "initializing HTTP request")
@@ -433,4 +464,17 @@ func validateUserAgent(header string) error {
 	}
 
 	return nil
+}
+
+func gzipBytes(input []byte) ([]byte, error) {
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	_, err := zw.Write(input)
+	if err != nil {
+		return nil, errors.Wrap(err, "writing gzip")
+	}
+	if err := zw.Close(); err != nil {
+		return nil, errors.Wrap(err, "closing gzip writer")
+	}
+	return buf.Bytes(), nil
 }

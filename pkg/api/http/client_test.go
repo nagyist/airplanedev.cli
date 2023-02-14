@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -120,6 +121,82 @@ func TestClientPost(t *testing.T) {
 		},
 		UserAgent: "airplane/test/1",
 	})
+	require.NoError(err)
+	require.Equal("OK", string(body))
+}
+
+func TestClientPostGZipLargeRequest(t *testing.T) {
+	require := require.New(t)
+	ctx := context.Background()
+
+	reqBody := []byte{}
+	for i := 0; i < 2000; i++ {
+		reqBody = append(reqBody, []byte(fmt.Sprintf("item %d", i))...)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		require.Equal("POST", req.Method)
+		body, err := io.ReadAll(req.Body)
+		require.NoError(err)
+
+		gzippedBody, err := gzipBytes(reqBody)
+		require.NoError(err)
+		require.Equal(gzippedBody, body)
+
+		require.Equal(req.Header.Get("Content-Encoding"), "gzip")
+		require.Equal("/foobar", req.URL.String())
+		_, _ = rw.Write([]byte(`OK`))
+	}))
+	defer server.Close()
+
+	client := NewClient(ClientOpts{
+		Headers:   requiredHeaderValues,
+		UserAgent: "airplane/test/1",
+	})
+	body, err := client.Post(
+		ctx,
+		server.URL+"/foobar",
+		reqBody,
+		ReqOpts{},
+	)
+	require.NoError(err)
+	require.Equal("OK", string(body))
+}
+
+func TestClientPostLargeRequestPreEncoded(t *testing.T) {
+	require := require.New(t)
+	ctx := context.Background()
+
+	reqBody := []byte{}
+	for i := 0; i < 2000; i++ {
+		reqBody = append(reqBody, []byte(fmt.Sprintf("item %d", i))...)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		require.Equal("POST", req.Method)
+		body, err := io.ReadAll(req.Body)
+		require.NoError(err)
+		require.Equal(reqBody, body)
+		require.Equal(req.Header.Get("Content-Encoding"), "unknown")
+		require.Equal("/foobar", req.URL.String())
+		_, _ = rw.Write([]byte(`OK`))
+	}))
+	defer server.Close()
+
+	client := NewClient(ClientOpts{
+		Headers: map[string]string{
+			"X-Airplane-Client-Kind":    "test",
+			"X-Airplane-Client-Version": "1",
+			"Content-Encoding":          "unknown",
+		},
+		UserAgent: "airplane/test/1",
+	})
+	body, err := client.Post(
+		ctx,
+		server.URL+"/foobar",
+		reqBody,
+		ReqOpts{},
+	)
 	require.NoError(err)
 	require.Equal("OK", string(body))
 }
