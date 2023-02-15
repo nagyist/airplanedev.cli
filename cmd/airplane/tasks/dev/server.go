@@ -22,8 +22,6 @@ import (
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
-	"golang.ngrok.com/ngrok"
-	"golang.ngrok.com/ngrok/config"
 )
 
 func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
@@ -55,58 +53,52 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		return errors.Wrap(err, "getting absolute directory of dev server root")
 	}
 
-	localClientDevServerHost := ""
-	studioUIHost := ""
-	var studioUIToken *string
+	serverHost := ""
+	var devToken *string
 	var ln net.Listener
-	if cfg.tunnel {
-		// Obtain user-specific ngrok auth token.
-		tokenResp, err := cfg.root.Client.GetTunnelToken(ctx)
-		if err != nil {
-			return errors.Wrap(err, "unable to acquire tunnel token")
-		}
+	localClientOpts := api.ClientOpts{
+		Token:  cfg.root.Client.Token,
+		Source: cfg.root.Client.Source,
+		APIKey: cfg.root.Client.APIKey,
+		TeamID: cfg.root.Client.TeamID,
+	}
 
-		randString := utils.RandomString(20, utils.CharsetAlphaNumeric)
-		studioUIToken = &randString
-		localClientDevServerHost = fmt.Sprintf("%s.t.airplane.sh", authInfo.User.ID)
-		ln, err = ngrok.Listen(ctx,
-			config.HTTPEndpoint(
-				config.WithDomain(localClientDevServerHost),
-			),
-			ngrok.WithAuthtoken(tokenResp.Token),
-		)
+	if cfg.tunnel {
+		var subdomain string
+		devToken, subdomain, ln, err = configureTunnel(ctx, cfg.root.Client, authInfo)
 		if err != nil {
-			return errors.Wrap(err, "failed to start tunnel")
+			return err
 		}
-		studioUIHost = fmt.Sprintf("https://%s", localClientDevServerHost)
-		if err := cfg.root.Client.SetDevSecret(ctx, randString); err != nil {
-			return errors.Wrap(err, "setting dev token")
+		localClientOpts.TunnelToken = devToken
+		localClientOpts.Host = subdomain
+		serverHost = fmt.Sprintf("https://%s", subdomain)
+	} else if cfg.sandbox {
+		devToken, err = configureSandbox(ctx, cfg.root.Client, cfg.namespace, cfg.key)
+		if err != nil {
+			return err
 		}
 	}
 
 	apiServer, port, err := server.Start(server.Options{
 		Port:     cfg.port,
-		Expose:   cfg.sandbox,
+		Sandbox:  cfg.sandbox,
 		Listener: ln,
-		Token:    studioUIToken,
+		Token:    devToken,
 	})
 	if err != nil {
 		return errors.Wrap(err, "starting local dev server")
 	}
 
-	if !cfg.tunnel {
-		localClientDevServerHost = fmt.Sprintf("127.0.0.1:%d", port)
-		studioUIHost = fmt.Sprintf("http://localhost:%d", port)
+	// The passed in --server-host always takes precedence.
+	if cfg.serverHost != "" {
+		serverHost = cfg.serverHost
 	}
 
-	localClient := api.NewClient(api.ClientOpts{
-		Host:        localClientDevServerHost,
-		Token:       cfg.root.Client.Token,
-		TunnelToken: studioUIToken,
-		Source:      cfg.root.Client.Source,
-		APIKey:      cfg.root.Client.APIKey,
-		TeamID:      cfg.root.Client.TeamID,
-	})
+	if localClientOpts.Host == "" {
+		localClientOpts.Host = fmt.Sprintf("127.0.0.1:%d", port)
+	}
+
+	localClient := api.NewClient(localClientOpts)
 
 	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{})
 	// Discover local tasks and views in the directory of the file.
@@ -160,7 +152,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		BundleDiscoverer: bd,
 		StudioURL:        *appURL,
 		SandboxState:     sandboxState,
-		ServerHost:       cfg.serverHost,
+		ServerHost:       serverHost,
 	})
 
 	stop := make(chan os.Signal, 1)
@@ -242,13 +234,13 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		defer fileWatcher.Stop()
 	}
 
-	// The --server-host flag takes precedence over the tunnel and local hosts.
-	if cfg.serverHost != "" {
-		studioUIHost = cfg.serverHost
+	logger.Log("")
+	studioHost := serverHost
+	if studioHost == "" {
+		studioHost = fmt.Sprintf("http://localhost:%d", port)
 	}
 
-	logger.Log("")
-	studioURL := fmt.Sprintf("%s/studio?__airplane_host=%s&__env=%s", appURL, studioUIHost, remoteEnv.Slug)
+	studioURL := fmt.Sprintf("%s/studio?__airplane_host=%s&__env=%s", appURL, studioHost, remoteEnv.Slug)
 	logger.Log("Started studio session at %s (^C to quit)", logger.Blue(studioURL))
 
 	// Execute the flow to open the studio in the browser in a separate goroutine so fmt.Scanln doesn't capture

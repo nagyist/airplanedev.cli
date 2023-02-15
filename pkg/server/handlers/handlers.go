@@ -6,10 +6,14 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 	"unicode"
 
+	"github.com/airplanedev/cli/pkg/analytics"
+	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/state"
 	libhttp "github.com/airplanedev/lib/pkg/api/http"
+	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
 )
 
@@ -17,8 +21,16 @@ import (
 // will be written to the HTTP response using WriteHTTPError.
 func Wrap(f func(ctx context.Context, w http.ResponseWriter, r *http.Request) error) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				logger.Debug("Panic detected: %v", err)
+				sentry.CurrentHub().Recover(err)
+				sentry.Flush(time.Second * 5)
+			}
+		}()
+
 		if err := f(r.Context(), w, r); err != nil {
-			WriteHTTPError(w, r, err)
+			WriteHTTPError(w, r, err, analytics.ReportError)
 			return
 		}
 	}
@@ -111,19 +123,21 @@ func Zip(state *state.State,
 	})
 }
 
-// WriteHTTPError writes an error to response and optionally logs it
-func WriteHTTPError(w http.ResponseWriter, r *http.Request, err error) {
+// WriteHTTPError writes an error to response and optionally reports it
+func WriteHTTPError(w http.ResponseWriter, r *http.Request, err error, report func(err error)) {
 	ctx := r.Context()
 
 	errStatusCode, retryable := GetErrorStatus(ctx, err)
 
-	// TODO: Log 500 errors to sentry
+	if errStatusCode.StatusCode >= http.StatusInternalServerError {
+		report(err)
+	}
 
 	out, err := json.Marshal(libhttp.ErrorResponse{
 		Error: errStatusCode.Msg,
 	})
 	if err != nil {
-		// TODO: Report to sentry
+		report(errors.Wrap(err, "marshaling error response"))
 		return
 	}
 	// This extra newline is for consistency with how we previously use an Encoder to write JSON responses.
@@ -135,7 +149,7 @@ func WriteHTTPError(w http.ResponseWriter, r *http.Request, err error) {
 	w.WriteHeader(errStatusCode.StatusCode)
 
 	if _, err := w.Write(out); err != nil {
-		// TODO: Report to sentry
+		report(errors.Wrap(err, "writing error response"))
 		return
 	}
 }

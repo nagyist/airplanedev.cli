@@ -20,6 +20,7 @@ import (
 	"github.com/hexops/gotextdiff/myers"
 	"github.com/hexops/gotextdiff/span"
 	"github.com/pkg/errors"
+	"github.com/tidwall/jsonc"
 )
 
 type NodeDependencies struct {
@@ -236,10 +237,9 @@ func mergeTSConfig(configDir string, configFile []byte, strategy MergeStrategy) 
 	}
 
 	if fsx.Exists(configPath) {
-		templateTSConfig := map[string]interface{}{}
-		err := json.Unmarshal(configFile, &templateTSConfig)
+		templateTSConfig, err := parseTSConfig(configFile)
 		if err != nil {
-			return errors.Wrap(err, "unmarshalling tsconfig template")
+			return errors.Wrap(err, "parsing template tsconfig")
 		}
 
 		logger.Debug("Found existing tsconfig.json...")
@@ -248,10 +248,9 @@ func mergeTSConfig(configDir string, configFile []byte, strategy MergeStrategy) 
 		if err != nil {
 			return errors.Wrap(err, "reading existing tsconfig.json")
 		}
-		existingTSConfig := map[string]interface{}{}
-		err = json.Unmarshal(existingFile, &existingTSConfig)
+		existingTSConfig, err := parseTSConfig(existingFile)
 		if err != nil {
-			return errors.Wrap(err, "unmarshalling existing tsconfig")
+			return errors.Wrap(err, "parsing existing tsconfig")
 		}
 
 		newTSConfig := map[string]interface{}{}
@@ -302,6 +301,20 @@ func mergeTSConfig(configDir string, configFile []byte, strategy MergeStrategy) 
 	}
 
 	return nil
+}
+
+func parseTSConfig(configBytes []byte) (map[string]interface{}, error) {
+	tsConfig := map[string]interface{}{}
+
+	// tsconfig files allow comments and trailing commas and thus aren't strict JSON;
+	// use the jsonc library to remove these extra features before unmarshalling.
+	configJSONBytes := jsonc.ToJSON(configBytes)
+	err := json.Unmarshal(configJSONBytes, &tsConfig)
+	if err != nil {
+		return nil, errors.Wrap(err, "unmarshalling tsconfig")
+	}
+
+	return tsConfig, nil
 }
 
 func mergeMapsRecursively(dest, src map[string]interface{}) {

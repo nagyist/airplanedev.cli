@@ -40,7 +40,7 @@ func CheckLatest(ctx context.Context, userConfig *conf.UserConfig) bool {
 	latest, err := getLatest(ctx)
 	if err != nil {
 		analytics.ReportError(err)
-		logger.Debug("An error ocurred checking for the latest version: %s", err)
+		logger.Debug("An error occurred checking for the latest version: %s", err)
 		return true
 	} else if latest == "" {
 		// Pass silently if we can't identify the latest version.

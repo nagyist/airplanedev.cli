@@ -48,6 +48,7 @@ func InstallBundleDependencies(bundle bundlediscover.Bundle) error {
 	var b strings.Builder
 	b.WriteString("#!/bin/bash\n")
 	b.WriteString("set -xeo pipefail\n")
+	b.WriteString("mkdir -p /airplane\n")
 
 	for _, inst := range instructions.InstallInstructions {
 		if inst.SrcPath != "" && inst.DstPath != "" && inst.DstPath != "." {

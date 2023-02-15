@@ -500,3 +500,12 @@ type GetTunnelTokenResponse struct {
 type SetDevSecretRequest struct {
 	Token string `json:"token"`
 }
+
+type CreateSandboxRequest struct {
+	Namespace *string `json:"namespace"`
+	Key       *string `json:"key"`
+}
+
+type CreateSandboxResponse struct {
+	Token string `json:"token"`
+}

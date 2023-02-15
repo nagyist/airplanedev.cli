@@ -338,5 +338,9 @@ func (mc *MockClient) GetUpload(ctx context.Context, uploadID string) (res libap
 }
 
 func (mc *MockClient) GetTunnelToken(ctx context.Context) (res GetTunnelTokenResponse, err error) {
-	panic("not implemented") // TODO: Implement
+	panic("not implemented")
+}
+
+func (mc *MockClient) CreateSandbox(ctx context.Context, req CreateSandboxRequest) (res CreateSandboxResponse, err error) {
+	panic("not implemented")
 }

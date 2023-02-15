@@ -130,6 +130,10 @@ func mergeDefaultRemoteResource(
 // ListRemoteResources returns any remote resources that the user can develop against. If no fallback environment is
 // set, we still return a set of default remote resources for convenience.
 func ListRemoteResources(ctx context.Context, state *state.State) ([]libapi.Resource, error) {
+	if state.RemoteClient == nil {
+		return nil, libhttp.NewErrBadRequest("no remote client, dev server is likely not ready yet")
+	}
+
 	if state.UseFallbackEnv {
 		resp, err := state.RemoteClient.ListResources(ctx, state.RemoteEnv.Slug)
 		if err != nil {

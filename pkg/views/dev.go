@@ -138,7 +138,7 @@ func Dev(ctx context.Context, v viewdir.ViewDirectoryInterface, viteOpts ViteOpt
 	}
 
 	// Create vite config.
-	if err := createViteConfig(root, airplaneViewDir, viteOpts.Port); err != nil {
+	if err := createViteConfig(root, airplaneViewDir, viteOpts.Port, viteOpts.Token); err != nil {
 		return nil, "", nil, errors.Wrap(err, "creating vite config")
 	}
 
@@ -271,10 +271,11 @@ func ensureAirplaneViewDir(airplaneViewDir string, l logger.Logger) error {
 	return nil
 }
 
-func createViteConfig(root string, airplaneViewDir string, port int) error {
+func createViteConfig(root string, airplaneViewDir string, port int, token *string) error {
 	viteConfigStr, err := libbuild.ViteConfigString(libbuild.ViteConfigOpts{
-		Root: root,
-		Port: port,
+		Root:  root,
+		Port:  port,
+		Token: token,
 	})
 
 	if err != nil {
@@ -344,6 +345,7 @@ type ViteOpts struct {
 	RebundleDependencies bool
 	UsesYarn             bool
 	Port                 int
+	Token                *string
 }
 
 func runVite(ctx context.Context, opts ViteOpts, airplaneViewDir string, viewSlug string) (*exec.Cmd, string, error) {

@@ -97,10 +97,15 @@ func GetInfoHandler(ctx context.Context, s *state.State, r *http.Request) (Studi
 		fallbackEnv = &s.RemoteEnv
 	}
 
-	host := strings.Replace(s.LocalClient.Host, "127.0.0.1", "localhost", 1)
+	var host string
+	if s.LocalClient != nil {
+		host = strings.Replace(s.LocalClient.Host, "127.0.0.1", "localhost", 1)
+	}
+
 	if s.ServerHost != "" {
 		host = s.ServerHost
 	}
+
 	info := StudioInfo{
 		Workspace:    s.Dir,
 		DefaultEnv:   env.NewLocalEnv(),
@@ -429,7 +434,9 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 		if err != nil {
 			return StartViewResponse{}, err
 		}
-		serverURL = fmt.Sprintf("%s/dev/views/%d/", s.ServerHost, port)
+
+		serverURL = fmt.Sprintf("%s%s", s.ServerHost, build.BasePath(port, s.DevToken))
+
 		// If a server host is specified, we send (Airplane) API requests to that host.
 		client = &api.Client{
 			ClientOpts: api.ClientOpts{
@@ -444,6 +451,7 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 		RebundleDependencies: !depHashesEqual,
 		UsesYarn:             usesYarn,
 		Port:                 port,
+		Token:                s.DevToken,
 	})
 	if err != nil {
 		return StartViewResponse{}, err
