@@ -349,7 +349,7 @@ func TestRefresh(t *testing.T) {
 				},
 			}),
 			DevConfig: &conf.DevConfig{},
-		}, server.RouterOptions{}),
+		}, server.Options{}),
 	)
 
 	runConfig := dev.LocalRunConfig{
