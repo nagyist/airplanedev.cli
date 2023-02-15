@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 
 	"cloud.google.com/go/storage"
 	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
@@ -87,6 +88,7 @@ type LocalBuiltinClient struct {
 	logger       logger.Logger
 
 	Closer io.Closer
+	mu     sync.Mutex
 }
 
 func NewLocalClient(root string, opSystem string, arch string, logger logger.Logger) (*LocalBuiltinClient, error) {
@@ -138,16 +140,16 @@ func (b *LocalBuiltinClient) CmdString(ctx context.Context, req string) ([]strin
 	return []string{b.binaryPath, req}, nil
 }
 
-// Downloads the latest version of builtins if it doesn't exist
-// otherwise uses version installed in tmp directory
+// install gets the latest version of the builtins binary if it doesn't exist locally, or else it uses the version
+// installed in the user's .airplane directory.
 func (b *LocalBuiltinClient) install() (string, error) {
 	if _, err := os.Stat(b.binaryPath); err != nil && os.IsNotExist(err) {
 		b.logger.Debug("Builtins package not found: %s", b.binaryPath)
-		return b.download()
+		return b.Download()
 	}
 	if !b.isLatestVersion() {
 		b.logger.Debug("Builtins package out of date. Getting latest version.")
-		return b.download()
+		return b.Download()
 	}
 	b.logger.Debug("Using cached builtins package: %s", b.binaryPath)
 	return b.binaryPath, nil
@@ -175,8 +177,17 @@ func (b *LocalBuiltinClient) isLatestVersion() bool {
 	return bytes.Equal(checksum, attrs.MD5)
 }
 
-// Downloads the builtin binary from GCS
-func (b *LocalBuiltinClient) download() (string, error) {
+// Download fetches the builtin binary from GCS.
+func (b *LocalBuiltinClient) Download() (string, error) {
+	// If another goroutine is already downloading the builtins binary, don't attempt to download again. This is to
+	// avoid the case where a run fails while the binary is still being downloaded, and that goroutine attempts to
+	// download the binary again: we only need to download it once.
+	if !b.mu.TryLock() {
+		b.logger.Debug("Builtins binary is already being downloaded. Not attempting to download again.")
+		return b.binaryPath, nil
+	}
+	defer b.mu.Unlock()
+
 	b.logger.Debug("Downloading builtins binary...")
 	obj := b.getGCSObject()
 	attrs, err := obj.Attrs(context.Background())
