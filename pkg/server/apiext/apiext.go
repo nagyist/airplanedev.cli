@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
@@ -251,6 +252,16 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 				if errors.As(err, &builtinErr) {
 					if err := state.Executor.Refresh(); err != nil {
 						logger.Debug("refreshing executor: %+v", err)
+					}
+
+					outputs = api.Outputs{
+						V: ojson.NewObject().SetAndReturn(
+							"error",
+							fmt.Sprintf(
+								"We detected some corrupted files in your %s directory. We've reinitialized this directory for you, please try executing the task again.",
+								filepath.Join(filepath.Base(state.Dir), ".airplane"),
+							),
+						),
 					}
 				}
 			}

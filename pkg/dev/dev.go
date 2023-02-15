@@ -264,8 +264,8 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 }
 
 func (l *LocalExecutor) Refresh() error {
+	logger.Debug("Refreshing local executor")
 	if l.BuiltinsClient != nil {
-		logger.Debug("Redownloading builtins binary")
 		_, err := l.BuiltinsClient.Download()
 		if err != nil {
 			return errors.Wrap(err, "downloading builtins binary")
