@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/conf"
@@ -16,6 +17,7 @@ import (
 	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/apiext"
+	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/outputs"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/server/test_utils"
@@ -311,4 +313,78 @@ func TestGetOutput(t *testing.T) {
 	require.Equal(api.Outputs{
 		V: "hello",
 	}, resp.Output)
+}
+
+func TestRefresh(t *testing.T) {
+	mockExecutor := new(dev.MockExecutor)
+	slug := "my_task"
+
+	taskDefinition := &definitions.Definition_0_3{
+		Name: "My Task",
+		Slug: slug,
+		Node: &definitions.NodeDefinition_0_3{
+			Entrypoint:  "my_task.ts",
+			NodeVersion: "18",
+		},
+	}
+	taskDefinition.SetDefnFilePath("my_task.task.yaml")
+
+	logBroker := logs.NewDevLogBroker()
+	store := state.NewRunStore()
+	h := test_utils.GetHttpExpect(
+		context.Background(),
+		t,
+		server.NewRouter(&state.State{
+			RemoteClient: &api.MockClient{},
+			Executor:     mockExecutor,
+			Runs:         store,
+			TaskConfigs: state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{
+				slug: {
+					TaskID:         "tsk123",
+					TaskRoot:       ".",
+					TaskEntrypoint: "my_task.ts",
+					Def:            taskDefinition,
+					Source:         discover.ConfigSourceDefn,
+				},
+			}),
+			DevConfig: &conf.DevConfig{},
+		}, server.Options{}),
+	)
+
+	runConfig := dev.LocalRunConfig{
+		Name: "My Task",
+		Kind: build.TaskKindNode,
+		KindOptions: build.KindOptions{
+			"entrypoint":  "my_task.ts",
+			"nodeVersion": "18",
+		},
+		File:              "my_task.ts",
+		Slug:              slug,
+		ParamValues:       map[string]interface{}{},
+		ConfigAttachments: []libapi.ConfigAttachment{},
+		RemoteClient:      &api.MockClient{},
+		AliasToResource:   map[string]libresources.Resource{},
+		LogBroker:         logBroker,
+	}
+	mockExecutor.On("Execute", mock.Anything, runConfig).Return(nil, dev_errors.SignalKilled)
+	mockExecutor.On("Refresh").Return(nil)
+	mockExecutor.WG.Add(1)
+	h.POST("/v0/tasks/execute").
+		WithJSON(apiext.ExecuteTaskRequest{
+			Slug: slug,
+		}).
+		Expect().
+		Status(http.StatusOK).Body()
+
+	done := make(chan struct{})
+	go func() {
+		mockExecutor.WG.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+	}
+
+	mockExecutor.AssertNumberOfCalls(t, "Refresh", 1)
 }
