@@ -316,7 +316,6 @@ func TestGetOutput(t *testing.T) {
 }
 
 func TestRefresh(t *testing.T) {
-	//require := require.New(t)
 	mockExecutor := new(dev.MockExecutor)
 	slug := "my_task"
 
