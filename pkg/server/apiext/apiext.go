@@ -97,6 +97,20 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 	run.ID = runID
 	run.RunID = runID
 
+	// Pull env slug from the parent run.
+	var envSlug *string
+	if parentID != "" {
+		parentRun, ok := state.Runs.Get(parentID)
+		if !ok {
+			return api.RunTaskResponse{}, libhttp.NewErrNotFound("run with parent id %q not found", parentID)
+		}
+		if parentRun.FallbackEnvSlug != "" {
+			envSlug = &parentRun.FallbackEnvSlug
+		}
+	} else {
+		envSlug = &state.RemoteEnv.Slug
+	}
+
 	localTaskConfig, ok := state.TaskConfigs.Get(req.Slug)
 	isBuiltin := builtins.IsBuiltinTaskSlug(req.Slug)
 	parameters := libapi.Parameters{}
@@ -210,6 +224,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		run.CreatedAt = start
 
 		run.Parameters = &parameters
+		run.FallbackEnvSlug = pointers.ToString(envSlug)
 
 		run.Status = api.RunActive
 		runCtx, fn := context.WithCancel(context.Background()) // Context used for cancelling a run.
@@ -277,14 +292,14 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			}
 		}()
 	} else {
-		if !state.UseFallbackEnv {
+		if !state.UseFallbackEnv || envSlug == nil {
 			return api.RunTaskResponse{}, libhttp.NewErrNotFound("task with slug %q is not registered locally", req.Slug)
 		}
 
 		resp, err := state.RemoteClient.RunTask(ctx, api.RunTaskRequest{
 			TaskSlug:    &req.Slug,
 			ParamValues: req.ParamValues,
-			EnvSlug:     state.RemoteEnv.Slug,
+			EnvSlug:     *envSlug,
 		})
 		if err != nil {
 			var taskMissingError *libapi.TaskMissingError
@@ -298,6 +313,8 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		run.Remote = true
 		run.ID = resp.RunID
 		run.RunID = resp.RunID
+		run.EnvSlug = pointers.ToString(envSlug)
+		run.FallbackEnvSlug = pointers.ToString(envSlug)
 		state.Runs.Add(req.Slug, resp.RunID, run)
 		return api.RunTaskResponse{RunID: resp.RunID}, nil
 	}
@@ -331,6 +348,7 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (de
 			ParamValues: remoteRun.ParamValues,
 			TaskID:      remoteRun.TaskID,
 			TaskName:    remoteRun.TaskName,
+			EnvSlug:     remoteRun.EnvSlug,
 			Remote:      true,
 		}, nil
 	}

@@ -134,11 +134,16 @@ func TestExecuteFallback(t *testing.T) {
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
-			RemoteClient:   &api.MockClient{},
-			Executor:       mockExecutor,
-			Runs:           store,
-			TaskConfigs:    state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{}),
-			DevConfig:      &conf.DevConfig{},
+			RemoteClient: &api.MockClient{},
+			Executor:     mockExecutor,
+			Runs:         store,
+			TaskConfigs:  state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{}),
+			DevConfig:    &conf.DevConfig{},
+			RemoteEnv: libapi.Env{
+				ID:   "env1234",
+				Slug: "test",
+				Name: "test",
+			},
 			UseFallbackEnv: true,
 		}, server.Options{}),
 	)
@@ -164,6 +169,62 @@ func TestExecuteFallback(t *testing.T) {
 	run, found := store.Get(resp.RunID)
 	require.True(found)
 	require.False(run.IsStdAPI)
+	require.Equal(run.EnvSlug, "test")
+}
+
+func TestExecuteDescendantFallback(t *testing.T) {
+	require := require.New(t)
+	mockExecutor := new(dev.MockExecutor)
+	slug := "my_task"
+
+	runID := "run1234"
+	runstore := state.NewRunStore()
+	runstore.Add("task1", runID, dev.LocalRun{
+		Status:          api.RunSucceeded,
+		RunID:           runID,
+		ID:              runID,
+		FallbackEnvSlug: "test",
+	})
+
+	h := test_utils.GetHttpExpect(
+		context.Background(),
+		t,
+		server.NewRouter(&state.State{
+			RemoteClient:   &api.MockClient{},
+			Executor:       mockExecutor,
+			Runs:           runstore,
+			TaskConfigs:    state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{}),
+			DevConfig:      &conf.DevConfig{},
+			UseFallbackEnv: true,
+		}, server.Options{}),
+	)
+
+	paramValues := api.Values{
+		"param1": "a",
+		"param2": "b",
+	}
+	token, err := dev.GenerateInsecureAirplaneToken(dev.AirplaneTokenClaims{
+		RunID: runID,
+	})
+	require.NoError(err)
+	body := h.POST("/v0/tasks/execute").
+		WithHeader("X-Airplane-Token", token).
+		WithJSON(apiext.ExecuteTaskRequest{
+			Slug:        slug,
+			ParamValues: paramValues,
+		}).
+		Expect().
+		Status(http.StatusOK).Body()
+
+	var resp api.RunTaskResponse
+	err = json.Unmarshal([]byte(body.Raw()), &resp)
+	require.NoError(err)
+
+	run, found := runstore.Get(resp.RunID)
+	require.True(found)
+	require.True(run.Remote)
+	require.False(run.IsStdAPI)
+	require.Equal(run.EnvSlug, "test")
 }
 
 func TestExecuteBuiltin(t *testing.T) {

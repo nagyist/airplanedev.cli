@@ -461,6 +461,7 @@ func GetDescendantsHandler(ctx context.Context, state *state.State, r *http.Requ
 				TaskID:      run.TaskID,
 				TaskName:    run.TaskName,
 				ParentID:    runID,
+				EnvSlug:     run.EnvSlug,
 				Remote:      true,
 			}
 			if _, ok := taskIDsSeen[run.TaskID]; !ok {
@@ -558,6 +559,7 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (Ge
 			Parameters:  remoteRun.Parameters,
 			TaskID:      remoteRun.TaskID,
 			TaskName:    remoteRun.TaskName,
+			EnvSlug:     remoteRun.EnvSlug,
 			Remote:      true,
 		}
 		response := GetRunResponse{Run: run}

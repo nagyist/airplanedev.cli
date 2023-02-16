@@ -35,6 +35,7 @@ type LocalRun struct {
 	Prompts          []libapi.Prompt        `json:"prompts"`
 	Sleeps           []libapi.Sleep         `json:"sleeps"`
 	IsWaitingForUser bool                   `json:"isWaitingForUser"`
+	EnvSlug          string                 `json:"envSlug"`
 
 	// The version of the task at the time of the run execution
 	TaskRevision discover.TaskConfig `json:"-"`
@@ -46,9 +47,10 @@ type LocalRun struct {
 	StdAPIRequest builtins.StdAPIRequest `json:"stdAPIRequest"`
 
 	// internal fields
-	CancelFn  func()         `json:"-"`
-	LogBroker logs.LogBroker `json:"-"`
-	Remote    bool           `json:"-"`
+	CancelFn        func()         `json:"-"`
+	LogBroker       logs.LogBroker `json:"-"`
+	Remote          bool           `json:"-"`
+	FallbackEnvSlug string         `json:"-"`
 }
 
 // NewLocalRun initializes a run for local dev.
