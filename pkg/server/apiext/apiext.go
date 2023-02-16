@@ -247,9 +247,9 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 				}
 
 				// If the error is a signal killed error, the builtins binary is likely corrupt. Manually trigger a
-				// re-download of the builtins binary.
-				builtinErr := dev_errors.SignalKilled
-				if errors.As(err, &builtinErr) {
+				// re-download of the builtins binary. We need to compare the error string because the error is
+				// reported by the builtins binary itself, which doesn't use the error in the `dev_errors` package.
+				if err.Error() == dev_errors.SignalKilled.Error() {
 					if err := state.Executor.Refresh(); err != nil {
 						logger.Debug("refreshing executor: %+v", err)
 					}
