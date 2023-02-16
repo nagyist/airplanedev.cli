@@ -149,6 +149,7 @@ type APIClient interface {
 	CreateDemoDB(ctx context.Context, name string) (string, error)
 
 	GetEnv(ctx context.Context, envSlug string) (libapi.Env, error)
+	ListEnvs(ctx context.Context) (ListEnvsResponse, error)
 
 	EvaluateTemplate(ctx context.Context, req libapi.EvaluateTemplateRequest) (res libapi.EvaluateTemplateResponse, err error)
 
@@ -659,6 +660,11 @@ func (c Client) GetEnv(ctx context.Context, envSlug string) (res libapi.Env, err
 	err = c.get(ctx, encodeQueryString("/envs/get", url.Values{
 		"slug": []string{envSlug},
 	}), &res)
+	return
+}
+
+func (c Client) ListEnvs(ctx context.Context) (res ListEnvsResponse, err error) {
+	err = c.get(ctx, "/envs/list", &res)
 	return
 }
 

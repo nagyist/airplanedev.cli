@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http/httputil"
@@ -40,6 +41,8 @@ type State struct {
 	// UseFallbackEnv determines whether we should use this remote env for tasks/resources/etc. outside of these
 	// defaults.
 	UseFallbackEnv bool
+
+	EnvCache Store[string, libapi.Env]
 
 	// Directory from which tasks and views were discovered
 	Dir      string
@@ -116,6 +119,7 @@ func New(devToken *string) (*State, error) {
 	}
 
 	return &State{
+		EnvCache:     NewStore[string, libapi.Env](nil),
 		Runs:         NewRunStore(),
 		TaskConfigs:  NewStore[string, discover.TaskConfig](nil),
 		AppCondition: NewStore[string, AppCondition](nil),
@@ -128,6 +132,19 @@ func New(devToken *string) (*State, error) {
 		ServerStatus: status.ServerDiscovering,
 		DevConfig:    conf.NewDevConfig(""), // Set dev config to a zero value initially.
 	}, nil
+}
+
+func (s *State) GetEnv(ctx context.Context, envSlug string) (libapi.Env, error) {
+	if env, ok := s.EnvCache.Get(envSlug); ok {
+		return env, nil
+	}
+
+	env, err := s.RemoteClient.GetEnv(ctx, envSlug)
+	if err != nil {
+		return libapi.Env{}, errors.Wrap(err, "error getting environment")
+	}
+	s.EnvCache.Add(envSlug, env)
+	return env, nil
 }
 
 func NewRunStore() *runsStore {

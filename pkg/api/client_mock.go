@@ -261,6 +261,16 @@ func (mc *MockClient) GetEnv(ctx context.Context, envSlug string) (libapi.Env, e
 	return env, nil
 }
 
+func (mc *MockClient) ListEnvs(ctx context.Context) (ListEnvsResponse, error) {
+	envs := []libapi.Env{}
+	for _, env := range mc.Envs {
+		envs = append(envs, env)
+	}
+	return ListEnvsResponse{
+		Envs: envs,
+	}, nil
+}
+
 func (mc *MockClient) GetResource(ctx context.Context, req GetResourceRequest) (res libapi.GetResourceResponse, err error) {
 	for _, r := range mc.Resources {
 		if r.Slug != "" && r.Slug == req.Slug {

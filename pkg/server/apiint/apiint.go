@@ -67,6 +67,8 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 
 	r.Handle("/uploads/create", handlers.WithBody(state, CreateUploadHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/uploads/get", handlers.WithBody(state, GetUploadHandler)).Methods("POST", "OPTIONS") // Our web app expects POST for this endpoint
+
+	r.Handle("/envs/list", handlers.New(state, ListEnvsHandler)).Methods("GET", "OPTIONS")
 }
 
 type CreateResourceRequest struct {
@@ -832,5 +834,25 @@ func GetUploadHandler(
 	return libapi.GetUploadResponse{
 		Upload:      resp.Upload,
 		ReadOnlyURL: resp.ReadOnlyURL,
+	}, nil
+}
+
+type ListEnvsResponse struct {
+	Envs []libapi.Env `json:"envs"`
+}
+
+func ListEnvsHandler(ctx context.Context, state *state.State, r *http.Request) (ListEnvsResponse, error) {
+	resp, err := state.RemoteClient.ListEnvs(ctx)
+	if err != nil {
+		return ListEnvsResponse{}, errors.Wrap(err, "error getting envs")
+	}
+
+	envs := map[string]libapi.Env{}
+	for _, env := range resp.Envs {
+		envs[env.Slug] = env
+	}
+	state.EnvCache.ReplaceItems(envs)
+	return ListEnvsResponse{
+		Envs: resp.Envs,
 	}, nil
 }

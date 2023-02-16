@@ -512,6 +512,7 @@ func TestRemoteConfigs(t *testing.T) {
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
+			EnvCache: state.NewStore[string, libapi.Env](nil),
 			DevConfig: &conf.DevConfig{
 				ConfigVars: map[string]env.ConfigWithEnv{
 					"cv_0": cfg0,
@@ -520,6 +521,9 @@ func TestRemoteConfigs(t *testing.T) {
 			},
 			RemoteClient: &api.MockClient{
 				Configs: []api.Config{remoteCfg},
+				Envs: map[string]libapi.Env{
+					remoteEnv.Slug: remoteEnv,
+				},
 			},
 			RemoteEnv:      remoteEnv,
 			UseFallbackEnv: true,
@@ -608,4 +612,72 @@ func TestGetOutput(t *testing.T) {
 	require.Equal(api.Outputs{
 		V: "hello",
 	}, resp.Output)
+}
+
+func TestListEnvs(t *testing.T) {
+	require := require.New(t)
+
+	envs := map[string]libapi.Env{
+		"prod": {
+			ID:      "env0",
+			Slug:    "prod",
+			Name:    "Production",
+			Default: true,
+		},
+		"stage": {
+			ID:   "env1",
+			Slug: "stage",
+			Name: "Staging",
+		},
+		"dev": {
+			ID:   "env2",
+			Slug: "dev",
+			Name: "Development",
+		},
+	}
+	s := state.State{
+		EnvCache: state.NewStore[string, libapi.Env](nil),
+		RemoteClient: &api.MockClient{
+			Envs: envs,
+		},
+	}
+
+	h := test_utils.GetHttpExpect(
+		context.Background(),
+		t,
+		server.NewRouter(&s, server.Options{}),
+	)
+
+	body := h.GET("/i/envs/list").
+		Expect().
+		Status(http.StatusOK).Body()
+
+	var resp apiint.ListEnvsResponse
+	err := json.Unmarshal([]byte(body.Raw()), &resp)
+	require.NoError(err)
+	require.Equal(3, len(resp.Envs))
+
+	for _, env := range resp.Envs {
+		expected, ok := envs[env.Slug]
+		require.True(ok)
+		require.Equal(expected, env)
+	}
+	require.Equal(3, s.EnvCache.Len())
+
+	// Remove dev.
+	delete(envs, "dev")
+	body = h.GET("/i/envs/list").
+		Expect().
+		Status(http.StatusOK).Body()
+
+	err = json.Unmarshal([]byte(body.Raw()), &resp)
+	require.NoError(err)
+	require.Equal(2, len(resp.Envs))
+
+	for _, env := range resp.Envs {
+		expected, ok := envs[env.Slug]
+		require.True(ok)
+		require.Equal(expected, env)
+	}
+	require.Equal(2, s.EnvCache.Len())
 }

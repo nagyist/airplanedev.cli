@@ -509,3 +509,7 @@ type CreateSandboxRequest struct {
 type CreateSandboxResponse struct {
 	Token string `json:"token"`
 }
+
+type ListEnvsResponse struct {
+	Envs []libapi.Env `json:"envs"`
+}
