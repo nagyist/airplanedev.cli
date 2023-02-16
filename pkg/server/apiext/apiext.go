@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/airplanedev/cli/pkg/params"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/resources"
-	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/outputs"
 	"github.com/airplanedev/cli/pkg/server/state"
@@ -246,10 +246,10 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 					}
 				}
 
-				// If the error is a signal killed error, the builtins binary is likely corrupt. Manually trigger a
+				// If the process was killed by a signal, the builtins binary is likely corrupt. Manually trigger a
 				// re-download of the builtins binary.
-				builtinErr := dev_errors.SignalKilled
-				if errors.As(err, &builtinErr) {
+				exitErr := &exec.ExitError{}
+				if errors.As(err, &exitErr) && exitErr.ExitCode() == -1 { // -1 is the exit code for killed processes
 					if err := state.Executor.Refresh(); err != nil {
 						logger.Debug("refreshing executor: %+v", err)
 					}

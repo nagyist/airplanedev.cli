@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -17,7 +18,6 @@ import (
 	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/apiext"
-	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/outputs"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/server/test_utils"
@@ -366,7 +366,7 @@ func TestRefresh(t *testing.T) {
 		AliasToResource:   map[string]libresources.Resource{},
 		LogBroker:         logBroker,
 	}
-	mockExecutor.On("Execute", mock.Anything, runConfig).Return(nil, dev_errors.SignalKilled)
+	mockExecutor.On("Execute", mock.Anything, runConfig).Return(nil, &exec.ExitError{})
 	mockExecutor.On("Refresh").Return(nil)
 	mockExecutor.WG.Add(1)
 	h.POST("/v0/tasks/execute").
