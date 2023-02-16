@@ -18,6 +18,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/apiint"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/filewatcher"
+	"github.com/airplanedev/cli/pkg/server/middleware"
 	"github.com/airplanedev/cli/pkg/server/network"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/server/status"
@@ -102,6 +103,8 @@ func NewRouter(state *state.State, opts Options) *mux.Router {
 			})
 		})
 	}
+
+	r.Use(middleware.ReqBodyDecompression)
 
 	apiext.AttachExternalAPIRoutes(r.NewRoute().Subrouter(), state)
 	apiint.AttachInternalAPIRoutes(r.NewRoute().Subrouter(), state)
