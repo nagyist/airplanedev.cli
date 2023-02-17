@@ -29,9 +29,11 @@ var defaultRemoteVirtualResourceSlugs = []string{slackSlug}
 // to slug, and slugToResource is a mapping from slug to resource, and so we just link the two.
 func GenerateAliasToResourceMap(
 	ctx context.Context,
-	state *state.State,
 	resourceAttachments map[string]string,
 	slugToResource map[string]env.ResourceWithEnv,
+	useFallbackEnv bool,
+	remoteEnv *libapi.Env,
+	remoteClient api.APIClient,
 ) (map[string]resources.Resource, error) {
 	aliasToResourceMap := map[string]resources.Resource{}
 	// We only need to generate entries in the map for resources that are explicitly attached to a task.
@@ -40,17 +42,17 @@ func GenerateAliasToResourceMap(
 		resourceWithEnv, ok := LookupResource(slugToResource, ref)
 		if !ok {
 			msg := fmt.Sprintf("cannot find resource %q. Is it defined in your dev config file", ref)
-			if state.UseFallbackEnv {
-				msg += fmt.Sprintf(" or in your %s environment", state.RemoteEnv.Name)
+			if useFallbackEnv {
+				msg += fmt.Sprintf(" or in your %s environment", remoteEnv.Name)
 			}
 			msg += "? You can add it using the resource sidebar to the left."
 			return nil, libhttp.NewErrNotFound(msg)
 		}
 
-		if resourceWithEnv.Remote {
-			remoteResourceWithCredentials, err := state.RemoteClient.GetResource(ctx, api.GetResourceRequest{
+		if resourceWithEnv.Remote && remoteEnv != nil && remoteClient != nil {
+			remoteResourceWithCredentials, err := remoteClient.GetResource(ctx, api.GetResourceRequest{
 				ID:                   resourceWithEnv.Resource.GetID(),
-				EnvSlug:              state.RemoteEnv.Slug,
+				EnvSlug:              remoteEnv.Slug,
 				IncludeSensitiveData: true,
 			})
 			if err != nil {

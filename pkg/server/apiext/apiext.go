@@ -212,9 +212,11 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		}
 		aliasToResourceMap, err := resources.GenerateAliasToResourceMap(
 			ctx,
-			state,
 			resourceAttachments,
 			mergedResources,
+			state.UseFallbackEnv,
+			&state.RemoteEnv,
+			state.RemoteClient,
 		)
 		if err != nil {
 			return api.RunTaskResponse{}, err

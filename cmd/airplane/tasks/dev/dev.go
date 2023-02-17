@@ -84,38 +84,6 @@ func New(c *cli.Config) *cobra.Command {
 					cfg.fileOrDir = args[0]
 				}
 
-				if cfg.devConfigPath == "" {
-					var devDir string
-					// Calling filepath.Dir on a directory path that doesn't end in '/' returns that directory's parent -
-					// we want to return the directory itself in that case, and so we check if cfg.fileOrDir is a directory.
-					if info, err := os.Stat(cfg.fileOrDir); err != nil {
-						return err
-					} else if info.IsDir() {
-						devDir = cfg.fileOrDir
-					} else {
-						devDir = filepath.Dir(cfg.fileOrDir)
-					}
-
-					absDevDir, err := filepath.Abs(devDir)
-					if err != nil {
-						return errors.Wrap(err, "getting absolute path of dev root")
-					}
-
-					// Recursively search for dev config file, starting from the dev dir.
-					devConfigDir, ok := fsx.Find(absDevDir, conf.DefaultDevConfigFileName)
-					if !ok {
-						// If a dev config file is not found, set the dev config dir to the dev root and auto-create the
-						// file whenever it needs to be written to.
-						devConfigDir = absDevDir
-					}
-					cfg.devConfigPath = filepath.Join(devConfigDir, conf.DefaultDevConfigFileName)
-				} else {
-					cfg.devConfigPath, err = filepath.Abs(cfg.devConfigPath)
-					if err != nil {
-						return errors.Wrap(err, "getting absolute path of dev config file")
-					}
-				}
-
 				// Enable fallback environments only if `--env` is explicitly set.
 				if cmd.Flags().Changed("env") {
 					cfg.useFallbackEnv = true
@@ -132,6 +100,38 @@ func New(c *cli.Config) *cobra.Command {
 			if len(fileAndFunction) > 1 {
 				cfg.fileOrDir = fileAndFunction[0]
 				cfg.entrypointFunc = fileAndFunction[1]
+			}
+
+			if cfg.devConfigPath == "" {
+				var devDir string
+				// Calling filepath.Dir on a directory path that doesn't end in '/' returns that directory's parent -
+				// we want to return the directory itself in that case, and so we check if cfg.fileOrDir is a directory.
+				if info, err := os.Stat(cfg.fileOrDir); err != nil {
+					return err
+				} else if info.IsDir() {
+					devDir = cfg.fileOrDir
+				} else {
+					devDir = filepath.Dir(cfg.fileOrDir)
+				}
+
+				absDevDir, err := filepath.Abs(devDir)
+				if err != nil {
+					return errors.Wrap(err, "getting absolute path of dev root")
+				}
+
+				// Recursively search for dev config file, starting from the dev dir.
+				devConfigDir, ok := fsx.Find(absDevDir, conf.DefaultDevConfigFileName)
+				if !ok {
+					// If a dev config file is not found, set the dev config dir to the dev root and auto-create the
+					// file whenever it needs to be written to.
+					devConfigDir = absDevDir
+				}
+				cfg.devConfigPath = filepath.Join(devConfigDir, conf.DefaultDevConfigFileName)
+			} else {
+				cfg.devConfigPath, err = filepath.Abs(cfg.devConfigPath)
+				if err != nil {
+					return errors.Wrap(err, "getting absolute path of dev config file")
+				}
 			}
 
 			cfg.devConfig, err = conf.LoadDevConfigFile(cfg.devConfigPath)
@@ -263,11 +263,14 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	if err != nil {
 		return err
 	}
+
 	aliasToResource, err := resources.GenerateAliasToResourceMap(
 		ctx,
-		nil,
 		resourceAttachments,
 		cfg.devConfig.Resources,
+		false,
+		nil,
+		nil,
 	)
 	if err != nil {
 		return errors.Wrap(err, "generating alias to resource map")
