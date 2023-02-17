@@ -71,3 +71,21 @@ func NewLocalRun() *LocalRun {
 func GenerateRunID() string {
 	return utils.GenerateID(utils.DevRunPrefix)
 }
+
+func FromRemoteRun(run api.Run) LocalRun {
+	return LocalRun{
+		ID:          run.RunID,
+		RunID:       run.RunID,
+		Status:      run.Status,
+		CreatedAt:   run.CreatedAt,
+		CreatorID:   run.CreatorID,
+		SucceededAt: run.SucceededAt,
+		FailedAt:    run.FailedAt,
+		ParamValues: run.ParamValues,
+		Parameters:  run.Parameters,
+		TaskID:      run.TaskID,
+		TaskName:    run.TaskName,
+		EnvSlug:     run.EnvSlug,
+		Remote:      true,
+	}
+}

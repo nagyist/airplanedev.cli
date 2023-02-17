@@ -452,20 +452,8 @@ func GetDescendantsHandler(ctx context.Context, state *state.State, r *http.Requ
 
 			run := resp.Run
 
-			descendant = dev.LocalRun{
-				RunID:       run.RunID,
-				Status:      run.Status,
-				CreatedAt:   run.CreatedAt,
-				CreatorID:   run.CreatorID,
-				SucceededAt: run.SucceededAt,
-				FailedAt:    run.FailedAt,
-				ParamValues: run.ParamValues,
-				TaskID:      run.TaskID,
-				TaskName:    run.TaskName,
-				ParentID:    runID,
-				EnvSlug:     run.EnvSlug,
-				Remote:      true,
-			}
+			descendant = dev.FromRemoteRun(run)
+			descendant.ParentID = runID
 			if _, ok := taskIDsSeen[run.TaskID]; !ok {
 				task, err := state.RemoteClient.GetTaskByID(ctx, run.TaskID)
 				if err != nil {
@@ -548,24 +536,9 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (Ge
 		if err != nil {
 			return GetRunResponse{}, errors.Wrap(err, "getting remote run")
 		}
-		remoteRun := resp.Run
-		run = dev.LocalRun{
-			ID:          runID,
-			RunID:       runID,
-			Status:      remoteRun.Status,
-			CreatedAt:   remoteRun.CreatedAt,
-			CreatorID:   remoteRun.CreatorID,
-			SucceededAt: remoteRun.SucceededAt,
-			FailedAt:    remoteRun.FailedAt,
-			ParamValues: remoteRun.ParamValues,
-			Parameters:  remoteRun.Parameters,
-			TaskID:      remoteRun.TaskID,
-			TaskName:    remoteRun.TaskName,
-			EnvSlug:     remoteRun.EnvSlug,
-			Remote:      true,
-		}
+		run = dev.FromRemoteRun(resp.Run)
 		response := GetRunResponse{Run: run}
-		task, err := state.RemoteClient.GetTaskByID(ctx, remoteRun.TaskID)
+		task, err := state.RemoteClient.GetTaskByID(ctx, run.TaskID)
 		if err != nil {
 			return GetRunResponse{}, errors.Wrap(err, "getting remote task")
 		}

@@ -337,22 +337,7 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (de
 		if err != nil {
 			return dev.LocalRun{}, errors.Wrap(err, "getting remote run")
 		}
-		remoteRun := resp.Run
-
-		return dev.LocalRun{
-			ID:          runID,
-			RunID:       runID,
-			Status:      remoteRun.Status,
-			CreatedAt:   remoteRun.CreatedAt,
-			CreatorID:   remoteRun.CreatorID,
-			SucceededAt: remoteRun.SucceededAt,
-			FailedAt:    remoteRun.FailedAt,
-			ParamValues: remoteRun.ParamValues,
-			TaskID:      remoteRun.TaskID,
-			TaskName:    remoteRun.TaskName,
-			EnvSlug:     remoteRun.EnvSlug,
-			Remote:      true,
-		}, nil
+		return dev.FromRemoteRun(resp.Run), nil
 	}
 
 	return run, nil
