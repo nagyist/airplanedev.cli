@@ -62,7 +62,6 @@ type param struct {
 	Type string
 }
 
-// Runtime implementaton.
 type Runtime struct {
 	javascript.Runtime
 }

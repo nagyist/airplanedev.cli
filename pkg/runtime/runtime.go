@@ -30,14 +30,13 @@ var (
 	// It can be checked via `errors.Is(err, ErrMissing)`.
 	ErrMissing = errors.New("runtime: resource is missing")
 
-	// ErrNotImplemented is returned when a runtime does not
-	// support preparing a run.
+	// ErrNotImplemented is returned when a runtime does not support a runtime method.
 	//
 	// It can be checked via `errors.Is(err, ErrNotImplemented)`.
 	ErrNotImplemented = errors.New("runtime: not implemented")
 )
 
-// Interface repersents a runtime.
+// Interface represents a runtime.
 type Interface interface {
 	// Generate accepts a task and generates code to match the task.
 	//
@@ -100,6 +99,10 @@ type Interface interface {
 	// SupportsLocalExecution returns true if local execution is supported.
 	// This is expected to match whether PrepareRun returns `ErrNotImplemented`.
 	SupportsLocalExecution() bool
+
+	// Edit edits the task configuration contained in the specified file to match the
+	// provided definition.
+	Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.DefinitionInterface) error
 }
 
 type PrepareRunOptions struct {

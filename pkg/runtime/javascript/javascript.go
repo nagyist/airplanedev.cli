@@ -3,6 +3,7 @@ package javascript
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"text/template"
 	"time"
@@ -31,6 +33,9 @@ func init() {
 	runtime.Register(".js", Runtime{})
 	runtime.Register(".jsx", Runtime{})
 }
+
+//go:embed transformer/index.js
+var transformerScript []byte
 
 // Code template.
 var code = template.Must(template.New("js").Parse(`{{with .Comment -}}
@@ -505,6 +510,45 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 // SupportsLocalExecution implementation.
 func (r Runtime) SupportsLocalExecution() bool {
 	return true
+}
+
+var airplaneErrorRegex = regexp.MustCompile("__airplane_error (.*)\n")
+
+func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.DefinitionInterface) error {
+	tempFile, err := os.CreateTemp("", "airplane.transformer-*.js")
+	if err != nil {
+		return errors.Wrap(err, "creating temporary file")
+	}
+	defer os.Remove(tempFile.Name())
+	_, err = tempFile.Write(transformerScript)
+	if err != nil {
+		return errors.Wrap(err, "writing script")
+	}
+
+	defJSON, err := json.Marshal(def)
+	if err != nil {
+		return errors.Wrap(err, "marshalling definition as JSON")
+	}
+
+	cmd := exec.Command("node", tempFile.Name(), path, slug, string(defJSON))
+	logger.Debug("Running %s", strings.Join(cmd.Args, " "))
+	out, err := cmd.Output()
+	if len(out) == 0 {
+		out = []byte("(none)")
+	}
+	logger.Debug("Output from editing task %q at %q:\n%s", slug, path, out)
+	if err != nil {
+		if ee, ok := err.(*exec.ExitError); ok {
+			matches := airplaneErrorRegex.FindStringSubmatch(string(ee.Stderr))
+			if len(matches) >= 2 {
+				errMsg := matches[1]
+				return errors.Errorf("editing task at %q (re-run with --debug for more context): %s", path, errMsg)
+			}
+		}
+		return errors.Wrapf(err, "editing task at %q (re-run with --debug for more context)", path)
+	}
+
+	return nil
 }
 
 // checkNodeVersion compares the major version of the currently installed

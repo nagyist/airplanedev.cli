@@ -120,7 +120,7 @@ type ParsedJSConfigs struct {
 func extractJSConfigs(file string) (ParsedJSConfigs, error) {
 	tempFile, err := os.CreateTemp("", "airplane.parser.node.*.js")
 	if err != nil {
-		return ParsedJSConfigs{}, errors.Wrap(err, "creating temporary directory")
+		return ParsedJSConfigs{}, errors.Wrap(err, "creating temporary file")
 	}
 	defer os.Remove(tempFile.Name())
 	_, err = tempFile.Write(nodeParserScript)

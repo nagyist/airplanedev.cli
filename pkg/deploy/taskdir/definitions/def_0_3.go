@@ -175,7 +175,7 @@ func (d *NodeDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client
 			}
 		} else {
 			entrypoint := path.Join("/airplane/.airplane/", entrypoint)
-			// Ensure that the entyrpoint is a .js file.
+			// Ensure that the entrypoint is a .js file.
 			entrypoint = fsx.TrimExtension(entrypoint) + ".js"
 			req.Command = []string{"node"}
 			req.Arguments = []string{

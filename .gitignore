@@ -22,9 +22,6 @@ __pycache__/
 # IntelliJ editors
 .idea/
 
-# VSCode editors
-.vscode/*
-
 # Airplane generated outputs
 .airplane-build-tools/
 

@@ -167,6 +167,11 @@ func (r Runtime) SupportsLocalExecution() bool {
 	return true
 }
 
+func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.DefinitionInterface) error {
+	// TODO: support editing YAML definitions
+	return runtime.ErrNotImplemented
+}
+
 // checkAndPromptFileExecutable checks that a file is executable. If it isn't, it prompts the user to make it
 // executable. Returns an error if the file is not executable.
 func checkAndPromptFileExecutable(path string) error {

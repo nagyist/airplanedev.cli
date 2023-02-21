@@ -1,0 +1,30 @@
+{
+  "name": "transformer",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "esbuild ./index.ts --bundle --platform=node --minify --outfile=index.js",
+    "lint": "prettier --check . && tsc",
+    "lint:fix": "prettier --write .",
+    "build:watch": "nodemon --exec \"yarn run build\" -e ts",
+    "build:analyze": "yarn build --analyze=verbose",
+    "postinstall": "yarn build"
+  },
+  "prettier": {
+    "printWidth": 100
+  },
+  "dependencies": {
+    "@airplane/recast": "0.1.0",
+    "@babel/parser": "7.20.15",
+    "ast-types": "0.14.2"
+  },
+  "devDependencies": {
+    "@babel/types": "7.20.7",
+    "@types/node": "18.13.0",
+    "esbuild": "0.17.8",
+    "nodemon": "2.0.20",
+    "prettier": "2.8.4"
+  }
+}

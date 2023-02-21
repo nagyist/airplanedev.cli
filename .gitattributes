@@ -1,0 +1,2 @@
+pkg/runtime/javascript/transformer/*.js -diff linguist-generated=true
+pkg/deploy/discover/parser/node/*.js -diff linguist-generated=true
