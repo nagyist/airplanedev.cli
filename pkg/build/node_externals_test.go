@@ -115,6 +115,7 @@ func TestGetPackageCopyCmds(t *testing.T) {
 			"/home/base/test1/package-lock.json",
 			"/home/base/_test2/test3/package.json",
 		},
+		"/airplane",
 	)
 	require.NoError(t, err)
 

@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 
 	"github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	deployutils "github.com/airplanedev/lib/pkg/deploy/utils"
-	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/pkg/errors"
 )
@@ -150,14 +148,6 @@ func (dd *CodeViewDiscoverer) GetViewRoot(ctx context.Context, file string) (str
 	if !deployutils.IsViewInlineAirplaneEntity(file) {
 		return "", build.BuildContext{}, nil
 	}
-	root, err := filepath.Abs(filepath.Dir(file))
-	if err != nil {
-		return "", build.BuildContext{}, errors.Wrap(err, "getting absolute view definition root")
-	}
-	if p, ok := fsx.Find(root, "package.json"); ok {
-		root = p
-	}
-
 	pm, err := taskPathMetadata(file, build.TaskKindNode)
 	if err != nil {
 		return "", build.BuildContext{}, errors.Wrap(err, "unable to interpret task path metadata")
@@ -167,7 +157,7 @@ func (dd *CodeViewDiscoverer) GetViewRoot(ctx context.Context, file string) (str
 		return "", build.BuildContext{}, err
 	}
 
-	return root, build.BuildContext{
+	return pm.RootDir, build.BuildContext{
 		Type:    build.ViewBuildType,
 		Version: bc.Version,
 		Base:    bc.Base,

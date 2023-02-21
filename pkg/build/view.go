@@ -201,47 +201,34 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 	tailwindPath := filepath.Join(root, "tailwind.config.js")
 	hasTailwind := fsx.Exists(tailwindPath)
 
-	packageJSONPath := filepath.Join(root, "package.json")
-	var packageJSON interface{}
-	if fsx.Exists(packageJSONPath) {
-		packageJSONFile, err := os.ReadFile(packageJSONPath)
-		if err != nil {
-			return "", errors.Wrap(err, "reading package JSON")
-		}
-		if err := json.Unmarshal([]byte(packageJSONFile), &packageJSON); err != nil {
-			return "", errors.Wrap(err, "parsing package JSON")
-		}
-	}
-	packageJSONMap, ok := packageJSON.(map[string]interface{})
-	if !ok {
-		packageJSON = map[string]interface{}{}
-		packageJSONMap = packageJSON.(map[string]interface{})
-	}
-
-	packagesToAdd, err := getRequiredViewsDependencies([]string{packageJSONPath})
+	rootPackageJSONPath := filepath.Join(root, "package.json")
+	packageJSONs, usesWorkspaces, err := GetPackageJSONs(rootPackageJSONPath)
 	if err != nil {
 		return "", err
 	}
-	if len(packagesToAdd) > 0 {
-		// Add required views dependencies to the root package.json.
-		deps, depsOk := packageJSONMap["dependencies"].(map[string]interface{})
-		if !depsOk {
-			packageJSONMap["dependencies"] = map[string]interface{}{}
-			deps = packageJSONMap["dependencies"].(map[string]interface{})
-		}
-		for pkg, version := range packagesToAdd {
-			deps[pkg] = version
-		}
+
+	ii, err := getNodeInstallInstructions(root, "/airplane/src")
+	if err != nil {
+		return "", err
+	}
+	bi := BuildInstructions{InstallInstructions: ii}
+	installInstructions, err := bi.DockerfileString()
+	if err != nil {
+		return "", err
 	}
 
-	packageJSONByte, err := json.Marshal(packageJSON)
+	shimPackageJSON, err := GenViewsShimPackageJSON(packageJSONs)
 	if err != nil {
-		return "", errors.Wrap(err, "encoding new package.json")
+		return "", err
+	}
+	shimPackageJSONBytes, err := json.Marshal(shimPackageJSON)
+	if err != nil {
+		return "", errors.Wrap(err, "encoding shim package.json")
 	}
 
 	// Workaround to get esbuild to not bundle dependencies.
 	// See build.ExternalPackages for details.
-	externalPackages, err := ExternalPackages([]string{packageJSONPath}, false)
+	externalPackages, err := ExternalPackages(packageJSONs, usesWorkspaces)
 	if err != nil {
 		return "", err
 	}
@@ -251,7 +238,9 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 	}
 	esbuildFlags := strings.Join(flags, ", ")
 
-	directoryToBuildTo := ".airplane"
+	// Build code into the src directory where user deps are installed so that
+	// it can access user deps.
+	directoryToBuildTo := "/airplane/src/.airplane"
 
 	// Generate a list of all of the files to discover
 	var discoverEntrypoints []string
@@ -259,7 +248,7 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		fileToDiscoverExt := filepath.Ext(fileToDiscover)
 		// These should point at the location that esbuild will build to.
 		discoverEntrypoints = append(discoverEntrypoints,
-			filepath.Join("/airplane", directoryToBuildTo, strings.TrimSuffix(fileToDiscover, fileToDiscoverExt)+".js"))
+			filepath.Join(directoryToBuildTo, strings.TrimSuffix(fileToDiscover, fileToDiscoverExt)+".js"))
 	}
 
 	var buildEntrypoints []string
@@ -302,7 +291,7 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		InlineIndexHtml              string
 		InlineViteConfig             string
 		APIHost                      string
-		InlinePackageJSON            string
+		InlineShimPackageJSON        string
 		EsbuildFlags                 string
 		FilesToBuild                 string
 		FilesToBuildWithoutExtension string
@@ -312,19 +301,19 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		UseSlimImage                 bool
 		HasTailwind                  bool
 		InlinePostcssConfig          string
+		InstallInstructions          string
 	}{
 		Base: base,
 		// Because the install command is running in the context of a docker build, the yarn cache
 		// isn't used after the packages are installed, so we clean the cache to keep the image
 		// lean. This doesn't apply to Yarn v2 (specifically Plug'n'Play), which uses the cache
 		// directory for storing packages.
-		InstallCommand:               "yarn install --non-interactive && yarn cache clean",
-		OutDir:                       "dist",
+		OutDir:                       "/airplane/dist",
 		InlineMainTsx:                inlineString(mainTsxStr),
 		InlineIndexHtml:              inlineString(indexHtmlStr),
 		InlineViteConfig:             inlineString(viteConfigStr),
 		APIHost:                      apiHost,
-		InlinePackageJSON:            inlineString(string(packageJSONByte)),
+		InlineShimPackageJSON:        inlineString(string(shimPackageJSONBytes)),
 		EsbuildFlags:                 esbuildFlags,
 		FilesToBuild:                 esbuildFilesToBuild,
 		FilesToBuildWithoutExtension: strings.Join(filesToBuildWithoutExtension, " "),
@@ -334,6 +323,7 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		UseSlimImage:                 useSlimImage,
 		HasTailwind:                  hasTailwind,
 		InlinePostcssConfig:          inlineString(postcssConfigStr),
+		InstallInstructions:          installInstructions,
 	}
 
 	return applyTemplate(heredoc.Doc(`
@@ -349,6 +339,12 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 			&& apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 		{{end}}
 
+		# Install dependencies needed for the build and the shim.
+		# Do this in a parent directory of the source code and the same dir as the build tools so that
+		# the build tools can only use these dependencies and the source code can optionally use these dependencies.
+		RUN {{.InlineShimPackageJSON}} > package.json && \
+			yarn install --no-lockfile --silent
+
 		# Copy build tools.
 		COPY .airplane-build-tools .airplane-build-tools/
 
@@ -358,70 +354,69 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		RUN [ -z "${BUILD_NPM_RC}" ] || echo "${BUILD_NPM_RC}" > .npmrc
 		RUN [ -z "${BUILD_NPM_TOKEN}" ] || echo "//registry.npmjs.org/:_authToken=${BUILD_NPM_TOKEN}" > .npmrc
 
-		# Copy and install dependencies.
-		COPY package*.json yarn.* /airplane/
-		RUN {{.InlinePackageJSON}} > /airplane/package.json && {{.InstallCommand}}
+		# Install copy and build user code.
+		WORKDIR /airplane/src
+
+		{{.InstallInstructions}}
 		{{if .HasTailwind}}
 		RUN {{.InlinePostcssConfig}} > /airplane/postcss.config.js
 		{{end}}
 
-		# Copy all source code to /src.
-		COPY . src/
-
 		{{if .FilesToDiscover}}
 		# Build and discover inline views.
-		RUN cd src && node .airplane-build-tools/esbuild.js \
+		RUN node /airplane/.airplane-build-tools/esbuild.js \
 			'[{{.FilesToBuild}}]' \
 			node{{.NodeVersion}} \
 			'[{{.EsbuildFlags}}]' \
 			"" \
-			/airplane/{{.DirectoryToBuildTo}} \
+			{{.DirectoryToBuildTo}} \
 			/airplane/src \
 			true
 		RUN node /airplane/.airplane-build-tools/inlineParser.js {{.FilesToDiscover}}
 		{{end}}
 
 		# Generate index.html and main.tsx for each entrypoint.
-		RUN {{.InlineIndexHtml}} > index.html && {{.InlineMainTsx}} > main.tsx && .airplane-build-tools/gen_view.sh "{{.FilesToBuildWithoutExtension}}" index.html main.tsx
-
+		RUN {{.InlineIndexHtml}} > /airplane/index.html && {{.InlineMainTsx}} > /airplane/main.tsx && /airplane/.airplane-build-tools/gen_view.sh "{{.FilesToBuildWithoutExtension}}" /airplane/index.html /airplane/main.tsx
 		# Copy in universal Vite config and build view
 		RUN {{.InlineViteConfig}} > vite.config.ts && /airplane/node_modules/.bin/vite build --outDir {{.OutDir}}
-		RUN yarn list --pattern @airplane/views | grep @airplane/views | sed "s/^.*@airplane\/views@\(.*\)$/\1/" > /airplane/{{.OutDir}}/.airplane-views-version
-
+		RUN yarn list --pattern @airplane/views | grep @airplane/views | sed "s/^.*@airplane\/views@\(.*\)$/\1/" > {{.OutDir}}/.airplane-views-version
 		# Docker's minimal image - we just need an empty place to copy the build artifacts.
 		FROM scratch
-		COPY --from=builder /airplane/{{.OutDir}}/ .
+		COPY --from=builder {{.OutDir}}/ .
 	`), cfg)
 }
 
-// getRequiredViewsDependencies gets dependencies that required to build and run a view.
-func getRequiredViewsDependencies(packageJSONs []string) (map[string]string, error) {
-	deps, err := ListDependenciesFromPackageJSONs(packageJSONs)
+func GenViewsShimPackageJSON(packageJSONs []string) (shimPackageJSON, error) {
+	existingDeps, err := ListDependenciesFromPackageJSONs(packageJSONs)
 	if err != nil {
-		return nil, err
+		return shimPackageJSON{}, err
 	}
 
 	var buildToolsPackageJSON PackageJSON
 	if err := json.Unmarshal([]byte(BuildToolsPackageJSON), &buildToolsPackageJSON); err != nil {
-		return nil, errors.Wrap(err, "unmarshaling build tools package.json")
+		return shimPackageJSON{}, errors.Wrap(err, "unmarshaling build tools package.json")
 	}
 
-	requiredDeps := []string{"@airplane/views", "react", "react-dom", "vite", "esbuild", "@vitejs/plugin-react"}
-	requiredDepsMap := make(map[string]string, len(requiredDeps))
-	for _, de := range requiredDeps {
+	shimDeps := []string{"@airplane/views", "react", "react-dom"}
+	buildDeps := []string{"vite", "esbuild", "@vitejs/plugin-react"}
+	requiredDepsMap := make(map[string]string, len(shimDeps)+len(buildDeps))
+
+	for _, de := range shimDeps {
+		requiredDepsMap[de] = buildToolsPackageJSON.Dependencies[de]
+	}
+	// Allow users to override shim dependencies. If the user has specified a dependency, we won't
+	// install it for them and will rely on their version instead.
+	for dep := range existingDeps {
+		delete(requiredDepsMap, dep)
+	}
+	// Don't allow users to override build dependencies.
+	for _, de := range buildDeps {
 		requiredDepsMap[de] = buildToolsPackageJSON.Dependencies[de]
 	}
 
-	// Allow users to override dependencies.
-	// TODO: don't do this. We want to install our own versions of "toolchain"
-	// dependencies (esbuild, vite, etc) to ensure they're compatible with our
-	// build system. We're doing this for now because we add these deps to the
-	// user's package.json rather than creating a higher package.json.
-	for dep := range deps {
-		delete(requiredDepsMap, dep)
-	}
-
-	return requiredDepsMap, nil
+	return shimPackageJSON{
+		Dependencies: requiredDepsMap,
+	}, nil
 }
 
 //go:embed views/vite.config.ts

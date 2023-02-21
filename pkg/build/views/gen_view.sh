@@ -11,6 +11,6 @@ for entrypoint in $entrypoints; do
     # Create an index.html file for each entrypoint.
     cp $indexhtml "${entrypoint}"
 
-    # Create a main.tsx file for each entrypoint. Replace {{.Entrypoint}} with /src/path/to/entrypoint
-    sed -e "s|{{.Entrypoint}}|\/src\/$entrypoint|" $maintsx > "${entrypoint}/main.tsx"
+    # Create a main.tsx file for each entrypoint. Replace {{.Entrypoint}} with /path/to/entrypoint
+    sed -e "s|{{.Entrypoint}}|\/$entrypoint|" $maintsx > "${entrypoint}/main.tsx"
 done

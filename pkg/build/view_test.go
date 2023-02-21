@@ -89,6 +89,25 @@ func TestViewBundleBuilder(t *testing.T) {
 			},
 		},
 		{
+			Root: "view/yarnworkspaces",
+			Kind: "view",
+			Options: KindOptions{
+				"apiHost": "https://api:5000",
+			},
+			SkipRun: true,
+			Bundle:  true,
+			BuildContext: BuildContext{
+				Type:    ViewBuildType,
+				Version: BuildTypeVersionUnspecified,
+			},
+			FilesToBuild: []string{
+				"pkg2/src/main.airplane.tsx",
+			},
+			FilesToDiscover: []string{
+				"pkg2/src/main.airplane.tsx",
+			},
+		},
+		{
 			Root: "view/css",
 			Kind: "view",
 			Options: KindOptions{

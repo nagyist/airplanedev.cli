@@ -85,6 +85,33 @@ func getNodeBundleBuildInstructions(
 		},
 	}
 
+	installInstructions, err := getNodeInstallInstructions(root, "/airplane")
+	if err != nil {
+		return BuildInstructions{}, err
+	}
+	instructions = append(instructions, installInstructions...)
+
+	instructions = append(instructions, InstallInstruction{
+		Cmd: fmt.Sprintf(`mkdir -p /airplane/.airplane && \
+			%s > /airplane/.airplane/esbuild.js`, inlineString(Esbuild)),
+	})
+
+	return BuildInstructions{
+		InstallInstructions: instructions,
+		BuildArgs: []string{
+			"BUILD_NPM_RC",
+			"BUILD_NPM_TOKEN",
+		},
+	}, nil
+}
+
+func getNodeInstallInstructions(
+	root string,
+	sourceCodeDest string,
+) ([]InstallInstruction, error) {
+	var err error
+	var instructions []InstallInstruction
+
 	rootPackageJSON := filepath.Join(root, "package.json")
 	hasPackageJSON := fsx.AssertExistsAll(rootPackageJSON) == nil
 
@@ -107,18 +134,18 @@ func getNodeBundleBuildInstructions(
 	if hasDotAirplaneDotYarn {
 		instructions = append(instructions, InstallInstruction{
 			SrcPath: "./.airplane.yarn",
-			DstPath: "/airplane/.airplane.yarn/",
+			DstPath: filepath.Join(sourceCodeDest, ".airplane.yarn") + string(filepath.Separator),
 		})
 	} else if hasDotYarn {
 		instructions = append(instructions, InstallInstruction{
 			SrcPath: "./.yarn",
-			DstPath: "/airplane/.yarn/",
+			DstPath: filepath.Join(sourceCodeDest, ".yarn") + string(filepath.Separator),
 		})
 	}
 	if hasYarnRC {
 		instructions = append(instructions, InstallInstruction{
 			SrcPath: ".yarnrc.yml",
-			DstPath: "/airplane",
+			DstPath: sourceCodeDest,
 		})
 	}
 
@@ -126,26 +153,26 @@ func getNodeBundleBuildInstructions(
 	if hasPackageJSON {
 		pkg, err = ReadPackageJSON(rootPackageJSON)
 		if err != nil {
-			return BuildInstructions{}, err
+			return nil, err
 		}
 	}
 
 	// Install hooks can only exist in the task root for bundle builds
 	installHooks, err := GetInstallHooks("", root)
 	if err != nil {
-		return BuildInstructions{}, err
+		return nil, err
 	}
 
 	packageJSONs, _, err := GetPackageJSONs(rootPackageJSON)
 	if err != nil {
-		return BuildInstructions{}, err
+		return nil, err
 	}
 
 	var hasPackageInstallHooks bool
 	if hasPackageJSON {
-		packageCopyInstructions, err := GetPackageCopyInstructions(root, packageJSONs)
+		packageCopyInstructions, err := GetPackageCopyInstructions(root, packageJSONs, sourceCodeDest)
 		if err != nil {
-			return BuildInstructions{}, err
+			return nil, err
 		}
 		instructions = append(instructions, packageCopyInstructions...)
 
@@ -156,7 +183,7 @@ func getNodeBundleBuildInstructions(
 		for _, packageJSONPath := range packageJSONs {
 			hasPackageInstallHooks, err = hasInstallHooks(packageJSONPath)
 			if err != nil {
-				return BuildInstructions{}, err
+				return nil, err
 			}
 			if hasPackageInstallHooks {
 				break
@@ -165,7 +192,7 @@ func getNodeBundleBuildInstructions(
 	} else {
 		// Just create an empty package.json in the root
 		instructions = append(instructions, InstallInstruction{
-			Cmd: "echo '{}' > /airplane/package.json",
+			Cmd: fmt.Sprintf("echo '{}' > %s", filepath.Join(sourceCodeDest, "package.json")),
 		})
 	}
 
@@ -174,7 +201,7 @@ func getNodeBundleBuildInstructions(
 	if hasAirplaneConfig {
 		airplaneConfig, err = config.NewAirplaneConfigFromFile(root)
 		if err != nil {
-			return BuildInstructions{}, err
+			return nil, err
 		}
 	}
 
@@ -233,7 +260,7 @@ func getNodeBundleBuildInstructions(
 	if installRequiresCode {
 		instructions = append(instructions, InstallInstruction{
 			SrcPath: ".",
-			DstPath: "/airplane",
+			DstPath: sourceCodeDest,
 		})
 	}
 
@@ -252,23 +279,13 @@ func getNodeBundleBuildInstructions(
 	if !installRequiresCode {
 		instructions = append(instructions, InstallInstruction{
 			SrcPath: ".",
-			DstPath: "/airplane",
+			DstPath: sourceCodeDest,
 		})
 	}
 
 	instructions = append(instructions, postinstall...)
-	instructions = append(instructions, InstallInstruction{
-		Cmd: fmt.Sprintf(`mkdir -p /airplane/.airplane && \
-			%s > /airplane/.airplane/esbuild.js`, inlineString(Esbuild)),
-	})
 
-	return BuildInstructions{
-		InstallInstructions: instructions,
-		BuildArgs: []string{
-			"BUILD_NPM_RC",
-			"BUILD_NPM_TOKEN",
-		},
-	}, nil
+	return instructions, nil
 }
 
 func getNodeLegacyBuildInstructions(root string, options KindOptions) (BuildInstructions, error) {
@@ -449,7 +466,7 @@ func node(
 	var hasPackageInstallHooks bool
 
 	if cfg.HasPackageJSON {
-		cfg.PackageCopyCmds, err = GetPackageCopyCmds(root, packageJSONs)
+		cfg.PackageCopyCmds, err = GetPackageCopyCmds(root, packageJSONs, "/airplane")
 		if err != nil {
 			return "", err
 		}

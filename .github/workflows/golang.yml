@@ -56,7 +56,9 @@ jobs:
             ${{ runner.os }}-gha-go-
       - name: install fixture dependencies
         run: |
-          cd pkg/deploy/discover/fixtures
+          cd $GITHUB_WORKSPACE/pkg/deploy/discover/fixtures
+          yarn
+          cd $GITHUB_WORKSPACE/pkg/deploy/discover/fixtures/viewInline-yarnworkspace
           yarn
       - name: go test
         run: |

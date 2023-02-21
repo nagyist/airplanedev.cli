@@ -970,6 +970,26 @@ func TestDiscover(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:  "view yarn workspace",
+			paths: []string{"./fixtures/viewInline-yarnworkspace/pkg2/myView.airplane.tsx"},
+			existingViews: map[string]api.View{
+				"my_view": {ID: "view123", Slug: "my_view", Name: "My View"},
+			},
+			expectedViewConfigs: []ViewConfig{
+				{
+					ID: "view123",
+					Def: definitions.ViewDefinition{
+						Name:         "My view",
+						Slug:         "my_view",
+						Entrypoint:   filepath.Join(fixturesPath, "viewInline-yarnworkspace", "pkg2", "myView.airplane.tsx"),
+						DefnFilePath: filepath.Join(fixturesPath, "viewInline-yarnworkspace", "pkg2", "myView.airplane.tsx"),
+					},
+					Root:   filepath.Join(fixturesPath, "viewInline-yarnworkspace"),
+					Source: ConfigSourceCode,
+				},
+			},
+		},
 	}
 	for _, tC := range tests {
 		t.Run(tC.name, func(t *testing.T) {

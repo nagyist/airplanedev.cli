@@ -64,8 +64,8 @@ func GetPackageJSONs(rootPackageJSON string) (pathPackageJSONs []string, usesWor
 // to copy just the package json and yarn files needed for a workspace. This allows
 // us to do a yarn or npm install on top of just these, allowing us to cache
 // the dependencies across builds.
-func GetPackageCopyCmds(baseDir string, pathPackageJSONs []string) ([]string, error) {
-	instructions, err := GetPackageCopyInstructions(baseDir, pathPackageJSONs)
+func GetPackageCopyCmds(baseDir string, pathPackageJSONs []string, dest string) ([]string, error) {
+	instructions, err := GetPackageCopyInstructions(baseDir, pathPackageJSONs, dest)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func GetPackageCopyCmds(baseDir string, pathPackageJSONs []string) ([]string, er
 // to copy just the package json and yarn files needed for a workspace. This allows
 // us to do a yarn or npm install on top of just these, allowing us to cache
 // the dependencies across builds.
-func GetPackageCopyInstructions(baseDir string, pathPackageJSONs []string) ([]InstallInstruction, error) {
+func GetPackageCopyInstructions(baseDir string, pathPackageJSONs []string, dest string) ([]InstallInstruction, error) {
 	srcPaths := map[string]struct{}{}
 	copyInstructions := []InstallInstruction{}
 
@@ -104,10 +104,10 @@ func GetPackageCopyInstructions(baseDir string, pathPackageJSONs []string) ([]In
 	}
 
 	for srcPath := range srcPaths {
-		destPath := filepath.Join("/airplane", srcPath)
+		destPath := filepath.Join(dest, srcPath)
 		// Docker requires that the destination ends with a slash
-		if !strings.HasSuffix(destPath, "/") {
-			destPath = destPath + "/"
+		if !strings.HasSuffix(destPath, string(filepath.Separator)) {
+			destPath = destPath + string(filepath.Separator)
 		}
 
 		copyInstructions = append(
