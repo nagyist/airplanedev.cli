@@ -8,8 +8,7 @@ jobs:
       matrix:
         dir:
           - pkg/runtime/javascript/transformer
-          # TODO: add a lint command
-          # - pkg/deploy/discover/parser/node
+          - pkg/deploy/discover/parser/node
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

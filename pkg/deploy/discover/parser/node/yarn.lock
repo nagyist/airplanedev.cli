@@ -151,10 +151,10 @@
   resolved "https://registry.yarnpkg.com/@tootallnate/once/-/once-2.0.0.tgz#f544a148d3ab35801c1f633a7441fd87c2e484bf"
   integrity sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==
 
-"@types/jsdom@20.0.1":
-  version "20.0.1"
-  resolved "https://registry.yarnpkg.com/@types/jsdom/-/jsdom-20.0.1.tgz#07c14bc19bd2f918c1929541cdaacae894744808"
-  integrity sha512-d0r18sZPmMQr1eG35u12FZfhIXNrnsPU/g5wvRKCUf/tOGilKKwYMYGqh33BNR6ba+2gkHw1EUiHoN3mn7E5IQ==
+"@types/jsdom@21.1.0":
+  version "21.1.0"
+  resolved "https://registry.yarnpkg.com/@types/jsdom/-/jsdom-21.1.0.tgz#219f15e3370da3f85d18fe02ae86bda7ff66104a"
+  integrity sha512-leWreJOdnuIxq9Y70tBVm/bvTuh31DSlF/r4l7Cfi4uhVQqLHD0Q4v301GMisEMwwbMgF7ZKxuZ+Jbd4NcdmRw==
   dependencies:
     "@types/node" "*"
     "@types/tough-cookie" "*"
@@ -164,6 +164,11 @@
   version "18.7.16"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-18.7.16.tgz#0eb3cce1e37c79619943d2fd903919fc30850601"
   integrity sha512-EQHhixfu+mkqHMZl1R2Ovuvn47PUw18azMJOTwSZr9/fhzHNGXAJ0ma0dayRVchprpCj0Kc1K1xKoWaATWF1qg==
+
+"@types/node@18.13.0":
+  version "18.13.0"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.13.0.tgz#0400d1e6ce87e9d3032c19eb6c58205b0d3f7850"
+  integrity sha512-gC3TazRzGoOnoKAhUx+Q0t8S9Tzs74z7m0ipwGpSqQrleP14hKxP4/JUeEQcD3W1/aIpnWl8pHowI7WokuZpXg==
 
 "@types/tough-cookie@*":
   version "4.0.2"
@@ -520,7 +525,7 @@ is-potential-custom-element-name@^1.0.1:
   resolved "https://registry.yarnpkg.com/is-potential-custom-element-name/-/is-potential-custom-element-name-1.0.1.tgz#171ed6f19e3ac554394edf78caa05784a45bebb5"
   integrity sha512-bCYeRA2rVibKZd+s2625gGnGF/t7DSqDs4dP7CrLA1m7jKWz6pps0LpYLJN8Q64HtmPKJ1hrN3nzPNKFEKOUiQ==
 
-jsdom@^21.0.0:
+jsdom@21.1.0:
   version "21.1.0"
   resolved "https://registry.yarnpkg.com/jsdom/-/jsdom-21.1.0.tgz#d56ba4a84ed478260d83bd53dc181775f2d8e6ef"
   integrity sha512-m0lzlP7qOtthD918nenK3hdItSd2I+V3W9IrBcB36sqDwG+KnUs66IF5GY7laGWUnlM9vTsD0W1QwSEBYWWcJg==
@@ -612,6 +617,11 @@ prelude-ls@~1.1.2:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/prelude-ls/-/prelude-ls-1.1.2.tgz#21932a549f5e52ffd9a827f570e04be62a97da54"
   integrity sha512-ESF23V4SKG6lVSGZgYNpbsiaAkdab6ZgOxe52p7+Kid3W3u3bxR4Vfd/o21dmN7jSt0IwgZ4v5MUd26FEtXE9w==
+
+prettier@2.8.4:
+  version "2.8.4"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.8.4.tgz#34dd2595629bfbb79d344ac4a91ff948694463c3"
+  integrity sha512-vIS4Rlc2FNh0BySk3Wkd6xmwxB0FpOndW5fisM5H8hsZSxU2VWVB5CWIkIjWvrHjIhxk2g3bfMKM87zNTrZddw==
 
 psl@^1.1.33:
   version "1.9.0"
