@@ -681,6 +681,10 @@ func GetViewInfoHandler(ctx context.Context, state *state.State, r *http.Request
 	apiPort := state.LocalClient.AppURL().Port()
 	viewURL := utils.StudioURL(state.StudioURL.Host, apiPort, "/view/"+viewConfig.Def.Slug)
 
+	headers := map[string]string{
+		"X-Airplane-Studio-Fallback-Env-Slug": pointers.ToString(envSlug),
+	}
+
 	envVars, err := dev.GetEnvVarsForView(ctx, state.RemoteClient, dev.GetEnvVarsForViewConfig{
 		ViewEnvVars:      viewConfig.Def.EnvVars,
 		DevConfigEnvVars: state.DevConfig.EnvVars,
@@ -690,6 +694,7 @@ func GetViewInfoHandler(ctx context.Context, state *state.State, r *http.Request
 		Name:             viewConfig.Def.Name,
 		Slug:             viewConfig.Def.Slug,
 		ViewURL:          viewURL,
+		APIHeaders:       headers,
 	})
 	if err != nil {
 		return libapi.View{}, errors.Wrap(err, "getting env vars for view")

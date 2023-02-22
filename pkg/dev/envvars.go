@@ -30,6 +30,7 @@ type GetEnvVarsForViewConfig struct {
 	Name             string
 	Slug             string
 	ViewURL          string
+	APIHeaders       map[string]string
 }
 
 func GetEnvVarsForView(
@@ -329,6 +330,15 @@ func getBuiltInViewEnvVars(config GetEnvVarsForViewConfig) (map[string]string, e
 	env["AIRPLANE_VIEW_URL"] = config.ViewURL
 
 	env["AIRPLANE_TEAM_ID"] = teamID
+
+	if len(config.APIHeaders) > 0 {
+		serializedHeaders, err := json.Marshal(config.APIHeaders)
+		if err != nil {
+			return nil, err
+		}
+		env["AIRPLANE_API_HEADERS"] = string(serializedHeaders)
+	}
+
 	maps.Copy(env, getCommonEnvVars())
 
 	return env, nil
