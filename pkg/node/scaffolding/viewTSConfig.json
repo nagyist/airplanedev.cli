@@ -4,6 +4,8 @@
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
     "strict": true,
     "noImplicitAny": false,
     "module": "ESNext",
