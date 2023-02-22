@@ -170,11 +170,8 @@ func (c *CodeTaskDiscoverer) parseNodeDefinitions(ctx context.Context, file stri
 		return nil, err
 	}
 
-	if err := esbuildUserFiles(c.Logger, pm.RootDir); err != nil {
-		// TODO: convert to an error once inline discovery is more stable.
-		c.Logger.Log("")
-		c.Logger.Warning(`Unable to build task: %s`, err.Error())
-		return nil, nil
+	if err := esbuildUserFiles(c.Logger, pm.RootDir, file); err != nil {
+		return nil, errors.Wrap(err, "unable to build task")
 	}
 	defer func() {
 		if err := os.RemoveAll(path.Join(pm.RootDir, ".airplane", "discover")); err != nil {

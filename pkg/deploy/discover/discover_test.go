@@ -797,6 +797,38 @@ func TestDiscover(t *testing.T) {
 			defnFilePaths: []string{fixturesPath + "/envvars/codeOnlyTask.airplane.ts"},
 		},
 		{
+			name:  "node with bad import in unrelated file",
+			paths: []string{"./fixtures/badimport/main.airplane.ts"},
+			existingTasks: map[string]api.Task{
+				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+			},
+			expectedTaskConfigs: []TaskConfig{
+				{
+					TaskID:         "tsk123",
+					TaskRoot:       fixturesPath,
+					TaskEntrypoint: filepath.Join(fixturesPath, "badimport", "main.airplane.ts"),
+					Def: &definitions.Definition_0_3{
+						Name:       "Collatz",
+						Slug:       "collatz",
+						Parameters: []definitions.ParameterDefinition_0_3{},
+						Node:       &definitions.NodeDefinition_0_3{},
+					},
+					Source: ConfigSourceCode,
+				},
+			},
+			buildConfigs: []build.BuildConfig{
+				{
+					"entrypoint":     filepath.Join("badimport", "main.airplane.ts"),
+					"entrypointFunc": "default",
+					"workdir":        "",
+				},
+			},
+			absEntrypoints: []string{
+				filepath.Join(fixturesPath, "badimport", "main.airplane.ts"),
+			},
+			defnFilePaths: []string{filepath.Join(fixturesPath, "badimport", "main.airplane.ts")},
+		},
+		{
 			name:  "single defn with env vars in defn and in config file",
 			paths: []string{"./fixtures/envvars/defn.task.yaml"},
 			existingTasks: map[string]api.Task{

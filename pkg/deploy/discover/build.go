@@ -3,7 +3,6 @@ package discover
 import (
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,14 +14,10 @@ import (
 	"github.com/airplanedev/lib/pkg/utils/pointers"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slices"
 )
 
-const outputDir = ".airplane"
-
-// Finds all user .js, .ts, .jsx, .tsx files and builds them in root/.airplane/ with the
-// same directory structure as the user code (so relative imports work properly).
-func esbuildUserFiles(log logger.Logger, rootDir string) error {
+// esbuildUserFiles builds an airplane entity -> root/.airplane/discover/.
+func esbuildUserFiles(log logger.Logger, rootDir, file string) error {
 	rootPackageJSON := filepath.Join(rootDir, "package.json")
 	hasPackageJSON := fsx.AssertExistsAll(rootPackageJSON) == nil
 	packageJSONs, usesWorkspaces, err := build.GetPackageJSONs(rootPackageJSON)
@@ -39,25 +34,8 @@ func esbuildUserFiles(log logger.Logger, rootDir string) error {
 		}
 	}
 
-	var files []string
-	err = filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
-		if slices.Contains([]string{outputDir, "node_modules", ".airplane-view"}, d.Name()) {
-			return filepath.SkipDir
-		}
-		if slices.Contains([]string{".js", ".ts", ".jsx", ".tsx"}, filepath.Ext(d.Name())) {
-			files = append(files, path)
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	if len(files) == 0 {
-		return errors.New(fmt.Sprintf("unable to find any user js/ts/jsx/tsx files in %s", rootDir))
-	}
-
 	res := esbuild.Build(esbuild.BuildOptions{
-		EntryPoints: files,
+		EntryPoints: []string{file},
 		Outdir:      filepath.Join(rootDir, ".airplane", "discover"),
 		Outbase:     rootDir,
 		Write:       true,

@@ -42,11 +42,8 @@ func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 		return nil, err
 	}
 
-	if err := esbuildUserFiles(dd.Logger, pm.RootDir); err != nil {
-		// TODO: convert to an error once inline discovery is more stable.
-		dd.Logger.Log("")
-		dd.Logger.Warning(`Unable to build view: %s`, err.Error())
-		return nil, nil
+	if err := esbuildUserFiles(dd.Logger, pm.RootDir, file); err != nil {
+		return nil, errors.Wrap(err, "unable to build view")
 	}
 	defer func() {
 		if err := os.RemoveAll(path.Join(pm.RootDir, ".airplane", "discover")); err != nil {
