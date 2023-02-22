@@ -8,6 +8,7 @@ import (
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/state"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/airplanedev/lib/pkg/resources"
@@ -31,8 +32,7 @@ func GenerateAliasToResourceMap(
 	ctx context.Context,
 	resourceAttachments map[string]string,
 	slugToResource map[string]env.ResourceWithEnv,
-	useFallbackEnv bool,
-	remoteEnv *libapi.Env,
+	fallbackEnvSlug *string,
 	remoteClient api.APIClient,
 ) (map[string]resources.Resource, error) {
 	aliasToResourceMap := map[string]resources.Resource{}
@@ -42,17 +42,17 @@ func GenerateAliasToResourceMap(
 		resourceWithEnv, ok := LookupResource(slugToResource, ref)
 		if !ok {
 			msg := fmt.Sprintf("cannot find resource %q. Is it defined in your dev config file", ref)
-			if useFallbackEnv {
-				msg += fmt.Sprintf(" or in your %s environment", remoteEnv.Name)
+			if fallbackEnvSlug != nil {
+				msg += fmt.Sprintf(" or in your %s environment", *fallbackEnvSlug)
 			}
 			msg += "? You can add it using the resource sidebar to the left."
 			return nil, libhttp.NewErrNotFound(msg)
 		}
 
-		if resourceWithEnv.Remote && remoteEnv != nil && remoteClient != nil {
+		if resourceWithEnv.Remote && fallbackEnvSlug != nil && remoteClient != nil {
 			remoteResourceWithCredentials, err := remoteClient.GetResource(ctx, api.GetResourceRequest{
 				ID:                   resourceWithEnv.Resource.GetID(),
-				EnvSlug:              remoteEnv.Slug,
+				EnvSlug:              pointers.ToString(fallbackEnvSlug),
 				IncludeSensitiveData: true,
 			})
 			if err != nil {
@@ -71,7 +71,7 @@ func GenerateAliasToResourceMap(
 
 // MergeRemoteResources merges the resources defined in the dev config file with remote resources from the env passed
 // in the local dev server on startup.
-func MergeRemoteResources(ctx context.Context, state *state.State) (map[string]env.ResourceWithEnv, error) {
+func MergeRemoteResources(ctx context.Context, state *state.State, envSlug *string) (map[string]env.ResourceWithEnv, error) {
 	mergedResources := make(map[string]env.ResourceWithEnv)
 	if state == nil {
 		return mergedResources, nil
@@ -81,7 +81,7 @@ func MergeRemoteResources(ctx context.Context, state *state.State) (map[string]e
 		mergedResources[slug] = res
 	}
 
-	remoteResources, err := ListRemoteResources(ctx, state)
+	remoteResources, err := ListRemoteResources(ctx, state, envSlug)
 	if err != nil {
 		return nil, errors.Wrap(err, "listing remote resources")
 	}
@@ -131,19 +131,21 @@ func mergeDefaultRemoteResource(
 
 // ListRemoteResources returns any remote resources that the user can develop against. If no fallback environment is
 // set, we still return a set of default remote resources for convenience.
-func ListRemoteResources(ctx context.Context, state *state.State) ([]libapi.Resource, error) {
+func ListRemoteResources(ctx context.Context, state *state.State, envSlug *string) ([]libapi.Resource, error) {
 	if state.RemoteClient == nil {
 		return nil, libhttp.NewErrBadRequest("no remote client, dev server is likely not ready yet")
 	}
 
-	if state.UseFallbackEnv {
-		resp, err := state.RemoteClient.ListResources(ctx, state.RemoteEnv.Slug)
+	if envSlug != nil {
+		resp, err := state.RemoteClient.ListResources(ctx, *envSlug)
 		if err != nil {
 			return nil, err
 		}
 		return resp.Resources, nil
 	}
 
+	// Pull default remote resources. These get pulled from the default environment, not the given
+	// environment.
 	resources := make([]libapi.Resource, 0)
 	for _, slug := range defaultRemoteResourceSlugs {
 		remoteResource, err := state.RemoteClient.GetResource(ctx, api.GetResourceRequest{

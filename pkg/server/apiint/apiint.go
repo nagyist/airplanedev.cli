@@ -16,7 +16,9 @@ import (
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/outputs"
 	"github.com/airplanedev/cli/pkg/server/state"
+	serverutils "github.com/airplanedev/cli/pkg/server/utils"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	libresources "github.com/airplanedev/lib/pkg/resources"
@@ -188,6 +190,7 @@ type ListResourcesResponse struct {
 
 // ListResourcesHandler handles requests to the /i/resources/list endpoint
 func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Request) (ListResourcesResponse, error) {
+	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
 	resourcesWithEnv := make([]APIResourceWithEnv, 0)
 	for slug, r := range state.DevConfig.Resources {
 		resourcesWithEnv = append(resourcesWithEnv, APIResourceWithEnv{
@@ -205,8 +208,12 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 		})
 	}
 
-	remoteResources, err := resources.ListRemoteResources(ctx, state)
+	remoteResources, err := resources.ListRemoteResources(ctx, state, envSlug)
 	if err == nil {
+		remoteEnv, err := state.GetEnv(ctx, pointers.ToString(envSlug))
+		if err != nil {
+			return ListResourcesResponse{}, err
+		}
 		for _, r := range remoteResources {
 			// This is purely so we can display remote resource information in the local dev studio. The remote list
 			// resources endpoint doesn't return CanUseResource or CanUpdateResource, and so we set them to true here.
@@ -215,7 +222,7 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 			resourcesWithEnv = append(resourcesWithEnv, APIResourceWithEnv{
 				Resource: r,
 				Remote:   true,
-				Env:      state.RemoteEnv,
+				Env:      remoteEnv,
 			})
 		}
 	} else {
@@ -661,10 +668,11 @@ func GetViewInfoHandler(ctx context.Context, state *state.State, r *http.Request
 		return libapi.View{}, libhttp.NewErrBadRequest("view with slug %q not found", viewSlug)
 	}
 
+	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
 	configVars := state.DevConfig.ConfigVars
 	if len(state.DevConfig.EnvVars) > 0 || len(viewConfig.Def.EnvVars) > 0 {
 		var err error
-		configVars, err = configs.MergeRemoteConfigs(ctx, state)
+		configVars, err = configs.MergeRemoteConfigs(ctx, state, envSlug)
 		if err != nil {
 			return libapi.View{}, errors.Wrap(err, "merging local and remote configs")
 		}
@@ -677,7 +685,7 @@ func GetViewInfoHandler(ctx context.Context, state *state.State, r *http.Request
 		ViewEnvVars:      viewConfig.Def.EnvVars,
 		DevConfigEnvVars: state.DevConfig.EnvVars,
 		ConfigVars:       configVars,
-		UseFallbackEnv:   state.UseFallbackEnv,
+		FallbackEnvSlug:  pointers.ToString(envSlug),
 		AuthInfo:         state.AuthInfo,
 		Name:             viewConfig.Def.Name,
 		Slug:             viewConfig.Def.Slug,
@@ -753,16 +761,21 @@ type ListConfigsResponse struct {
 
 func ListConfigsHandler(ctx context.Context, state *state.State, r *http.Request) (ListConfigsResponse, error) {
 	configsWithEnv := maps.Values(state.DevConfig.ConfigVars)
+	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
 
 	// Append any remote configs, if a fallback environment is set
-	if state.UseFallbackEnv {
-		remoteConfigs, err := configs.ListRemoteConfigs(ctx, state)
+	if envSlug != nil {
+		remoteConfigs, err := configs.ListRemoteConfigs(ctx, state, *envSlug)
 		if err == nil {
+			remoteEnv, err := state.GetEnv(ctx, *envSlug)
+			if err != nil {
+				return ListConfigsResponse{}, err
+			}
 			for _, cfg := range remoteConfigs {
 				configsWithEnv = append(configsWithEnv, env.ConfigWithEnv{
 					Config: cfg,
 					Remote: true,
-					Env:    state.RemoteEnv,
+					Env:    remoteEnv,
 				})
 			}
 		} else {

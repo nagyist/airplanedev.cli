@@ -19,6 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/filewatcher"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
@@ -139,20 +140,24 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		sandboxState.Rebuild(ctx, bd, absoluteDir)
 	}
 
+	var envSlug *string
+	if cfg.useFallbackEnv {
+		// Make sure to get a pointer to the actual slug, in case someone passes in `--env ""`.
+		envSlug = pointers.String(remoteEnv.Slug)
+	}
 	apiServer.RegisterState(&state.State{
-		LocalClient:      &localClient,
-		RemoteClient:     cfg.root.Client,
-		RemoteEnv:        remoteEnv,
-		UseFallbackEnv:   cfg.useFallbackEnv,
-		DevConfig:        cfg.devConfig,
-		Executor:         dev.NewLocalExecutor(absoluteDir),
-		Dir:              absoluteDir,
-		AuthInfo:         authInfo,
-		Discoverer:       d,
-		BundleDiscoverer: bd,
-		StudioURL:        *appURL,
-		SandboxState:     sandboxState,
-		ServerHost:       serverHost,
+		LocalClient:          &localClient,
+		RemoteClient:         cfg.root.Client,
+		InitialRemoteEnvSlug: envSlug,
+		DevConfig:            cfg.devConfig,
+		Executor:             dev.NewLocalExecutor(absoluteDir),
+		Dir:                  absoluteDir,
+		AuthInfo:             authInfo,
+		Discoverer:           d,
+		BundleDiscoverer:     bd,
+		StudioURL:            *appURL,
+		SandboxState:         sandboxState,
+		ServerHost:           serverHost,
 	})
 
 	stop := make(chan os.Signal, 1)

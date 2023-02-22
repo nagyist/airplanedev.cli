@@ -33,14 +33,10 @@ type ViteContext struct {
 }
 
 type State struct {
-	LocalClient  *api.Client
-	RemoteClient api.APIClient
-	RemoteEnv    libapi.Env
-	StudioURL    url.URL
-	// We need UseFallbackEnv because there will always be a RemoteEnv (to look for a user's team's default resources).
-	// UseFallbackEnv determines whether we should use this remote env for tasks/resources/etc. outside of these
-	// defaults.
-	UseFallbackEnv bool
+	LocalClient          *api.Client
+	RemoteClient         api.APIClient
+	InitialRemoteEnvSlug *string
+	StudioURL            url.URL
 
 	EnvCache Store[string, libapi.Env]
 

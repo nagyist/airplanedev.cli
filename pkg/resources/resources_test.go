@@ -47,7 +47,6 @@ func TestGenerateAliasToResourceMap(t *testing.T) {
 			"demo_db": demoDBResource,
 			"db":      dBResource,
 		},
-		false,
 		nil,
 		nil,
 	)

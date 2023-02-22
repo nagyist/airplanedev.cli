@@ -13,6 +13,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/apidev"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/server/test_utils"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/airplanedev/cli/pkg/version"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	libhttp "github.com/airplanedev/lib/pkg/api/http"
@@ -93,11 +94,12 @@ func TestListEntrypoints(t *testing.T) {
 					},
 				},
 			},
-			UseFallbackEnv: true,
+			InitialRemoteEnvSlug: pointers.String("test"),
 		}, server.Options{}),
 	)
 
 	body := h.GET("/dev/list").
+		WithHeader("X-Airplane-Studio-Fallback-Env-Slug", "stage").
 		Expect().
 		Status(http.StatusOK).Body()
 

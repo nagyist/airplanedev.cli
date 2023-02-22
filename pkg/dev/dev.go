@@ -70,10 +70,10 @@ type LocalRunConfig struct {
 	ParentRunID *string
 	AuthInfo    api.AuthInfoResponse
 
-	LocalClient    *api.Client
-	RemoteClient   api.APIClient
-	UseFallbackEnv bool
-	TunnelToken    *string
+	LocalClient     *api.Client
+	RemoteClient    api.APIClient
+	FallbackEnvSlug string
+	TunnelToken     *string
 
 	// Mapping from alias to resource
 	AliasToResource map[string]resources.Resource
@@ -159,7 +159,7 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 		ctx,
 		config.RemoteClient,
 		config.ConfigAttachments, config.ConfigVars,
-		config.UseFallbackEnv,
+		config.FallbackEnvSlug,
 	)
 	if err != nil {
 		return api.Outputs{}, err
@@ -298,15 +298,15 @@ func materializeConfigAttachments(
 	remoteClient api.APIClient,
 	attachments []libapi.ConfigAttachment,
 	configs map[string]devenv.ConfigWithEnv,
-	useFallbackEnv bool,
+	fallbackEnvSlug string,
 ) (map[string]string, error) {
 	configAttachments := map[string]string{}
 	for _, a := range attachments {
 		cfg, ok := configs[a.NameTag]
 		if !ok {
 			errMessage := fmt.Sprintf("Config var %s not defined in airplane.dev.yaml", a.NameTag)
-			if useFallbackEnv {
-				errMessage += " or remotely in fallback env"
+			if fallbackEnvSlug != "" {
+				errMessage += fmt.Sprintf(" or remotely in env %s", fallbackEnvSlug)
 			}
 			errMessage += ". Please use the configs tab on the left to add it."
 			return nil, errors.New(errMessage)

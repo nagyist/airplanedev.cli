@@ -6,6 +6,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/builtins"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
@@ -81,6 +82,8 @@ func FromRemoteRun(run api.Run) LocalRun {
 		CreatorID:   run.CreatorID,
 		SucceededAt: run.SucceededAt,
 		FailedAt:    run.FailedAt,
+		CancelledAt: run.CancelledAt,
+		CancelledBy: pointers.ToString(run.CancelledBy),
 		ParamValues: run.ParamValues,
 		Parameters:  run.Parameters,
 		TaskID:      run.TaskID,

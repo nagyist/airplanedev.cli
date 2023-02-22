@@ -23,6 +23,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/server/test_utils"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	libresources "github.com/airplanedev/lib/pkg/resources"
@@ -71,7 +72,16 @@ func TestListResources(t *testing.T) {
 						ExportResource: &kinds.PostgresResource{},
 					},
 				},
+				Envs: map[string]libapi.Env{
+					"": {
+						ID:      "envprod",
+						Slug:    "prod",
+						Name:    "Prod",
+						Default: true,
+					},
+				},
 			},
+			EnvCache: state.NewStore[string, libapi.Env](nil),
 		}, server.Options{}),
 	)
 
@@ -525,14 +535,14 @@ func TestRemoteConfigs(t *testing.T) {
 					remoteEnv.Slug: remoteEnv,
 				},
 			},
-			RemoteEnv:      remoteEnv,
-			UseFallbackEnv: true,
+			InitialRemoteEnvSlug: pointers.String("test"),
 		}, server.Options{}),
 	)
 
 	// Test listing
 	var listResp apiint.ListConfigsResponse
 	body := h.GET("/i/configs/list").
+		WithHeader("X-Airplane-Studio-Fallback-Env-Slug", remoteEnv.Slug).
 		Expect().
 		Status(http.StatusOK).Body()
 	err := json.Unmarshal([]byte(body.Raw()), &listResp)

@@ -25,7 +25,7 @@ type GetEnvVarsForViewConfig struct {
 	ViewEnvVars      map[string]libapi.EnvVarValue
 	DevConfigEnvVars map[string]string
 	ConfigVars       map[string]devenv.ConfigWithEnv
-	UseFallbackEnv   bool
+	FallbackEnvSlug  string
 	AuthInfo         api.AuthInfoResponse
 	Name             string
 	Slug             string
@@ -52,7 +52,7 @@ func GetEnvVarsForView(
 		remoteClient,
 		unmaterializedEnvVars,
 		config.ConfigVars,
-		config.UseFallbackEnv,
+		config.FallbackEnvSlug,
 	)
 	if err != nil {
 		return nil, err
@@ -93,7 +93,7 @@ func getEnvVars(
 			config.RemoteClient,
 			runEnvVars,
 			config.ConfigVars,
-			config.UseFallbackEnv,
+			config.FallbackEnvSlug,
 		)
 		if err != nil {
 			return nil, err
@@ -133,7 +133,7 @@ func materializeEnvVars(
 	remoteClient api.APIClient,
 	taskEnvVars libapi.TaskEnv,
 	configVars map[string]devenv.ConfigWithEnv,
-	useFallbackEnv bool,
+	fallbackEnvSlug string,
 ) (map[string]string, error) {
 	envVars := make(map[string]string, len(taskEnvVars))
 	for key, envVar := range taskEnvVars {
@@ -142,8 +142,8 @@ func materializeEnvVars(
 		} else if envVar.Config != nil {
 			if configVar, ok := configVars[*envVar.Config]; !ok {
 				errMessage := fmt.Sprintf("Config var %s not defined in airplane.dev.yaml", *envVar.Config)
-				if useFallbackEnv {
-					errMessage += " or remotely in fallback env"
+				if fallbackEnvSlug != "" {
+					errMessage += fmt.Sprintf(" or remotely in env %s", fallbackEnvSlug)
 				}
 				errMessage += fmt.Sprintf(" (referenced by env var %s). Please use the configs tab on the left to add it.", key)
 				return nil, errors.New(errMessage)

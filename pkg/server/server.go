@@ -72,6 +72,7 @@ func NewRouter(state *state.State, opts Options) *mux.Router {
 			"x-airplane-client-kind",
 			"x-airplane-client-version",
 			"x-airplane-client-source",
+			"x-airplane-studio-fallback-env-slug",
 			"idempotency-key",
 			"x-airplane-dev-token",
 			"x-airplane-sandbox-token",
@@ -199,8 +200,7 @@ func Start(opts Options) (*Server, int, error) {
 func (s *Server) RegisterState(newState *state.State) {
 	s.state.LocalClient = newState.LocalClient
 	s.state.RemoteClient = newState.RemoteClient
-	s.state.RemoteEnv = newState.RemoteEnv
-	s.state.UseFallbackEnv = newState.UseFallbackEnv
+	s.state.InitialRemoteEnvSlug = newState.InitialRemoteEnvSlug
 	s.state.Executor = newState.Executor
 	s.state.DevConfig = newState.DevConfig
 	s.state.Dir = newState.Dir
@@ -412,7 +412,7 @@ type DiscoverOpts struct {
 // state. Task registration must occur after the local dev server has started because the task discoverer hits the
 // /v0/tasks/getMetadata endpoint.
 func (s *Server) RegisterTasksAndViews(ctx context.Context, opts DiscoverOpts) (dev_errors.RegistrationWarnings, error) {
-	mergedResources, err := resources.MergeRemoteResources(ctx, s.state)
+	mergedResources, err := resources.MergeRemoteResources(ctx, s.state, nil)
 	if err != nil {
 		return dev_errors.RegistrationWarnings{}, errors.Wrap(err, "merging local and remote resources")
 	}

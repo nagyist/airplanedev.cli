@@ -44,7 +44,9 @@ type taskDevConfig struct {
 	entrypointFunc string
 
 	// Airplane dev server-related fields
-	studio           bool
+	studio bool
+	// If envSlug is specifically set as empty string, use the default environment; if it's not
+	// set, useFallbackEnv should be false & there should be no fallback environment in studio.
 	useFallbackEnv   bool
 	disableWatchMode bool
 	sandbox          bool
@@ -268,7 +270,6 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		ctx,
 		resourceAttachments,
 		cfg.devConfig.Resources,
-		false,
 		nil,
 		nil,
 	)
@@ -298,7 +299,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		ParamValues:       paramValues,
 		LocalClient:       &localClient,
 		RemoteClient:      cfg.root.Client,
-		UseFallbackEnv:    false,
+		FallbackEnvSlug:   cfg.envSlug,
 		File:              cfg.fileOrDir,
 		Slug:              taskConfig.Def.GetSlug(),
 		AliasToResource:   aliasToResource,

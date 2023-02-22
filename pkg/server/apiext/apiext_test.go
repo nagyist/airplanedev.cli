@@ -22,6 +22,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/server/test_utils"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
@@ -129,22 +130,27 @@ func TestExecuteFallback(t *testing.T) {
 	mockExecutor := new(dev.MockExecutor)
 	slug := "my_task"
 
+	remoteEnv := libapi.Env{
+		ID:   "env1234",
+		Slug: "test",
+		Name: "test",
+	}
+
 	store := state.NewRunStore()
 	h := test_utils.GetHttpExpect(
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
-			RemoteClient: &api.MockClient{},
-			Executor:     mockExecutor,
-			Runs:         store,
-			TaskConfigs:  state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{}),
-			DevConfig:    &conf.DevConfig{},
-			RemoteEnv: libapi.Env{
-				ID:   "env1234",
-				Slug: "test",
-				Name: "test",
+			RemoteClient: &api.MockClient{
+				Envs: map[string]libapi.Env{
+					"test": remoteEnv,
+				},
 			},
-			UseFallbackEnv: true,
+			Executor:             mockExecutor,
+			Runs:                 store,
+			TaskConfigs:          state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{}),
+			DevConfig:            &conf.DevConfig{},
+			InitialRemoteEnvSlug: pointers.String("test"),
 		}, server.Options{}),
 	)
 
@@ -157,6 +163,7 @@ func TestExecuteFallback(t *testing.T) {
 			Slug:        slug,
 			ParamValues: paramValues,
 		}).
+		WithHeader("X-Airplane-Studio-Fallback-Env-Slug", "stage").
 		Expect().
 		Status(http.StatusOK).Body()
 
@@ -190,12 +197,12 @@ func TestExecuteDescendantFallback(t *testing.T) {
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
-			RemoteClient:   &api.MockClient{},
-			Executor:       mockExecutor,
-			Runs:           runstore,
-			TaskConfigs:    state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{}),
-			DevConfig:      &conf.DevConfig{},
-			UseFallbackEnv: true,
+			RemoteClient:         &api.MockClient{},
+			Executor:             mockExecutor,
+			Runs:                 runstore,
+			TaskConfigs:          state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{}),
+			DevConfig:            &conf.DevConfig{},
+			InitialRemoteEnvSlug: pointers.String("test"),
 		}, server.Options{}),
 	)
 

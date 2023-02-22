@@ -21,6 +21,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/network"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/server/status"
+	serverutils "github.com/airplanedev/cli/pkg/server/utils"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/version"
 	"github.com/airplanedev/cli/pkg/version/latest"
@@ -82,7 +83,7 @@ func GetVersionHandler(ctx context.Context, s *state.State, r *http.Request) (ve
 type StudioInfo struct {
 	Workspace            string              `json:"workspace"`
 	DefaultEnv           libapi.Env          `json:"defaultEnv"`
-	FallbackEnv          *libapi.Env         `json:"fallbackEnv"`
+	InitialFallbackEnv   *libapi.Env         `json:"fallbackEnv"` // This is specifically the fallback env that the server starts with
 	Host                 string              `json:"host"`
 	IsSandbox            bool                `json:"isSandbox"`
 	IsRebuilding         bool                `json:"isRebuilding"`
@@ -93,8 +94,12 @@ type StudioInfo struct {
 
 func GetInfoHandler(ctx context.Context, s *state.State, r *http.Request) (StudioInfo, error) {
 	var fallbackEnv *libapi.Env
-	if s.UseFallbackEnv {
-		fallbackEnv = &s.RemoteEnv
+	if s.InitialRemoteEnvSlug != nil {
+		env, err := s.GetEnv(ctx, *s.InitialRemoteEnvSlug)
+		if err != nil {
+			return StudioInfo{}, err
+		}
+		fallbackEnv = &env
 	}
 
 	var host string
@@ -107,11 +112,11 @@ func GetInfoHandler(ctx context.Context, s *state.State, r *http.Request) (Studi
 	}
 
 	info := StudioInfo{
-		Workspace:    s.Dir,
-		DefaultEnv:   env.NewLocalEnv(),
-		FallbackEnv:  fallbackEnv,
-		Host:         host,
-		ServerStatus: s.ServerStatus,
+		Workspace:          s.Dir,
+		DefaultEnv:         env.NewLocalEnv(),
+		InitialFallbackEnv: fallbackEnv,
+		Host:               host,
+		ServerStatus:       s.ServerStatus,
 	}
 
 	if s.SandboxState != nil {
@@ -147,6 +152,7 @@ type ListEntrypointsHandlerResponse struct {
 // ListEntrypointsHandler handles requests to the /dev/list endpoint. It generates a mapping from entrypoint relative to
 // the dev server root to the list of tasks and views that use that entrypoint.
 func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Request) (ListEntrypointsHandlerResponse, error) {
+	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
 	entrypoints := make(map[string][]EntityMetadata)
 	remoteEntrypoints := make([]EntityMetadata, 0)
 
@@ -190,8 +196,8 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 	}
 
 	// List remote entrypoints if fallback env is specified
-	if state.UseFallbackEnv {
-		res, err := state.RemoteClient.ListTasks(ctx, state.RemoteEnv.Slug)
+	if envSlug != nil {
+		res, err := state.RemoteClient.ListTasks(ctx, *envSlug)
 		if err != nil {
 			return ListEntrypointsHandlerResponse{}, errors.Wrap(err, "getting remote tasks")
 		}

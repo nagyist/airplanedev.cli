@@ -18,6 +18,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/outputs"
 	"github.com/airplanedev/cli/pkg/server/state"
+	serverutils "github.com/airplanedev/cli/pkg/server/utils"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
@@ -108,7 +109,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			envSlug = &parentRun.FallbackEnvSlug
 		}
 	} else {
-		envSlug = &state.RemoteEnv.Slug
+		envSlug = serverutils.GetEffectiveEnvSlugFromRequest(state, r)
 	}
 
 	localTaskConfig, ok := state.TaskConfigs.Get(req.Slug)
@@ -117,23 +118,23 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 	start := time.Now().UTC()
 	if isBuiltin || ok {
 		runConfig := dev.LocalRunConfig{
-			ID:             runID,
-			ParamValues:    req.ParamValues,
-			LocalClient:    state.LocalClient,
-			RemoteClient:   state.RemoteClient,
-			TunnelToken:    state.DevToken,
-			UseFallbackEnv: state.UseFallbackEnv,
-			Slug:           req.Slug,
-			ParentRunID:    pointers.String(parentID),
-			IsBuiltin:      isBuiltin,
-			AuthInfo:       state.AuthInfo,
-			LogBroker:      run.LogBroker,
-			WorkingDir:     state.Dir,
-			StudioURL:      state.StudioURL,
-			EnvVars:        state.DevConfig.EnvVars,
+			ID:              runID,
+			ParamValues:     req.ParamValues,
+			LocalClient:     state.LocalClient,
+			RemoteClient:    state.RemoteClient,
+			TunnelToken:     state.DevToken,
+			FallbackEnvSlug: pointers.ToString(envSlug),
+			Slug:            req.Slug,
+			ParentRunID:     pointers.String(parentID),
+			IsBuiltin:       isBuiltin,
+			AuthInfo:        state.AuthInfo,
+			LogBroker:       run.LogBroker,
+			WorkingDir:      state.Dir,
+			StudioURL:       state.StudioURL,
+			EnvVars:         state.DevConfig.EnvVars,
 		}
 		resourceAttachments := map[string]string{}
-		mergedResources, err := resources.MergeRemoteResources(ctx, state)
+		mergedResources, err := resources.MergeRemoteResources(ctx, state, envSlug)
 		if err != nil {
 			return api.RunTaskResponse{}, errors.Wrap(err, "merging local and remote resources")
 		}
@@ -198,7 +199,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			}
 			run.TaskID = req.Slug
 			run.TaskName = localTaskConfig.Def.GetName()
-			runConfig.ConfigVars, err = configs.MergeRemoteConfigs(ctx, state)
+			runConfig.ConfigVars, err = configs.MergeRemoteConfigs(ctx, state, envSlug)
 			if err != nil {
 				return api.RunTaskResponse{}, errors.Wrap(err, "merging local and remote configs")
 			}
@@ -214,8 +215,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			ctx,
 			resourceAttachments,
 			mergedResources,
-			state.UseFallbackEnv,
-			&state.RemoteEnv,
+			envSlug,
 			state.RemoteClient,
 		)
 		if err != nil {
@@ -294,7 +294,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			}
 		}()
 	} else {
-		if !state.UseFallbackEnv || envSlug == nil {
+		if envSlug == nil {
 			return api.RunTaskResponse{}, libhttp.NewErrNotFound("task with slug %q is not registered locally", req.Slug)
 		}
 
@@ -354,7 +354,7 @@ func GetTaskMetadataHandler(ctx context.Context, state *state.State, r *http.Req
 	// Neither builtin nor local, we try using the fallback env first, but we
 	// default to returning a dummy task if it's not found.
 	if !isBuiltin && !ok {
-		if state.UseFallbackEnv {
+		if state.InitialRemoteEnvSlug != nil {
 			resp, err := state.RemoteClient.GetTaskMetadata(ctx, slug)
 			if err != nil {
 				logger.Debug("Received error %s from remote task metadata, falling back to default", err)
@@ -386,7 +386,7 @@ func GetTaskReviewersHandler(ctx context.Context, state *state.State, r *http.Re
 			},
 		}, nil
 	}
-	if !state.UseFallbackEnv {
+	if state.InitialRemoteEnvSlug == nil {
 		return api.GetTaskReviewersResponse{}, libhttp.NewErrNotFound("task with slug %q is not registered locally", taskSlug)
 	}
 
@@ -415,7 +415,8 @@ func GetViewHandler(ctx context.Context, state *state.State, r *http.Request) (l
 	_, ok := state.ViewConfigs.Get(slug)
 	// Not local, we try using the fallback env first, but we default to returning a dummy view if it's not found.
 	if !ok {
-		if state.UseFallbackEnv {
+		if state.InitialRemoteEnvSlug != nil {
+			// TODO: should probably pass env into GetView
 			resp, err := state.RemoteClient.GetView(ctx, libapi.GetViewRequest{
 				Slug: slug,
 			})
@@ -621,7 +622,8 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 
 // ListResourceMetadataHandler handles requests to the /v0/resources/listMetadata endpoint
 func ListResourceMetadataHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.ListResourceMetadataResponse, error) {
-	mergedResources, err := resources.MergeRemoteResources(ctx, state)
+	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
+	mergedResources, err := resources.MergeRemoteResources(ctx, state, envSlug)
 	if err != nil {
 		return libapi.ListResourceMetadataResponse{}, errors.Wrap(err, "merging local and remote resources")
 	}
