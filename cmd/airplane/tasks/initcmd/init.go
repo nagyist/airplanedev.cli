@@ -17,7 +17,6 @@ import (
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/flags/flagsiface"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/node"
 	"github.com/airplanedev/cli/pkg/python"
@@ -110,8 +109,8 @@ func New(c *cli.Config) *cobra.Command {
 	cmd.Flags().BoolVarP(&cfg.assumeYes, "yes", "y", false, "True to specify automatic yes to prompts.")
 	cmd.Flags().BoolVarP(&cfg.assumeNo, "no", "n", false, "True to specify automatic no to prompts.")
 
-	cmd.Flags().BoolVar(&cfg.inline, "inline", false, "If true, the task will be configured with inline configuration")
-	cmd.Flags().BoolVar(&cfg.workflow, "workflow", false, "Generate a workflow-runtime task. Implies --inline.")
+	cmd.Flags().BoolVar(&cfg.inline, "inline", true, "If true, the task will be configured with inline configuration. Only applicable for JavaScript & Python tasks.")
+	cmd.Flags().BoolVar(&cfg.workflow, "workflow", false, "Generate a workflow-runtime task.")
 	cmd.Flags().StringVar(&cfg.envSlug, "env", "", "The slug of the environment that the `from` task is in. Defaults to your team's default environment.")
 	cfg.cmd = cmd
 
@@ -119,13 +118,6 @@ func New(c *cli.Config) *cobra.Command {
 }
 
 func Run(ctx context.Context, cfg config) error {
-	inlineSetByUser := cfg.cmd != nil && cfg.cmd.Flags().Changed("inline")
-	if !inlineSetByUser {
-		if cfg.root.Flagger.Bool(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), flagsiface.DefaultInlineConfigTasks) {
-			cfg.inline = true
-		}
-	}
-
 	// Check for mutually exclusive flags.
 	if cfg.assumeYes && cfg.assumeNo {
 		return errors.New("Cannot specify both --yes and --no")

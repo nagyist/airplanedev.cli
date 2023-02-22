@@ -6,10 +6,6 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 )
 
-const (
-	DefaultInlineConfigTasks = "default-inline-tasks"
-)
-
 // Flaggers are the primary mechanism for dynamically adjusting runtime behavior
 // on a per-customer level.
 type Flagger interface {
