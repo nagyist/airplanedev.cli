@@ -1075,12 +1075,13 @@ func TestGenShimPackageJSON(t *testing.T) {
 			packageJSONs, _, err := GetPackageJSONs(examples.Path(t, tc.packageJSON))
 			require.NoError(err)
 
-			shimPackageJSONSerialized, err := GenShimPackageJSON(
-				filepath.Dir(examples.Path(t, tc.packageJSON)),
-				packageJSONs,
-				tc.isWorkflow,
-				tc.isBundle,
-			)
+			shimPackageJSONSerialized, err := GenShimPackageJSON(GenShimPackageJSONOpts{
+				RootDir:            filepath.Dir(examples.Path(t, tc.packageJSON)),
+				PackageJSONs:       packageJSONs,
+				IsWorkflow:         tc.isWorkflow,
+				IsBundle:           tc.isBundle,
+				FallbackToUserDeps: true,
+			})
 			require.NoError(err)
 
 			shimJSON := shimPackageJSON{}

@@ -22,6 +22,7 @@ import (
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
+	"github.com/airplanedev/lib/pkg/utils/cryptox"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/pkg/errors"
@@ -33,6 +34,10 @@ func init() {
 	runtime.Register(".js", Runtime{})
 	runtime.Register(".jsx", Runtime{})
 }
+
+const (
+	depHashFile = "dep-hash"
+)
 
 //go:embed transformer/index.js
 var transformerScript []byte
@@ -380,7 +385,12 @@ func (r Runtime) FormatComment(s string) string {
 	return strings.Join(lines, "\n")
 }
 
-func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runtime.PrepareRunOptions) (rexprs []string, rcloser io.Closer, rerr error) {
+func (r Runtime) PrepareRun(
+	ctx context.Context,
+	logger logger.Logger,
+	opts runtime.PrepareRunOptions,
+) (rexprs []string, rcloser io.Closer, rerr error) {
+	start := time.Now()
 	checkNodeVersion(ctx, logger, opts.KindOptions)
 
 	root, err := r.Root(opts.Path)
@@ -388,18 +398,10 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		return nil, nil, err
 	}
 
-	airplaneDir, taskDir, closer, err := airplane_directory.CreateTaskDir(root, opts.TaskSlug)
+	airplaneDir, taskDir, _, err := airplane_directory.CreateTaskDir(root, opts.TaskSlug)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	defer func() {
-		// If we encountered an error before returning, then we're responsible
-		// for performing our own cleanup.
-		if rerr != nil {
-			closer.Close()
-		}
-	}()
 
 	shim := build.UniversalNodeShim
 	shimPath := filepath.Join(taskDir, "shim.js")
@@ -414,22 +416,45 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		return nil, nil, errors.Wrap(err, "getting package JSONs")
 	}
 
-	pjson, err := build.GenShimPackageJSON(root, packageJSONs, false, true)
+	pjson, err := build.GenShimPackageJSON(build.GenShimPackageJSONOpts{
+		RootDir:            root,
+		PackageJSONs:       packageJSONs,
+		IsWorkflow:         false,
+		IsBundle:           true,
+		FallbackToUserDeps: false,
+	})
 	if err != nil {
 		return nil, nil, err
 	}
 	if err := os.WriteFile(filepath.Join(airplaneDir, "package.json"), pjson, 0644); err != nil {
 		return nil, nil, errors.Wrap(err, "writing shim package.json")
 	}
-	cmd := exec.CommandContext(ctx, "npm", "install")
-	cmd.Dir = airplaneDir
-	logger.Debug("Running %s (in %s)", strings.Join(cmd.Args, " "), cmd.Dir)
-	out, err := cmd.CombinedOutput()
+
+	buildDepsEqual, err := CheckDepHash(airplaneDir)
 	if err != nil {
-		logger.Log(strings.TrimSpace(string(out)))
-		return nil, nil, errors.New("failed to install shim deps")
+		return nil, nil, err
 	}
 
+	// Check if shim dependencies are installed already _and_ if they are up-to-date.
+	if _, err := os.Stat(filepath.Join(airplaneDir, "node_modules")); (err == nil && !buildDepsEqual) || errors.Is(err, os.ErrNotExist) {
+		shimDepInstallStart := time.Now()
+		cmd := exec.CommandContext(ctx, "npm", "install")
+		cmd.Dir = airplaneDir
+		logger.Debug("Running %s (in %s)", strings.Join(cmd.Args, " "), cmd.Dir)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			logger.Log(strings.TrimSpace(string(out)))
+			return nil, nil, errors.New("failed to install shim deps")
+		}
+		logger.Debug("Installed shim deps in %s", time.Since(shimDepInstallStart))
+	} else if err == nil {
+		logger.Debug("Shim deps already installed")
+	} else {
+		return nil, nil, errors.Wrap(err, "checking for existing shim")
+	}
+
+	// [Legacy] We used to build a shim directly into .airplane/dist/, but this logic has since been moved to individual
+	// run subdirectories. Remove the old dist/ folder if it exists.
 	if err := os.RemoveAll(filepath.Join(airplaneDir, "dist")); err != nil {
 		return nil, nil, errors.Wrap(err, "cleaning dist folder")
 	}
@@ -446,55 +471,77 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		external = append(external, fmt.Sprintf(`"%s"`, dep))
 	}
 
-	start := time.Now()
-
 	// Save esbuild.js which we will use to run the build.
 	esBuildPath := filepath.Join(airplaneDir, "esbuild.js")
 	if err := os.WriteFile(esBuildPath, []byte(build.Esbuild), 0644); err != nil {
 		return nil, nil, errors.Wrap(err, "writing esbuild file")
 	}
-	// First build the shim.
+
+	// Check if shim exists; if it does, skip building the shim and just use the existing one.
 	builtShimPath := filepath.Join(taskDir, "dist/shim.js")
-	cmd = exec.CommandContext(ctx,
-		"node",
-		esBuildPath,
-		fmt.Sprintf(`["%s"]`, shimPath),
-		"node"+build.GetNodeVersion(opts.KindOptions),
-		fmt.Sprintf(`[%s]`, strings.Join(external, ", ")),
-		builtShimPath,
-	)
-	cmd.Dir = airplaneDir
-	logger.Debug("Running %s (in %s)", strings.Join(cmd.Args, " "), cmd.Dir)
-	out, err = cmd.CombinedOutput()
-	if err != nil {
-		logger.Log(strings.TrimSpace(string(out)))
-		return nil, nil, errors.New("failed to build task shim")
+	if _, err := os.Stat(builtShimPath); (err == nil && !buildDepsEqual) || errors.Is(err, os.ErrNotExist) {
+		// First build the shim.
+		shimBuildStart := time.Now()
+		cmd := exec.CommandContext(ctx,
+			"node",
+			esBuildPath,
+			fmt.Sprintf(`["%s"]`, shimPath),
+			"node"+build.GetNodeVersion(opts.KindOptions),
+			fmt.Sprintf(`[%s]`, strings.Join(external, ", ")),
+			builtShimPath,
+		)
+		cmd.Dir = airplaneDir
+		logger.Debug("Running %s (in %s)", strings.Join(cmd.Args, " "), cmd.Dir)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			logger.Log(strings.TrimSpace(string(out)))
+			return nil, nil, errors.New("failed to build task shim")
+		}
+		logger.Debug("Built task shim in %s", time.Since(shimBuildStart))
+	} else if err == nil {
+		logger.Debug("Using existing shim")
+	} else {
+		return nil, nil, errors.Wrap(err, "checking for existing shim")
 	}
 
-	// Then build the entrypoint.
+	// Then build the entrypoint. We always do this since this is unique per run.
 	entrypoint, err := filepath.Rel(root, opts.Path)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "entrypoint is not within the task root")
 	}
-	cmd = exec.CommandContext(ctx,
+
+	runDir, closer, err := airplane_directory.CreateRunDir(taskDir, opts.RunID)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer func() {
+		// If we encountered an error before returning, then we're responsible
+		// for performing our own cleanup.
+		if rerr != nil {
+			closer.Close()
+		}
+	}()
+
+	entrypointBuildStart := time.Now()
+	cmd := exec.CommandContext(ctx,
 		"node",
 		esBuildPath,
 		fmt.Sprintf(`["%s"]`, filepath.Join(root, entrypoint)),
 		"node"+build.GetNodeVersion(opts.KindOptions),
 		fmt.Sprintf(`[%s]`, strings.Join(external, ", ")),
 		"",
-		filepath.Join(taskDir, "dist"),
+		filepath.Join(runDir, "dist"),
 		root,
 	)
 	cmd.Dir = airplaneDir
 	logger.Debug("Running %s (in %s)", strings.Join(cmd.Args, " "), airplaneDir)
-	out, err = cmd.CombinedOutput()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Log(strings.TrimSpace(string(out)))
 		return nil, nil, errors.New("failed to build task")
 	}
 
-	logger.Debug("Built JS in %s", time.Since(start).String())
+	logger.Debug("Built entrypoint in %s", time.Since(entrypointBuildStart).String())
 
 	pv, err := json.Marshal(opts.ParamValues)
 	if err != nil {
@@ -504,7 +551,10 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 	entrypointFunc, _ := opts.KindOptions["entrypointFunc"].(string)
 	entrypointExt := filepath.Ext(entrypoint)
 	entrypointJS := strings.TrimSuffix(entrypoint, entrypointExt) + ".js"
-	return []string{"node", builtShimPath, filepath.Join(taskDir, "dist", entrypointJS), entrypointFunc, string(pv)}, closer, nil
+
+	logger.Debug("Prepared run for execution in %s", time.Since(start))
+
+	return []string{"node", builtShimPath, filepath.Join(runDir, "dist", entrypointJS), entrypointFunc, string(pv)}, closer, nil
 }
 
 // SupportsLocalExecution implementation.
@@ -588,4 +638,37 @@ func checkNodeVersion(ctx context.Context, logger logger.Logger, opts build.Kind
 	}
 
 	logger.Debug("npx version: %s", strings.TrimSpace(string(out)))
+}
+
+// CheckDepHash checks that the hash inside .airplane/dep-hash matches the hash of the build dependencies and build
+// script.
+func CheckDepHash(airplaneDir string) (bool, error) {
+	var prevHash string
+	contents, err := os.ReadFile(filepath.Join(airplaneDir, depHashFile))
+	if err != nil {
+		if os.IsNotExist(err) {
+			prevHash = ""
+		} else {
+			return false, errors.Wrap(err, "reading dependency hash file")
+		}
+	} else {
+		prevHash = string(contents)
+	}
+
+	currHash, err := cryptox.ComputeHashFromFiles(
+		filepath.Join(airplaneDir, "package.json"),
+		filepath.Join(airplaneDir, "esbuild.js"),
+	)
+	if err != nil {
+		return false, err
+	}
+
+	if prevHash == currHash {
+		return true, nil
+	} else {
+		if err := os.WriteFile(filepath.Join(airplaneDir, depHashFile), []byte(currHash), 0644); err != nil {
+			return false, errors.Wrap(err, "writing dependency hash file")
+		}
+		return false, nil
+	}
 }

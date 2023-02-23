@@ -521,7 +521,13 @@ func node(
 		return "", err
 	}
 
-	pjson, err := GenShimPackageJSON(root, packageJSONs, isWorkflow, false)
+	pjson, err := GenShimPackageJSON(GenShimPackageJSONOpts{
+		RootDir:            root,
+		PackageJSONs:       packageJSONs,
+		IsWorkflow:         isWorkflow,
+		IsBundle:           false,
+		FallbackToUserDeps: true,
+	})
 	if err != nil {
 		return "", err
 	}
@@ -668,10 +674,18 @@ type shimPackageJSON struct {
 	Type         string            `json:"type,omitempty"`
 }
 
+type GenShimPackageJSONOpts struct {
+	RootDir            string
+	PackageJSONs       []string
+	IsWorkflow         bool
+	IsBundle           bool
+	FallbackToUserDeps bool
+}
+
 // GenShimPackageJSON generates the `package.json` that contains the dependencies required for the shim to run. If the
 // dependency is satisfied by a parent directory (i.e. the user's code), then no need to include it here.
-func GenShimPackageJSON(rootDir string, packageJSONs []string, isWorkflow, isBundle bool) ([]byte, error) {
-	deps, err := ListDependenciesFromPackageJSONs(packageJSONs)
+func GenShimPackageJSON(opts GenShimPackageJSONOpts) ([]byte, error) {
+	deps, err := ListDependenciesFromPackageJSONs(opts.PackageJSONs)
 	if err != nil {
 		return nil, err
 	}
@@ -682,7 +696,7 @@ func GenShimPackageJSON(rootDir string, packageJSONs []string, isWorkflow, isBun
 	}
 
 	var pjson shimPackageJSON
-	if isWorkflow {
+	if opts.IsWorkflow {
 		pjson = shimPackageJSON{
 			Dependencies: map[string]string{
 				"airplane":         buildToolsPackageJSON.Dependencies["airplane"],
@@ -704,20 +718,29 @@ func GenShimPackageJSON(rootDir string, packageJSONs []string, isWorkflow, isBun
 		delete(pjson.Dependencies, dep)
 	}
 
+	// TODO(lee): Don't fallback to user dependencies.
+	setBuildDep := func(dep string) {
+		if opts.FallbackToUserDeps {
+			pjson.Dependencies[dep] = getLockPackageVersion(opts.RootDir, dep, buildToolsPackageJSON.Dependencies[dep])
+		} else {
+			pjson.Dependencies[dep] = buildToolsPackageJSON.Dependencies[dep]
+		}
+	}
+
 	// These dependencies must be included in order to build the universal task shim. We do not install user
 	// dependencies before building the shim in bundle builds, so we include them here.
-	if isBundle {
-		pjson.Dependencies["esbuild"] = getLockPackageVersion(rootDir, "esbuild", buildToolsPackageJSON.Dependencies["esbuild"])
-		pjson.Dependencies["esbuild-plugin-tsc"] = getLockPackageVersion(rootDir, "esbuild-plugin-tsc", buildToolsPackageJSON.Dependencies["esbuild-plugin-tsc"])
-		pjson.Dependencies["typescript"] = getLockPackageVersion(rootDir, "typescript", buildToolsPackageJSON.Dependencies["typescript"])
-		pjson.Dependencies["jsdom"] = getLockPackageVersion(rootDir, "jsdom", buildToolsPackageJSON.Dependencies["jsdom"])
+	if opts.IsBundle {
+		setBuildDep("esbuild")
+		setBuildDep("esbuild-plugin-tsc")
+		setBuildDep("typescript")
+		setBuildDep("jsdom")
 	}
 
 	// Always keep the versions of airplane and @airplane/workflow-runtime in sync, unless the task's dependencies
 	// explicitly include @airplane/workflow-runtime.
-	if isWorkflow {
+	if opts.IsWorkflow {
 		if depVersion, containsAirplane := deps["airplane"]; containsAirplane {
-			apVersion := getLockPackageVersion(rootDir, "airplane", depVersion)
+			apVersion := getLockPackageVersion(opts.RootDir, "airplane", depVersion)
 
 			if _, containsWorkflowRuntime := deps[workflowRuntimePkg]; !containsWorkflowRuntime {
 				pjson.Dependencies[workflowRuntimePkg] = apVersion
@@ -1100,13 +1123,25 @@ func nodeBundle(
 		return "", err
 	}
 
-	pjson, err := GenShimPackageJSON(root, packageJSONs, false, true)
+	pjson, err := GenShimPackageJSON(GenShimPackageJSONOpts{
+		RootDir:            root,
+		PackageJSONs:       packageJSONs,
+		IsWorkflow:         false,
+		IsBundle:           true,
+		FallbackToUserDeps: true,
+	})
 	if err != nil {
 		return "", err
 	}
 	cfg.InlineShimPackageJSON = inlineString(string(pjson))
 
-	workflowpjson, err := GenShimPackageJSON(root, packageJSONs, true, true)
+	workflowpjson, err := GenShimPackageJSON(GenShimPackageJSONOpts{
+		RootDir:            root,
+		PackageJSONs:       packageJSONs,
+		IsWorkflow:         true,
+		IsBundle:           true,
+		FallbackToUserDeps: true,
+	})
 	if err != nil {
 		return "", err
 	}
@@ -1154,7 +1189,7 @@ func nodeBundle(
 		FROM base as workflow-build
 		ENV NODE_ENV=production
 		WORKDIR /airplane{{.Workdir}}
-		
+
 		RUN mkdir -p /airplane/.airplane && \
 			cd /airplane/.airplane && \
 			{{.InlineWorkflowShimPackageJSON}} > package.json && \

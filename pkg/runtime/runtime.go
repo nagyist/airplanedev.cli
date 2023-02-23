@@ -120,6 +120,7 @@ type PrepareRunOptions struct {
 	KindOptions build.KindOptions
 
 	TaskSlug string
+	RunID    string
 
 	// Optional builtin client for runtimes that need it (SQL, Rest, builtin).
 	BuiltinsClient *builtins.LocalBuiltinClient

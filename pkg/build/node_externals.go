@@ -3,7 +3,6 @@ package build
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -518,33 +517,13 @@ func getLockPackageVersion(
 ) string {
 	yarnVersion, err := getYarnLockPackageVersion(rootDir, packageName)
 	if err == nil {
-		log.Printf(
-			"Found %q version via yarn: %q\n",
-			packageName,
-			yarnVersion,
-		)
 		return yarnVersion
 	}
-	log.Printf(
-		"Error getting %q version from yarn: %+v\n",
-		packageName,
-		err,
-	)
 
 	npmVersion, err := getNPMLockPackageVersion(rootDir, packageName)
 	if err == nil {
-		log.Printf(
-			"Found %q version in package-lock.json: %s\n",
-			packageName,
-			npmVersion,
-		)
 		return npmVersion
 	}
-	log.Printf(
-		"Error getting %q version from package-lock.json: %+v; falling back to version %q\n",
-		packageName,
-		err,
-		fallbackVersion,
-	)
+
 	return fallbackVersion
 }
