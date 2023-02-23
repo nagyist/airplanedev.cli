@@ -2,6 +2,7 @@ package analytics
 
 import (
 	"errors"
+	"runtime"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2/terminal"
@@ -113,7 +114,9 @@ func Track(c api.APIClient, event string, properties map[string]interface{}, opt
 	tok := cli.ParseTokenForAnalytics(c.GetToken())
 	props := analytics.NewProperties().
 		Set("team_id", tok.TeamID).
-		Set("cli_version", version.Get())
+		Set("user_id", tok.UserID).
+		Set("cli_version", version.Get()).
+		Set("os", runtime.GOOS)
 	for k, v := range properties {
 		props = props.Set(k, v)
 	}

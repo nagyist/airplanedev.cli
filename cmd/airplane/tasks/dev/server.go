@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/build"
 	"github.com/airplanedev/cli/pkg/dev"
@@ -26,6 +27,8 @@ import (
 )
 
 func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
+	analytics.Track(cfg.root.Client, "Studio started", nil)
+
 	authInfo, err := cfg.root.Client.AuthInfo(ctx)
 	if err != nil {
 		return err
