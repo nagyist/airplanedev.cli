@@ -49,7 +49,9 @@ func GenerateAliasToResourceMap(
 			return nil, libhttp.NewErrNotFound(msg)
 		}
 
-		if resourceWithEnv.Remote && fallbackEnvSlug != nil && remoteClient != nil {
+		// This should get remote resource credentials even if no fallback env is provided in the case of default
+		// resources
+		if resourceWithEnv.Remote && remoteClient != nil {
 			remoteResourceWithCredentials, err := remoteClient.GetResource(ctx, api.GetResourceRequest{
 				ID:                   resourceWithEnv.Resource.GetID(),
 				EnvSlug:              pointers.ToString(fallbackEnvSlug),
