@@ -4,9 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/airplanedev/cli/pkg/api"
 	devenv "github.com/airplanedev/cli/pkg/dev/env"
@@ -39,10 +37,6 @@ func GetEnvVarsForView(
 	config GetEnvVarsForViewConfig,
 ) (map[string]string, error) {
 	envVars := make(map[string]string)
-	for _, env := range os.Environ() {
-		parts := strings.SplitN(env, "=", 2)
-		envVars[parts[0]] = parts[1]
-	}
 
 	// Note that views do not pull env vars from dotenv files.
 	unmaterializedEnvVars := applyEnvVarFileOverrides(config.ViewEnvVars, config.DevConfigEnvVars, nil, "")
@@ -80,9 +74,7 @@ func getEnvVars(
 	entrypoint string,
 	interpolateRequest libapi.EvaluateTemplateRequest,
 ) ([]string, error) {
-	// cmd.Env defaults to os.Environ _only if empty_. Since we add
-	// to it, we need to also set it to os.Environ.
-	env := os.Environ()
+	env := make([]string, 0)
 	// only non builtins have a runtime
 	if r != nil {
 		// Collect all environment variables for the current run.
