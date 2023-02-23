@@ -140,6 +140,7 @@ func (l *LocalExecutor) Cmd(ctx context.Context, runConfig LocalRunConfig) (CmdC
 		TaskSlug:       runConfig.Slug,
 		WorkingDir:     runConfig.WorkingDir,
 		BuiltinsClient: l.BuiltinsClient,
+		RunID:          runConfig.ID,
 	})
 	if err != nil {
 		return CmdConfig{}, err
