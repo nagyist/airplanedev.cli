@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/airplanedev/cli/pkg/api"
@@ -21,9 +22,11 @@ import (
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	libhttp "github.com/airplanedev/lib/pkg/api/http"
+	"github.com/airplanedev/lib/pkg/build"
 	libresources "github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/resources/conversion"
 	"github.com/airplanedev/lib/pkg/resources/kind_configs"
+	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/gorilla/mux"
 	"github.com/gosimple/slug"
 	"github.com/pkg/errors"
@@ -657,15 +660,20 @@ func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request
 	return req, nil
 }
 
+type ViewInfo struct {
+	libapi.View
+	ViewsPkgVersion string `json:"viewsPkgVersion"`
+}
+
 // GetViewInfoHandler handles requests to the /i/views/get?slug=<view_slug> endpoint.
-func GetViewInfoHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.View, error) {
+func GetViewInfoHandler(ctx context.Context, state *state.State, r *http.Request) (ViewInfo, error) {
 	viewSlug := r.URL.Query().Get("slug")
 	if viewSlug == "" {
-		return libapi.View{}, libhttp.NewErrBadRequest("view slug was not supplied")
+		return ViewInfo{}, libhttp.NewErrBadRequest("view slug was not supplied")
 	}
 	viewConfig, ok := state.ViewConfigs.Get(viewSlug)
 	if !ok {
-		return libapi.View{}, libhttp.NewErrBadRequest("view with slug %q not found", viewSlug)
+		return ViewInfo{}, libhttp.NewErrBadRequest("view with slug %q not found", viewSlug)
 	}
 
 	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
@@ -674,15 +682,18 @@ func GetViewInfoHandler(ctx context.Context, state *state.State, r *http.Request
 		var err error
 		configVars, err = configs.MergeRemoteConfigs(ctx, state, envSlug)
 		if err != nil {
-			return libapi.View{}, errors.Wrap(err, "merging local and remote configs")
+			return ViewInfo{}, errors.Wrap(err, "merging local and remote configs")
 		}
 	}
 
 	apiPort := state.LocalClient.AppURL().Port()
 	viewURL := utils.StudioURL(state.StudioURL.Host, apiPort, "/view/"+viewConfig.Def.Slug)
 
-	headers := map[string]string{
-		"X-Airplane-Studio-Fallback-Env-Slug": pointers.ToString(envSlug),
+	headers := map[string]string{}
+	if envSlug == nil {
+		headers["X-Airplane-Studio-Fallback-Env-Slug"] = serverutils.NO_FALLBACK_ENVIRONMENT
+	} else {
+		headers["X-Airplane-Studio-Fallback-Env-Slug"] = pointers.ToString(envSlug)
 	}
 
 	envVars, err := dev.GetEnvVarsForView(ctx, state.RemoteClient, dev.GetEnvVarsForViewConfig{
@@ -697,15 +708,30 @@ func GetViewInfoHandler(ctx context.Context, state *state.State, r *http.Request
 		APIHeaders:       headers,
 	})
 	if err != nil {
-		return libapi.View{}, errors.Wrap(err, "getting env vars for view")
+		return ViewInfo{}, errors.Wrap(err, "getting env vars for view")
 	}
 
-	return libapi.View{
-		ID:          viewConfig.Def.Slug,
-		Slug:        viewConfig.Def.Slug,
-		Name:        viewConfig.Def.Name,
-		Description: viewConfig.Def.Description,
-		EnvVars:     envVars,
+	// Try to read the @airplane/views version.
+	viewsVersion := ""
+	rootPackageJSON := filepath.Join(viewConfig.Root, "package.json")
+	hasPackageJSON := fsx.AssertExistsAll(rootPackageJSON) == nil
+	if hasPackageJSON {
+		pkg, err := build.ReadPackageJSON(rootPackageJSON)
+		if err != nil {
+			return ViewInfo{}, errors.Wrap(err, "reading package.json")
+		}
+		viewsVersion = pkg.Dependencies["@airplane/views"]
+	}
+
+	return ViewInfo{
+		View: libapi.View{
+			ID:          viewConfig.Def.Slug,
+			Slug:        viewConfig.Def.Slug,
+			Name:        viewConfig.Def.Name,
+			Description: viewConfig.Def.Description,
+			EnvVars:     envVars,
+		},
+		ViewsPkgVersion: viewsVersion,
 	}, nil
 }
 
