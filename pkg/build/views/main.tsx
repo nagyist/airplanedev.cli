@@ -32,6 +32,12 @@ const getQueryParam = (key: string) => {
 };
 
 /**
+ * ENV_VAR_BLOCK_LIST is the list of query params we do not want to set as environment variables.
+ * since the user doesn't need to access them. 
+*/
+const RUNTIME_ENV_VAR_BLOCK_LIST = ["AIRPLANE_SANDBOX_TOKEN", "AIRPLANE_VIEW_TOKEN"];
+
+/**
  * Gets the value of all query params.
  * If the view is loaded in an iframe, this will get the query param from the iframe.
  */
@@ -53,15 +59,17 @@ setEnvVars(
   {
     AIRPLANE_TUNNEL_TOKEN: import.meta.env.AIRPLANE_TUNNEL_TOKEN,
     AIRPLANE_SANDBOX_TOKEN: getQueryParam("__airplane_sandbox_token"),
+    AIRPLANE_VIEW_TOKEN: getQueryParam("__viewToken"),
   }
 );
 
 // Set runtime environment variables.
 for (const [key, value] of getAllQueryParams()) {
+  let title = key
+  let val = value;
   if (key.startsWith("__")) {
     const camel = key.slice(2);
-    let title = camelToSnakeCase(camel);
-    let val = value;
+    title = camelToSnakeCase(camel);
     if (isInStudio) {
       if (camel === "envSlug" || camel === "envId" || camel === "envName" || camel==="env") {
         val = "studio";
@@ -74,10 +82,10 @@ for (const [key, value] of getAllQueryParams()) {
     if (!title.startsWith("AIRPLANE_")) {
       title = `AIRPLANE_${title}`;
     }
+  } 
 
+  if (!RUNTIME_ENV_VAR_BLOCK_LIST.includes(title)) {
     process.env[title] = val;
-  } else {
-    process.env[key] = value;
   }
 }
 
