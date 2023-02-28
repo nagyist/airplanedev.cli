@@ -1,7 +1,6 @@
 package root
 
 import (
-	"errors"
 	"os"
 
 	"github.com/MakeNowJust/heredoc"
@@ -27,10 +26,14 @@ import (
 	"github.com/airplanedev/cli/pkg/flags"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
+	"github.com/airplanedev/cli/pkg/tracing"
 	"github.com/airplanedev/cli/pkg/version/latest"
 	"github.com/airplanedev/trap"
 	isatty "github.com/mattn/go-isatty"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"go.opentelemetry.io/otel"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 // New returns a new root cobra command.
@@ -81,9 +84,31 @@ func New() *cobra.Command {
 			logger.Debug(version.Version())
 			latest.CheckLatest(cmd.Context(), &c)
 
+			if cfg.WithTracing {
+				logger.Debug("Setting up traces with collector %s", cfg.TracingCollectorAddr)
+				_, _, err := tracing.InitializeTracerProvider(
+					cmd.Context(),
+					tracing.TracerOpts{
+						CollectorAddr: cfg.TracingCollectorAddr,
+					},
+				)
+				if err != nil {
+					return errors.Wrap(err, "initializing tracing provider")
+				}
+			}
+
 			return nil
 		},
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
+			if cfg.WithTracing {
+				tracerProvider, ok := otel.GetTracerProvider().(*sdktrace.TracerProvider)
+
+				if ok && tracerProvider != nil {
+					if err := tracerProvider.Shutdown(cmd.Context()); err != nil {
+						logger.Warning("Error shutting down tracer provider: %+v", err)
+					}
+				}
+			}
 			analytics.Close()
 		},
 	}
@@ -111,7 +136,10 @@ func New() *cobra.Command {
 	if err := cmd.PersistentFlags().MarkHidden("dev"); err != nil {
 		logger.Debug("error: %s", err)
 	}
+	cmd.PersistentFlags().StringVar(&cfg.TracingCollectorAddr, "tracing-addr", "otel-collector.airplane.dev:443", "Address of tracing collector. Only used if tracing is also enabled.")
+	cmd.PersistentFlags().BoolVar(&cfg.WithTracing, "with-tracing", false, "Whether to send performance tracing data to Airplane.")
 	cmd.PersistentFlags().BoolVar(&cfg.WithTelemetry, "with-telemetry", false, "Whether to send debug telemetry to Airplane.")
+	cmd.PersistentFlags().BoolVar(&cfg.WithTracing, "with-tracing", false, "Whether to send performance tracing data to Airplane.")
 	cmd.PersistentFlags().BoolVarP(&cfg.Version, "version", "v", false, "Print the CLI version.")
 	// Root commands:
 	cmd.AddCommand(initcmd.New(cfg))

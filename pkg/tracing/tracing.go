@@ -3,6 +3,7 @@ package tracing
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/pkg/errors"
@@ -18,25 +19,30 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+// Span is a wrapper around an OTEL span.
 type Span struct {
 	ctx      context.Context
 	otelSpan trace.Span
 }
 
+// SetField sets an arbitrary key/value on a span.
 func (s *Span) SetField(name string, value interface{}) *Span {
 	s.otelSpan.SetAttributes(getAttribute(name, value))
 	return s
 }
 
+// Finish terminates the span.
 func (s *Span) Finish() {
 	s.otelSpan.End()
 }
 
+// AddEvent adds an event into the span at the current time.
 func (s *Span) AddEvent(name string) *Span {
 	s.otelSpan.AddEvent(name)
 	return s
 }
 
+// StartSpan creates a new span in the currently active trace.
 func StartSpan(
 	ctx context.Context,
 	operation string,
@@ -45,6 +51,8 @@ func StartSpan(
 	return StartSpanWithTime(ctx, operation, time.Time{}, initialFields...)
 }
 
+// StartSpanWithTime creates a new span in the currently active trace using an arbitrary
+// start time in the past.
 func StartSpanWithTime(
 	ctx context.Context,
 	operation string,
@@ -82,16 +90,13 @@ func StartSpanWithTime(
 func getDefaultSpanFields(ctx context.Context) map[string]string {
 	defaultFields := make(map[string]string)
 
-	/*
-		if hasTeam {
-			defaultFields["authn_team_id"] = team.ID
-			defaultFields["authn_team_slug"] = team.Slug
+	b := baggage.FromContext(ctx)
+	for _, member := range b.Members() {
+		val, err := url.PathUnescape(member.Value())
+		if err == nil {
+			defaultFields[member.Key()] = val
 		}
-		if hasUser {
-			defaultFields["authn_user_id"] = user.ID
-		}
-	*/
-
+	}
 	return defaultFields
 }
 
@@ -122,16 +127,20 @@ func getAttribute(key string, val interface{}) attribute.KeyValue {
 	}
 }
 
+// TracerOpts stores options for the tracing provider.
 type TracerOpts struct {
-	DefaultSamplingFraction float64
+	CollectorAddr string
+	TeamID        string
+	Host          string
+	User          string
 }
 
+// InitializeTracerProvider creates a new tracing provider for the CLI.
 func InitializeTracerProvider(
 	ctx context.Context,
-	honeycombAPIKey string,
 	opts TracerOpts,
 ) (*sdktrace.TracerProvider, otlptrace.Client, error) {
-	client := newTraceClient(ctx, honeycombAPIKey)
+	client := newTraceClient(ctx, opts.CollectorAddr)
 	exp, err := otlptrace.New(ctx, client)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to initialize exporter")
@@ -155,36 +164,20 @@ func InitializeTracerProvider(
 	return tp, client, nil
 }
 
-func newTraceClient(ctx context.Context, honeycombAPIKey string) otlptrace.Client {
+func newTraceClient(ctx context.Context, collectorAddr string) otlptrace.Client {
 	opts := []otlptracehttp.Option{
-		otlptracehttp.WithEndpoint("api.honeycomb.io:443"),
-		otlptracehttp.WithHeaders(map[string]string{
-			"x-honeycomb-team": honeycombAPIKey,
-		}),
+		otlptracehttp.WithEndpoint(collectorAddr),
 	}
-
 	return otlptracehttp.NewClient(opts...)
 }
 
 func newTraceProvider(exp *otlptrace.Exporter, opts TracerOpts) *sdktrace.TracerProvider {
-	resource :=
-		resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceNameKey.String("cli"),
-		)
-
-	defaultSamplingFraction := opts.DefaultSamplingFraction
-	if defaultSamplingFraction == 0 {
-		defaultSamplingFraction = .2
-	}
+	resource := resource.NewWithAttributes(
+		semconv.SchemaURL,
+		semconv.ServiceNameKey.String("cli"),
+	)
 	return sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exp),
 		sdktrace.WithResource(resource),
 	)
-}
-
-func ShouldPropagate(ctx context.Context) bool {
-	b := baggage.FromContext(ctx)
-	member := b.Member("propagate")
-	return member.Value() == "true"
 }

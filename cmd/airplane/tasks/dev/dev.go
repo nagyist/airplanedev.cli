@@ -21,6 +21,7 @@ import (
 	"github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/state"
+	"github.com/airplanedev/cli/pkg/tracing"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
@@ -182,6 +183,9 @@ func New(c *cli.Config) *cobra.Command {
 }
 
 func run(ctx context.Context, cfg taskDevConfig) error {
+	ctx, span := tracing.StartSpan(ctx, "dev")
+	defer span.Finish()
+
 	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{})
 	if cfg.studio {
 		return runLocalDevServer(ctx, cfg)

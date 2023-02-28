@@ -26,9 +26,17 @@ type Config struct {
 	// debug output to guide end-users through issues.
 	DebugMode bool
 
+	// TracingCollectorAddr is the network address of the OTEL-compatible tracing collector
+	// to send tracing data to. Only used if WithTracing is also true.
+	TracingCollectorAddr string
+
 	// WithTelemetry indicates if the CLI should send usage analytics and errors, even if it's been
 	// previously disabled.
 	WithTelemetry bool
+
+	// WithTracing indicates if the CLI should generate performance traces and send them
+	// to Airplane.
+	WithTracing bool
 
 	// Version indicates if the CLI version should be printed.
 	Version bool
