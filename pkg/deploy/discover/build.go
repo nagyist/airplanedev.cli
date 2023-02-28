@@ -120,7 +120,7 @@ func extractJSConfigs(file string) (ParsedJSConfigs, error) {
 
 	var parsedConfigs ParsedJSConfigs
 	if err := json.Unmarshal([]byte(parsedOutput[1]), &parsedConfigs); err != nil {
-		return ParsedJSConfigs{}, errors.Wrap(err, "unmarshalling parser output")
+		return ParsedJSConfigs{}, errors.Wrapf(err, "unmarshalling parser output %s", parsedOutput[1])
 	}
 	return parsedConfigs, nil
 }
@@ -139,7 +139,7 @@ func extractPythonConfigs(file string) ([]map[string]interface{}, error) {
 
 	var parsedTasks []map[string]interface{}
 	if err := json.Unmarshal([]byte(parsedOutput[1]), &parsedTasks); err != nil {
-		return nil, errors.Wrap(err, "unmarshalling parser output")
+		return nil, errors.Wrapf(err, "unmarshalling parser output %s", parsedOutput[1])
 	}
 	return parsedTasks, nil
 }
