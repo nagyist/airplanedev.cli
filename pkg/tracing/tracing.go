@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/baggage"
@@ -72,7 +71,7 @@ func StartSpanWithTime(
 		trace.WithTimestamp(ts),
 	}
 
-	ctx, otelSpan := otel.GetTracerProvider().Tracer(viper.GetString("service_name")).
+	ctx, otelSpan := otel.GetTracerProvider().Tracer("cli").
 		Start(ctx, operation, opts...)
 	return ctx, &Span{
 		ctx,
@@ -171,7 +170,7 @@ func newTraceProvider(exp *otlptrace.Exporter, opts TracerOpts) *sdktrace.Tracer
 	resource :=
 		resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceNameKey.String(viper.GetString("service_name")),
+			semconv.ServiceNameKey.String("cli"),
 		)
 
 	defaultSamplingFraction := opts.DefaultSamplingFraction
