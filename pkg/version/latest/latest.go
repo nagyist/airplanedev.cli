@@ -14,6 +14,7 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/version"
+	"github.com/airplanedev/lib/pkg/utils/fsx"
 )
 
 const releaseURL = "https://api.github.com/repos/airplanedev/cli/releases?per_page=1"
@@ -60,8 +61,10 @@ func CheckLatest(ctx context.Context, userConfig *conf.UserConfig) bool {
 	latestWithoutPrefix := strings.TrimPrefix(latest, "v")
 	// Assumes not matching latest means you are behind:
 	if latestWithoutPrefix != version.Get() {
+		upgradeCmd := getUpgradeCommand()
+
 		logger.Warning("A newer CLI version is available (%s -> %s). To upgrade, run", version.Get(), latestWithoutPrefix)
-		logger.Log(logger.Gray("  " + getUpgradeCommand()))
+		logger.Log(logger.Yellow("  " + upgradeCmd))
 		logger.Log("")
 		return false
 	}
@@ -70,15 +73,25 @@ func CheckLatest(ctx context.Context, userConfig *conf.UserConfig) bool {
 
 func getUpgradeCommand() string {
 	curlCmd := "curl -L https://github.com/airplanedev/cli/releases/latest/download/install.sh | sh"
+	brewCmd := "brew update && brew upgrade airplanedev/tap/airplane"
+
 	os := runtime.GOOS
 	switch os {
 	case "windows":
 		return "iwr https://github.com/airplanedev/cli/releases/latest/download/install.ps1 -useb | iex"
 	case "darwin":
 		cmd := curlCmd
-		_, err := exec.Command("brew", "list", "airplane").Output()
-		if err == nil {
-			cmd = "brew update && brew upgrade airplanedev/tap/airplane"
+		if fsx.Exists("/opt/homebrew/Cellar/airplane") ||
+			fsx.Exists("/usr/local/Cellar/airplane") {
+			// The user has airplane brew-installed in a default location (varies based
+			// on platform, see https://docs.brew.sh/Installation for details).
+			cmd = brewCmd
+		} else if _, err := exec.LookPath("brew"); err == nil {
+			// The user has brew, but it's possible that it's installing packages in a
+			// non-default location. Use 'brew list' to check.
+			if _, err := exec.Command("brew", "list", "airplane").Output(); err == nil {
+				cmd = brewCmd
+			}
 		}
 		return cmd
 	default:
