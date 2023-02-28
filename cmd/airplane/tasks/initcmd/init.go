@@ -186,7 +186,7 @@ func initTask(ctx context.Context, cfg config) error {
 					cfg.newTaskInfo.name,
 					slug,
 					&definitions.GraphQLDefinition_0_3{
-						Operation: `query get_user {
+						Operation: `query GetUser($id: ID) {
   user(id: $id) {
     id
 	name
