@@ -1,6 +1,7 @@
 package root
 
 import (
+	"context"
 	"os"
 
 	"github.com/MakeNowJust/heredoc"
@@ -85,11 +86,20 @@ func New() *cobra.Command {
 			latest.CheckLatest(cmd.Context(), &c)
 
 			if cfg.WithTracing {
+				authInfo, err := cfg.Client.AuthInfo(cmd.Context())
+				if err != nil {
+					logger.Warning("Error getting auth info for trace: %+v", err)
+				}
+
 				logger.Debug("Setting up traces with collector %s", cfg.TracingCollectorAddr)
-				_, _, err := tracing.InitializeTracerProvider(
+				_, _, err = tracing.InitializeTracerProvider(
 					cmd.Context(),
 					tracing.TracerOpts{
 						CollectorAddr: cfg.TracingCollectorAddr,
+						TeamID:        authInfo.Team.ID,
+						UserID:        authInfo.User.ID,
+						UserEmail:     authInfo.User.Email,
+						Version:       version.Version(),
 					},
 				)
 				if err != nil {
@@ -104,7 +114,7 @@ func New() *cobra.Command {
 				tracerProvider, ok := otel.GetTracerProvider().(*sdktrace.TracerProvider)
 
 				if ok && tracerProvider != nil {
-					if err := tracerProvider.Shutdown(cmd.Context()); err != nil {
+					if err := tracerProvider.Shutdown(context.Background()); err != nil {
 						logger.Warning("Error shutting down tracer provider: %+v", err)
 					}
 				}
@@ -137,7 +147,6 @@ func New() *cobra.Command {
 		logger.Debug("error: %s", err)
 	}
 	cmd.PersistentFlags().StringVar(&cfg.TracingCollectorAddr, "tracing-addr", "otel-collector.airplane.dev:443", "Address of tracing collector. Only used if tracing is also enabled.")
-	cmd.PersistentFlags().BoolVar(&cfg.WithTracing, "with-tracing", false, "Whether to send performance tracing data to Airplane.")
 	cmd.PersistentFlags().BoolVar(&cfg.WithTelemetry, "with-telemetry", false, "Whether to send debug telemetry to Airplane.")
 	cmd.PersistentFlags().BoolVar(&cfg.WithTracing, "with-tracing", false, "Whether to send performance tracing data to Airplane.")
 	cmd.PersistentFlags().BoolVarP(&cfg.Version, "version", "v", false, "Print the CLI version.")
