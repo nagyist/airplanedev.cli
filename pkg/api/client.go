@@ -545,6 +545,8 @@ type Prompt struct {
 	CreatedAt   time.Time              `json:"createdAt"`
 	SubmittedAt *time.Time             `json:"submittedAt"`
 	SubmittedBy *string                `json:"submittedBy"`
+	CancelledAt *time.Time             `json:"cancelledAt"`
+	CancelledBy *string                `json:"cancelledBy"`
 	Reviewers   *PromptReviewers       `json:"reviewers"`
 	ConfirmText string                 `json:"confirmText"`
 	CancelText  string                 `json:"cancelText"`
