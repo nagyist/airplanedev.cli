@@ -17,7 +17,7 @@ type BuildCreator interface {
 type Request struct {
 	Client  api.APIClient
 	Root    string
-	Def     definitions.DefinitionInterface
+	Def     definitions.Definition
 	TaskID  string
 	TaskEnv libapi.TaskEnv
 	Shim    bool

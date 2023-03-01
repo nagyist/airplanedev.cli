@@ -40,14 +40,14 @@ func TestExecute(t *testing.T) {
 	mockExecutor := new(dev.MockExecutor)
 	slug := "my_task"
 
-	taskDefinition := &definitions.Definition_0_3{
+	taskDefinition := definitions.Definition{
 		Name: "My Task",
 		Slug: slug,
-		Node: &definitions.NodeDefinition_0_3{
+		Node: &definitions.NodeDefinition{
 			Entrypoint:  "my_task.ts",
 			NodeVersion: "18",
 		},
-		Parameters: []definitions.ParameterDefinition_0_3{
+		Parameters: []definitions.ParameterDefinition{
 			{
 				Slug: "param1",
 				Type: "shorttext",
@@ -239,14 +239,14 @@ func TestExecuteBuiltin(t *testing.T) {
 	mockExecutor := new(dev.MockExecutor)
 	slug := "airplane:sql_query"
 
-	taskDefinition := &definitions.Definition_0_3{
+	taskDefinition := definitions.Definition{
 		Name: "My Task",
 		Slug: slug,
-		Node: &definitions.NodeDefinition_0_3{
+		Node: &definitions.NodeDefinition{
 			Entrypoint:  "my_task.ts",
 			NodeVersion: "18",
 		},
-		Resources: definitions.ResourceDefinition_0_3{Attachments: map[string]string{"my_db": "database"}},
+		Resources: definitions.ResourceDefinition{Attachments: map[string]string{"my_db": "database"}},
 	}
 	taskDefinition.SetDefnFilePath("my_task.task.yaml")
 
@@ -387,10 +387,10 @@ func TestRefresh(t *testing.T) {
 	mockExecutor := new(dev.MockExecutor)
 	slug := "my_task"
 
-	taskDefinition := &definitions.Definition_0_3{
+	taskDefinition := definitions.Definition{
 		Name: "My Task",
 		Slug: slug,
-		Node: &definitions.NodeDefinition_0_3{
+		Node: &definitions.NodeDefinition{
 			Entrypoint:  "my_task.ts",
 			NodeVersion: "18",
 		},

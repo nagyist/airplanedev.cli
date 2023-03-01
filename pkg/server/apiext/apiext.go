@@ -174,7 +174,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			run.StdAPIRequest = stdapiReq
 			run.TaskName = req.Slug
 			run.ParamValues = req.ParamValues
-		} else if localTaskConfig.Def != nil {
+		} else {
 			kind, kindOptions, err := dev.GetKindAndOptions(localTaskConfig)
 			if err != nil {
 				return api.RunTaskResponse{}, err
