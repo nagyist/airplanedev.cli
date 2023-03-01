@@ -23,6 +23,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/status"
 	serverutils "github.com/airplanedev/cli/pkg/server/utils"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/airplanedev/cli/pkg/version"
 	"github.com/airplanedev/cli/pkg/version/latest"
 	"github.com/airplanedev/cli/pkg/views"
@@ -536,9 +537,10 @@ func GetTaskErrorsHandler(ctx context.Context, state *state.State, r *http.Reque
 	if taskSlug == "" {
 		return GetTaskErrorResponse{}, errors.New("Task slug was not supplied, request path must be of the form /v0/tasks/warnings?slug=<task_slug>")
 	}
-	metadata, ok := state.AppCondition.Get(taskSlug)
-	if !ok {
-		return GetTaskErrorResponse{}, nil
+	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
+	metadata, err := state.GetTaskErrors(ctx, taskSlug, pointers.ToString(envSlug))
+	if err != nil {
+		return GetTaskErrorResponse{}, err
 	}
 	info := []dev_errors.AppError{}
 	warnings := []dev_errors.AppError{}

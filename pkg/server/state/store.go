@@ -25,6 +25,14 @@ func (s *Store[K, V]) Add(key K, val V) {
 	s.items[key] = val
 }
 
+func (s *Store[K, V]) AddMany(items map[K]V) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for k, v := range items {
+		s.items[k] = v
+	}
+}
+
 // Returns a copy of the items map for reading
 func (s *Store[K, V]) Items() map[K]V {
 	s.mu.RLock()

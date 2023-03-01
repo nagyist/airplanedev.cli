@@ -10,9 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/server/apidev"
 	"github.com/airplanedev/cli/pkg/server/apiext"
 	"github.com/airplanedev/cli/pkg/server/apiint"
@@ -223,17 +221,14 @@ func supportsLocalExecution(name string, entrypoint string, kind build.TaskKind)
 	return r.SupportsLocalExecution()
 }
 
-// ValidateTasks returns any dev errors about tasks, such as whether local dev is supported
-// and whether resources are attached
-func ValidateTasks(ctx context.Context, resourcesWithEnv map[string]env.ResourceWithEnv, taskConfigs []discover.TaskConfig) (dev_errors.RegistrationWarnings, error) {
+// ValidateTasks returns a map of slug -> AppError for unsupported tasks.
+func ValidateTasks(ctx context.Context, taskConfigs []discover.TaskConfig) (map[string]dev_errors.AppError, error) {
 	unsupportedApps := map[string]dev_errors.AppError{}
-	var unattachedResources []dev_errors.UnattachedResource
-	taskErrors := map[string][]dev_errors.AppError{}
 
 	for _, cfg := range taskConfigs {
 		kind, _, err := cfg.Def.GetKindAndOptions()
 		if err != nil {
-			return dev_errors.RegistrationWarnings{}, errors.Wrap(err, "getting task kind")
+			return nil, errors.Wrap(err, "getting task kind")
 		}
 		supported := supportsLocalExecution(cfg.Def.GetName(), cfg.TaskEntrypoint, kind)
 		if !supported {
@@ -243,42 +238,11 @@ func ValidateTasks(ctx context.Context, resourcesWithEnv map[string]env.Resource
 				AppKind: apidev.EntityKindTask,
 				Reason:  fmt.Sprintf("%v task does not support local execution", kind)}
 			unsupportedApps[cfg.Def.GetSlug()] = appErr
-			taskErrors[cfg.Def.GetSlug()] = []dev_errors.AppError{appErr}
 			continue
-		}
-
-		// Check resource attachments.
-		var missingResources []string
-		resourceAttachments, err := cfg.Def.GetResourceAttachments()
-		if err != nil {
-			return dev_errors.RegistrationWarnings{}, errors.Wrap(err, "getting resource attachments")
-		}
-		for _, ref := range resourceAttachments {
-			if _, ok := resources.LookupResource(resourcesWithEnv, ref); !ok {
-				missingResources = append(missingResources, ref)
-			}
-		}
-		if len(missingResources) > 0 {
-			unattachedResources = append(unattachedResources, dev_errors.UnattachedResource{
-				TaskName:      cfg.Def.GetName(),
-				ResourceSlugs: missingResources,
-			})
-			taskErrors[cfg.Def.GetSlug()] = []dev_errors.AppError{
-				{
-					Level:   dev_errors.LevelWarning,
-					AppName: cfg.Def.GetSlug(),
-					AppKind: apidev.EntityKindTask,
-					Reason:  fmt.Sprintf("Attached resource: %v not found in dev config file or remotely.", missingResources),
-				},
-			}
 		}
 	}
 
-	return dev_errors.RegistrationWarnings{
-		UnsupportedApps:     unsupportedApps,
-		UnattachedResources: unattachedResources,
-		TaskErrors:          taskErrors,
-	}, nil
+	return unsupportedApps, nil
 }
 
 func (s *Server) DiscoverTasksAndViews(ctx context.Context, paths ...string) ([]discover.TaskConfig, []discover.ViewConfig, error) {
@@ -412,36 +376,36 @@ type DiscoverOpts struct {
 // RegisterTasksAndViews generates a mapping of slug to task and view configs and stores the mappings in the server
 // state. Task registration must occur after the local dev server has started because the task discoverer hits the
 // /v0/tasks/getMetadata endpoint.
-func (s *Server) RegisterTasksAndViews(ctx context.Context, opts DiscoverOpts) (dev_errors.RegistrationWarnings, error) {
-	mergedResources, err := resources.MergeRemoteResources(ctx, s.state, nil)
+func (s *Server) RegisterTasksAndViews(ctx context.Context, opts DiscoverOpts) (map[string]dev_errors.AppError, error) {
+	unsupportedApps, err := ValidateTasks(ctx, opts.Tasks)
 	if err != nil {
-		return dev_errors.RegistrationWarnings{}, errors.Wrap(err, "merging local and remote resources")
+		return nil, errors.Wrap(err, "validating task")
 	}
-	warnings, err := ValidateTasks(ctx, mergedResources, opts.Tasks)
-	if err != nil {
-		return dev_errors.RegistrationWarnings{}, errors.Wrap(err, "validating task")
+
+	// Always invalidate the AppCondition cache.
+	s.state.AppCondition.ReplaceItems(map[string]state.AppCondition{})
+
+	taskConfigs := map[string]discover.TaskConfig{}
+	for _, cfg := range opts.Tasks {
+		if _, isUnsupported := unsupportedApps[cfg.Def.GetSlug()]; !isUnsupported {
+			taskConfigs[cfg.Def.GetSlug()] = cfg
+		}
+	}
+	viewConfigs := map[string]discover.ViewConfig{}
+	for _, cfg := range opts.Views {
+		viewConfigs[cfg.Def.Slug] = cfg
 	}
 	if opts.OverwriteAll {
-		// clear existing tasks, task errors, and views
-		s.state.TaskConfigs.ReplaceItems(map[string]discover.TaskConfig{})
-		s.state.AppCondition.ReplaceItems(map[string]state.AppCondition{})
-		s.state.ViewConfigs.ReplaceItems(map[string]discover.ViewConfig{})
-	}
-	now := time.Now()
-	for _, cfg := range opts.Tasks {
-		if _, isUnsupported := warnings.UnsupportedApps[cfg.Def.GetSlug()]; !isUnsupported {
-			s.state.TaskConfigs.Add(cfg.Def.GetSlug(), cfg)
-		}
-		w := warnings.TaskErrors[cfg.Def.GetSlug()]
-		s.state.AppCondition.Add(cfg.Def.GetSlug(), state.AppCondition{RefreshedAt: now, Errors: w})
-	}
-	for _, cfg := range opts.Views {
-		s.state.ViewConfigs.Add(cfg.Def.Slug, cfg)
+		s.state.TaskConfigs.ReplaceItems(taskConfigs)
+		s.state.ViewConfigs.ReplaceItems(viewConfigs)
+	} else {
+		s.state.TaskConfigs.AddMany(taskConfigs)
+		s.state.ViewConfigs.AddMany(viewConfigs)
 	}
 
 	s.state.SetServerStatus(status.ServerReady)
 
-	return warnings, err
+	return unsupportedApps, err
 }
 
 // Stop terminates the local dev API server.

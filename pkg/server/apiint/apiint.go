@@ -211,7 +211,7 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 		})
 	}
 
-	remoteResources, err := resources.ListRemoteResources(ctx, state, envSlug)
+	remoteResources, err := resources.ListRemoteResources(ctx, state.RemoteClient, envSlug)
 	if err == nil {
 		remoteEnv, err := state.GetEnv(ctx, pointers.ToString(envSlug))
 		if err != nil {
@@ -618,9 +618,10 @@ func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request
 		return libapi.Task{}, libhttp.NewErrNotFound("task with slug %q not found", taskSlug)
 	}
 
-	metadata, ok := state.AppCondition.Get(taskSlug)
-	if !ok {
-		return libapi.Task{}, libhttp.NewErrNotFound("task with slug %q not found", taskSlug)
+	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
+	metadata, err := state.GetTaskErrors(ctx, taskSlug, pointers.ToString(envSlug))
+	if err != nil {
+		return libapi.Task{}, err
 	}
 	// For our purposes, the libapi.Task and libapi.UpdateTaskRequest structs contain the same critical data.
 	// Using UpdateTaskRequest and taskConfig.Def.GetUpdateTaskRequest() conveniently

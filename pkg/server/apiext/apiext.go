@@ -134,7 +134,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			EnvVars:         state.DevConfig.EnvVars,
 		}
 		resourceAttachments := map[string]string{}
-		mergedResources, err := resources.MergeRemoteResources(ctx, state, envSlug)
+		mergedResources, err := resources.MergeRemoteResources(ctx, state.RemoteClient, state.DevConfig, envSlug)
 		if err != nil {
 			return api.RunTaskResponse{}, errors.Wrap(err, "merging local and remote resources")
 		}
@@ -623,7 +623,7 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 // ListResourceMetadataHandler handles requests to the /v0/resources/listMetadata endpoint
 func ListResourceMetadataHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.ListResourceMetadataResponse, error) {
 	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
-	mergedResources, err := resources.MergeRemoteResources(ctx, state, envSlug)
+	mergedResources, err := resources.MergeRemoteResources(ctx, state.RemoteClient, state.DevConfig, envSlug)
 	if err != nil {
 		return libapi.ListResourceMetadataResponse{}, errors.Wrap(err, "merging local and remote resources")
 	}

@@ -14,14 +14,3 @@ const (
 	LevelWarning = "warning"
 	LevelError   = "error"
 )
-
-type UnattachedResource struct {
-	TaskName      string
-	ResourceSlugs []string
-}
-
-type RegistrationWarnings struct {
-	UnsupportedApps     map[string]AppError
-	UnattachedResources []UnattachedResource
-	TaskErrors          map[string][]AppError
-}
