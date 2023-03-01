@@ -30,7 +30,7 @@ func TestInlineMinimal(t *testing.T) {
         }
       }`
 
-	var def *definitions.Definition_0_3
+	var def *definitions.Definition
 	err := json.Unmarshal([]byte(defJSON), &def)
 	require.NoError(err)
 
@@ -421,7 +421,7 @@ func TestInlineEveryType(t *testing.T) {
           }
         }
       }`
-	var def *definitions.Definition_0_3
+	var def *definitions.Definition
 	err := json.Unmarshal([]byte(defJSON), &def)
 	require.NoError(err)
 

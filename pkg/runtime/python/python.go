@@ -208,7 +208,7 @@ func toPythonType(value string) (string, error) {
 	return "", errors.Errorf("unsupported type %s", value)
 }
 
-func needsDatetimeImport(params []definitions.ParameterDefinition_0_3) bool {
+func needsDatetimeImport(params []definitions.ParameterDefinition) bool {
 	for _, param := range params {
 		if param.Type == "date" || param.Type == "datetime" {
 			return true
@@ -217,7 +217,7 @@ func needsDatetimeImport(params []definitions.ParameterDefinition_0_3) bool {
 	return false
 }
 
-func needsOptionalImport(params []definitions.ParameterDefinition_0_3) bool {
+func needsOptionalImport(params []definitions.ParameterDefinition) bool {
 	for _, param := range params {
 		if !paramIsRequired(param) {
 			return true
@@ -265,7 +265,7 @@ func toPythonTypeVar(paramType string, paramValue interface{}) (string, error) {
 	}
 }
 
-func paramIsRequired(param definitions.ParameterDefinition_0_3) bool {
+func paramIsRequired(param definitions.ParameterDefinition) bool {
 	return param.Required.Value()
 }
 
@@ -417,7 +417,7 @@ def {{.Slug}}():
 `))
 
 type inlineHelper struct {
-	*definitions.Definition_0_3
+	*definitions.Definition
 	AllowSelfApprovals  bool
 	Timeout             int
 	SDKMethod           string
@@ -427,7 +427,7 @@ type inlineHelper struct {
 }
 
 // GenerateInline implementation.
-func (r Runtime) GenerateInline(def *definitions.Definition_0_3) ([]byte, fs.FileMode, error) {
+func (r Runtime) GenerateInline(def *definitions.Definition) ([]byte, fs.FileMode, error) {
 	var buf bytes.Buffer
 	method := "task"
 	if def.Runtime == build.TaskRuntimeWorkflow {
@@ -439,7 +439,7 @@ func (r Runtime) GenerateInline(def *definitions.Definition_0_3) ([]byte, fs.Fil
 	}
 
 	helper := inlineHelper{
-		Definition_0_3:      def,
+		Definition:          def,
 		AllowSelfApprovals:  def.AllowSelfApprovals.Value(),
 		Timeout:             def.Timeout.Value(),
 		SDKMethod:           method,
@@ -503,7 +503,7 @@ func (r Runtime) SupportsLocalExecution() bool {
 	return true
 }
 
-func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.DefinitionInterface) error {
+func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
 	// TODO: support editing Python inline config definitions (and YAML)
 	return runtime.ErrNotImplemented
 }

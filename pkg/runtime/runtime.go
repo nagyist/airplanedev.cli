@@ -49,7 +49,7 @@ type Interface interface {
 	//
 	// os.FileMode is used for the permissions of the generated file. Files will typically use 0644
 	// but might use 0744 for executable scripts (e.g. shell scripts).
-	GenerateInline(def *definitions.Definition_0_3) ([]byte, os.FileMode, error)
+	GenerateInline(def *definitions.Definition) ([]byte, os.FileMode, error)
 
 	// Workdir attempts to detect the root of the given task path.
 	//
@@ -102,7 +102,7 @@ type Interface interface {
 
 	// Edit edits the task configuration contained in the specified file to match the
 	// provided definition.
-	Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.DefinitionInterface) error
+	Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error
 }
 
 type PrepareRunOptions struct {

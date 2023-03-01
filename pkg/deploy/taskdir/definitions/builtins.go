@@ -61,7 +61,7 @@ func (p TaskBuiltinPlugin) GetTaskKindDefinition() BuiltinTaskDef {
 }
 
 type BuiltinTaskDef interface {
-	taskKind_0_3
+	taskKind
 	getFunctionSpecification() (builtins.FunctionSpecification, error)
 }
 
@@ -98,7 +98,7 @@ func (c BuiltinTaskContainer) MarshalYAML() (interface{}, error) {
 }
 
 // Hydrates a builtin definition from a task.
-func hydrateBuiltin(ctx context.Context, client api.IAPIClient, d *Definition_0_3, t *api.Task) error {
+func hydrateBuiltin(ctx context.Context, client api.IAPIClient, d *Definition, t *api.Task) error {
 	fs, err := builtins.GetFunctionSpecificationFromKindOptions(t.KindOptions)
 	if err != nil {
 		return err

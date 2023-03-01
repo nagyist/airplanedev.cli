@@ -75,7 +75,7 @@ func TestYAMLComments(t *testing.T) {
 	} {
 		t.Run(test.descriptor, func(t *testing.T) {
 			require := require.New(t)
-			def, err := NewDefinition_0_3(test.name, test.slug, test.kind, test.entrypoint)
+			def, err := NewDefinition(test.name, test.slug, test.kind, test.entrypoint)
 			require.NoError(err)
 
 			got, err := def.GenerateCommentedFile(DefFormatYAML)
@@ -86,7 +86,7 @@ func TestYAMLComments(t *testing.T) {
 
 			require.Equal(string(expected), string(got))
 
-			unmarshalled := Definition_0_3{}
+			unmarshalled := Definition{}
 			err = unmarshalled.Unmarshal(DefFormatYAML, got)
 			require.NoError(err)
 			require.Equal(def, unmarshalled)

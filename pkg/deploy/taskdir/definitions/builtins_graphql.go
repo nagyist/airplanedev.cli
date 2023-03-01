@@ -20,7 +20,7 @@ func init() {
 				},
 			},
 			"graphql",
-			func() BuiltinTaskDef { return &GraphQLDefinition_0_3{} },
+			func() BuiltinTaskDef { return &GraphQLDefinition{} },
 		),
 	}
 
@@ -31,7 +31,7 @@ func init() {
 	}
 }
 
-type GraphQLDefinition_0_3 struct {
+type GraphQLDefinition struct {
 	Resource      string                 `json:"resource"`
 	Operation     string                 `json:"operation"`
 	Variables     map[string]interface{} `json:"variables,omitempty"`
@@ -40,16 +40,16 @@ type GraphQLDefinition_0_3 struct {
 	RetryFailures interface{}            `json:"retryFailures,omitempty"`
 }
 
-var _ taskKind_0_3 = &GraphQLDefinition_0_3{}
+var _ taskKind = &GraphQLDefinition{}
 
-func (d GraphQLDefinition_0_3) getFunctionSpecification() (builtins.FunctionSpecification, error) {
+func (d GraphQLDefinition) getFunctionSpecification() (builtins.FunctionSpecification, error) {
 	return builtins.FunctionSpecification{
 		Namespace: "graphql",
 		Name:      "request",
 	}, nil
 }
 
-func (d GraphQLDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, isBundle bool) error {
+func (d GraphQLDefinition) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, isBundle bool) error {
 	collection, err := getResourceIDsBySlugAndName(ctx, client)
 	if err != nil {
 		return err
@@ -63,7 +63,7 @@ func (d GraphQLDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, clie
 	return nil
 }
 
-func (d *GraphQLDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *GraphQLDefinition) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
 	if resID, ok := t.Resources["api"]; ok {
 		resourceSlugsByID, err := getResourceSlugsByID(ctx, client)
 		if err != nil {
@@ -115,19 +115,19 @@ func (d *GraphQLDefinition_0_3) hydrateFromTask(ctx context.Context, client api.
 	return nil
 }
 
-func (d GraphQLDefinition_0_3) setEntrypoint(entrypoint string) error {
+func (d GraphQLDefinition) setEntrypoint(entrypoint string) error {
 	return ErrNoEntrypoint
 }
 
-func (d GraphQLDefinition_0_3) setAbsoluteEntrypoint(entrypoint string) error {
+func (d GraphQLDefinition) setAbsoluteEntrypoint(entrypoint string) error {
 	return ErrNoEntrypoint
 }
 
-func (d GraphQLDefinition_0_3) getAbsoluteEntrypoint() (string, error) {
+func (d GraphQLDefinition) getAbsoluteEntrypoint() (string, error) {
 	return "", ErrNoEntrypoint
 }
 
-func (d GraphQLDefinition_0_3) getKindOptions() (build.KindOptions, error) {
+func (d GraphQLDefinition) getKindOptions() (build.KindOptions, error) {
 	variables := d.Variables
 	if variables == nil {
 		variables = map[string]interface{}{}
@@ -155,28 +155,28 @@ func (d GraphQLDefinition_0_3) getKindOptions() (build.KindOptions, error) {
 	}, nil
 }
 
-func (d GraphQLDefinition_0_3) getEntrypoint() (string, error) {
+func (d GraphQLDefinition) getEntrypoint() (string, error) {
 	return "", ErrNoEntrypoint
 }
 
-func (d GraphQLDefinition_0_3) getEnv() (api.TaskEnv, error) {
+func (d GraphQLDefinition) getEnv() (api.TaskEnv, error) {
 	return nil, nil
 }
-func (d GraphQLDefinition_0_3) setEnv(e api.TaskEnv) error {
+func (d GraphQLDefinition) setEnv(e api.TaskEnv) error {
 	return nil
 }
 
-func (d GraphQLDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
+func (d GraphQLDefinition) getConfigAttachments() []api.ConfigAttachment {
 	return nil
 }
 
-func (d GraphQLDefinition_0_3) getResourceAttachments() map[string]string {
+func (d GraphQLDefinition) getResourceAttachments() map[string]string {
 	return map[string]string{"api": d.Resource}
 }
 
-func (d GraphQLDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
+func (d GraphQLDefinition) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
 	return build.NoneBuildType, build.BuildTypeVersionUnspecified, build.BuildBaseNone
 }
 
-func (d GraphQLDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
+func (d GraphQLDefinition) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
 }

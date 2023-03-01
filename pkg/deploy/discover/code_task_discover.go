@@ -30,7 +30,7 @@ type CodeTaskDiscoverer struct {
 	// file. The handler should either create the task and return the created task's TaskMetadata, or
 	// it should return `nil` to signal that the definition should be ignored. If not set, these
 	// definitions are ignored.
-	MissingTaskHandler func(context.Context, definitions.DefinitionInterface) (*api.TaskMetadata, error)
+	MissingTaskHandler func(context.Context, definitions.Definition) (*api.TaskMetadata, error)
 
 	// DoNotVerifyMissingTasks will return TaskConfigs for tasks without verifying their existence
 	// in the api. If this value is set to true, MissingTaskHandler is ignored.
@@ -147,7 +147,7 @@ func (c *CodeTaskDiscoverer) ConfigSource() ConfigSource {
 }
 
 type ParsedDefinition struct {
-	Def          definitions.DefinitionInterface
+	Def          definitions.Definition
 	PathMetadata TaskPathMetadata
 }
 
@@ -246,17 +246,17 @@ func (c *CodeTaskDiscoverer) parsePythonDefinitions(ctx context.Context, file st
 	return parsedDefinitions, nil
 }
 
-func ConstructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPathMetadata, buildContext build.BuildContext) (definitions.DefinitionInterface, error) {
+func ConstructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPathMetadata, buildContext build.BuildContext) (definitions.Definition, error) {
 	entrypointFunc, ok := parsedTask["entrypointFunc"].(string)
 	if !ok {
-		return nil, errors.New("expected 'entrypointFunc' key in parsed task")
+		return definitions.Definition{}, errors.New("expected 'entrypointFunc' key in parsed task")
 	}
 	delete(parsedTask, "entrypointFunc")
 
-	def := definitions.Definition_0_3{}
+	def := definitions.Definition{}
 	b, err := json.Marshal(parsedTask)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to serialize task json properly")
+		return definitions.Definition{}, errors.Wrap(err, "failed to serialize task json properly")
 	}
 
 	if err := def.Unmarshal(definitions.DefFormatJSON, b); err != nil {
@@ -266,9 +266,9 @@ func ConstructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPat
 			for _, verr := range err.Errors {
 				errorMsgs = append(errorMsgs, fmt.Sprintf("%s: %s", verr.Field(), verr.Description()))
 			}
-			return nil, definitions.NewErrReadDefinition(fmt.Sprintf("Error reading %s", pathMetadata.AbsEntrypoint), errorMsgs...)
+			return definitions.Definition{}, definitions.NewErrReadDefinition(fmt.Sprintf("Error reading %s", pathMetadata.AbsEntrypoint), errorMsgs...)
 		default:
-			return nil, errors.Wrap(err, "unmarshalling task definition")
+			return definitions.Definition{}, errors.Wrap(err, "unmarshalling task definition")
 		}
 	}
 
@@ -276,23 +276,23 @@ func ConstructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPat
 	def.SetBuildConfig("entrypointFunc", entrypointFunc)
 
 	if err := def.SetWorkdir(pathMetadata.RootDir, pathMetadata.WorkDir); err != nil {
-		return nil, err
+		return definitions.Definition{}, err
 	}
 
 	if err := def.SetAbsoluteEntrypoint(pathMetadata.AbsEntrypoint); err != nil {
-		return nil, err
+		return definitions.Definition{}, err
 	}
 	// Code based tasks do not have the concept of an entrypoint.
 	if err := def.SetEntrypoint(""); err != nil {
-		return nil, err
+		return definitions.Definition{}, err
 	}
 	if err := def.SetBuildVersionBase(buildContext.Version, buildContext.Base); err != nil {
-		return nil, err
+		return definitions.Definition{}, err
 	}
 	envVars := make(api.TaskEnv)
 	envVarsFromDefn, err := def.GetEnv()
 	if err != nil {
-		return nil, err
+		return definitions.Definition{}, err
 	}
 	// Calculate the full list of env vars. This is the env vars (from airplane config)
 	// plus the env vars from the task. Set this new list on the task def.
@@ -304,11 +304,11 @@ func ConstructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPat
 	}
 	if len(envVars) > 0 {
 		if err := def.SetEnv(envVars); err != nil {
-			return nil, err
+			return definitions.Definition{}, err
 		}
 	}
 
 	def.SetDefnFilePath(pathMetadata.AbsEntrypoint)
 
-	return &def, nil
+	return def, nil
 }

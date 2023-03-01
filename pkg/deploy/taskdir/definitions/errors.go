@@ -5,9 +5,13 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 const taskDefDocURL = "https://docs.airplane.dev/tasks/task-definition"
+
+var ErrNoEntrypoint = errors.New("No entrypoint")
+var ErrNoAbsoluteEntrypoint = errors.New("No absolute entrypoint")
 
 type errReadDefinition struct {
 	msg       string
@@ -34,4 +38,12 @@ func (err errReadDefinition) ExplainError() string {
 	}
 	msgs = append(msgs, fmt.Sprintf("For more information on the task definition format, see the docs:\n%s", taskDefDocURL))
 	return strings.Join(msgs, "\n")
+}
+
+type ErrSchemaValidation struct {
+	Errors []gojsonschema.ResultError
+}
+
+func (err ErrSchemaValidation) Error() string {
+	return fmt.Sprintf("invalid format: %v", err.Errors)
 }

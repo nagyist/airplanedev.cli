@@ -144,11 +144,11 @@ var jsonWithDefault = []byte(
 `)
 
 // Contains explicit defaults.
-var fullDef = Definition_0_3{
+var fullDef = Definition{
 	Name:        "Hello World",
 	Slug:        "hello_world",
 	Description: "A starter task.",
-	Parameters: []ParameterDefinition_0_3{
+	Parameters: []ParameterDefinition{
 		{
 			Name:        "Name",
 			Slug:        "name",
@@ -158,12 +158,12 @@ var fullDef = Definition_0_3{
 			Required:    DefaultTrueDefinition{pointers.Bool(true)},
 		},
 	},
-	Resources: ResourceDefinition_0_3{Attachments: map[string]string{"db": "demo_db"}},
-	Python: &PythonDefinition_0_3{
+	Resources: ResourceDefinition{Attachments: map[string]string{"db": "demo_db"}},
+	Python: &PythonDefinition{
 		Entrypoint: "hello_world.py",
 	},
 	Timeout: DefaultTimeoutDefinition{3600},
-	Schedules: map[string]ScheduleDefinition_0_3{
+	Schedules: map[string]ScheduleDefinition{
 		"every_midnight": {
 			Name:     "Every Midnight",
 			CronExpr: "0 0 * * *",
@@ -179,11 +179,11 @@ var fullDef = Definition_0_3{
 }
 
 // Contains no explicit defaults.
-var defWithDefault = Definition_0_3{
+var defWithDefault = Definition{
 	Name:        "Hello World",
 	Slug:        "hello_world",
 	Description: "A starter task.",
-	Parameters: []ParameterDefinition_0_3{
+	Parameters: []ParameterDefinition{
 		{
 			Name:        "Name",
 			Slug:        "name",
@@ -192,12 +192,12 @@ var defWithDefault = Definition_0_3{
 			Default:     "World",
 		},
 	},
-	Python: &PythonDefinition_0_3{
+	Python: &PythonDefinition{
 		Entrypoint: "hello_world.py",
 	},
 	Timeout:   DefaultTimeoutDefinition{3600},
-	Resources: ResourceDefinition_0_3{Attachments: map[string]string{"db": "demo_db"}},
-	Schedules: map[string]ScheduleDefinition_0_3{
+	Resources: ResourceDefinition{Attachments: map[string]string{"db": "demo_db"}},
+	Schedules: map[string]ScheduleDefinition{
 		"every_midnight": {
 			Name:     "Every Midnight",
 			CronExpr: "0 0 * * *",
@@ -212,12 +212,12 @@ var defWithDefault = Definition_0_3{
 	},
 }
 
-func TestDefinitionMarshal_0_3(t *testing.T) {
+func TestDefinitionMarshal(t *testing.T) {
 	// marshalling tests
 	for _, test := range []struct {
 		name     string
 		format   DefFormat
-		def      Definition_0_3
+		def      Definition
 		expected []byte
 	}{
 		{
@@ -235,10 +235,10 @@ func TestDefinitionMarshal_0_3(t *testing.T) {
 		{
 			name:   "marshal yaml with multiline",
 			format: DefFormatYAML,
-			def: Definition_0_3{
+			def: Definition{
 				Name: "REST task",
 				Slug: "rest_task",
-				REST: &RESTDefinition_0_3{
+				REST: &RESTDefinition{
 					Resource: "httpbin",
 					Method:   "POST",
 					Path:     "/post",
@@ -266,10 +266,10 @@ timeout: 300
 		{
 			name:   "marshal json with multiline",
 			format: DefFormatJSON,
-			def: Definition_0_3{
+			def: Definition{
 				Name: "REST task",
 				Slug: "rest_task",
-				REST: &RESTDefinition_0_3{
+				REST: &RESTDefinition{
 					Resource: "httpbin",
 					Method:   "POST",
 					Path:     "/post",
@@ -303,13 +303,13 @@ timeout: 300
 	}
 }
 
-func TestDefinitionUnmarshal_0_3(t *testing.T) {
+func TestDefinitionUnmarshal(t *testing.T) {
 
 	for _, test := range []struct {
 		name     string
 		format   DefFormat
 		bytestr  []byte
-		expected Definition_0_3
+		expected Definition
 	}{
 		{
 			name:     "unmarshal yaml",
@@ -338,7 +338,7 @@ func TestDefinitionUnmarshal_0_3(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			assert := require.New(t)
-			d := Definition_0_3{}
+			d := Definition{}
 			err := d.Unmarshal(test.format, test.bytestr)
 			assert.NoError(err)
 			assert.Equal(test.expected, d)
@@ -346,7 +346,7 @@ func TestDefinitionUnmarshal_0_3(t *testing.T) {
 	}
 }
 
-func TestTaskToDefinition_0_3(t *testing.T) {
+func TestTaskToDefinition(t *testing.T) {
 	exampleCron := api.CronExpr{
 		Minute:     "0",
 		Hour:       "0",
@@ -359,7 +359,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 	for _, test := range []struct {
 		name       string
 		task       api.Task
-		definition Definition_0_3
+		definition Definition
 		resources  []api.Resource
 	}{
 		{
@@ -382,12 +382,12 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					},
 				},
 			},
-			definition: Definition_0_3{
+			definition: Definition{
 				Name:        "Python Task",
 				Slug:        "python_task",
 				Description: "A task for testing",
-				Parameters:  []ParameterDefinition_0_3{},
-				Python: &PythonDefinition_0_3{
+				Parameters:  []ParameterDefinition{},
+				Python: &PythonDefinition{
 					Entrypoint: "main.py",
 					EnvVars: api.TaskEnv{
 						"value": api.EnvVarValue{
@@ -421,11 +421,11 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					},
 				},
 			},
-			definition: Definition_0_3{
+			definition: Definition{
 				Name:       "Node Task",
 				Slug:       "node_task",
-				Parameters: []ParameterDefinition_0_3{},
-				Node: &NodeDefinition_0_3{
+				Parameters: []ParameterDefinition{},
+				Node: &NodeDefinition{
 					Entrypoint:  "main.ts",
 					NodeVersion: "14",
 					EnvVars: api.TaskEnv{
@@ -451,11 +451,11 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					"entrypoint": "main.ts",
 				},
 			},
-			definition: Definition_0_3{
+			definition: Definition{
 				Name:       "Node Task",
 				Slug:       "node_task",
-				Parameters: []ParameterDefinition_0_3{},
-				Node: &NodeDefinition_0_3{
+				Parameters: []ParameterDefinition{},
+				Node: &NodeDefinition{
 					Entrypoint: "main.ts",
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
@@ -482,11 +482,11 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					},
 				},
 			},
-			definition: Definition_0_3{
+			definition: Definition{
 				Name:       "Node Task",
 				Slug:       "node_task",
-				Parameters: []ParameterDefinition_0_3{},
-				Node: &NodeDefinition_0_3{
+				Parameters: []ParameterDefinition{},
+				Node: &NodeDefinition{
 					Entrypoint:  "main.ts",
 					NodeVersion: "14",
 					EnvVars: api.TaskEnv{
@@ -521,11 +521,11 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					},
 				},
 			},
-			definition: Definition_0_3{
+			definition: Definition{
 				Name:       "Shell Task",
 				Slug:       "shell_task",
-				Parameters: []ParameterDefinition_0_3{},
-				Shell: &ShellDefinition_0_3{
+				Parameters: []ParameterDefinition{},
+				Shell: &ShellDefinition{
 					Entrypoint: "main.sh",
 					EnvVars: api.TaskEnv{
 						"value": api.EnvVarValue{
@@ -558,11 +558,11 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					},
 				},
 			},
-			definition: Definition_0_3{
+			definition: Definition{
 				Name:       "Image Task",
 				Slug:       "image_task",
-				Parameters: []ParameterDefinition_0_3{},
-				Image: &ImageDefinition_0_3{
+				Parameters: []ParameterDefinition{},
+				Image: &ImageDefinition{
 					Image:      "ubuntu:latest",
 					Entrypoint: "bash",
 					Command:    `-c 'echo "foobar"'`,
@@ -609,14 +609,14 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					"rest": "res20220111foobarx",
 				},
 			},
-			definition: Definition_0_3{
+			definition: Definition{
 				Name:       "REST Task",
 				Slug:       "rest_task",
-				Parameters: []ParameterDefinition_0_3{},
-				Resources: ResourceDefinition_0_3{
+				Parameters: []ParameterDefinition{},
+				Resources: ResourceDefinition{
 					Attachments: map[string]string{},
 				},
-				REST: &RESTDefinition_0_3{
+				REST: &RESTDefinition{
 					Resource: "httpbin",
 					Method:   "GET",
 					Path:     "/get",
@@ -729,10 +729,10 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					"entrypoint": "main.py",
 				},
 			},
-			definition: Definition_0_3{
+			definition: Definition{
 				Name: "Test Task",
 				Slug: "test_task",
-				Parameters: []ParameterDefinition_0_3{
+				Parameters: []ParameterDefinition{
 					{
 						Name:        "Required boolean",
 						Slug:        "required_boolean",
@@ -763,7 +763,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 						Name: "Options",
 						Slug: "options",
 						Type: "shorttext",
-						Options: []OptionDefinition_0_3{
+						Options: []OptionDefinition{
 							{
 								Label: "one",
 								Value: 1,
@@ -791,7 +791,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 						Slug:    "config_var",
 						Type:    "configvar",
 						Default: "API_KEY",
-						Options: []OptionDefinition_0_3{
+						Options: []OptionDefinition{
 							{
 								Label: "API key",
 								Value: "API_KEY",
@@ -804,7 +804,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 						Required: DefaultTrueDefinition{pointers.Bool(true)},
 					},
 				},
-				Python: &PythonDefinition_0_3{
+				Python: &PythonDefinition{
 					Entrypoint: "main.py",
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
@@ -825,11 +825,11 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					RequireRequests:     true,
 				},
 			},
-			definition: Definition_0_3{
+			definition: Definition{
 				Name:       "Test Task",
 				Slug:       "test_task",
-				Parameters: []ParameterDefinition_0_3{},
-				Python: &PythonDefinition_0_3{
+				Parameters: []ParameterDefinition{},
+				Python: &PythonDefinition{
 					Entrypoint: "main.py",
 				},
 				RequireRequests:    true,
@@ -851,11 +851,11 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					RequireRequests:     false,
 				},
 			},
-			definition: Definition_0_3{
+			definition: Definition{
 				Name:       "Test Task",
 				Slug:       "test_task",
-				Parameters: []ParameterDefinition_0_3{},
-				Python: &PythonDefinition_0_3{
+				Parameters: []ParameterDefinition{},
+				Python: &PythonDefinition{
 					Entrypoint: "main.py",
 				},
 				RequireRequests:    false,
@@ -901,14 +901,14 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					"rest": "res20220111foobarx",
 				},
 			},
-			definition: Definition_0_3{
+			definition: Definition{
 				Name:       "REST Task",
 				Slug:       "rest_task",
-				Parameters: []ParameterDefinition_0_3{},
-				Resources: ResourceDefinition_0_3{
+				Parameters: []ParameterDefinition{},
+				Resources: ResourceDefinition{
 					Attachments: map[string]string{},
 				},
-				REST: &RESTDefinition_0_3{
+				REST: &RESTDefinition{
 					Resource: "httpbin",
 					Method:   "GET",
 					Path:     "/get",
@@ -1004,12 +1004,12 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					},
 				},
 			},
-			definition: Definition_0_3{
+			definition: Definition{
 				Name:        "Python Task",
 				Slug:        "python_task",
 				Description: "A task for testing",
-				Parameters:  []ParameterDefinition_0_3{},
-				Python: &PythonDefinition_0_3{
+				Parameters:  []ParameterDefinition{},
+				Python: &PythonDefinition{
 					Entrypoint: "main.py",
 					EnvVars: api.TaskEnv{
 						"value": api.EnvVarValue{
@@ -1020,7 +1020,7 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 						},
 					},
 				},
-				Schedules: map[string]ScheduleDefinition_0_3{
+				Schedules: map[string]ScheduleDefinition{
 					"good_schedule": {
 						Name:        "good schedule",
 						Description: "good schedule",
@@ -1054,12 +1054,12 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					},
 				},
 			},
-			definition: Definition_0_3{
+			definition: Definition{
 				Name:        "Python Task",
 				Slug:        "python_task",
 				Description: "A task for testing",
-				Parameters:  []ParameterDefinition_0_3{},
-				Python: &PythonDefinition_0_3{
+				Parameters:  []ParameterDefinition{},
+				Python: &PythonDefinition{
 					Entrypoint: "main.py",
 					EnvVars: api.TaskEnv{
 						"value": api.EnvVarValue{
@@ -1103,16 +1103,16 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 					"db": "res20220613localdb",
 				},
 			},
-			definition: Definition_0_3{
+			definition: Definition{
 				Name:       "Image Task",
 				Slug:       "image_task",
-				Parameters: []ParameterDefinition_0_3{},
-				Resources: ResourceDefinition_0_3{
+				Parameters: []ParameterDefinition{},
+				Resources: ResourceDefinition{
 					Attachments: map[string]string{
 						"db": "local_db",
 					},
 				},
-				Image: &ImageDefinition_0_3{
+				Image: &ImageDefinition{
 					Image:      "ubuntu:latest",
 					Entrypoint: "bash",
 					Command:    `-c 'echo "foobar"'`,
@@ -1135,28 +1135,28 @@ func TestTaskToDefinition_0_3(t *testing.T) {
 			client := &mock.MockClient{
 				Resources: test.resources,
 			}
-			d, err := NewDefinitionFromTask_0_3(ctx, client, test.task)
+			d, err := NewDefinitionFromTask(ctx, client, test.task)
 			assert.NoError(err)
 			assert.Equal(test.definition, d)
 		})
 	}
 }
 
-func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
+func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 	for _, test := range []struct {
 		name       string
-		definition Definition_0_3
+		definition Definition
 		request    api.UpdateTaskRequest
 		resources  []api.Resource
 		isBundle   bool
 	}{
 		{
 			name: "python task",
-			definition: Definition_0_3{
+			definition: Definition{
 				Name:        "Test Task",
 				Slug:        "test_task",
 				Description: "A task for testing",
-				Python: &PythonDefinition_0_3{
+				Python: &PythonDefinition{
 					Entrypoint: "main.py",
 				},
 			},
@@ -1181,11 +1181,11 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 		{
 			name:     "python task from bundle",
 			isBundle: true,
-			definition: Definition_0_3{
+			definition: Definition{
 				Name:        "Test Task",
 				Slug:        "test_task",
 				Description: "A task for testing",
-				Python: &PythonDefinition_0_3{
+				Python: &PythonDefinition{
 					Entrypoint: "main.py",
 				},
 				buildConfig: build.BuildConfig{
@@ -1220,10 +1220,10 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 		},
 		{
 			name: "node task",
-			definition: Definition_0_3{
+			definition: Definition{
 				Name: "Node Task",
 				Slug: "node_task",
-				Node: &NodeDefinition_0_3{
+				Node: &NodeDefinition{
 					Entrypoint:  "main.ts",
 					NodeVersion: "14",
 				},
@@ -1249,10 +1249,10 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 		{
 			name:     "node task from bundle",
 			isBundle: true,
-			definition: Definition_0_3{
+			definition: Definition{
 				Name: "Node Task",
 				Slug: "node_task",
-				Node: &NodeDefinition_0_3{
+				Node: &NodeDefinition{
 					Entrypoint:  "main.ts",
 					NodeVersion: "14",
 				},
@@ -1288,10 +1288,10 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 		},
 		{
 			name: "shell task",
-			definition: Definition_0_3{
+			definition: Definition{
 				Name: "Shell Task",
 				Slug: "shell_task",
-				Shell: &ShellDefinition_0_3{
+				Shell: &ShellDefinition{
 					Entrypoint: "main.sh",
 				},
 			},
@@ -1315,13 +1315,13 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 		{
 			name:     "shell task from bundle",
 			isBundle: true,
-			definition: Definition_0_3{
+			definition: Definition{
 				Name: "Shell Task",
 				Slug: "shell_task",
-				Shell: &ShellDefinition_0_3{
+				Shell: &ShellDefinition{
 					Entrypoint: "main.sh",
 				},
-				Parameters: []ParameterDefinition_0_3{
+				Parameters: []ParameterDefinition{
 					{Slug: "one", Name: "One", Type: "shorttext"},
 					{Slug: "two", Name: "Two", Type: "boolean"},
 				},
@@ -1359,10 +1359,10 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 		},
 		{
 			name: "image task",
-			definition: Definition_0_3{
+			definition: Definition{
 				Name: "Image Task",
 				Slug: "image_task",
-				Image: &ImageDefinition_0_3{
+				Image: &ImageDefinition{
 					Image:      "ubuntu:latest",
 					Entrypoint: "bash",
 					Command:    `-c 'echo "foobar"'`,
@@ -1387,10 +1387,10 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 		},
 		{
 			name: "rest task",
-			definition: Definition_0_3{
+			definition: Definition{
 				Name: "REST Task",
 				Slug: "rest_task",
-				REST: &RESTDefinition_0_3{
+				REST: &RESTDefinition{
 					Resource: "rest",
 					Method:   "POST",
 					Path:     "/post",
@@ -1432,11 +1432,11 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 		},
 		{
 			name: "test update execute rules",
-			definition: Definition_0_3{
+			definition: Definition{
 				Name:        "Test Task",
 				Slug:        "test_task",
 				Description: "A task for testing",
-				Python: &PythonDefinition_0_3{
+				Python: &PythonDefinition{
 					Entrypoint: "main.py",
 				},
 				RequireRequests:    true,
@@ -1462,11 +1462,11 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 		},
 		{
 			name: "test update default execute rules",
-			definition: Definition_0_3{
+			definition: Definition{
 				Name:        "Test Task",
 				Slug:        "test_task",
 				Description: "A task for testing",
-				Python: &PythonDefinition_0_3{
+				Python: &PythonDefinition{
 					Entrypoint: "main.py",
 				},
 				RequireRequests:    false,
@@ -1492,10 +1492,10 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 		},
 		{
 			name: "check parameters",
-			definition: Definition_0_3{
+			definition: Definition{
 				Name: "Test Task",
 				Slug: "test_task",
-				Parameters: []ParameterDefinition_0_3{
+				Parameters: []ParameterDefinition{
 					{
 						Name:        "Required boolean",
 						Slug:        "required_boolean",
@@ -1523,7 +1523,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 						Name: "Options",
 						Slug: "options",
 						Type: "shorttext",
-						Options: []OptionDefinition_0_3{
+						Options: []OptionDefinition{
 							{
 								Label: "one",
 								Value: 1,
@@ -1555,7 +1555,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 						Default: map[string]interface{}{
 							"config": "API_KEY",
 						},
-						Options: []OptionDefinition_0_3{
+						Options: []OptionDefinition{
 							{
 								Label:  "API key",
 								Config: pointers.String("API_KEY"),
@@ -1572,7 +1572,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 						Slug:    "config_var2",
 						Type:    "configvar",
 						Default: "API_KEY",
-						Options: []OptionDefinition_0_3{
+						Options: []OptionDefinition{
 							{
 								Label: "API key",
 								Value: "API_KEY",
@@ -1584,7 +1584,7 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 						},
 					},
 				},
-				Python: &PythonDefinition_0_3{
+				Python: &PythonDefinition{
 					Entrypoint: "main.py",
 				},
 			},
@@ -1725,10 +1725,10 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 		},
 		{
 			name: "check configs",
-			definition: Definition_0_3{
+			definition: Definition{
 				Name: "REST Task",
 				Slug: "rest_task",
-				REST: &RESTDefinition_0_3{
+				REST: &RESTDefinition{
 					Resource: "rest",
 					Method:   "POST",
 					Path:     "/post",
@@ -1778,15 +1778,15 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 		},
 		{
 			name: "simple resources",
-			definition: Definition_0_3{
+			definition: Definition{
 				Name: "Image Task",
 				Slug: "image_task",
-				Resources: ResourceDefinition_0_3{
+				Resources: ResourceDefinition{
 					Attachments: map[string]string{
 						"db": "local_db",
 					},
 				},
-				Image: &ImageDefinition_0_3{
+				Image: &ImageDefinition{
 					Image:      "ubuntu:latest",
 					Entrypoint: "bash",
 					Command:    `-c 'echo "foobar"'`,
@@ -1849,11 +1849,11 @@ func TestDefinitionToUpdateTaskRequest_0_3(t *testing.T) {
 	}
 }
 
-func TestDefinitionGetSchedules_0_3(t *testing.T) {
+func TestDefinitionGetSchedules(t *testing.T) {
 	require := require.New(t)
 
-	def := Definition_0_3{
-		Schedules: map[string]ScheduleDefinition_0_3{
+	def := Definition{
+		Schedules: map[string]ScheduleDefinition{
 			"foo": {
 				Name:        "Foo",
 				Description: "Does foo",

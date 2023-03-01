@@ -9,10 +9,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (td TaskDirectory) ReadDefinition() (definitions.DefinitionInterface, error) {
+func (td TaskDirectory) ReadDefinition() (definitions.Definition, error) {
 	buf, err := os.ReadFile(td.defPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "reading task definition")
+		return definitions.Definition{}, errors.Wrap(err, "reading task definition")
 	}
 
 	defPath := td.defPath
@@ -23,7 +23,7 @@ func (td TaskDirectory) ReadDefinition() (definitions.DefinitionInterface, error
 		defPath = path
 	}
 
-	def := definitions.Definition_0_3{}
+	def := definitions.Definition{}
 	if err := def.Unmarshal(definitions.GetTaskDefFormat(defPath), buf); err != nil {
 		switch err := errors.Cause(err).(type) {
 		case definitions.ErrSchemaValidation:
@@ -31,9 +31,9 @@ func (td TaskDirectory) ReadDefinition() (definitions.DefinitionInterface, error
 			for _, verr := range err.Errors {
 				errorMsgs = append(errorMsgs, fmt.Sprintf("%s: %s", verr.Field(), verr.Description()))
 			}
-			return nil, definitions.NewErrReadDefinition(fmt.Sprintf("Error reading %s", defPath), errorMsgs...)
+			return definitions.Definition{}, definitions.NewErrReadDefinition(fmt.Sprintf("Error reading %s", defPath), errorMsgs...)
 		default:
-			return nil, errors.Wrap(err, "unmarshalling task definition")
+			return definitions.Definition{}, errors.Wrap(err, "unmarshalling task definition")
 		}
 	}
 	def.SetDefnFilePath(td.defPath)
@@ -41,22 +41,22 @@ func (td TaskDirectory) ReadDefinition() (definitions.DefinitionInterface, error
 	if err == definitions.ErrNoEntrypoint {
 		// nothing
 	} else if err != nil {
-		return nil, err
+		return definitions.Definition{}, err
 	} else {
 		if filepath.IsAbs(entrypoint) {
 			if err := def.SetAbsoluteEntrypoint(entrypoint); err != nil {
-				return nil, err
+				return definitions.Definition{}, err
 			}
 		} else {
 			defnDir := filepath.Dir(td.defPath)
 			absEntrypoint, err := filepath.Abs(filepath.Join(defnDir, entrypoint))
 			if err != nil {
-				return nil, err
+				return definitions.Definition{}, err
 			}
 			if err := def.SetAbsoluteEntrypoint(absEntrypoint); err != nil {
-				return nil, err
+				return definitions.Definition{}, err
 			}
 		}
 	}
-	return &def, nil
+	return def, nil
 }

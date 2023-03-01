@@ -22,7 +22,7 @@ type DefnDiscoverer struct {
 	// file. The handler should either create the task and return the created task's TaskMetadata, or
 	// it should return `nil` to signal that the definition should be ignored. If not set, these
 	// definitions are ignored.
-	MissingTaskHandler func(context.Context, definitions.DefinitionInterface) (*api.TaskMetadata, error)
+	MissingTaskHandler func(context.Context, definitions.Definition) (*api.TaskMetadata, error)
 
 	// DisableNormalize is used to determine whether to Normalize a discovered task definition. Ideally, normalization
 	// should be done in the deploy path, and not the discover path, but we include this flag for now so that certain
@@ -89,7 +89,7 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 
 	var metadata api.TaskMetadata
 	if !dd.DoNotVerifyMissingTasks {
-		metadata, err = dd.Client.GetTaskMetadata(ctx, def.GetSlug())
+		metadata, err = dd.Client.GetTaskMetadata(ctx, tc.Def.GetSlug())
 		if err != nil {
 			var merr *api.TaskMissingError
 			if !errors.As(err, &merr) {
@@ -100,12 +100,12 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 				return nil, nil
 			}
 
-			mptr, err := dd.MissingTaskHandler(ctx, def)
+			mptr, err := dd.MissingTaskHandler(ctx, tc.Def)
 			if err != nil {
 				return nil, err
 			} else if mptr == nil {
 				if dd.Logger != nil {
-					dd.Logger.Warning(`Task with slug %s does not exist, skipping deployment.`, def.GetSlug())
+					dd.Logger.Warning(`Task with slug %s does not exist, skipping deployment.`, tc.Def.GetSlug())
 				}
 				return nil, nil
 			}
@@ -118,13 +118,13 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 	}
 	tc.TaskID = metadata.ID
 
-	root, _, err := setBuildVersionAndWorkingDir(file, def)
+	root, _, err := setBuildVersionAndWorkingDir(file, &tc.Def)
 	if err != nil {
 		return nil, err
 	}
 	tc.TaskRoot = root
 
-	entrypoint, err := def.GetAbsoluteEntrypoint()
+	entrypoint, err := tc.Def.GetAbsoluteEntrypoint()
 	if err == definitions.ErrNoEntrypoint {
 		return []TaskConfig{tc}, nil
 	} else if err != nil {
@@ -141,7 +141,7 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 			if err != nil {
 				return nil, err
 			}
-			def.SetBuildConfig("entrypoint", ep)
+			tc.Def.SetBuildConfig("entrypoint", ep)
 		}
 	}
 
@@ -168,14 +168,14 @@ func (dd *DefnDiscoverer) GetTaskRoot(ctx context.Context, file string) (string,
 		return "", build.BuildContext{}, err
 	}
 
-	return setBuildVersionAndWorkingDir(file, def)
+	return setBuildVersionAndWorkingDir(file, &def)
 }
 
 func (dd *DefnDiscoverer) ConfigSource() ConfigSource {
 	return ConfigSourceDefn
 }
 
-func setBuildVersionAndWorkingDir(file string, def definitions.DefinitionInterface) (string, build.BuildContext, error) {
+func setBuildVersionAndWorkingDir(file string, def *definitions.Definition) (string, build.BuildContext, error) {
 	entrypoint, err := def.GetAbsoluteEntrypoint()
 	if err == definitions.ErrNoEntrypoint {
 		absFile, err := filepath.Abs(file)

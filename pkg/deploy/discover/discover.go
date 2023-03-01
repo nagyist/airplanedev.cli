@@ -49,7 +49,7 @@ type TaskConfig struct {
 	TaskID         string
 	TaskRoot       string
 	TaskEntrypoint string
-	Def            definitions.DefinitionInterface
+	Def            definitions.Definition
 	Source         ConfigSource
 }
 

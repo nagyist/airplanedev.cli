@@ -123,7 +123,7 @@ func (r Runtime) Generate(t *runtime.Task) ([]byte, os.FileMode, error) {
 }
 
 // GenerateInline implementation.
-func (r Runtime) GenerateInline(def *definitions.Definition_0_3) ([]byte, fs.FileMode, error) {
+func (r Runtime) GenerateInline(def *definitions.Definition) ([]byte, fs.FileMode, error) {
 	return nil, 0, errors.New("cannot generate inline shell task configuration")
 }
 
@@ -167,7 +167,7 @@ func (r Runtime) SupportsLocalExecution() bool {
 	return true
 }
 
-func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.DefinitionInterface) error {
+func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
 	// TODO: support editing YAML definitions
 	return runtime.ErrNotImplemented
 }

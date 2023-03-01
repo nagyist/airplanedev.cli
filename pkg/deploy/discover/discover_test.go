@@ -40,10 +40,10 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: fixturesPath + "/single_task.js",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Slug:               "my_task",
-						Parameters:         []definitions.ParameterDefinition_0_3{},
-						Node:               &definitions.NodeDefinition_0_3{},
+						Parameters:         []definitions.ParameterDefinition{},
+						Node:               &definitions.NodeDefinition{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 					},
 					Source: ConfigSourceScript,
@@ -68,10 +68,10 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: fixturesPath + "/single_task.js",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Slug:               "my_task",
-						Parameters:         []definitions.ParameterDefinition_0_3{},
-						Node:               &definitions.NodeDefinition_0_3{},
+						Parameters:         []definitions.ParameterDefinition{},
+						Node:               &definitions.NodeDefinition{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 					},
 					Source: ConfigSourceScript,
@@ -80,10 +80,10 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk456",
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: fixturesPath + "/single_task2.js",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Slug:               "my_task2",
-						Parameters:         []definitions.ParameterDefinition_0_3{},
-						Node:               &definitions.NodeDefinition_0_3{},
+						Parameters:         []definitions.ParameterDefinition{},
+						Node:               &definitions.NodeDefinition{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 					},
 					Source: ConfigSourceScript,
@@ -112,10 +112,10 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath + "/nestedScripts",
 					TaskEntrypoint: fixturesPath + "/nestedScripts/single_task.js",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Slug:               "my_task",
-						Parameters:         []definitions.ParameterDefinition_0_3{},
-						Node:               &definitions.NodeDefinition_0_3{},
+						Parameters:         []definitions.ParameterDefinition{},
+						Node:               &definitions.NodeDefinition{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 					},
 					Source: ConfigSourceScript,
@@ -124,10 +124,10 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk456",
 					TaskRoot:       fixturesPath + "/nestedScripts",
 					TaskEntrypoint: fixturesPath + "/nestedScripts/single_task2.js",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Slug:               "my_task2",
-						Parameters:         []definitions.ParameterDefinition_0_3{},
-						Node:               &definitions.NodeDefinition_0_3{},
+						Parameters:         []definitions.ParameterDefinition{},
+						Node:               &definitions.NodeDefinition{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 					},
 					Source: ConfigSourceScript,
@@ -155,11 +155,11 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: fixturesPath + "/single_task.js",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name:        "sunt in tempor eu",
 						Slug:        "my_task",
 						Description: "ut dolor sit officia ea",
-						Node: &definitions.NodeDefinition_0_3{
+						Node: &definitions.NodeDefinition{
 							Entrypoint: "./single_task.js",
 						},
 					},
@@ -189,10 +189,10 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk121",
 					TaskRoot:       path.Join(fixturesPath, "tasksWithVersion", "18"),
 					TaskEntrypoint: path.Join(fixturesPath, "tasksWithVersion", "18", "node.ts"),
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name: "my_task",
 						Slug: "my_task",
-						Node: &definitions.NodeDefinition_0_3{
+						Node: &definitions.NodeDefinition{
 							Entrypoint:  "node.ts",
 							NodeVersion: "18",
 						},
@@ -203,10 +203,10 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk122",
 					TaskRoot:       path.Join(fixturesPath, "tasksWithVersion", "gt17"),
 					TaskEntrypoint: path.Join(fixturesPath, "tasksWithVersion", "gt17", "node.ts"),
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name: "my_task2",
 						Slug: "my_task2",
-						Node: &definitions.NodeDefinition_0_3{
+						Node: &definitions.NodeDefinition{
 							Entrypoint:  "node.ts",
 							NodeVersion: "18",
 						},
@@ -217,10 +217,10 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       path.Join(fixturesPath, "tasksWithVersion", "lt18gt14"),
 					TaskEntrypoint: path.Join(fixturesPath, "tasksWithVersion", "lt18gt14", "node.ts"),
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name: "my_task3",
 						Slug: "my_task3",
-						Node: &definitions.NodeDefinition_0_3{
+						Node: &definitions.NodeDefinition{
 							Entrypoint:  "node.ts",
 							NodeVersion: "16",
 						},
@@ -275,11 +275,11 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: fixturesPath + "/single_task.js",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name:        "sunt in tempor eu",
 						Slug:        "my_task",
 						Description: "ut dolor sit officia ea",
-						Node: &definitions.NodeDefinition_0_3{
+						Node: &definitions.NodeDefinition{
 							Entrypoint: "./single_task.js",
 						},
 					},
@@ -307,10 +307,10 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: fixturesPath + "/subdir/single_task.js",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Slug:               "my_task",
-						Parameters:         []definitions.ParameterDefinition_0_3{},
-						Node:               &definitions.NodeDefinition_0_3{},
+						Parameters:         []definitions.ParameterDefinition{},
+						Node:               &definitions.NodeDefinition{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 					},
 					Source: ConfigSourceScript,
@@ -334,11 +334,11 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: fixturesPath + "/nonlinkedscript/single_task.js",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name:        "sunt in tempor eu",
 						Slug:        "my_task",
 						Description: "ut dolor sit officia ea",
-						Node: &definitions.NodeDefinition_0_3{
+						Node: &definitions.NodeDefinition{
 							Entrypoint:  "./single_task.js",
 							NodeVersion: "14",
 						},
@@ -368,11 +368,11 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: fixturesPath + "/nonlinkedscript/single_task.js",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name:        "sunt in tempor eu",
 						Slug:        "my_task",
 						Description: "ut dolor sit officia ea",
-						Node: &definitions.NodeDefinition_0_3{
+						Node: &definitions.NodeDefinition{
 							Entrypoint:  "./single_task.js",
 							NodeVersion: "14",
 						},
@@ -402,11 +402,11 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: fixturesPath + "/subdir/single_task.js",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name:        "sunt in tempor eu",
 						Slug:        "my_task",
 						Description: "ut dolor sit officia ea",
-						Node: &definitions.NodeDefinition_0_3{
+						Node: &definitions.NodeDefinition{
 							Entrypoint:  "./single_task.js",
 							NodeVersion: "14",
 						},
@@ -469,25 +469,25 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath + "/taskInline/python",
 					TaskEntrypoint: fixturesPath + "/taskInline/python/task_a_airplane.py",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name:    "Task A",
 						Slug:    "task_a",
 						Timeout: definitions.NewDefaultTimeoutDefinition(3600),
-						Parameters: []definitions.ParameterDefinition_0_3{
+						Parameters: []definitions.ParameterDefinition{
 							{
 								Name:     "Num",
 								Slug:     "num",
 								Type:     "integer",
 								Required: definitions.NewDefaultTrueDefinition(true),
-								Options:  []definitions.OptionDefinition_0_3{},
+								Options:  []definitions.OptionDefinition{},
 							},
 						},
-						Resources:          definitions.ResourceDefinition_0_3{Attachments: map[string]string{}},
+						Resources:          definitions.ResourceDefinition{Attachments: map[string]string{}},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
-						Python: &definitions.PythonDefinition_0_3{
+						Python: &definitions.PythonDefinition{
 							EnvVars: api.TaskEnv{},
 						},
-						Schedules: map[string]definitions.ScheduleDefinition_0_3{},
+						Schedules: map[string]definitions.ScheduleDefinition{},
 					},
 					Source: ConfigSourceCode,
 				},
@@ -517,25 +517,25 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath + "/taskInline/python",
 					TaskEntrypoint: fixturesPath + "/taskInline/python/task_b_airplane.py",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name:    "Task B",
 						Slug:    "task_b",
 						Timeout: definitions.NewDefaultTimeoutDefinition(3600),
-						Parameters: []definitions.ParameterDefinition_0_3{
+						Parameters: []definitions.ParameterDefinition{
 							{
 								Name:     "Num",
 								Slug:     "num",
 								Type:     "integer",
 								Required: definitions.NewDefaultTrueDefinition(true),
-								Options:  []definitions.OptionDefinition_0_3{},
+								Options:  []definitions.OptionDefinition{},
 							},
 						},
-						Resources:          definitions.ResourceDefinition_0_3{Attachments: map[string]string{}},
+						Resources:          definitions.ResourceDefinition{Attachments: map[string]string{}},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
-						Python: &definitions.PythonDefinition_0_3{
+						Python: &definitions.PythonDefinition{
 							EnvVars: api.TaskEnv{},
 						},
-						Schedules: map[string]definitions.ScheduleDefinition_0_3{},
+						Schedules: map[string]definitions.ScheduleDefinition{},
 					},
 					Source: ConfigSourceCode,
 				},
@@ -565,25 +565,25 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath + "/taskInline/python",
 					TaskEntrypoint: fixturesPath + "/taskInline/python/task_c_airplane.py",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name:    "Task C",
 						Slug:    "task_c",
 						Timeout: definitions.NewDefaultTimeoutDefinition(3600),
-						Parameters: []definitions.ParameterDefinition_0_3{
+						Parameters: []definitions.ParameterDefinition{
 							{
 								Name:     "Num",
 								Slug:     "num",
 								Type:     "integer",
 								Required: definitions.NewDefaultTrueDefinition(true),
-								Options:  []definitions.OptionDefinition_0_3{},
+								Options:  []definitions.OptionDefinition{},
 							},
 						},
-						Resources:          definitions.ResourceDefinition_0_3{Attachments: map[string]string{}},
+						Resources:          definitions.ResourceDefinition{Attachments: map[string]string{}},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
-						Python: &definitions.PythonDefinition_0_3{
+						Python: &definitions.PythonDefinition{
 							EnvVars: api.TaskEnv{},
 						},
-						Schedules: map[string]definitions.ScheduleDefinition_0_3{},
+						Schedules: map[string]definitions.ScheduleDefinition{},
 					},
 					Source: ConfigSourceCode,
 				},
@@ -591,25 +591,25 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath + "/taskInline/python",
 					TaskEntrypoint: fixturesPath + "/taskInline/python/task_c_airplane.py",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name:    "Task D",
 						Slug:    "task_d",
 						Timeout: definitions.NewDefaultTimeoutDefinition(3600),
-						Parameters: []definitions.ParameterDefinition_0_3{
+						Parameters: []definitions.ParameterDefinition{
 							{
 								Name:     "Num",
 								Slug:     "num",
 								Type:     "integer",
 								Required: definitions.NewDefaultTrueDefinition(true),
-								Options:  []definitions.OptionDefinition_0_3{},
+								Options:  []definitions.OptionDefinition{},
 							},
 						},
-						Resources:          definitions.ResourceDefinition_0_3{Attachments: map[string]string{}},
+						Resources:          definitions.ResourceDefinition{Attachments: map[string]string{}},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
-						Python: &definitions.PythonDefinition_0_3{
+						Python: &definitions.PythonDefinition{
 							EnvVars: api.TaskEnv{},
 						},
-						Schedules: map[string]definitions.ScheduleDefinition_0_3{},
+						Schedules: map[string]definitions.ScheduleDefinition{},
 					},
 					Source: ConfigSourceCode,
 				},
@@ -644,17 +644,17 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: fixturesPath + "/taskInline/codeOnlyTask.airplane.ts",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name: "Collatz Conjecture Step",
 						Slug: "collatz",
-						Parameters: []definitions.ParameterDefinition_0_3{
+						Parameters: []definitions.ParameterDefinition{
 							{
 								Name: "Num",
 								Slug: "num",
 								Type: "integer",
 							},
 						},
-						Node: &definitions.NodeDefinition_0_3{},
+						Node: &definitions.NodeDefinition{},
 					},
 					Source: ConfigSourceCode,
 				},
@@ -682,18 +682,18 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: fixturesPath + "/taskInlineSchedule/codeOnlyTask.airplane.ts",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name: "Collatz Conjecture Step",
 						Slug: "collatz",
-						Parameters: []definitions.ParameterDefinition_0_3{
+						Parameters: []definitions.ParameterDefinition{
 							{
 								Name: "Num",
 								Slug: "num",
 								Type: "integer",
 							},
 						},
-						Node: &definitions.NodeDefinition_0_3{},
-						Schedules: map[string]definitions.ScheduleDefinition_0_3{
+						Node: &definitions.NodeDefinition{},
+						Schedules: map[string]definitions.ScheduleDefinition{
 							"foo_bar": {Name: "Foo Bar", CronExpr: "0 0 * * *"},
 						},
 					},
@@ -731,17 +731,17 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: fixturesPath + "/taskInlineEsm/codeOnlyTask.airplane.ts",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name: "Collatz Conjecture Step",
 						Slug: "collatz",
-						Parameters: []definitions.ParameterDefinition_0_3{
+						Parameters: []definitions.ParameterDefinition{
 							{
 								Name: "Num",
 								Slug: "num",
 								Type: "integer",
 							},
 						},
-						Node: &definitions.NodeDefinition_0_3{},
+						Node: &definitions.NodeDefinition{},
 					},
 					Source: ConfigSourceCode,
 				},
@@ -769,11 +769,11 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath + "/envvars",
 					TaskEntrypoint: fixturesPath + "/envvars/codeOnlyTask.airplane.ts",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name:       "Collatz Conjecture Step",
 						Slug:       "collatz",
-						Parameters: []definitions.ParameterDefinition_0_3{},
-						Node: &definitions.NodeDefinition_0_3{
+						Parameters: []definitions.ParameterDefinition{},
+						Node: &definitions.NodeDefinition{
 							EnvVars: api.TaskEnv{
 								"ENV1": api.EnvVarValue{Value: pointers.String("1")},
 								"ENV2": api.EnvVarValue{Value: pointers.String("2")},
@@ -807,11 +807,11 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: filepath.Join(fixturesPath, "badimport", "main.airplane.ts"),
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name:       "Collatz",
 						Slug:       "collatz",
-						Parameters: []definitions.ParameterDefinition_0_3{},
-						Node:       &definitions.NodeDefinition_0_3{},
+						Parameters: []definitions.ParameterDefinition{},
+						Node:       &definitions.NodeDefinition{},
 					},
 					Source: ConfigSourceCode,
 				},
@@ -839,11 +839,11 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath + "/envvars",
 					TaskEntrypoint: fixturesPath + "/envvars/single_task.js",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name:        "sunt in tempor eu",
 						Slug:        "my_task",
 						Description: "ut dolor sit officia ea",
-						Node: &definitions.NodeDefinition_0_3{
+						Node: &definitions.NodeDefinition{
 							Entrypoint: "./single_task.js",
 							EnvVars: api.TaskEnv{
 								"ENV2": api.EnvVarValue{Value: pointers.String("2")},
@@ -914,11 +914,11 @@ func TestDiscover(t *testing.T) {
 					TaskID:         "tsk123",
 					TaskRoot:       fixturesPath,
 					TaskEntrypoint: fixturesPath + "/viewInline-with-tasks/myView/myView.view.tsx",
-					Def: &definitions.Definition_0_3{
+					Def: definitions.Definition{
 						Name:        "My Task",
 						Slug:        "my_task",
-						Parameters:  []definitions.ParameterDefinition_0_3{},
-						Node:        &definitions.NodeDefinition_0_3{},
+						Parameters:  []definitions.ParameterDefinition{},
+						Node:        &definitions.NodeDefinition{},
 						Description: "my description",
 					},
 					Source: ConfigSourceCode,

@@ -1,10 +1,7 @@
 package definitions
 
 import (
-	"context"
 	"strings"
-
-	"github.com/airplanedev/lib/pkg/api"
 )
 
 var (
@@ -16,14 +13,6 @@ var (
 	JSONViewDefExtensions = []string{".view.json"}
 	ViewDefExtensions     = append(YamlViewDefExtensions, JSONViewDefExtensions...)
 )
-
-func NewDefinitionFromTask(ctx context.Context, client api.IAPIClient, t api.Task) (DefinitionInterface, error) {
-	def, err := NewDefinitionFromTask_0_3(ctx, client, t)
-	if err != nil {
-		return nil, err
-	}
-	return &def, nil
-}
 
 type DefFormat string
 

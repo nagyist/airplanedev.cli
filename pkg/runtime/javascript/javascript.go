@@ -89,7 +89,7 @@ func toJavascriptTypeVar(value interface{}) (string, error) {
 	}
 }
 
-func paramRequired(param definitions.ParameterDefinition_0_3) bool {
+func paramRequired(param definitions.ParameterDefinition) bool {
 	return param.Required.Value()
 }
 
@@ -260,17 +260,17 @@ func (r Runtime) Generate(t *runtime.Task) ([]byte, fs.FileMode, error) {
 }
 
 type inlineHelper struct {
-	*definitions.Definition_0_3
+	*definitions.Definition
 	AllowSelfApprovals bool
 	Timeout            int
 	Workflow           bool
 }
 
 // GenerateInline implementation.
-func (r Runtime) GenerateInline(def *definitions.Definition_0_3) ([]byte, fs.FileMode, error) {
+func (r Runtime) GenerateInline(def *definitions.Definition) ([]byte, fs.FileMode, error) {
 	var buf bytes.Buffer
 	helper := inlineHelper{
-		Definition_0_3:     def,
+		Definition:         def,
 		AllowSelfApprovals: def.AllowSelfApprovals.Value(),
 		Timeout:            def.Timeout.Value(),
 		Workflow:           def.Runtime == build.TaskRuntimeWorkflow,
@@ -564,7 +564,7 @@ func (r Runtime) SupportsLocalExecution() bool {
 
 var airplaneErrorRegex = regexp.MustCompile("__airplane_error (.*)\n")
 
-func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.DefinitionInterface) error {
+func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
 	tempFile, err := os.CreateTemp("", "airplane.transformer-*.js")
 	if err != nil {
 		return errors.Wrap(err, "creating temporary file")

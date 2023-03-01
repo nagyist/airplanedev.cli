@@ -11,7 +11,7 @@ import (
 // Converts a definition file parameter into the corresponding format used by the API.
 //
 // Can be inverted by convertParameterAPIToDef.
-func convertParameterDefToAPI(param ParameterDefinition_0_3) (api.Parameter, error) {
+func convertParameterDefToAPI(param ParameterDefinition) (api.Parameter, error) {
 	out := api.Parameter{
 		Name: param.Name,
 		Slug: param.Slug,
@@ -101,7 +101,7 @@ func convertParameterDefToAPI(param ParameterDefinition_0_3) (api.Parameter, err
 // Converts a list of parameters from the format used by our API into the format used by definition files.
 //
 // Can be inverted by convertParametersAPIToDef.
-func convertParametersDefToAPI(params []ParameterDefinition_0_3) ([]api.Parameter, error) {
+func convertParametersDefToAPI(params []ParameterDefinition) ([]api.Parameter, error) {
 	out := []api.Parameter{}
 	for _, param := range params {
 		converted, err := convertParameterDefToAPI(param)
@@ -116,8 +116,8 @@ func convertParametersDefToAPI(params []ParameterDefinition_0_3) ([]api.Paramete
 // Converts a parameter from the format used by our API into the format used by definition files.
 //
 // Can be inverted by convertParameterDefToAPI.
-func convertParameterAPIToDef(param api.Parameter) (ParameterDefinition_0_3, error) {
-	out := ParameterDefinition_0_3{
+func convertParameterAPIToDef(param api.Parameter) (ParameterDefinition, error) {
+	out := ParameterDefinition{
 		Name:        param.Name,
 		Slug:        param.Slug,
 		Description: param.Desc,
@@ -133,12 +133,12 @@ func convertParameterAPIToDef(param api.Parameter) (ParameterDefinition_0_3, err
 		case api.ComponentNone:
 			out.Type = "shorttext"
 		default:
-			return ParameterDefinition_0_3{}, errors.Errorf("unexpected component for type=string: %q", param.Component)
+			return ParameterDefinition{}, errors.Errorf("unexpected component for type=string: %q", param.Component)
 		}
 	case "boolean", "upload", "integer", "float", "date", "datetime", "configvar":
 		out.Type = string(param.Type)
 	default:
-		return ParameterDefinition_0_3{}, errors.Errorf("unknown parameter type: %q", param.Type)
+		return ParameterDefinition{}, errors.Errorf("unknown parameter type: %q", param.Type)
 	}
 
 	if param.Default != nil {
@@ -147,11 +147,11 @@ func convertParameterAPIToDef(param api.Parameter) (ParameterDefinition_0_3, err
 			case reflect.Map:
 				configName, err := extractConfigVarName(param.Default)
 				if err != nil {
-					return ParameterDefinition_0_3{}, errors.Wrap(err, "invalid default configvar")
+					return ParameterDefinition{}, errors.Wrap(err, "invalid default configvar")
 				}
 				out.Default = configName
 			default:
-				return ParameterDefinition_0_3{}, errors.Errorf("unsupported type for default value: %T", param.Default)
+				return ParameterDefinition{}, errors.Errorf("unsupported type for default value: %T", param.Default)
 			}
 		} else {
 			switch k := reflect.ValueOf(param.Default).Kind(); k {
@@ -160,7 +160,7 @@ func convertParameterAPIToDef(param api.Parameter) (ParameterDefinition_0_3, err
 				reflect.Float32, reflect.Float64:
 				out.Default = param.Default
 			default:
-				return ParameterDefinition_0_3{}, errors.Errorf("unsupported type for default value: %T", param.Default)
+				return ParameterDefinition{}, errors.Errorf("unsupported type for default value: %T", param.Default)
 			}
 		}
 	}
@@ -170,33 +170,33 @@ func convertParameterAPIToDef(param api.Parameter) (ParameterDefinition_0_3, err
 	out.Regex = param.Constraints.Regex
 
 	if len(param.Constraints.Options) > 0 {
-		out.Options = make([]OptionDefinition_0_3, len(param.Constraints.Options))
+		out.Options = make([]OptionDefinition, len(param.Constraints.Options))
 		for i, opt := range param.Constraints.Options {
 			if param.Type == "configvar" {
 				switch k := reflect.ValueOf(opt.Value).Kind(); k {
 				case reflect.Map:
 					configName, err := extractConfigVarName(opt.Value)
 					if err != nil {
-						return ParameterDefinition_0_3{}, errors.Wrap(err, "invalid configvar option")
+						return ParameterDefinition{}, errors.Wrap(err, "invalid configvar option")
 					}
-					out.Options[i] = OptionDefinition_0_3{
+					out.Options[i] = OptionDefinition{
 						Label: opt.Label,
 						Value: configName,
 					}
 				default:
-					return ParameterDefinition_0_3{}, errors.Errorf("unhandled option type: %s", k)
+					return ParameterDefinition{}, errors.Errorf("unhandled option type: %s", k)
 				}
 			} else {
 				switch k := reflect.ValueOf(opt.Value).Kind(); k {
 				case reflect.String, reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 					reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 					reflect.Float32, reflect.Float64:
-					out.Options[i] = OptionDefinition_0_3{
+					out.Options[i] = OptionDefinition{
 						Label: opt.Label,
 						Value: opt.Value,
 					}
 				default:
-					return ParameterDefinition_0_3{}, errors.Errorf("unhandled option type: %s", k)
+					return ParameterDefinition{}, errors.Errorf("unhandled option type: %s", k)
 				}
 			}
 		}
@@ -208,8 +208,8 @@ func convertParameterAPIToDef(param api.Parameter) (ParameterDefinition_0_3, err
 // Converts a list of parameters from the format used by our API into the format used by definition files.
 //
 // Can be inverted by convertParametersDefToAPI.
-func convertParametersAPIToDef(params []api.Parameter) ([]ParameterDefinition_0_3, error) {
-	out := []ParameterDefinition_0_3{}
+func convertParametersAPIToDef(params []api.Parameter) ([]ParameterDefinition, error) {
+	out := []ParameterDefinition{}
 	for _, param := range params {
 		converted, err := convertParameterAPIToDef(param)
 		if err != nil {

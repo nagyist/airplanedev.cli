@@ -22,20 +22,20 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-type Definition_0_3 struct {
-	Name        string                    `json:"name"`
-	Slug        string                    `json:"slug"`
-	Description string                    `json:"description,omitempty"`
-	Parameters  []ParameterDefinition_0_3 `json:"parameters,omitempty"`
-	Resources   ResourceDefinition_0_3    `json:"resources,omitempty"`
+type Definition struct {
+	Name        string                `json:"name"`
+	Slug        string                `json:"slug"`
+	Description string                `json:"description,omitempty"`
+	Parameters  []ParameterDefinition `json:"parameters,omitempty"`
+	Resources   ResourceDefinition    `json:"resources,omitempty"`
 
-	Image  *ImageDefinition_0_3  `json:"docker,omitempty"`
-	Node   *NodeDefinition_0_3   `json:"node,omitempty"`
-	Python *PythonDefinition_0_3 `json:"python,omitempty"`
-	Shell  *ShellDefinition_0_3  `json:"shell,omitempty"`
+	Image  *ImageDefinition  `json:"docker,omitempty"`
+	Node   *NodeDefinition   `json:"node,omitempty"`
+	Python *PythonDefinition `json:"python,omitempty"`
+	Shell  *ShellDefinition  `json:"shell,omitempty"`
 
-	SQL     *SQLDefinition_0_3    `json:"sql,omitempty"`
-	REST    *RESTDefinition_0_3   `json:"rest,omitempty"`
+	SQL     *SQLDefinition        `json:"sql,omitempty"`
+	REST    *RESTDefinition       `json:"rest,omitempty"`
 	Builtin *BuiltinTaskContainer `json:",inline,omitempty"`
 
 	Configs            []string                 `json:"configs,omitempty"`
@@ -45,15 +45,13 @@ type Definition_0_3 struct {
 	Timeout            DefaultTimeoutDefinition `json:"timeout,omitempty"`
 	Runtime            build.TaskRuntime        `json:"runtime,omitempty"`
 
-	Schedules map[string]ScheduleDefinition_0_3 `json:"schedules,omitempty"`
+	Schedules map[string]ScheduleDefinition `json:"schedules,omitempty"`
 
 	buildConfig  build.BuildConfig
 	defnFilePath string
 }
 
-var _ DefinitionInterface = &Definition_0_3{}
-
-type taskKind_0_3 interface {
+type taskKind interface {
 	fillInUpdateTaskRequest(context.Context, api.IAPIClient, *api.UpdateTaskRequest, build.BuildConfig, bool) error
 	hydrateFromTask(context.Context, api.IAPIClient, *api.Task) error
 	setEntrypoint(string) error
@@ -69,16 +67,16 @@ type taskKind_0_3 interface {
 	SetBuildVersionBase(build.BuildTypeVersion, build.BuildBase)
 }
 
-var _ taskKind_0_3 = &ImageDefinition_0_3{}
+var _ taskKind = &ImageDefinition{}
 
-type ImageDefinition_0_3 struct {
+type ImageDefinition struct {
 	Image      string      `json:"image"`
 	Entrypoint string      `json:"entrypoint,omitempty"`
 	Command    string      `json:"command"`
 	EnvVars    api.TaskEnv `json:"envVars,omitempty"`
 }
 
-func (d *ImageDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
+func (d *ImageDefinition) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
 	if d.Image != "" {
 		req.Image = &d.Image
 	}
@@ -96,7 +94,7 @@ func (d *ImageDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, clien
 	return nil
 }
 
-func (d *ImageDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *ImageDefinition) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
 	if t.Image != nil {
 		d.Image = *t.Image
 	}
@@ -106,52 +104,52 @@ func (d *ImageDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IA
 	return nil
 }
 
-func (d *ImageDefinition_0_3) setEntrypoint(entrypoint string) error {
+func (d *ImageDefinition) setEntrypoint(entrypoint string) error {
 	return ErrNoEntrypoint
 }
 
-func (d *ImageDefinition_0_3) setAbsoluteEntrypoint(entrypoint string) error {
+func (d *ImageDefinition) setAbsoluteEntrypoint(entrypoint string) error {
 	return ErrNoEntrypoint
 }
 
-func (d *ImageDefinition_0_3) getAbsoluteEntrypoint() (string, error) {
+func (d *ImageDefinition) getAbsoluteEntrypoint() (string, error) {
 	return "", ErrNoEntrypoint
 }
 
-func (d *ImageDefinition_0_3) getKindOptions() (build.KindOptions, error) {
+func (d *ImageDefinition) getKindOptions() (build.KindOptions, error) {
 	return nil, nil
 }
 
-func (d *ImageDefinition_0_3) getEntrypoint() (string, error) {
+func (d *ImageDefinition) getEntrypoint() (string, error) {
 	return "", ErrNoEntrypoint
 }
 
-func (d *ImageDefinition_0_3) getEnv() (api.TaskEnv, error) {
+func (d *ImageDefinition) getEnv() (api.TaskEnv, error) {
 	return d.EnvVars, nil
 }
-func (d *ImageDefinition_0_3) setEnv(e api.TaskEnv) error {
+func (d *ImageDefinition) setEnv(e api.TaskEnv) error {
 	d.EnvVars = e
 	return nil
 }
 
-func (d *ImageDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
+func (d *ImageDefinition) getConfigAttachments() []api.ConfigAttachment {
 	return []api.ConfigAttachment{}
 }
 
-func (d *ImageDefinition_0_3) getResourceAttachments() map[string]string {
+func (d *ImageDefinition) getResourceAttachments() map[string]string {
 	return nil
 }
 
-func (d *ImageDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
+func (d *ImageDefinition) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
 	return build.NoneBuildType, build.BuildTypeVersionUnspecified, build.BuildBaseNone
 }
 
-func (d *ImageDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
+func (d *ImageDefinition) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
 }
 
-var _ taskKind_0_3 = &NodeDefinition_0_3{}
+var _ taskKind = &NodeDefinition{}
 
-type NodeDefinition_0_3 struct {
+type NodeDefinition struct {
 	// Entrypoint is the relative path from the task definition file to the script. It does not
 	// apply for inline configured tasks.
 	Entrypoint  string          `json:"entrypoint"`
@@ -162,7 +160,7 @@ type NodeDefinition_0_3 struct {
 	absoluteEntrypoint string `json:"-"`
 }
 
-func (d *NodeDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
+func (d *NodeDefinition) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
 	req.Env = d.EnvVars
 	if forBundle {
 		entrypointFunc, _ := bc["entrypointFunc"].(string)
@@ -189,7 +187,7 @@ func (d *NodeDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client
 	return nil
 }
 
-func (d *NodeDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *NodeDefinition) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
 	if v, ok := t.KindOptions["entrypoint"]; ok {
 		if sv, ok := v.(string); ok {
 			d.Entrypoint = sv
@@ -217,24 +215,24 @@ func (d *NodeDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAP
 	return nil
 }
 
-func (d *NodeDefinition_0_3) setEntrypoint(entrypoint string) error {
+func (d *NodeDefinition) setEntrypoint(entrypoint string) error {
 	d.Entrypoint = entrypoint
 	return nil
 }
 
-func (d *NodeDefinition_0_3) setAbsoluteEntrypoint(entrypoint string) error {
+func (d *NodeDefinition) setAbsoluteEntrypoint(entrypoint string) error {
 	d.absoluteEntrypoint = entrypoint
 	return nil
 }
 
-func (d *NodeDefinition_0_3) getAbsoluteEntrypoint() (string, error) {
+func (d *NodeDefinition) getAbsoluteEntrypoint() (string, error) {
 	if d.absoluteEntrypoint == "" {
 		return "", ErrNoAbsoluteEntrypoint
 	}
 	return d.absoluteEntrypoint, nil
 }
 
-func (d *NodeDefinition_0_3) getKindOptions() (build.KindOptions, error) {
+func (d *NodeDefinition) getKindOptions() (build.KindOptions, error) {
 	ko := build.KindOptions{}
 	if d.Entrypoint != "" {
 		ko["entrypoint"] = d.Entrypoint
@@ -248,32 +246,32 @@ func (d *NodeDefinition_0_3) getKindOptions() (build.KindOptions, error) {
 	return ko, nil
 }
 
-func (d *NodeDefinition_0_3) getEntrypoint() (string, error) {
+func (d *NodeDefinition) getEntrypoint() (string, error) {
 	return d.Entrypoint, nil
 }
 
-func (d *NodeDefinition_0_3) getEnv() (api.TaskEnv, error) {
+func (d *NodeDefinition) getEnv() (api.TaskEnv, error) {
 	return d.EnvVars, nil
 }
 
-func (d *NodeDefinition_0_3) setEnv(e api.TaskEnv) error {
+func (d *NodeDefinition) setEnv(e api.TaskEnv) error {
 	d.EnvVars = e
 	return nil
 }
 
-func (d *NodeDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
+func (d *NodeDefinition) getConfigAttachments() []api.ConfigAttachment {
 	return []api.ConfigAttachment{}
 }
 
-func (d *NodeDefinition_0_3) getResourceAttachments() map[string]string {
+func (d *NodeDefinition) getResourceAttachments() map[string]string {
 	return nil
 }
 
-func (d *NodeDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
+func (d *NodeDefinition) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
 	return build.NodeBuildType, build.BuildTypeVersion(d.NodeVersion), d.Base
 }
 
-func (d *NodeDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
+func (d *NodeDefinition) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
 	if d.NodeVersion == "" {
 		d.NodeVersion = string(v)
 	}
@@ -282,9 +280,9 @@ func (d *NodeDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b bui
 	}
 }
 
-var _ taskKind_0_3 = &PythonDefinition_0_3{}
+var _ taskKind = &PythonDefinition{}
 
-type PythonDefinition_0_3 struct {
+type PythonDefinition struct {
 	// Entrypoint is the relative path from the task definition file to the script. It does not
 	// apply for inline configured tasks.
 	Entrypoint string          `json:"entrypoint"`
@@ -295,7 +293,7 @@ type PythonDefinition_0_3 struct {
 	absoluteEntrypoint string `json:"-"`
 }
 
-func (d *PythonDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
+func (d *PythonDefinition) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
 	req.Env = d.EnvVars
 	if forBundle {
 		entrypointFunc, _ := bc["entrypointFunc"].(string)
@@ -310,7 +308,7 @@ func (d *PythonDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, clie
 	return nil
 }
 
-func (d *PythonDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *PythonDefinition) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
 	if v, ok := t.KindOptions["entrypoint"]; ok {
 		if sv, ok := v.(string); ok {
 			d.Entrypoint = sv
@@ -338,24 +336,24 @@ func (d *PythonDefinition_0_3) hydrateFromTask(ctx context.Context, client api.I
 	return nil
 }
 
-func (d *PythonDefinition_0_3) setEntrypoint(entrypoint string) error {
+func (d *PythonDefinition) setEntrypoint(entrypoint string) error {
 	d.Entrypoint = entrypoint
 	return nil
 }
 
-func (d *PythonDefinition_0_3) setAbsoluteEntrypoint(entrypoint string) error {
+func (d *PythonDefinition) setAbsoluteEntrypoint(entrypoint string) error {
 	d.absoluteEntrypoint = entrypoint
 	return nil
 }
 
-func (d *PythonDefinition_0_3) getAbsoluteEntrypoint() (string, error) {
+func (d *PythonDefinition) getAbsoluteEntrypoint() (string, error) {
 	if d.absoluteEntrypoint == "" {
 		return "", ErrNoAbsoluteEntrypoint
 	}
 	return d.absoluteEntrypoint, nil
 }
 
-func (d *PythonDefinition_0_3) getKindOptions() (build.KindOptions, error) {
+func (d *PythonDefinition) getKindOptions() (build.KindOptions, error) {
 	ko := build.KindOptions{}
 	if d.Entrypoint != "" {
 		ko["entrypoint"] = d.Entrypoint
@@ -369,32 +367,32 @@ func (d *PythonDefinition_0_3) getKindOptions() (build.KindOptions, error) {
 	return ko, nil
 }
 
-func (d *PythonDefinition_0_3) getEntrypoint() (string, error) {
+func (d *PythonDefinition) getEntrypoint() (string, error) {
 	return d.Entrypoint, nil
 }
 
-func (d *PythonDefinition_0_3) getEnv() (api.TaskEnv, error) {
+func (d *PythonDefinition) getEnv() (api.TaskEnv, error) {
 	return d.EnvVars, nil
 }
 
-func (d *PythonDefinition_0_3) setEnv(e api.TaskEnv) error {
+func (d *PythonDefinition) setEnv(e api.TaskEnv) error {
 	d.EnvVars = e
 	return nil
 }
 
-func (d *PythonDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
+func (d *PythonDefinition) getConfigAttachments() []api.ConfigAttachment {
 	return []api.ConfigAttachment{}
 }
 
-func (d *PythonDefinition_0_3) getResourceAttachments() map[string]string {
+func (d *PythonDefinition) getResourceAttachments() map[string]string {
 	return nil
 }
 
-func (d *PythonDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
+func (d *PythonDefinition) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
 	return build.PythonBuildType, build.BuildTypeVersion(d.Version), d.Base
 }
 
-func (d *PythonDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
+func (d *PythonDefinition) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
 	if d.Version == "" {
 		d.Version = string(v)
 	}
@@ -403,16 +401,16 @@ func (d *PythonDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b b
 	}
 }
 
-var _ taskKind_0_3 = &ShellDefinition_0_3{}
+var _ taskKind = &ShellDefinition{}
 
-type ShellDefinition_0_3 struct {
+type ShellDefinition struct {
 	Entrypoint string      `json:"entrypoint"`
 	EnvVars    api.TaskEnv `json:"envVars,omitempty"`
 
 	absoluteEntrypoint string `json:"-"`
 }
 
-func (d *ShellDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
+func (d *ShellDefinition) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
 	req.Env = d.EnvVars
 	if forBundle {
 		req.Command = []string{"bash"}
@@ -430,7 +428,7 @@ func (d *ShellDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, clien
 	return nil
 }
 
-func (d *ShellDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *ShellDefinition) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
 	if v, ok := t.KindOptions["entrypoint"]; ok {
 		if sv, ok := v.(string); ok {
 			d.Entrypoint = sv
@@ -442,60 +440,60 @@ func (d *ShellDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IA
 	return nil
 }
 
-func (d *ShellDefinition_0_3) setEntrypoint(entrypoint string) error {
+func (d *ShellDefinition) setEntrypoint(entrypoint string) error {
 	d.Entrypoint = entrypoint
 	return nil
 }
 
-func (d *ShellDefinition_0_3) setAbsoluteEntrypoint(entrypoint string) error {
+func (d *ShellDefinition) setAbsoluteEntrypoint(entrypoint string) error {
 	d.absoluteEntrypoint = entrypoint
 	return nil
 }
 
-func (d *ShellDefinition_0_3) getAbsoluteEntrypoint() (string, error) {
+func (d *ShellDefinition) getAbsoluteEntrypoint() (string, error) {
 	if d.absoluteEntrypoint == "" {
 		return "", ErrNoAbsoluteEntrypoint
 	}
 	return d.absoluteEntrypoint, nil
 }
 
-func (d *ShellDefinition_0_3) getKindOptions() (build.KindOptions, error) {
+func (d *ShellDefinition) getKindOptions() (build.KindOptions, error) {
 	return build.KindOptions{
 		"entrypoint": d.Entrypoint,
 	}, nil
 }
 
-func (d *ShellDefinition_0_3) getEntrypoint() (string, error) {
+func (d *ShellDefinition) getEntrypoint() (string, error) {
 	return d.Entrypoint, nil
 }
 
-func (d *ShellDefinition_0_3) getEnv() (api.TaskEnv, error) {
+func (d *ShellDefinition) getEnv() (api.TaskEnv, error) {
 	return d.EnvVars, nil
 }
 
-func (d *ShellDefinition_0_3) setEnv(e api.TaskEnv) error {
+func (d *ShellDefinition) setEnv(e api.TaskEnv) error {
 	d.EnvVars = e
 	return nil
 }
 
-func (d *ShellDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
+func (d *ShellDefinition) getConfigAttachments() []api.ConfigAttachment {
 	return []api.ConfigAttachment{}
 }
 
-func (d *ShellDefinition_0_3) getResourceAttachments() map[string]string {
+func (d *ShellDefinition) getResourceAttachments() map[string]string {
 	return nil
 }
 
-func (d *ShellDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
+func (d *ShellDefinition) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
 	return build.ShellBuildType, build.BuildTypeVersionUnspecified, build.BuildBaseNone
 }
 
-func (d *ShellDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
+func (d *ShellDefinition) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
 }
 
-var _ taskKind_0_3 = &SQLDefinition_0_3{}
+var _ taskKind = &SQLDefinition{}
 
-type SQLDefinition_0_3 struct {
+type SQLDefinition struct {
 	Resource        string                 `json:"resource"`
 	Entrypoint      string                 `json:"entrypoint"`
 	QueryArgs       map[string]interface{} `json:"queryArgs,omitempty"`
@@ -522,7 +520,7 @@ func (tm SQLTransactionMode) Value() string {
 	return string(tm)
 }
 
-func (d *SQLDefinition_0_3) GetQuery() (string, error) {
+func (d *SQLDefinition) GetQuery() (string, error) {
 	if d.entrypointContents == "" {
 		if d.absoluteEntrypoint == "" {
 			return "", ErrNoAbsoluteEntrypoint
@@ -536,7 +534,7 @@ func (d *SQLDefinition_0_3) GetQuery() (string, error) {
 	return d.entrypointContents, nil
 }
 
-func (d *SQLDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
+func (d *SQLDefinition) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
 	collection, err := getResourceIDsBySlugAndName(ctx, client)
 	if err != nil {
 		return err
@@ -553,7 +551,7 @@ func (d *SQLDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client 
 	return nil
 }
 
-func (d *SQLDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *SQLDefinition) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
 	if resID, ok := t.Resources["db"]; ok {
 		resourceSlugsByID, err := getResourceSlugsByID(ctx, client)
 		if err != nil {
@@ -595,24 +593,24 @@ func (d *SQLDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAPI
 	return nil
 }
 
-func (d *SQLDefinition_0_3) setEntrypoint(entrypoint string) error {
+func (d *SQLDefinition) setEntrypoint(entrypoint string) error {
 	d.Entrypoint = entrypoint
 	return nil
 }
 
-func (d *SQLDefinition_0_3) setAbsoluteEntrypoint(entrypoint string) error {
+func (d *SQLDefinition) setAbsoluteEntrypoint(entrypoint string) error {
 	d.absoluteEntrypoint = entrypoint
 	return nil
 }
 
-func (d *SQLDefinition_0_3) getAbsoluteEntrypoint() (string, error) {
+func (d *SQLDefinition) getAbsoluteEntrypoint() (string, error) {
 	if d.absoluteEntrypoint == "" {
 		return "", ErrNoAbsoluteEntrypoint
 	}
 	return d.absoluteEntrypoint, nil
 }
 
-func (d *SQLDefinition_0_3) getKindOptions() (build.KindOptions, error) {
+func (d *SQLDefinition) getKindOptions() (build.KindOptions, error) {
 	query, err := d.GetQuery()
 	if err != nil {
 		return nil, err
@@ -628,19 +626,19 @@ func (d *SQLDefinition_0_3) getKindOptions() (build.KindOptions, error) {
 	}, nil
 }
 
-func (d *SQLDefinition_0_3) getEntrypoint() (string, error) {
+func (d *SQLDefinition) getEntrypoint() (string, error) {
 	return d.Entrypoint, nil
 }
 
-func (d *SQLDefinition_0_3) getEnv() (api.TaskEnv, error) {
+func (d *SQLDefinition) getEnv() (api.TaskEnv, error) {
 	return nil, nil
 }
 
-func (d *SQLDefinition_0_3) setEnv(e api.TaskEnv) error {
+func (d *SQLDefinition) setEnv(e api.TaskEnv) error {
 	return nil
 }
 
-func (d *SQLDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
+func (d *SQLDefinition) getConfigAttachments() []api.ConfigAttachment {
 	configAttachments := make([]api.ConfigAttachment, len(d.Configs))
 	for i, configName := range d.Configs {
 		configAttachments[i] = api.ConfigAttachment{NameTag: configName}
@@ -650,7 +648,7 @@ func (d *SQLDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
 }
 
 // Rewrites Resource to be a slug if it's a name.
-func (d *SQLDefinition_0_3) normalize(ctx context.Context, client api.IAPIClient) error {
+func (d *SQLDefinition) normalize(ctx context.Context, client api.IAPIClient) error {
 	collection, err := getResourceIDsBySlugAndName(ctx, client)
 	if err != nil {
 		return err
@@ -673,19 +671,19 @@ func (d *SQLDefinition_0_3) normalize(ctx context.Context, client api.IAPIClient
 	return nil
 }
 
-func (d *SQLDefinition_0_3) getResourceAttachments() map[string]string {
+func (d *SQLDefinition) getResourceAttachments() map[string]string {
 	return map[string]string{"db": d.Resource}
 }
 
-func (d *SQLDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
+func (d *SQLDefinition) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
 	return build.NoneBuildType, build.BuildTypeVersionUnspecified, build.BuildBaseNone
 }
-func (d *SQLDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
+func (d *SQLDefinition) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
 }
 
-var _ taskKind_0_3 = &RESTDefinition_0_3{}
+var _ taskKind = &RESTDefinition{}
 
-type RESTDefinition_0_3 struct {
+type RESTDefinition struct {
 	Resource      string                 `json:"resource"`
 	Method        string                 `json:"method"`
 	Path          string                 `json:"path"`
@@ -698,7 +696,7 @@ type RESTDefinition_0_3 struct {
 	Configs       []string               `json:"configs,omitempty"`
 }
 
-func (d *RESTDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
+func (d *RESTDefinition) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
 	collection, err := getResourceIDsBySlugAndName(ctx, client)
 	if err != nil {
 		return err
@@ -715,7 +713,7 @@ func (d *RESTDefinition_0_3) fillInUpdateTaskRequest(ctx context.Context, client
 	return nil
 }
 
-func (d *RESTDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *RESTDefinition) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
 	if resID, ok := t.Resources["rest"]; ok {
 		resourceSlugsByID, err := getResourceSlugsByID(ctx, client)
 		if err != nil {
@@ -777,19 +775,19 @@ func (d *RESTDefinition_0_3) hydrateFromTask(ctx context.Context, client api.IAP
 	return nil
 }
 
-func (d *RESTDefinition_0_3) setEntrypoint(entrypoint string) error {
+func (d *RESTDefinition) setEntrypoint(entrypoint string) error {
 	return ErrNoEntrypoint
 }
 
-func (d *RESTDefinition_0_3) setAbsoluteEntrypoint(entrypoint string) error {
+func (d *RESTDefinition) setAbsoluteEntrypoint(entrypoint string) error {
 	return ErrNoEntrypoint
 }
 
-func (d *RESTDefinition_0_3) getAbsoluteEntrypoint() (string, error) {
+func (d *RESTDefinition) getAbsoluteEntrypoint() (string, error) {
 	return "", ErrNoEntrypoint
 }
 
-func (d *RESTDefinition_0_3) getKindOptions() (build.KindOptions, error) {
+func (d *RESTDefinition) getKindOptions() (build.KindOptions, error) {
 	if d.URLParams == nil {
 		d.URLParams = map[string]interface{}{}
 	}
@@ -811,18 +809,18 @@ func (d *RESTDefinition_0_3) getKindOptions() (build.KindOptions, error) {
 	}, nil
 }
 
-func (d *RESTDefinition_0_3) getEntrypoint() (string, error) {
+func (d *RESTDefinition) getEntrypoint() (string, error) {
 	return "", ErrNoEntrypoint
 }
 
-func (d *RESTDefinition_0_3) getEnv() (api.TaskEnv, error) {
+func (d *RESTDefinition) getEnv() (api.TaskEnv, error) {
 	return nil, nil
 }
-func (d *RESTDefinition_0_3) setEnv(e api.TaskEnv) error {
+func (d *RESTDefinition) setEnv(e api.TaskEnv) error {
 	return nil
 }
 
-func (d *RESTDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
+func (d *RESTDefinition) getConfigAttachments() []api.ConfigAttachment {
 	configAttachments := make([]api.ConfigAttachment, len(d.Configs))
 	for i, configName := range d.Configs {
 		configAttachments[i] = api.ConfigAttachment{NameTag: configName}
@@ -832,7 +830,7 @@ func (d *RESTDefinition_0_3) getConfigAttachments() []api.ConfigAttachment {
 }
 
 // Rewrites Resource to be a slug if it's a name.
-func (d *RESTDefinition_0_3) normalize(ctx context.Context, client api.IAPIClient) error {
+func (d *RESTDefinition) normalize(ctx context.Context, client api.IAPIClient) error {
 	collection, err := getResourceIDsBySlugAndName(ctx, client)
 	if err != nil {
 		return err
@@ -855,36 +853,36 @@ func (d *RESTDefinition_0_3) normalize(ctx context.Context, client api.IAPIClien
 	return nil
 }
 
-func (d *RESTDefinition_0_3) getResourceAttachments() map[string]string {
+func (d *RESTDefinition) getResourceAttachments() map[string]string {
 	return map[string]string{"rest": d.Resource}
 }
 
-func (d *RESTDefinition_0_3) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
+func (d *RESTDefinition) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
 	return build.NoneBuildType, build.BuildTypeVersionUnspecified, build.BuildBaseNone
 }
-func (d *RESTDefinition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
+func (d *RESTDefinition) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
 }
 
-type ParameterDefinition_0_3 struct {
-	Name        string                 `json:"name"`
-	Slug        string                 `json:"slug"`
-	Type        string                 `json:"type"`
-	Description string                 `json:"description,omitempty"`
-	Default     interface{}            `json:"default,omitempty"`
-	Required    DefaultTrueDefinition  `json:"required,omitempty"`
-	Options     []OptionDefinition_0_3 `json:"options,omitempty"`
-	Regex       string                 `json:"regex,omitempty"`
+type ParameterDefinition struct {
+	Name        string                `json:"name"`
+	Slug        string                `json:"slug"`
+	Type        string                `json:"type"`
+	Description string                `json:"description,omitempty"`
+	Default     interface{}           `json:"default,omitempty"`
+	Required    DefaultTrueDefinition `json:"required,omitempty"`
+	Options     []OptionDefinition    `json:"options,omitempty"`
+	Regex       string                `json:"regex,omitempty"`
 }
 
-type OptionDefinition_0_3 struct {
+type OptionDefinition struct {
 	Label  string      `json:"label"`
 	Value  interface{} `json:"value,omitempty"`
 	Config *string     `json:"config,omitempty"`
 }
 
-var _ json.Unmarshaler = &OptionDefinition_0_3{}
+var _ json.Unmarshaler = &OptionDefinition{}
 
-func (o *OptionDefinition_0_3) UnmarshalJSON(b []byte) error {
+func (o *OptionDefinition) UnmarshalJSON(b []byte) error {
 	// If it's just a string, dump it in the value field.
 	var value string
 	if err := json.Unmarshal(b, &value); err == nil {
@@ -895,73 +893,76 @@ func (o *OptionDefinition_0_3) UnmarshalJSON(b []byte) error {
 	// Otherwise, perform a normal unmarshal operation.
 	// Note we need a new type, otherwise we recursively call this
 	// method and end up stack overflowing.
-	type option OptionDefinition_0_3
+	type option OptionDefinition
 	var opt option
 	if err := json.Unmarshal(b, &opt); err != nil {
 		return err
 	}
-	*o = OptionDefinition_0_3(opt)
+	*o = OptionDefinition(opt)
 
 	return nil
 }
 
-type ScheduleDefinition_0_3 struct {
+type ScheduleDefinition struct {
 	Name        string                 `json:"name,omitempty"`
 	Description string                 `json:"description,omitempty"`
 	CronExpr    string                 `json:"cron"`
 	ParamValues map[string]interface{} `json:"paramValues,omitempty"`
 }
 
+// SchemaStore must be updated if this file is moved or renamed.
+// https://github.com/SchemaStore/schemastore/blob/b4eccc2fb5ad76fd9c0a70fa67228e5d65e2b562/src/api/json/catalog.json#L84
+//
 //go:embed schema_0_3.json
 var schemaStr string
 
-func NewDefinition_0_3(name string, slug string, kind build.TaskKind, entrypoint string) (Definition_0_3, error) {
-	def := Definition_0_3{
+func NewDefinition(name string, slug string, kind build.TaskKind, entrypoint string) (Definition, error) {
+	def := Definition{
 		Name: name,
 		Slug: slug,
 	}
 
 	switch kind {
 	case build.TaskKindImage:
-		def.Image = &ImageDefinition_0_3{
+		def.Image = &ImageDefinition{
 			Image:   "alpine:3",
 			Command: `echo "hello world"`,
 		}
 	case build.TaskKindNode:
-		def.Node = &NodeDefinition_0_3{
+		def.Node = &NodeDefinition{
 			Entrypoint:  entrypoint,
 			NodeVersion: string(build.DefaultNodeVersion),
 		}
 	case build.TaskKindPython:
-		def.Python = &PythonDefinition_0_3{
+		def.Python = &PythonDefinition{
 			Entrypoint: entrypoint,
 		}
 	case build.TaskKindShell:
-		def.Shell = &ShellDefinition_0_3{
+		def.Shell = &ShellDefinition{
 			Entrypoint: entrypoint,
 		}
 	case build.TaskKindSQL:
-		def.SQL = &SQLDefinition_0_3{
+		def.SQL = &SQLDefinition{
 			Entrypoint: entrypoint,
 		}
 	case build.TaskKindREST:
-		def.REST = &RESTDefinition_0_3{
+		def.REST = &RESTDefinition{
 			Method:   "POST",
 			Path:     "/",
 			BodyType: "json",
 			Body:     "{}",
 		}
 	case build.TaskKindBuiltin:
-		return Definition_0_3{}, errors.New("use NewBuiltinDefinition_0_3 instead")
+		return Definition{}, errors.New("use NewBuiltinDefinition instead")
 	default:
-		return Definition_0_3{}, errors.Errorf("unknown kind: %s", kind)
+		return Definition{}, errors.Errorf("unknown kind: %s", kind)
 	}
 
 	return def, nil
 }
 
-func NewBuiltinDefinition_0_3(name string, slug string, builtin BuiltinTaskDef) (Definition_0_3, error) {
-	return Definition_0_3{
+func NewBuiltinDefinition(name string, slug string, builtin BuiltinTaskDef) (Definition, error) {
+	return Definition{
 		Name:    name,
 		Slug:    slug,
 		Builtin: &BuiltinTaskContainer{def: builtin},
@@ -970,16 +971,16 @@ func NewBuiltinDefinition_0_3(name string, slug string, builtin BuiltinTaskDef) 
 
 // Customize the UnmarshalJSON to pull out the builtin, if there is any. The MarshalJSON
 // customization is done on the BuiltinTaskContainer (as this field is inlined).
-func (d *Definition_0_3) UnmarshalJSON(b []byte) error {
+func (d *Definition) UnmarshalJSON(b []byte) error {
 	// Perform a normal unmarshal operation.
 	// Note we need a new type, otherwise we recursively call this
 	// method and end up stack overflowing.
-	type definition Definition_0_3
+	type definition Definition
 	var def definition
 	if err := json.Unmarshal(b, &def); err != nil {
 		return err
 	}
-	*d = Definition_0_3(def)
+	*d = Definition(def)
 
 	// Unmarshal it into a map.
 	var serialized map[string]interface{}
@@ -1008,7 +1009,8 @@ func (d *Definition_0_3) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (d Definition_0_3) Marshal(format DefFormat) ([]byte, error) {
+// Marshal returns a serialized version of the definition in the given format.
+func (d Definition) Marshal(format DefFormat) ([]byte, error) {
 	switch format {
 	case DefFormatYAML:
 		// Use the JSON marshaler so we use MarshalJSON methods.
@@ -1044,7 +1046,7 @@ func (d Definition_0_3) Marshal(format DefFormat) ([]byte, error) {
 // GenerateCommentedFile generates a commented YAML file under certain circumstances. If the format
 // requested isn't YAML, or if the definition has other things filled in, this method defaults to
 // calling Marshal(format).
-func (d Definition_0_3) GenerateCommentedFile(format DefFormat) ([]byte, error) {
+func (d Definition) GenerateCommentedFile(format DefFormat) ([]byte, error) {
 	// If it's not YAML, or you have other things defined on your task def, bail.
 	if format != DefFormatYAML ||
 		d.Description != "" ||
@@ -1165,7 +1167,7 @@ func (d Definition_0_3) GenerateCommentedFile(format DefFormat) ([]byte, error) 
 	return buf.Bytes(), nil
 }
 
-func (d *Definition_0_3) Unmarshal(format DefFormat, buf []byte) error {
+func (d *Definition) Unmarshal(format DefFormat, buf []byte) error {
 	var err error
 	switch format {
 	case DefFormatYAML:
@@ -1197,7 +1199,10 @@ func (d *Definition_0_3) Unmarshal(format DefFormat, buf []byte) error {
 	return nil
 }
 
-func (d *Definition_0_3) Normalize(ctx context.Context, client api.IAPIClient) error {
+// Normalize is a chance to rewrite the definition to account for changes in formatting after
+// being unmarshalled. This can result in multiple API calls & is not always needed & so is not
+// lumped in with Unmarshal.
+func (d *Definition) Normalize(ctx context.Context, client api.IAPIClient) error {
 	// Rewrites Resource to be a slug rather than a name.
 	if d.SQL != nil {
 		return d.SQL.normalize(ctx, client)
@@ -1207,7 +1212,10 @@ func (d *Definition_0_3) Normalize(ctx context.Context, client api.IAPIClient) e
 	return nil
 }
 
-func (d *Definition_0_3) SetAbsoluteEntrypoint(entrypoint string) error {
+// SetAbsoluteEntrypoint sets the absolute entrypoint for this definition. Does not change the
+// result of calling Entrypoint(). Returns ErrNoEntrypoint if the task kind definition requires
+// no entrypoint.
+func (d *Definition) SetAbsoluteEntrypoint(entrypoint string) error {
 	taskKind, err := d.taskKind()
 	if err != nil {
 		return err
@@ -1216,7 +1224,10 @@ func (d *Definition_0_3) SetAbsoluteEntrypoint(entrypoint string) error {
 	return taskKind.setAbsoluteEntrypoint(entrypoint)
 }
 
-func (d *Definition_0_3) GetAbsoluteEntrypoint() (string, error) {
+// GetAbsoluteEntrypoint gets the absolute entrypoint for this definition. Returns
+// ErrNoEntrypoint if the task kind definition requires no entrypoint. If SetAbsoluteEntrypoint
+// has not been set, returns ErrNoAbsoluteEntrypoint.
+func (d *Definition) GetAbsoluteEntrypoint() (string, error) {
 	taskKind, err := d.taskKind()
 	if err != nil {
 		return "", err
@@ -1225,7 +1236,7 @@ func (d *Definition_0_3) GetAbsoluteEntrypoint() (string, error) {
 	return taskKind.getAbsoluteEntrypoint()
 }
 
-func (d Definition_0_3) Kind() (build.TaskKind, error) {
+func (d Definition) Kind() (build.TaskKind, error) {
 	if d.Image != nil {
 		return build.TaskKindImage, nil
 	} else if d.Node != nil {
@@ -1245,7 +1256,7 @@ func (d Definition_0_3) Kind() (build.TaskKind, error) {
 	}
 }
 
-func (d Definition_0_3) taskKind() (taskKind_0_3, error) {
+func (d Definition) taskKind() (taskKind, error) {
 	if d.Image != nil {
 		return d.Image, nil
 	} else if d.Node != nil {
@@ -1265,7 +1276,7 @@ func (d Definition_0_3) taskKind() (taskKind_0_3, error) {
 	}
 }
 
-func (d Definition_0_3) GetUpdateTaskRequest(ctx context.Context, client api.IAPIClient, forBundle bool) (api.UpdateTaskRequest, error) {
+func (d Definition) GetUpdateTaskRequest(ctx context.Context, client api.IAPIClient, forBundle bool) (api.UpdateTaskRequest, error) {
 	req := api.UpdateTaskRequest{
 		Slug:        d.Slug,
 		Name:        d.Name,
@@ -1322,7 +1333,7 @@ func (d Definition_0_3) GetUpdateTaskRequest(ctx context.Context, client api.IAP
 	return req, nil
 }
 
-func (d Definition_0_3) addResourcesToUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest) error {
+func (d Definition) addResourcesToUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest) error {
 	if len(d.Resources.Attachments) == 0 {
 		return nil
 	}
@@ -1343,7 +1354,7 @@ func (d Definition_0_3) addResourcesToUpdateTaskRequest(ctx context.Context, cli
 	return nil
 }
 
-func (d Definition_0_3) addKindSpecificsToUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
+func (d Definition) addKindSpecificsToUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
 	kind, options, err := d.GetKindAndOptions()
 	if err != nil {
 		return err
@@ -1375,7 +1386,9 @@ func (d Definition_0_3) addKindSpecificsToUpdateTaskRequest(ctx context.Context,
 	return nil
 }
 
-func (d Definition_0_3) Entrypoint() (string, error) {
+// Entrypoint returns ErrNoEntrypoint if the task kind definition requires no entrypoint. May be
+// empty. May be absolute or relative; if relative, it is relative to the defn file.
+func (d Definition) Entrypoint() (string, error) {
 	taskKind, err := d.taskKind()
 	if err != nil {
 		return "", err
@@ -1383,19 +1396,20 @@ func (d Definition_0_3) Entrypoint() (string, error) {
 	return taskKind.getEntrypoint()
 }
 
-func (d Definition_0_3) GetDefnFilePath() string {
+// GetDefnFilePath returns the absolute path to the file that configured this definition, if one exists.
+func (d Definition) GetDefnFilePath() string {
 	return d.defnFilePath
 }
 
-func (d Definition_0_3) GetDescription() string {
+func (d Definition) GetDescription() string {
 	return d.Description
 }
 
-func (d Definition_0_3) GetParameters() (api.Parameters, error) {
+func (d Definition) GetParameters() (api.Parameters, error) {
 	return convertParametersDefToAPI(d.Parameters)
 }
 
-func (d Definition_0_3) GetBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase, error) {
+func (d Definition) GetBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase, error) {
 	taskKind, err := d.taskKind()
 	if err != nil {
 		return "", "", "", err
@@ -1404,7 +1418,9 @@ func (d Definition_0_3) GetBuildType() (build.BuildType, build.BuildTypeVersion,
 	return t, v, b, nil
 }
 
-func (d Definition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) error {
+// SetBuildVersionBase sets the version and base that this definition should be built with. Does not
+// override the version or base if it was already set.
+func (d Definition) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) error {
 	taskKind, err := d.taskKind()
 	if err != nil {
 		return err
@@ -1413,15 +1429,15 @@ func (d Definition_0_3) SetBuildVersionBase(v build.BuildTypeVersion, b build.Bu
 	return nil
 }
 
-func (d *Definition_0_3) SetDefnFilePath(filePath string) {
+func (d *Definition) SetDefnFilePath(filePath string) {
 	d.defnFilePath = filePath
 }
 
-func (d *Definition_0_3) UpgradeJST() error {
+func (d *Definition) UpgradeJST() error {
 	return nil
 }
 
-func (d *Definition_0_3) GetKindAndOptions() (build.TaskKind, build.KindOptions, error) {
+func (d *Definition) GetKindAndOptions() (build.TaskKind, build.KindOptions, error) {
 	kind, err := d.Kind()
 	if err != nil {
 		return "", nil, err
@@ -1440,7 +1456,7 @@ func (d *Definition_0_3) GetKindAndOptions() (build.TaskKind, build.KindOptions,
 	return kind, options, nil
 }
 
-func (d *Definition_0_3) GetEnv() (api.TaskEnv, error) {
+func (d *Definition) GetEnv() (api.TaskEnv, error) {
 	taskKind, err := d.taskKind()
 	if err != nil {
 		return nil, err
@@ -1448,7 +1464,7 @@ func (d *Definition_0_3) GetEnv() (api.TaskEnv, error) {
 	return taskKind.getEnv()
 }
 
-func (d *Definition_0_3) SetEnv(e api.TaskEnv) error {
+func (d *Definition) SetEnv(e api.TaskEnv) error {
 	taskKind, err := d.taskKind()
 	if err != nil {
 		return err
@@ -1456,7 +1472,7 @@ func (d *Definition_0_3) SetEnv(e api.TaskEnv) error {
 	return taskKind.setEnv(e)
 }
 
-func (d *Definition_0_3) GetConfigAttachments() ([]api.ConfigAttachment, error) {
+func (d *Definition) GetConfigAttachments() ([]api.ConfigAttachment, error) {
 	taskKind, err := d.taskKind()
 	if err != nil {
 		return nil, err
@@ -1464,7 +1480,7 @@ func (d *Definition_0_3) GetConfigAttachments() ([]api.ConfigAttachment, error) 
 	return taskKind.getConfigAttachments(), nil
 }
 
-func (d *Definition_0_3) GetResourceAttachments() (map[string]string, error) {
+func (d *Definition) GetResourceAttachments() (map[string]string, error) {
 	taskKind, err := d.taskKind()
 	if err != nil {
 		return nil, err
@@ -1485,19 +1501,19 @@ func (d *Definition_0_3) GetResourceAttachments() (map[string]string, error) {
 	return resourceAttachments, nil
 }
 
-func (d *Definition_0_3) GetSlug() string {
+func (d *Definition) GetSlug() string {
 	return d.Slug
 }
 
-func (d *Definition_0_3) GetName() string {
+func (d *Definition) GetName() string {
 	return d.Name
 }
 
-func (d *Definition_0_3) GetRuntime() build.TaskRuntime {
+func (d *Definition) GetRuntime() build.TaskRuntime {
 	return d.Runtime
 }
 
-func (d *Definition_0_3) SetEntrypoint(entrypoint string) error {
+func (d *Definition) SetEntrypoint(entrypoint string) error {
 	taskKind, err := d.taskKind()
 	if err != nil {
 		return err
@@ -1506,7 +1522,7 @@ func (d *Definition_0_3) SetEntrypoint(entrypoint string) error {
 	return taskKind.setEntrypoint(entrypoint)
 }
 
-func (d *Definition_0_3) SetWorkdir(taskroot, workdir string) error {
+func (d *Definition) SetWorkdir(taskroot, workdir string) error {
 	// TODO: currently only a concept on Node - should be generalized to all builders.
 	if d.Node == nil {
 		return nil
@@ -1517,7 +1533,7 @@ func (d *Definition_0_3) SetWorkdir(taskroot, workdir string) error {
 	return nil
 }
 
-func (d *Definition_0_3) GetSchedules() map[string]api.Schedule {
+func (d *Definition) GetSchedules() map[string]api.Schedule {
 	if len(d.Schedules) == 0 {
 		return nil
 	}
@@ -1534,8 +1550,8 @@ func (d *Definition_0_3) GetSchedules() map[string]api.Schedule {
 	return schedules
 }
 
-func NewDefinitionFromTask_0_3(ctx context.Context, client api.IAPIClient, t api.Task) (Definition_0_3, error) {
-	d := Definition_0_3{
+func NewDefinitionFromTask(ctx context.Context, client api.IAPIClient, t api.Task) (Definition, error) {
+	d := Definition{
 		Name:            t.Name,
 		Slug:            t.Slug,
 		Description:     t.Description,
@@ -1545,16 +1561,16 @@ func NewDefinitionFromTask_0_3(ctx context.Context, client api.IAPIClient, t api
 
 	params, err := convertParametersAPIToDef(t.Parameters)
 	if err != nil {
-		return Definition_0_3{}, err
+		return Definition{}, err
 	}
 	d.Parameters = params
 
 	if err := d.convertResourcesFromTask(ctx, client, &t); err != nil {
-		return Definition_0_3{}, err
+		return Definition{}, err
 	}
 
 	if err := d.convertTaskKindFromTask(ctx, client, &t); err != nil {
-		return Definition_0_3{}, err
+		return Definition{}, err
 	}
 
 	if len(t.Configs) > 0 {
@@ -1574,7 +1590,7 @@ func NewDefinitionFromTask_0_3(ctx context.Context, client api.IAPIClient, t api
 	d.AllowSelfApprovals.value = pointers.Bool(!t.ExecuteRules.DisallowSelfApprove)
 	d.Timeout.value = t.Timeout
 
-	schedules := make(map[string]ScheduleDefinition_0_3)
+	schedules := make(map[string]ScheduleDefinition)
 	for _, trigger := range t.Triggers {
 		if trigger.Kind != api.TriggerKindSchedule || trigger.Slug == nil {
 			// Trigger is not a schedule deployed via code
@@ -1585,7 +1601,7 @@ func NewDefinitionFromTask_0_3(ctx context.Context, client api.IAPIClient, t api
 			continue
 		}
 
-		schedules[*trigger.Slug] = ScheduleDefinition_0_3{
+		schedules[*trigger.Slug] = ScheduleDefinition{
 			Name:        trigger.Name,
 			Description: trigger.Description,
 			CronExpr:    trigger.KindConfig.Schedule.CronExpr.String(),
@@ -1599,7 +1615,7 @@ func NewDefinitionFromTask_0_3(ctx context.Context, client api.IAPIClient, t api
 	return d, nil
 }
 
-func (d *Definition_0_3) convertResourcesFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *Definition) convertResourcesFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
 	if len(t.Resources) == 0 {
 		return nil
 	}
@@ -1626,25 +1642,25 @@ func (d *Definition_0_3) convertResourcesFromTask(ctx context.Context, client ap
 	return nil
 }
 
-func (d *Definition_0_3) convertTaskKindFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *Definition) convertTaskKindFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
 	switch t.Kind {
 	case build.TaskKindImage:
-		d.Image = &ImageDefinition_0_3{}
+		d.Image = &ImageDefinition{}
 		return d.Image.hydrateFromTask(ctx, client, t)
 	case build.TaskKindNode:
-		d.Node = &NodeDefinition_0_3{}
+		d.Node = &NodeDefinition{}
 		return d.Node.hydrateFromTask(ctx, client, t)
 	case build.TaskKindPython:
-		d.Python = &PythonDefinition_0_3{}
+		d.Python = &PythonDefinition{}
 		return d.Python.hydrateFromTask(ctx, client, t)
 	case build.TaskKindShell:
-		d.Shell = &ShellDefinition_0_3{}
+		d.Shell = &ShellDefinition{}
 		return d.Shell.hydrateFromTask(ctx, client, t)
 	case build.TaskKindSQL:
-		d.SQL = &SQLDefinition_0_3{}
+		d.SQL = &SQLDefinition{}
 		return d.SQL.hydrateFromTask(ctx, client, t)
 	case build.TaskKindREST:
-		d.REST = &RESTDefinition_0_3{}
+		d.REST = &RESTDefinition{}
 		return d.REST.hydrateFromTask(ctx, client, t)
 	case build.TaskKindBuiltin:
 		return hydrateBuiltin(ctx, client, d, t)
@@ -1653,7 +1669,10 @@ func (d *Definition_0_3) convertTaskKindFromTask(ctx context.Context, client api
 	}
 }
 
-func (d *Definition_0_3) GetBuildConfig() (build.BuildConfig, error) {
+// GetBuildConfig gets the full build config, synthesized from KindOptions and explicitly set
+// BuildConfig. KindOptions are unioned with BuildConfig; non-nil values in BuildConfig take
+// precedence, and a nil BuildConfig value removes the key from the final build config.
+func (d *Definition) GetBuildConfig() (build.BuildConfig, error) {
 	config := build.BuildConfig{}
 
 	_, options, err := d.GetKindAndOptions()
@@ -1678,18 +1697,20 @@ func (d *Definition_0_3) GetBuildConfig() (build.BuildConfig, error) {
 	return config, nil
 }
 
-func (d *Definition_0_3) SetBuildConfig(key string, value interface{}) {
+// SetBuildConfig sets a build config option. A value of nil means that the key will be
+// excluded from GetBuildConfig; used to mask values that exist in KindOptions.
+func (d *Definition) SetBuildConfig(key string, value interface{}) {
 	if d.buildConfig == nil {
 		d.buildConfig = map[string]interface{}{}
 	}
 	d.buildConfig[key] = value
 }
 
-type ResourceDefinition_0_3 struct {
+type ResourceDefinition struct {
 	Attachments map[string]string
 }
 
-func (r *ResourceDefinition_0_3) UnmarshalJSON(b []byte) error {
+func (r *ResourceDefinition) UnmarshalJSON(b []byte) error {
 	// If it's just a map, dump it in the Attachments field.
 	if err := json.Unmarshal(b, &r.Attachments); err == nil {
 		return nil
@@ -1715,7 +1736,7 @@ func (r *ResourceDefinition_0_3) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (r ResourceDefinition_0_3) MarshalJSON() ([]byte, error) {
+func (r ResourceDefinition) MarshalJSON() ([]byte, error) {
 	// Return a list if we can.
 	var slugs []string
 	for alias, slug := range r.Attachments {
@@ -1741,7 +1762,7 @@ func (r ResourceDefinition_0_3) MarshalJSON() ([]byte, error) {
 // resources:
 //
 //	demo: db
-func (r ResourceDefinition_0_3) MarshalYAML() (interface{}, error) {
+func (r ResourceDefinition) MarshalYAML() (interface{}, error) {
 	// Return a list if we can.
 	var slugs []string
 	for alias, slug := range r.Attachments {
@@ -1754,7 +1775,7 @@ func (r ResourceDefinition_0_3) MarshalYAML() (interface{}, error) {
 	return slugs, nil
 }
 
-func (r ResourceDefinition_0_3) IsZero() bool {
+func (r ResourceDefinition) IsZero() bool {
 	return len(r.Attachments) == 0
 }
 

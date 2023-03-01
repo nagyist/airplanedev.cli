@@ -146,18 +146,18 @@ func TestEdit(t *testing.T) {
 	testCases := []struct {
 		name string
 		slug string
-		def  definitions.Definition_0_3
+		def  definitions.Definition
 	}{
 		{
 			// Tests setting various fields.
 			name: "all",
 			slug: "my_task",
-			def: definitions.Definition_0_3{
+			def: definitions.Definition{
 				// This case also tests renaming a task slug.
 				Slug:        "my_task_2",
 				Name:        "Task name",
 				Description: "Task description",
-				Parameters: []definitions.ParameterDefinition_0_3{
+				Parameters: []definitions.ParameterDefinition{
 					{
 						Slug:        "dry",
 						Name:        "Dry run?",
@@ -175,7 +175,7 @@ func TestEdit(t *testing.T) {
 					"cluster": "k8s",
 					"vpc":     "tasks",
 				},
-				Schedules: map[string]definitions.ScheduleDefinition_0_3{
+				Schedules: map[string]definitions.ScheduleDefinition{
 					"daily": {
 						Name:        "Daily",
 						CronExpr:    "0 12 * * *",
@@ -185,12 +185,12 @@ func TestEdit(t *testing.T) {
 						},
 					},
 				},
-				Resources: definitions.ResourceDefinition_0_3{
+				Resources: definitions.ResourceDefinition{
 					Attachments: map[string]string{
 						"db": "db",
 					},
 				},
-				Node: &definitions.NodeDefinition_0_3{
+				Node: &definitions.NodeDefinition{
 					EnvVars: api.TaskEnv{
 						"AWS_ACCESS_KEY": api.EnvVarValue{
 							Config: pointers.String("aws_access_key"),
@@ -203,7 +203,7 @@ func TestEdit(t *testing.T) {
 			// Tests the case where values are cleared.
 			name: "all_cleared",
 			slug: "my_task",
-			def: definitions.Definition_0_3{
+			def: definitions.Definition{
 				Slug: "my_task",
 			},
 		},
@@ -211,15 +211,15 @@ func TestEdit(t *testing.T) {
 			// Tests the case where values are set to their default values (and therefore should not be serialized).
 			name: "all_defaults",
 			slug: "my_task",
-			def: definitions.Definition_0_3{
+			def: definitions.Definition{
 				Slug:        "my_task",
 				Name:        "",
 				Description: "",
-				Parameters:  []definitions.ParameterDefinition_0_3{},
-				Resources: definitions.ResourceDefinition_0_3{
+				Parameters:  []definitions.ParameterDefinition{},
+				Resources: definitions.ResourceDefinition{
 					Attachments: map[string]string{},
 				},
-				Node: &definitions.NodeDefinition_0_3{
+				Node: &definitions.NodeDefinition{
 					EnvVars: api.TaskEnv{},
 				},
 				Constraints:        map[string]string{},
@@ -227,14 +227,14 @@ func TestEdit(t *testing.T) {
 				AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 				Timeout:            definitions.NewDefaultTimeoutDefinition(3600),
 				Runtime:            build.TaskRuntimeStandard,
-				Schedules:          map[string]definitions.ScheduleDefinition_0_3{},
+				Schedules:          map[string]definitions.ScheduleDefinition{},
 			},
 		},
 		{
 			// Tests the case where the slug's key is a string literal ("slug") instead of an identifier (slug).
 			name: "slug_string_literal",
 			slug: "my_task",
-			def: definitions.Definition_0_3{
+			def: definitions.Definition{
 				Slug: "my_task",
 				Name: "This task is mine",
 			},
@@ -243,7 +243,7 @@ func TestEdit(t *testing.T) {
 			// Tests the case where the slug's key is a string literal ("slug") instead of an identifier (slug).
 			name: "multiple_tasks",
 			slug: "my_task_2",
-			def: definitions.Definition_0_3{
+			def: definitions.Definition{
 				Slug: "my_task_two",
 				Name: "My task (v2)",
 			},
@@ -253,7 +253,7 @@ func TestEdit(t *testing.T) {
 		// 	// Tests the case where a task's options are stored in a separate variable.
 		// 	name: "variable_opts",
 		// 	slug: "my_task",
-		// 	def: definitions.Definition_0_3{
+		// 	def: definitions.Definition{
 		// 		Slug: "my_task",
 		// 		Name: "This task is mine",
 		// 	},
@@ -265,7 +265,7 @@ func TestEdit(t *testing.T) {
 		// 	// pretty-printed as a multi-line string.
 		// 	name: "dedent",
 		// 	slug: "my_task",
-		// 	def: definitions.Definition_0_3{
+		// 	def: definitions.Definition{
 		// 		Slug:        "my_task",
 		// 		Description: "An updated description that spans a few lines:\n\n- Attempt 1\n- Attempt 2",
 		// 	},
@@ -275,7 +275,7 @@ func TestEdit(t *testing.T) {
 		// 	// Tests the case where values have comments which should be copied over.
 		// 	name: "comments",
 		// 	slug: "my_task",
-		// 	def: definitions.Definition_0_3{
+		// 	def: definitions.Definition{
 		// 		Slug: "my_task",
 		// 		Name: "This task is mine",
 		// 	},
@@ -323,7 +323,7 @@ func TestEdit(t *testing.T) {
 			l := &logger.MockLogger{}
 
 			// Perform the edit on the temporary file.
-			err = r.Edit(context.Background(), l, f.Name(), tC.slug, definitions.DefinitionInterface(&tC.def))
+			err = r.Edit(context.Background(), l, f.Name(), tC.slug, tC.def)
 			require.NoError(err)
 
 			// Compare
