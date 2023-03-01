@@ -69,6 +69,7 @@ func NewRouter(state *state.State, opts Options) *mux.Router {
 			"x-airplane-env-slug",
 			"x-airplane-token",
 			"x-airplane-api-key",
+			"x-airplane-view-token",
 			"x-airplane-client-kind",
 			"x-airplane-client-version",
 			"x-airplane-client-source",
