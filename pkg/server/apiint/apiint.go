@@ -211,7 +211,7 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 		})
 	}
 
-	remoteResources, err := resources.ListRemoteResources(ctx, state, envSlug)
+	remoteResources, err := resources.ListRemoteResources(ctx, state.RemoteClient, envSlug)
 	if err == nil {
 		remoteEnv, err := state.GetEnv(ctx, pointers.ToString(envSlug))
 		if err != nil {
@@ -473,24 +473,22 @@ func GetDescendantsHandler(ctx context.Context, state *state.State, r *http.Requ
 				taskIDsSeen[run.TaskID] = struct{}{}
 			}
 		} else {
-			if descendant.TaskRevision.Def != nil {
-				// There is no task ID for local task revisions so we use the slug
-				taskID := descendant.TaskRevision.Def.GetSlug()
-				if _, ok := taskIDsSeen[taskID]; !ok {
-					utr, err := descendant.TaskRevision.Def.GetUpdateTaskRequest(ctx, state.LocalClient, false)
-					if err != nil {
-						return GetDescendantsResponse{}, errors.Errorf("error getting task %s", descendant.TaskRevision.Def.GetSlug())
-					}
-					localTask := libapi.Task{
-						ID:          taskID,
-						Name:        descendant.TaskRevision.Def.GetName(),
-						Slug:        descendant.TaskRevision.Def.GetSlug(),
-						Description: descendant.TaskRevision.Def.GetDescription(),
-						Parameters:  utr.Parameters,
-					}
-					descendantTasks = append(descendantTasks, localTask)
-					taskIDsSeen[taskID] = struct{}{}
+			// There is no task ID for local task revisions so we use the slug
+			taskID := descendant.TaskRevision.Def.GetSlug()
+			if _, ok := taskIDsSeen[taskID]; !ok {
+				utr, err := descendant.TaskRevision.Def.GetUpdateTaskRequest(ctx, state.LocalClient, false)
+				if err != nil {
+					return GetDescendantsResponse{}, errors.Errorf("error getting task %s", descendant.TaskRevision.Def.GetSlug())
 				}
+				localTask := libapi.Task{
+					ID:          taskID,
+					Name:        descendant.TaskRevision.Def.GetName(),
+					Slug:        descendant.TaskRevision.Def.GetSlug(),
+					Description: descendant.TaskRevision.Def.GetDescription(),
+					Parameters:  utr.Parameters,
+				}
+				descendantTasks = append(descendantTasks, localTask)
+				taskIDsSeen[taskID] = struct{}{}
 			}
 		}
 		processedDescendants[i] = descendant
@@ -556,24 +554,24 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (Ge
 		return response, nil
 	}
 
-	response := GetRunResponse{Run: run}
-
-	if run.TaskRevision.Def != nil {
-		utr, err := run.TaskRevision.Def.GetUpdateTaskRequest(ctx, state.LocalClient, false)
-		run.Parameters = &utr.Parameters
-		if err != nil {
-			logger.Error("Encountered error while getting task info: %v", err)
-			return GetRunResponse{}, errors.Errorf("error getting task %s", run.TaskRevision.Def.GetSlug())
-		}
-		response.Task = &libapi.Task{
-			ID:          run.TaskRevision.Def.GetSlug(),
-			Name:        run.TaskRevision.Def.GetName(),
-			Slug:        run.TaskRevision.Def.GetSlug(),
-			Description: run.TaskRevision.Def.GetDescription(),
-			Parameters:  utr.Parameters,
-		}
+	utr, err := run.TaskRevision.Def.GetUpdateTaskRequest(ctx, state.LocalClient, false)
+	run.Parameters = &utr.Parameters
+	if err != nil {
+		logger.Error("Encountered error while getting task info: %v", err)
+		return GetRunResponse{}, errors.Errorf("error getting task %s", run.TaskRevision.Def.GetSlug())
 	}
-	return response, nil
+	task := &libapi.Task{
+		ID:          run.TaskRevision.Def.GetSlug(),
+		Name:        run.TaskRevision.Def.GetName(),
+		Slug:        run.TaskRevision.Def.GetSlug(),
+		Description: run.TaskRevision.Def.GetDescription(),
+		Parameters:  utr.Parameters,
+	}
+
+	return GetRunResponse{
+		Run:  run,
+		Task: task,
+	}, nil
 }
 
 type CancelRunRequest struct {
@@ -618,9 +616,10 @@ func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request
 		return libapi.Task{}, libhttp.NewErrNotFound("task with slug %q not found", taskSlug)
 	}
 
-	metadata, ok := state.AppCondition.Get(taskSlug)
-	if !ok {
-		return libapi.Task{}, libhttp.NewErrNotFound("task with slug %q not found", taskSlug)
+	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
+	metadata, err := state.GetTaskErrors(ctx, taskSlug, pointers.ToString(envSlug))
+	if err != nil {
+		return libapi.Task{}, err
 	}
 	// For our purposes, the libapi.Task and libapi.UpdateTaskRequest structs contain the same critical data.
 	// Using UpdateTaskRequest and taskConfig.Def.GetUpdateTaskRequest() conveniently

@@ -7,6 +7,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"sort"
 	"sync"
 	"time"
 
@@ -14,9 +15,11 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/network"
 	"github.com/airplanedev/cli/pkg/server/status"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/airplanedev/cli/pkg/version"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/deploy/bundlediscover"
@@ -141,6 +144,75 @@ func (s *State) GetEnv(ctx context.Context, envSlug string) (libapi.Env, error) 
 	}
 	s.EnvCache.Add(envSlug, env)
 	return env, nil
+}
+
+func (s *State) GetTaskErrors(ctx context.Context, slug string, envSlug string) (AppCondition, error) {
+	key := appConditionKey(slug, envSlug)
+	if result, ok := s.AppCondition.Get(key); ok {
+		return result, nil
+	}
+
+	result := AppCondition{
+		RefreshedAt: time.Now(),
+	}
+
+	taskConfig, ok := s.TaskConfigs.Get(slug)
+	if !ok {
+		// Not supported locally.
+		kind, _, err := taskConfig.Def.GetKindAndOptions()
+		if err != nil {
+			return AppCondition{}, errors.Wrap(err, "getting task kind")
+		}
+		result.Errors = append(result.Errors, dev_errors.AppError{
+			Level:   dev_errors.LevelError,
+			AppName: taskConfig.Def.GetName(),
+			AppKind: "task",
+			Reason:  fmt.Sprintf("%v task does not support local execution", kind),
+		})
+	} else {
+		mergedResources, err := resources.MergeRemoteResources(ctx, s.RemoteClient, s.DevConfig, pointers.String(envSlug))
+		if err != nil {
+			return AppCondition{}, errors.Wrap(err, "merging local and remote resources")
+		}
+
+		// Check resource attachments.
+		var missingResources []string
+		resourceAttachments, err := taskConfig.Def.GetResourceAttachments()
+		if err != nil {
+			return AppCondition{}, errors.Wrap(err, "getting resource attachments")
+		}
+		for _, ref := range resourceAttachments {
+			if _, ok := resources.LookupResource(mergedResources, ref); !ok {
+				missingResources = append(missingResources, ref)
+			}
+		}
+		if len(missingResources) > 0 {
+			sort.Strings(missingResources)
+			for _, resource := range missingResources {
+				result.Errors = append(result.Errors, dev_errors.AppError{
+					Level:   dev_errors.LevelWarning,
+					AppName: taskConfig.Def.GetName(),
+					AppKind: "task",
+					Reason:  fmt.Sprintf("Attached resource %q not found in dev config file or remotely.", resource),
+				})
+			}
+		}
+	}
+
+	s.AddAppCondition(slug, envSlug, result)
+	return result, nil
+}
+
+func (s *State) AddAppCondition(slug string, envSlug string, appCondition AppCondition) {
+	key := appConditionKey(slug, envSlug)
+	s.AppCondition.Add(key, appCondition)
+}
+
+func appConditionKey(slug, envSlug string) string {
+	if envSlug == "" {
+		return slug
+	}
+	return slug + "-" + envSlug
 }
 
 func NewRunStore() *runsStore {

@@ -196,17 +196,17 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	)
 
 	// Register discovered tasks with local dev server
-	warnings, err := apiServer.RegisterTasksAndViews(ctx, server.DiscoverOpts{
+	unsupportedApps, err := apiServer.RegisterTasksAndViews(ctx, server.DiscoverOpts{
 		Tasks: taskConfigs,
 		Views: viewConfigs,
 	})
 	if err != nil {
 		return err
 	}
-	if len(warnings.UnsupportedApps) > 0 {
+	if len(unsupportedApps) > 0 {
 		logger.Log(" ")
-		logger.Log("Skipping %v unsupported tasks or views:", len(warnings.UnsupportedApps))
-		for _, w := range warnings.UnsupportedApps {
+		logger.Log("Skipping %v unsupported tasks or views:", len(unsupportedApps))
+		for _, w := range unsupportedApps {
 			logger.Log("- %s: %s", w.AppName, w.Reason)
 		}
 	}

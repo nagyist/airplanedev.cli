@@ -150,7 +150,7 @@ func Run(ctx context.Context, cfg config) error {
 func initTask(ctx context.Context, cfg config) error {
 	client := cfg.client
 
-	var def definitions.Definition_0_3
+	var def definitions.Definition
 	if cfg.from != "" {
 		task, err := client.GetTask(ctx, libapi.GetTaskRequest{
 			Slug:    cfg.from,
@@ -165,7 +165,7 @@ func initTask(ctx context.Context, cfg config) error {
 			cfg.inline = true
 		}
 
-		def, err = definitions.NewDefinitionFromTask_0_3(ctx, cfg.client, task)
+		def, err = definitions.NewDefinitionFromTask(ctx, cfg.client, task)
 		if err != nil {
 			return err
 		}
@@ -182,10 +182,10 @@ func initTask(ctx context.Context, cfg config) error {
 		if cfg.newTaskInfo.kind == build.TaskKindBuiltin {
 			switch cfg.newTaskInfo.kindName {
 			case "GraphQL":
-				def, err = definitions.NewBuiltinDefinition_0_3(
+				def, err = definitions.NewBuiltinDefinition(
 					cfg.newTaskInfo.name,
 					slug,
-					&definitions.GraphQLDefinition_0_3{
+					&definitions.GraphQLDefinition{
 						Operation: `query GetUser($id: ID) {
   user(id: $id) {
     id
@@ -203,7 +203,7 @@ func initTask(ctx context.Context, cfg config) error {
 				return errors.Errorf("don't know how to initialize task kind=builtin name=%s", cfg.newTaskInfo.kindName)
 			}
 		} else {
-			def, err = definitions.NewDefinition_0_3(
+			def, err = definitions.NewDefinition(
 				cfg.newTaskInfo.name,
 				slug,
 				cfg.newTaskInfo.kind,
@@ -422,8 +422,8 @@ func initWorkflowFromRunbook(ctx context.Context, cfg config) error {
 	}
 
 	// Create a definition that can be used to generate/update the package config.
-	def := definitions.Definition_0_3{
-		Node: &definitions.NodeDefinition_0_3{
+	def := definitions.Definition{
+		Node: &definitions.NodeDefinition{
 			NodeVersion: "18",
 			Base:        build.BuildBaseSlim,
 		},
@@ -464,7 +464,7 @@ type writeDefnFileResponse struct {
 	EntrypointFile string
 }
 
-func writeDefnFile(def *definitions.Definition_0_3, cfg config) (*writeDefnFileResponse, error) {
+func writeDefnFile(def *definitions.Definition, cfg config) (*writeDefnFileResponse, error) {
 	// Create task defn file.
 	defnFilename := cfg.file
 	if !definitions.IsTaskDef(cfg.file) {
@@ -836,7 +836,7 @@ func createEntrypoint(r runtime.Interface, entrypoint string, task *libapi.Task)
 	return writeEntrypoint(entrypoint, code, fileMode)
 }
 
-func createInlineEntrypoint(r runtime.Interface, entrypoint string, def *definitions.Definition_0_3, printToStdOut bool) error {
+func createInlineEntrypoint(r runtime.Interface, entrypoint string, def *definitions.Definition, printToStdOut bool) error {
 	code, fileMode, err := r.GenerateInline(def)
 	if err != nil {
 		return err
@@ -899,7 +899,7 @@ func apiTaskToRuntimeTask(task *libapi.Task) *runtime.Task {
 	return t
 }
 
-func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.TaskKind, def definitions.Definition_0_3) error {
+func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.TaskKind, def definitions.Definition) error {
 	switch kind {
 	case build.TaskKindNode:
 		entrypoint, err := def.GetAbsoluteEntrypoint()

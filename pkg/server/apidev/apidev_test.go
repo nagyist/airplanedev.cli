@@ -49,10 +49,10 @@ func TestListEntrypoints(t *testing.T) {
 	require := require.New(t)
 
 	taskSlug := "my_task"
-	taskDefinition := &definitions.Definition_0_3{
+	taskDefinition := definitions.Definition{
 		Name: "My task",
 		Slug: taskSlug,
-		Node: &definitions.NodeDefinition_0_3{
+		Node: &definitions.NodeDefinition{
 			Entrypoint:  "my_task.ts",
 			NodeVersion: "18",
 		},
@@ -140,10 +140,10 @@ func TestListFilesHandler(t *testing.T) {
 	require.NoError(err)
 
 	taskSlug := "my_task"
-	taskDefinition := &definitions.Definition_0_3{
+	taskDefinition := definitions.Definition{
 		Name: "My task",
 		Slug: taskSlug,
-		Node: &definitions.NodeDefinition_0_3{
+		Node: &definitions.NodeDefinition{
 			Entrypoint:  "my_task.airplane.ts",
 			NodeVersion: "18",
 		},

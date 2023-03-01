@@ -265,6 +265,7 @@ func getBuiltInTaskEnvVars(config LocalRunConfig) ([]string, error) {
 		fmt.Sprintf("AIRPLANE_RUNNER_ID=%s", runnerID),
 		"AIRPLANE_RUNTIME=dev",
 		fmt.Sprintf("AIRPLANE_TASK_ID=%s", config.Slug), // For local dev, we use the task's slug as its id.
+		fmt.Sprintf("AIRPLANE_TASK_SLUG=%s", config.Slug),
 		fmt.Sprintf("AIRPLANE_TASK_NAME=%s", config.Name),
 		fmt.Sprintf("AIRPLANE_TEAM_ID=%s", teamID),
 		fmt.Sprintf("AIRPLANE_RUNNER_NAME=%s", runnerName),
