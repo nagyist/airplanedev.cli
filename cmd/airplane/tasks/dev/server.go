@@ -19,6 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/filewatcher"
 	"github.com/airplanedev/cli/pkg/server/state"
+	"github.com/airplanedev/cli/pkg/tracing"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
@@ -27,6 +28,8 @@ import (
 )
 
 func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
+	ctx, span := tracing.StartSpan(ctx, "runLocalDevServer")
+	defer span.Finish()
 	analytics.Track(cfg.root.Client, "Studio started", nil)
 
 	authInfo, err := cfg.root.Client.AuthInfo(ctx)
@@ -167,7 +170,9 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
 	fmt.Fprint(os.Stderr, "Discovering tasks and views... ")
-	taskConfigs, viewConfigs, err := apiServer.DiscoverTasksAndViews(ctx, cfg.fileOrDir)
+	discoveryCtx, discoverySpan := tracing.StartSpan(ctx, "discoverTasksAndViews")
+	taskConfigs, viewConfigs, err := apiServer.DiscoverTasksAndViews(discoveryCtx, cfg.fileOrDir)
+	discoverySpan.Finish()
 	if err != nil {
 		logger.Log("")
 		return err
