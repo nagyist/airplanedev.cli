@@ -10,6 +10,7 @@ export default defineConfig({
   base: "{{.Base}}",
   build: {
     assetsDir: "",
+    sourcemap: true,
   },
   server: {
     fs: {
@@ -20,6 +21,6 @@ export default defineConfig({
         // server, and so we allow the original workspace root (equivalent to the Airplane project root).
         "{{.Root}}",
       ],
-    }
-  }
+    },
+  },
 });

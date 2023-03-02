@@ -19,6 +19,7 @@ export default defineConfig({
     },
     assetsDir: "",
     chunkSizeWarningLimit: 5000,
+    sourcemap: true,
   },
   base: "",
 });
