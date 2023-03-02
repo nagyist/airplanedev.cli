@@ -65,7 +65,12 @@ type ConfigOpts struct {
 }
 
 func GetConfig(opts ConfigOpts) config {
-	return config{client: opts.Client, root: opts.Root, fromRunbook: opts.FromRunbook}
+	return config{
+		client:      opts.Client,
+		root:        opts.Root,
+		fromRunbook: opts.FromRunbook,
+		inline:      true,
+	}
 }
 
 type newTaskInfo struct {
