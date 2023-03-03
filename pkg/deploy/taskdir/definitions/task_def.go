@@ -1286,6 +1286,7 @@ func (d Definition) GetUpdateTaskRequest(ctx context.Context, client api.IAPICli
 		Runtime:     d.Runtime,
 		ExecuteRules: api.UpdateExecuteRulesRequest{
 			RequireRequests: &d.RequireRequests,
+			RestrictCallers: d.RestrictCallers,
 		},
 		Resources: make(map[string]string),
 	}
@@ -1558,6 +1559,7 @@ func NewDefinitionFromTask(ctx context.Context, client api.IAPIClient, t api.Tas
 		Slug:            t.Slug,
 		Description:     t.Description,
 		RequireRequests: t.ExecuteRules.RequireRequests,
+		RestrictCallers: t.ExecuteRules.RestrictCallers,
 		Runtime:         t.Runtime,
 	}
 

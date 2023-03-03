@@ -27,6 +27,7 @@ type TaskDef = {
   parameters?: TaskParam[];
   requireRequests?: boolean;
   allowSelfApprovals?: boolean;
+  restrictCallers?: string[];
   timeout?: number;
   constraints?: Record<string, string>;
   resources: Record<string, string> | string[];
@@ -104,6 +105,7 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
             description: config.description,
             requireRequests: config.requireRequests,
             allowSelfApprovals: config.allowSelfApprovals,
+            restrictCallers: config.restrictCallers,
             timeout: config.timeout,
             constraints: config.constraints,
             runtime: item.__airplane.type === "workflow" ? "workflow" : "",
