@@ -60,8 +60,11 @@ func NewRouter(state *state.State, opts Options) *mux.Router {
 			return false
 		}),
 		handlers.AllowedHeaders([]string{
-			"content-type",
-			"accept",
+			// All headers that are sent in API requests must be included here, except for those that
+			// are allowed by default: https://developer.mozilla.org/en-US/docs/Glossary/CORS-safelisted_request_header
+			"content-type", // Included so that we can send `application/json` requests.
+			"accept-encoding",
+			"idempotency-key",
 			"x-team-id",
 			"x-airplane-env-id",
 			"x-airplane-env-slug",
@@ -72,9 +75,15 @@ func NewRouter(state *state.State, opts Options) *mux.Router {
 			"x-airplane-client-version",
 			"x-airplane-client-source",
 			"x-airplane-studio-fallback-env-slug",
-			"idempotency-key",
 			"x-airplane-dev-token",
 			"x-airplane-sandbox-token",
+		}),
+		handlers.ExposedHeaders([]string{
+			// All headers that are sent in API responses must be included here, except for those that
+			// are exposed by default: https://developer.mozilla.org/en-US/docs/Glossary/CORS-safelisted_response_header
+			"content-encoding",
+			"idempotency-key",
+			"x-airplane-retryable",
 		}),
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
 	))
