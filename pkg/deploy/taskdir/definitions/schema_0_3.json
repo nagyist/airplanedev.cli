@@ -300,7 +300,7 @@
     "timeout": true,
     "runtime": true,
     "schedules": true,
-
+    "restrictCallers": true,
     "node": true,
     "python": true,
     "shell": true,
@@ -510,6 +510,16 @@
           "description": "Set to false to disallow requesters from approving their own requests for this task.",
           "default": true,
           "type": "boolean"
+        },
+        "restrictCallers": {
+          "description": "Hide this task in the UI and disable direct execution. This task may only be executed by the specified callers.",
+          "type": "array",
+          "examples": ["task", "view"],
+          "items": {
+            "type": "string",
+            "enum": ["task", "view"]
+          },
+          "default": []
         },
         "timeout": {
           "description": "The maximum number of seconds the task should take before being timed out.",

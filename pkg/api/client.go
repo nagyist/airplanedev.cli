@@ -176,8 +176,9 @@ type UpdateViewRequest struct {
 }
 
 type UpdateExecuteRulesRequest struct {
-	DisallowSelfApprove *bool `json:"disallowSelfApprove"`
-	RequireRequests     *bool `json:"requireRequests"`
+	DisallowSelfApprove *bool    `json:"disallowSelfApprove"`
+	RequireRequests     *bool    `json:"requireRequests"`
+	RestrictCallers     []string `json:"restrictCallers"`
 }
 
 type ListResourcesResponse struct {

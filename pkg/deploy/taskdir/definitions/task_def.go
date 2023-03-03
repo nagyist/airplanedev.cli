@@ -42,6 +42,7 @@ type Definition struct {
 	Constraints        map[string]string        `json:"constraints,omitempty"`
 	RequireRequests    bool                     `json:"requireRequests,omitempty"`
 	AllowSelfApprovals DefaultTrueDefinition    `json:"allowSelfApprovals,omitempty"`
+	RestrictCallers    []string                 `json:"restrictCallers,omitempty"`
 	Timeout            DefaultTimeoutDefinition `json:"timeout,omitempty"`
 	Runtime            build.TaskRuntime        `json:"runtime,omitempty"`
 
@@ -1321,6 +1322,7 @@ func (d Definition) GetUpdateTaskRequest(ctx context.Context, client api.IAPICli
 	}
 
 	req.ExecuteRules.DisallowSelfApprove = pointers.Bool(!d.AllowSelfApprovals.Value())
+	req.ExecuteRules.RestrictCallers = d.RestrictCallers
 
 	bc, err := d.GetBuildConfig()
 	if err != nil {
