@@ -214,6 +214,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	})
 
 	apiServer.RegisterState(&state.State{
+		Flagger:      cfg.root.Flagger,
 		LocalClient:  &localClient,
 		RemoteClient: cfg.root.Client,
 		Executor:     localExecutor,

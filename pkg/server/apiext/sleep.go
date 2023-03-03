@@ -41,7 +41,7 @@ func CreateSleepHandler(ctx context.Context, state *state.State, r *http.Request
 		Until:      req.Until,
 	}
 
-	if _, err := state.Runs.Update(runID, func(run *dev.LocalRun) error {
+	if _, err := state.UpdateRun(runID, func(run *dev.LocalRun) error {
 		run.Sleeps = append(run.Sleeps, sleep)
 		return nil
 	}); err != nil {
@@ -68,9 +68,9 @@ func GetSleepHandler(ctx context.Context, state *state.State, r *http.Request) (
 		return GetSleepResponse{}, errors.Errorf("expected runID from airplane token")
 	}
 
-	run, ok := state.Runs.Get(runID)
-	if !ok {
-		return GetSleepResponse{}, libhttp.NewErrNotFound("run not found")
+	run, err := state.GetRunInternal(ctx, runID)
+	if err != nil {
+		return GetSleepResponse{}, err
 	}
 
 	for _, s := range run.Sleeps {
@@ -92,10 +92,9 @@ func ListSleepsHandler(ctx context.Context, state *state.State, r *http.Request)
 		return ListSleepsResponse{}, libhttp.NewErrBadRequest("runID is required")
 	}
 
-	run, ok := state.Runs.Get(runID)
-	if !ok {
-		return ListSleepsResponse{}, libhttp.NewErrNotFound("run not found")
-
+	run, err := state.GetRunInternal(ctx, runID)
+	if err != nil {
+		return ListSleepsResponse{}, err
 	}
 
 	return ListSleepsResponse{Sleeps: run.Sleeps}, nil

@@ -363,9 +363,9 @@ type ListDisplaysResponse struct {
 
 func ListDisplaysHandler(ctx context.Context, state *state.State, r *http.Request) (ListDisplaysResponse, error) {
 	runID := r.URL.Query().Get("runID")
-	run, ok := state.Runs.Get(runID)
-	if !ok {
-		return ListDisplaysResponse{}, libhttp.NewErrNotFound("run with id %q not found", runID)
+	run, err := state.GetRunInternal(ctx, runID)
+	if err != nil {
+		return ListDisplaysResponse{}, err
 	}
 
 	return ListDisplaysResponse{
@@ -383,9 +383,9 @@ func ListPromptHandler(ctx context.Context, state *state.State, r *http.Request)
 		return ListPromptsResponse{}, libhttp.NewErrBadRequest("runID is required")
 	}
 
-	run, ok := state.Runs.Get(runID)
-	if !ok {
-		return ListPromptsResponse{}, libhttp.NewErrNotFound("run not found")
+	run, err := state.GetRunInternal(ctx, runID)
+	if err != nil {
+		return ListPromptsResponse{}, err
 	}
 
 	return ListPromptsResponse{Prompts: run.Prompts}, nil
@@ -412,7 +412,7 @@ func SubmitPromptHandler(ctx context.Context, state *state.State, r *http.Reques
 
 	userID := cli.ParseTokenForAnalytics(state.RemoteClient.GetToken()).UserID
 
-	_, err := state.Runs.Update(req.RunID, func(run *dev.LocalRun) error {
+	_, err := state.UpdateRun(req.RunID, func(run *dev.LocalRun) error {
 		for i := range run.Prompts {
 			if run.Prompts[i].ID == req.ID {
 				now := time.Now()
@@ -448,12 +448,16 @@ func GetDescendantsHandler(ctx context.Context, state *state.State, r *http.Requ
 		return GetDescendantsResponse{}, libhttp.NewErrBadRequest("runID cannot be empty")
 	}
 
-	descendants := state.Runs.GetDescendants(runID)
+	descendants, err := state.GetRunDescendants(ctx, runID)
+	if err != nil {
+		return GetDescendantsResponse{}, err
+	}
+
 	processedDescendants := make([]dev.LocalRun, len(descendants))
 	descendantTasks := []libapi.Task{}
 	taskIDsSeen := map[string]struct{}{}
 
-	for i, descendant := range state.Runs.GetDescendants(runID) {
+	for i, descendant := range descendants {
 		if descendant.Remote {
 			resp, err := state.RemoteClient.GetRun(ctx, descendant.RunID)
 			if err != nil {
@@ -535,9 +539,9 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (Ge
 	if runID == "" {
 		runID = r.URL.Query().Get("runID")
 	}
-	run, ok := state.Runs.Get(runID)
-	if !ok {
-		return GetRunResponse{}, libhttp.NewErrNotFound("run with id %q not found", runID)
+	run, err := state.GetRun(ctx, runID)
+	if err != nil {
+		return GetRunResponse{}, err
 	}
 	if run.Remote {
 		resp, err := state.RemoteClient.GetRun(ctx, runID)
@@ -579,7 +583,7 @@ type CancelRunRequest struct {
 }
 
 func CancelRunHandler(ctx context.Context, state *state.State, r *http.Request, req CancelRunRequest) (struct{}, error) {
-	_, err := state.Runs.Update(req.RunID, func(run *dev.LocalRun) error {
+	_, err := state.UpdateRun(req.RunID, func(run *dev.LocalRun) error {
 		if run.Status.IsTerminal() {
 			return errors.Errorf("cannot cancel run %s (state is already terminal)", run.RunID)
 		}
@@ -599,7 +603,11 @@ type ListRunsResponse struct {
 
 func ListRunsHandler(ctx context.Context, state *state.State, r *http.Request) (ListRunsResponse, error) {
 	taskSlug := r.URL.Query().Get("taskSlug")
-	runs := state.Runs.GetRunHistory(taskSlug)
+	runs, err := state.GetRunHistory(ctx, taskSlug)
+	if err != nil {
+		return ListRunsResponse{}, err
+	}
+
 	return ListRunsResponse{
 		Runs: runs,
 	}, nil

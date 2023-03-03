@@ -197,6 +197,7 @@ func Start(opts Options) (*Server, int, error) {
 
 // RegisterState updates the server's state with the given state.
 func (s *Server) RegisterState(newState *state.State) {
+	s.state.Flagger = newState.Flagger
 	s.state.LocalClient = newState.LocalClient
 	s.state.RemoteClient = newState.RemoteClient
 	s.state.InitialRemoteEnvSlug = newState.InitialRemoteEnvSlug

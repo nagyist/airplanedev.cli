@@ -149,6 +149,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		envSlug = pointers.String(remoteEnv.Slug)
 	}
 	apiServer.RegisterState(&state.State{
+		Flagger:              cfg.root.Flagger,
 		LocalClient:          &localClient,
 		RemoteClient:         cfg.root.Client,
 		InitialRemoteEnvSlug: envSlug,

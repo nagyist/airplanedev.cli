@@ -101,9 +101,9 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 	// Pull env slug from the parent run.
 	var envSlug *string
 	if parentID != "" {
-		parentRun, ok := state.Runs.Get(parentID)
-		if !ok {
-			return api.RunTaskResponse{}, libhttp.NewErrNotFound("run with parent id %q not found", parentID)
+		parentRun, err := state.GetRunInternal(ctx, parentID)
+		if err != nil {
+			return api.RunTaskResponse{}, err
 		}
 		if parentRun.FallbackEnvSlug != "" {
 			envSlug = &parentRun.FallbackEnvSlug
@@ -235,7 +235,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		if state.AuthInfo.User != nil {
 			run.CreatorID = state.AuthInfo.User.ID
 		}
-		state.Runs.Add(req.Slug, runID, run)
+		state.AddRun(req.Slug, runID, run)
 
 		// Use a new context while executing so the handler context doesn't cancel task execution
 		go func() {
@@ -249,7 +249,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			if err == nil {
 				succeededAt = &completedAt
 			} else {
-				runState, _ := state.Runs.Get(runID)
+				runState, _ := state.GetRunInternal(ctx, runID)
 				if runState.Status == api.RunCancelled {
 					status = api.RunCancelled
 				} else {
@@ -283,7 +283,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 				}
 			}
 
-			if _, err = state.Runs.Update(runID, func(run *dev.LocalRun) error {
+			if _, err = state.UpdateRun(runID, func(run *dev.LocalRun) error {
 				run.Outputs = outputs
 				run.Status = status
 				run.SucceededAt = succeededAt
@@ -317,7 +317,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		run.RunID = resp.RunID
 		run.EnvSlug = pointers.ToString(envSlug)
 		run.FallbackEnvSlug = pointers.ToString(envSlug)
-		state.Runs.Add(req.Slug, resp.RunID, run)
+		state.AddRun(req.Slug, resp.RunID, run)
 		return api.RunTaskResponse{RunID: resp.RunID}, nil
 	}
 
@@ -327,9 +327,9 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 // GetRunHandler handles requests to the /v0/runs/get endpoint
 func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (dev.LocalRun, error) {
 	runID := r.URL.Query().Get("id")
-	run, ok := state.Runs.Get(runID)
-	if !ok {
-		return dev.LocalRun{}, libhttp.NewErrNotFound("run with id %q not found", runID)
+	run, err := state.GetRun(ctx, runID)
+	if err != nil {
+		return dev.LocalRun{}, err
 	}
 
 	if run.Remote {
@@ -441,7 +441,10 @@ type ListRunsResponse struct {
 
 func ListRunsHandler(ctx context.Context, state *state.State, r *http.Request) (ListRunsResponse, error) {
 	taskSlug := r.URL.Query().Get("taskSlug")
-	runs := state.Runs.GetRunHistory(taskSlug)
+	runs, err := state.GetRunHistory(ctx, taskSlug)
+	if err != nil {
+		return ListRunsResponse{}, err
+	}
 	return ListRunsResponse{
 		Runs: runs,
 	}, nil
@@ -499,7 +502,7 @@ func CreateDisplayHandler(ctx context.Context, state *state.State, r *http.Reque
 		display.Value = req.Display.Value
 	}
 
-	run, err := state.Runs.Update(runID, func(run *dev.LocalRun) error {
+	run, err := state.UpdateRun(runID, func(run *dev.LocalRun) error {
 		run.Displays = append(run.Displays, display)
 		return nil
 	})
@@ -560,7 +563,7 @@ func CreatePromptHandler(ctx context.Context, state *state.State, r *http.Reques
 		Description: req.Description,
 	}
 
-	if _, err := state.Runs.Update(runID, func(run *dev.LocalRun) error {
+	if _, err := state.UpdateRun(runID, func(run *dev.LocalRun) error {
 		run.Prompts = append(run.Prompts, prompt)
 		run.IsWaitingForUser = true
 		return nil
@@ -588,9 +591,9 @@ func GetPromptHandler(ctx context.Context, state *state.State, r *http.Request) 
 		return GetPromptResponse{}, libhttp.NewErrBadRequest("expected runID from airplane token")
 	}
 
-	run, ok := state.Runs.Get(runID)
-	if !ok {
-		return GetPromptResponse{}, libhttp.NewErrNotFound("run not found")
+	run, err := state.GetRunInternal(ctx, runID)
+	if err != nil {
+		return GetPromptResponse{}, err
 	}
 
 	for _, p := range run.Prompts {
