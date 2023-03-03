@@ -266,7 +266,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 				// If the process was killed by a signal, the builtins binary is likely corrupt. Manually trigger a
 				// re-download of the builtins binary.
 				exitErr := &exec.ExitError{}
-				if errors.As(err, &exitErr) && exitErr.ExitCode() == -1 { // -1 is the exit code for killed processes
+				if runState.Status != api.RunCancelled && errors.As(err, &exitErr) && exitErr.ExitCode() == -1 { // -1 is the exit code for killed processes
 					if err := state.Executor.Refresh(); err != nil {
 						logger.Debug("refreshing executor: %+v", err)
 					}
