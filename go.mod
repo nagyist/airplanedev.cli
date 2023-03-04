@@ -44,7 +44,7 @@ require (
 	github.com/tidwall/jsonc v0.3.2
 	go.uber.org/multierr v1.9.0
 	golang.ngrok.com/ngrok v1.0.0
-	golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb
+	golang.org/x/exp v0.0.0-20230303215020-44a13b063f3e
 	golang.org/x/sync v0.1.0
 	golang.org/x/term v0.5.0
 	golang.org/x/text v0.7.0
