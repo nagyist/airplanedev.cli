@@ -19,11 +19,11 @@ import (
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/filewatcher"
 	"github.com/airplanedev/cli/pkg/server/state"
-	"github.com/airplanedev/cli/pkg/tracing"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
+	"github.com/airplanedev/lib/pkg/utils/tracing"
 	"github.com/pkg/errors"
 )
 
