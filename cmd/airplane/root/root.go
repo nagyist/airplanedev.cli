@@ -28,7 +28,6 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/version/latest"
-	"github.com/airplanedev/lib/pkg/utils/tracing"
 	"github.com/airplanedev/trap"
 	isatty "github.com/mattn/go-isatty"
 	"github.com/pkg/errors"
@@ -92,9 +91,9 @@ func New() *cobra.Command {
 				}
 
 				logger.Debug("Setting up traces with collector %s", cfg.TracingCollectorAddr)
-				_, _, err = tracing.InitializeTracerProvider(
+				_, _, err = initializeTracerProvider(
 					cmd.Context(),
-					tracing.TracerOpts{
+					tracerOpts{
 						CollectorAddr: cfg.TracingCollectorAddr,
 						TeamID:        authInfo.Team.ID,
 						UserID:        authInfo.User.ID,

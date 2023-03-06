@@ -501,9 +501,9 @@ func LogsHandler(ctx context.Context, state *state.State, r *http.Request, flush
 		return libhttp.NewErrBadRequest("run id was not supplied")
 	}
 
-	run, ok := state.Runs.Get(runID)
-	if !ok {
-		return libhttp.NewErrNotFound("run with id %q not found", runID)
+	run, err := state.GetRun(ctx, runID)
+	if err != nil {
+		return err
 	}
 
 	watcher := run.LogBroker.NewWatcher()

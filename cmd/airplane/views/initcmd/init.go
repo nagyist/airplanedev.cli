@@ -58,7 +58,11 @@ func New(c *cli.Config) *cobra.Command {
 }
 
 func GetConfig(c *cli.Config) config {
-	return config{client: c.Client, root: c}
+	return config{
+		client: c.Client,
+		root:   c,
+		inline: true,
+	}
 }
 
 func Run(ctx context.Context, cfg config) error {

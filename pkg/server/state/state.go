@@ -14,6 +14,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/flags/flagsiface"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
@@ -22,8 +23,10 @@ import (
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/airplanedev/cli/pkg/version"
 	libapi "github.com/airplanedev/lib/pkg/api"
+	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/airplanedev/lib/pkg/deploy/bundlediscover"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
+	libparams "github.com/airplanedev/lib/pkg/parameters"
 	"github.com/bep/debounce"
 	lrucache "github.com/hashicorp/golang-lru/v2"
 	"github.com/pkg/errors"
@@ -36,6 +39,7 @@ type ViteContext struct {
 }
 
 type State struct {
+	Flagger              flagsiface.Flagger
 	LocalClient          *api.Client
 	RemoteClient         api.APIClient
 	InitialRemoteEnvSlug *string
@@ -189,11 +193,16 @@ func (s *State) GetTaskErrors(ctx context.Context, slug string, envSlug string) 
 		if len(missingResources) > 0 {
 			sort.Strings(missingResources)
 			for _, resource := range missingResources {
+				reason := fmt.Sprintf("Attached resource %q not found in dev config file", resource)
+				if envSlug != "" {
+					reason += fmt.Sprintf(" or remotely in env %q", envSlug)
+				}
+				reason += "."
 				result.Errors = append(result.Errors, dev_errors.AppError{
 					Level:   dev_errors.LevelWarning,
 					AppName: taskConfig.Def.GetName(),
 					AppKind: "task",
-					Reason:  fmt.Sprintf("Attached resource %q not found in dev config file or remotely.", resource),
+					Reason:  reason,
 				})
 			}
 		}
@@ -213,6 +222,72 @@ func appConditionKey(slug, envSlug string) string {
 		return slug
 	}
 	return slug + "-" + envSlug
+}
+
+func sanitizeInputs(run *dev.LocalRun) error {
+	parameters := libapi.Parameters{}
+	if run.Parameters != nil {
+		parameters = *run.Parameters
+	}
+	sanitized, err := libparams.SanitizeParamValues(run.ParamValues, parameters)
+	if err != nil {
+		return errors.Wrap(err, "sanitizing param values")
+	}
+	run.ParamValues = sanitized
+	return nil
+}
+
+func (s *State) AddRun(taskSlug string, runID string, run dev.LocalRun) {
+	s.Runs.Add(taskSlug, runID, run)
+}
+
+func (s *State) GetRun(ctx context.Context, runID string) (dev.LocalRun, error) {
+	run, err := s.GetRunInternal(ctx, runID)
+	if err != nil {
+		return dev.LocalRun{}, err
+	}
+	if s.Flagger != nil && s.Flagger.Bool(ctx, s.Logger, flagsiface.SanitizeInputs) {
+		if err := sanitizeInputs(&run); err != nil {
+			return dev.LocalRun{}, err
+		}
+	}
+	return run, nil
+}
+
+func (s *State) GetRunInternal(ctx context.Context, runID string) (dev.LocalRun, error) {
+	run, ok := s.Runs.Get(runID)
+	if !ok {
+		return dev.LocalRun{}, libhttp.NewErrNotFound("Run with id %q not found", runID)
+	}
+	return run, nil
+}
+
+func (s *State) GetRunDescendants(ctx context.Context, runID string) ([]dev.LocalRun, error) {
+	descendants := s.Runs.GetDescendants(runID)
+	if s.Flagger != nil && s.Flagger.Bool(ctx, s.Logger, flagsiface.SanitizeInputs) {
+		for i := range descendants {
+			if err := sanitizeInputs(&descendants[i]); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return descendants, nil
+}
+
+func (s *State) UpdateRun(runID string, f func(run *dev.LocalRun) error) (dev.LocalRun, error) {
+	return s.Runs.Update(runID, f)
+}
+
+func (s *State) GetRunHistory(ctx context.Context, taskID string) ([]dev.LocalRun, error) {
+	history := s.Runs.GetRunHistory(taskID)
+	if s.Flagger != nil && s.Flagger.Bool(ctx, s.Logger, flagsiface.SanitizeInputs) {
+		for i := range history {
+			if err := sanitizeInputs(&history[i]); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return history, nil
 }
 
 func NewRunStore() *runsStore {

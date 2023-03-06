@@ -6,6 +6,10 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 )
 
+const (
+	SanitizeInputs = "sanitize-inputs"
+)
+
 // Flaggers are the primary mechanism for dynamically adjusting runtime behavior
 // on a per-customer level.
 type Flagger interface {

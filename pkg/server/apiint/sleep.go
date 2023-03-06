@@ -21,9 +21,9 @@ func ListSleepsHandler(ctx context.Context, state *state.State, r *http.Request)
 		return ListSleepsResponse{}, libhttp.NewErrBadRequest("runID is required")
 	}
 
-	run, ok := state.Runs.Get(runID)
-	if !ok {
-		return ListSleepsResponse{}, libhttp.NewErrNotFound("run not found")
+	run, err := state.GetRunInternal(ctx, runID)
+	if err != nil {
+		return ListSleepsResponse{}, err
 	}
 
 	return ListSleepsResponse{Sleeps: run.Sleeps}, nil
@@ -48,7 +48,7 @@ func SkipSleepHandler(ctx context.Context, state *state.State, r *http.Request, 
 
 	now := time.Now()
 
-	if _, err := state.Runs.Update(req.RunID, func(run *dev.LocalRun) error {
+	if _, err := state.UpdateRun(req.RunID, func(run *dev.LocalRun) error {
 		for i, sleep := range run.Sleeps {
 			if sleep.ID == req.SleepID {
 				run.Sleeps[i].SkippedAt = &now
