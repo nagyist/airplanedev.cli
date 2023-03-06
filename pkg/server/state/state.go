@@ -193,11 +193,16 @@ func (s *State) GetTaskErrors(ctx context.Context, slug string, envSlug string) 
 		if len(missingResources) > 0 {
 			sort.Strings(missingResources)
 			for _, resource := range missingResources {
+				reason := fmt.Sprintf("Attached resource %q not found in dev config file", resource)
+				if envSlug != "" {
+					reason += fmt.Sprintf(" or remotely in env %q", envSlug)
+				}
+				reason += "."
 				result.Errors = append(result.Errors, dev_errors.AppError{
 					Level:   dev_errors.LevelWarning,
 					AppName: taskConfig.Def.GetName(),
 					AppKind: "task",
-					Reason:  fmt.Sprintf("Attached resource %q not found in dev config file or remotely.", resource),
+					Reason:  reason,
 				})
 			}
 		}

@@ -160,7 +160,10 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			}
 
 			if !foundResource {
-				message := fmt.Sprintf("resource with id %q not found in dev config file or remotely", resourceID)
+				message := fmt.Sprintf("resource with id %q not found in dev config file", resourceID)
+				if envSlug != nil {
+					message += fmt.Sprintf("or remotely in env %q", pointers.ToString(envSlug))
+				}
 				if resourceID == resources.SlackID {
 					message = "your team has not configured Slack. Please visit https://docs.airplane.dev/platform/slack-integration#connect-to-slack to authorize Slack to perform actions in your workspace."
 				}
@@ -306,7 +309,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		if err != nil {
 			var taskMissingError *libapi.TaskMissingError
 			if errors.As(err, &taskMissingError) {
-				return api.RunTaskResponse{}, libhttp.NewErrNotFound("task with slug %q is not registered locally or remotely", req.Slug)
+				return api.RunTaskResponse{}, libhttp.NewErrNotFound("task with slug %q is not registered locally or remotely in environment %q", req.Slug, pointers.ToString(envSlug))
 			} else {
 				return api.RunTaskResponse{}, err
 			}
