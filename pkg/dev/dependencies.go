@@ -78,7 +78,10 @@ func InstallBundleDependencies(bundle bundlediscover.Bundle) error {
 			}
 		}
 		if inst.Cmd != "" {
-			b.WriteString(inst.Cmd)
+			// If the command is a list (`foo && bar`), we need this for the install script to
+			// break if something in the list returns a non-zero exit code. See
+			// https://unix.stackexchange.com/a/318412
+			b.WriteString(inst.Cmd + " || false")
 			b.WriteString("\n")
 		}
 	}
