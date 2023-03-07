@@ -39,11 +39,14 @@ type templateParams struct {
 	InlineWorkflowShim               string
 	IsWorkflow                       bool
 	NodeVersion                      string
-	ExternalFlags                    string
-	Args                             string
-	UseSlimImage                     bool
-	Esbuild                          string
-	Instructions                     string
+
+	// For bundle builds, External is a stringified JSON array of external dependencies. For non-bundle builds, External
+	// is a string of space-separated external flags (e.g. --external:package).
+	External     string
+	Args         string
+	UseSlimImage bool
+	Esbuild      string
+	Instructions string
 
 	// Use Instructions instead of the below
 	InstallCommand      string
@@ -507,7 +510,7 @@ func node(
 			flags = append(flags, "--external:@temporalio", "--external:@swc")
 		}
 
-		cfg.ExternalFlags = strings.Join(flags, " ")
+		cfg.External = strings.Join(flags, " ")
 	}
 
 	if !strings.HasPrefix(cfg.Workdir, "/") {
@@ -661,7 +664,7 @@ func node(
 		RUN {{.InlineTaskShim}} > /airplane/.airplane/shim.js && \
 			esbuild /airplane/.airplane/shim.js \
 				--bundle \
-				--platform=node {{.ExternalFlags}} \
+				--platform=node {{.External}} \
 				--target=node{{.NodeVersion}} \
 				--outfile=/airplane/.airplane/dist/shim.js
 
@@ -1074,9 +1077,13 @@ func nodeBundle(
 	// Generate a list of all of the files to build
 	var buildEntrypoints []string
 	for _, fileToBuild := range filesToBuild {
-		buildEntrypoints = append(buildEntrypoints, fmt.Sprintf(`"%s"`, filepath.Join("/airplane", fileToBuild)))
+		buildEntrypoints = append(buildEntrypoints, filepath.Join("/airplane", fileToBuild))
 	}
-	cfg.FilesToBuild = strings.Join(buildEntrypoints, ", ")
+	filesToBuildBytes, err := json.Marshal(buildEntrypoints)
+	if err != nil {
+		return "", errors.Wrap(err, "marshaling build entrypoints")
+	}
+	cfg.FilesToBuild = string(filesToBuildBytes)
 
 	// Generate a list of all of the files to discover
 	var discoverEntrypoints []string
@@ -1096,21 +1103,20 @@ func nodeBundle(
 	if cfg.HasPackageJSON {
 		// Workaround to get esbuild to not bundle dependencies.
 		// See build.ExternalPackages for details.
-		deps, err := ExternalPackages(packageJSONs, usesWorkspaces)
+		externalDeps, err := ExternalPackages(packageJSONs, usesWorkspaces)
 		if err != nil {
 			return "", err
 		}
 
-		var flags []string
-		for _, dep := range deps {
-			flags = append(flags, fmt.Sprintf(`"%s"`, dep))
-		}
 		// Even if these are imported, we need to mark the root packages
 		// as external for esbuild to work properly. Esbuild doesn't
 		// care about repeats, so no need to dedupe.
-		flags = append(flags, `"@temporalio"`, `"@swc"`)
-
-		cfg.ExternalFlags = strings.Join(flags, ", ")
+		externalDeps = append(externalDeps, "@temporalio", "@swc")
+		externalDepsBytes, err := json.Marshal(externalDeps)
+		if err != nil {
+			return "", errors.Wrap(err, "marshaling external deps")
+		}
+		cfg.External = string(externalDepsBytes)
 	}
 
 	if !strings.HasPrefix(cfg.Workdir, "/") {
@@ -1199,7 +1205,7 @@ func nodeBundle(
 			node /airplane/.airplane/esbuild.js \
 			'["/airplane/.airplane/universal-shim.js"]' \
 			node{{.NodeVersion}} \
-			'[{{.ExternalFlags}}]' \
+			'{{.External}}' \
 			/airplane/.airplane/dist/universal-shim.js
 
 		RUN {{.InlineWorkflowShim}} >> /airplane/.airplane/workflow-shim.js \
@@ -1225,13 +1231,13 @@ func nodeBundle(
 			node /airplane/.airplane/esbuild.js \
 				'["/airplane/.airplane/universal-shim.js"]' \
 				node{{.NodeVersion}} \
-				'[{{.ExternalFlags}}]' \
+				'{{.External}}' \
 				/airplane/.airplane/dist/universal-shim.js
 
 		RUN node /airplane/.airplane/esbuild.js \
-			'[{{.FilesToBuild}}]' \
+			'{{.FilesToBuild}}' \
 			node{{.NodeVersion}} \
-			'[{{.ExternalFlags}}]' \
+			'{{.External}}' \
 			"" \
 			/airplane/.airplane \
 			/airplane

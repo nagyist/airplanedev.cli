@@ -465,11 +465,11 @@ func (r Runtime) PrepareRun(
 	if err != nil {
 		return nil, nil, err
 	}
-	logger.Debug("Discovered external dependencies: %v", externalDeps)
-	var external []string
-	for _, dep := range externalDeps {
-		external = append(external, fmt.Sprintf(`"%s"`, dep))
+	externalDepsData, err := json.Marshal(externalDeps)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "marshaling external deps")
 	}
+	logger.Debug("Discovered external dependencies: %v", externalDeps)
 
 	// Save esbuild.js which we will use to run the build.
 	esBuildPath := filepath.Join(airplaneDir, "esbuild.js")
@@ -480,14 +480,20 @@ func (r Runtime) PrepareRun(
 	// Check if shim exists; if it does, skip building the shim and just use the existing one.
 	builtShimPath := filepath.Join(taskDir, "dist/shim.js")
 	if _, err := os.Stat(builtShimPath); (err == nil && !buildDepsEqual) || errors.Is(err, os.ErrNotExist) {
+		shimEntrypoints := []string{shimPath}
+		shimEntrypointsData, err := json.Marshal(shimEntrypoints)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "marshaling shim entrypoints")
+		}
+
 		// First build the shim.
 		shimBuildStart := time.Now()
 		cmd := exec.CommandContext(ctx,
 			"node",
 			esBuildPath,
-			fmt.Sprintf(`["%s"]`, shimPath),
+			string(shimEntrypointsData),
 			"node"+build.GetNodeVersion(opts.KindOptions),
-			fmt.Sprintf(`[%s]`, strings.Join(external, ", ")),
+			string(externalDepsData),
 			builtShimPath,
 		)
 		cmd.Dir = airplaneDir
@@ -509,6 +515,11 @@ func (r Runtime) PrepareRun(
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "entrypoint is not within the task root")
 	}
+	entrypoints := []string{filepath.Join(root, entrypoint)}
+	entrypointsData, err := json.Marshal(entrypoints)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "marshaling entrypoints")
+	}
 
 	runDir, closer, err := airplane_directory.CreateRunDir(taskDir, opts.RunID)
 	if err != nil {
@@ -526,9 +537,9 @@ func (r Runtime) PrepareRun(
 	cmd := exec.CommandContext(ctx,
 		"node",
 		esBuildPath,
-		fmt.Sprintf(`["%s"]`, filepath.Join(root, entrypoint)),
+		string(entrypointsData),
 		"node"+build.GetNodeVersion(opts.KindOptions),
-		fmt.Sprintf(`[%s]`, strings.Join(external, ", ")),
+		string(externalDepsData),
 		"",
 		filepath.Join(runDir, "dist"),
 		root,

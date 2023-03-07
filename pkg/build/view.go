@@ -232,11 +232,12 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 	if err != nil {
 		return "", err
 	}
-	var flags []string
-	for _, dep := range externalPackages {
-		flags = append(flags, fmt.Sprintf(`"%s"`, dep))
+
+	externalPackagesBytes, err := json.Marshal(externalPackages)
+	if err != nil {
+		return "", errors.Wrap(err, "marshaling external packages")
 	}
-	esbuildFlags := strings.Join(flags, ", ")
+	esbuildFlags := string(externalPackagesBytes)
 
 	// Build code into the src directory where user deps are installed so that
 	// it can access user deps.
@@ -251,11 +252,11 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 			filepath.Join(directoryToBuildTo, strings.TrimSuffix(fileToDiscover, fileToDiscoverExt)+".js"))
 	}
 
-	var buildEntrypoints []string
-	for _, fileToBuild := range filesToBuild {
-		buildEntrypoints = append(buildEntrypoints, fmt.Sprintf(`"%s"`, fileToBuild))
+	filesToBuildBytes, err := json.Marshal(filesToBuild)
+	if err != nil {
+		return "", errors.Wrap(err, "marshaling files to build")
 	}
-	esbuildFilesToBuild := strings.Join(buildEntrypoints, ", ")
+	esbuildFilesToBuild := string(filesToBuildBytes)
 
 	// Add build tools.
 	buildToolsPath := path.Join(root, ".airplane-build-tools")
@@ -365,9 +366,9 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		{{if .FilesToDiscover}}
 		# Build and discover inline views.
 		RUN node /airplane/.airplane-build-tools/esbuild.js \
-			'[{{.FilesToBuild}}]' \
+			'{{.FilesToBuild}}' \
 			node{{.NodeVersion}} \
-			'[{{.EsbuildFlags}}]' \
+			'{{.EsbuildFlags}}' \
 			"" \
 			{{.DirectoryToBuildTo}} \
 			/airplane/src \

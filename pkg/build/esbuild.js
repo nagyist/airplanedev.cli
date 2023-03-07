@@ -6,11 +6,13 @@ const jsdomPatch = {
   setup(build) {
     build.onLoad({ filter: /XMLHttpRequest-impl\.js$/ }, async (args) => {
       let contents = await fs.promises.readFile(args.path, "utf8");
+      // We use JSON.stringify here to properly escape backslashes in the path, which is required when we execute JS
+      // tasks on Windows. JSON.stringify already wraps the string in quotes, so no need to include them below.
       contents = contents.replace(
         'const syncWorkerFile = require.resolve ? require.resolve("./xhr-sync-worker.js") : null;',
-        `const syncWorkerFile = "${require.resolve(
+        `const syncWorkerFile = ${JSON.stringify(require.resolve(
           "jsdom/lib/jsdom/living/xhr/xhr-sync-worker.js"
-        )}";`
+        ))};`
       );
       return { contents, loader: "js" };
     });
@@ -35,7 +37,12 @@ const removeCSS = {
 
 const entryPoints = JSON.parse(process.argv[2]);
 const target = process.argv[3];
-const external = JSON.parse(process.argv[4]);
+// This handles two cases:
+// 1. The external argument is an empty string, in which case we parse a stringified empty array instead since an empty
+//    string is not valid JSON by itself.
+// 2. The external argument is "null", in which case JSON.parse parses as null. This happens because Go's json.Marshal
+//    method marshals nil slices as "null".
+const external = JSON.parse(process.argv[4] || "[]") || [];
 const outfile = process.argv[5] || undefined;
 const outdir = process.argv[6] || undefined;
 const outbase = process.argv[7] || undefined;
