@@ -71,7 +71,7 @@ func view(root string, options KindOptions) (string, error) {
 		packageJSONMap = packageJSON.(map[string]interface{})
 	}
 
-	packagesToCheck := []string{"vite", "@vitejs/plugin-react", "react", "react-dom", "@airplane/views"}
+	packagesToCheck := []string{"vite", "@vitejs/plugin-react", "react", "react-dom", "@airplane/views", "object-hash"}
 	packagesToAdd := []string{}
 	deps, depsOk := packageJSONMap["dependencies"].(map[string]interface{})
 	devDeps, devDepsOk := packageJSONMap["devDependencies"].(map[string]interface{})
@@ -398,7 +398,7 @@ func GenViewsShimPackageJSON(packageJSONs []string) (shimPackageJSON, error) {
 		return shimPackageJSON{}, errors.Wrap(err, "unmarshaling build tools package.json")
 	}
 
-	shimDeps := []string{"@airplane/views", "react", "react-dom"}
+	shimDeps := []string{"@airplane/views", "react", "react-dom", "object-hash"}
 	buildDeps := []string{"vite", "esbuild", "@vitejs/plugin-react"}
 	requiredDepsMap := make(map[string]string, len(shimDeps)+len(buildDeps))
 
