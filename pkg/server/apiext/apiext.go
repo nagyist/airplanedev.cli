@@ -40,6 +40,9 @@ func AttachExternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/tasks/getMetadata", handlers.New(state, GetTaskMetadataHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/tasks/getTaskReviewers", handlers.New(state, GetTaskReviewersHandler)).Methods("GET", "OPTIONS")
 
+	r.Handle("/runbooks/execute", handlers.WithBody(state, ExecuteRunbookHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/runbooks/get", handlers.New(state, GetRunbooksHandler)).Methods("GET", "OPTIONS")
+
 	r.Handle("/entities/search", handlers.New(state, SearchEntitiesHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/runners/createScaleSignal", handlers.WithBody(state, CreateScaleSignalHandler)).Methods("POST", "OPTIONS")
 
@@ -704,15 +707,13 @@ type CreateRunnerScaleSignalRequest struct {
 	TaskRevisionID            *string `json:"taskRevisionID"`
 }
 
-type CreateRunnerScaleSignalResponse struct{}
-
 func CreateScaleSignalHandler(
 	ctx context.Context,
 	state *state.State,
 	r *http.Request,
 	req CreateRunnerScaleSignalRequest,
-) (CreateRunnerScaleSignalResponse, error) {
-	return CreateRunnerScaleSignalResponse{}, nil
+) (StubResponse, error) {
+	return StubResponse{}, nil
 }
 
 type SearchEntitiesResponse struct {
