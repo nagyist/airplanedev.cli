@@ -12,19 +12,16 @@
   ],
   "packageRules": [
     {
-      "matchPackageNames": [
-        "jsdom",
-        "typescript",
-        "react",
-        "react-dom",
-        "object-hash"
-      ],
+      "matchPackageNames": ["jsdom", "typescript", "react", "react-dom"],
       "schedule": ["every 2 months on the first day of the month"]
     },
     {
       "groupName": "Fixtures",
       "description": "Group updates to fixture dependencies. If the tests pass, this is safe to merge.",
-      "matchPaths": ["pkg/**/fixtures/**", "pkg/examples/**"]
+      "matchPaths": [
+        "pkg/**/fixtures/**",
+        "pkg/examples/**"
+      ]
     }
   ]
 }
