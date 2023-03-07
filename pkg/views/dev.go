@@ -305,6 +305,7 @@ func addDevDepsToPackageJSON(existingPackageJSON map[string]interface{}, package
 		"react":           "18.0.0",
 		"react-dom":       "18.0.0",
 		"@airplane/views": "^1.0.0",
+		"object-hash":     "3.0.0",
 	}
 	defaultDevDeps := map[string]string{
 		"@vitejs/plugin-react": "2.1.0",

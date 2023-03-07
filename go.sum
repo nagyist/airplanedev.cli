@@ -56,8 +56,8 @@ github.com/acomagu/bufpipe v1.0.3/go.mod h1:mxdxdup/WdsKVreO5GpW4+M/1CE2sMG4jeGJ
 github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021 h1:epOU0k9ymss5SvqH10GOBzH57m5AJbiWLx62TZwk748=
 github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021/go.mod h1:Dsagf3j6EvFajY16ZIuDnVL64yFCWtvfXE0tfG33w/U=
 github.com/airplanedev/dlog v0.0.0-20210615011719-ca8d3becde5e h1:MeoR75I33g2XHKnTfRE67THlKm6fCoKQ3KcxsElHL4w=
-github.com/airplanedev/lib v0.5.167 h1:TPpmlOYcIE1P6qai3lMEhizIn8dJPR3KtuwkRc0ZJR8=
-github.com/airplanedev/lib v0.5.167/go.mod h1:7tq5F3z3+jw+PT4Ke3lsPQrkw3nM0/eH4D2+ui5I2fU=
+github.com/airplanedev/lib v0.5.172 h1:MGBWtggKnrZSYG9tFyIKGZNHEFdalbi51WaXvXzHeRQ=
+github.com/airplanedev/lib v0.5.172/go.mod h1:gFwpa91KpaXFwjhzwrnX/lNUa7dNxsEptUGGn+ALu98=
 github.com/airplanedev/ojson v0.1.0 h1:KpEO5zr/9S2xj38Vijky5MWZQ5l2mtDLUoxkxBPVCoI=
 github.com/airplanedev/ojson v0.1.0/go.mod h1:OinOlkiLgGwp+/RkH/9vVAIs78tP+oku4bt5v+jshoA=
 github.com/airplanedev/path v0.0.1 h1:3xW/3y6gaKmIeBcHqzieMl5RcUubcazzoHblMqvk6W4=
@@ -677,8 +677,8 @@ golang.org/x/net v0.0.0-20220722155237-a158d28d115b/go.mod h1:XRhObCWvk6IyKnWLug
 golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b/go.mod h1:YDH+HFinaLZZlnHAfSS6ZXJJ9M9t4Dl22yv3iI2vPwk=
 golang.org/x/net v0.1.0/go.mod h1:Cx3nUiGt4eDBEyega/BKRp+/AlGL8hYe7U9odMt2Cco=
 golang.org/x/net v0.2.0/go.mod h1:KqCZLdyyvdV855qA2rE3GC2aiw5xGR5TEjj8smXukLY=
-golang.org/x/net v0.6.0 h1:L4ZwwTvKW9gr0ZMS1yrHD9GZhIuVjOBBnaKH+SPQK0Q=
-golang.org/x/net v0.6.0/go.mod h1:2Tu9+aMcznHK/AK1HMvgo6xiTLG5rD5rZLDS+rp2Bjs=
+golang.org/x/net v0.7.0 h1:rJrUqqhjsgNp7KqAIc25s9pZnjU7TUcSY7HcVZjdn1g=
+golang.org/x/net v0.7.0/go.mod h1:2Tu9+aMcznHK/AK1HMvgo6xiTLG5rD5rZLDS+rp2Bjs=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
 golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d/go.mod h1:gOpvHmFTYa4IltrdGE7lF6nIHvwfUNPOp7c8zoXwtLw=
 golang.org/x/oauth2 v0.5.0 h1:HuArIo48skDwlrvM3sEdHXElYslAMsf3KwRkkW4MC4s=
