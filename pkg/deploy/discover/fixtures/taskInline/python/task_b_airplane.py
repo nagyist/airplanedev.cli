@@ -16,6 +16,7 @@ task_b.__airplane = TaskDef(
     description=None,
     require_requests=False,
     allow_self_approvals=False,
+    restrict_callers=None,
     timeout=3600,
     constraints=None,
     resources=None,

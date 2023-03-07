@@ -32,6 +32,7 @@ class TaskDef:
     description: Optional[str]
     require_requests: Optional[bool]
     allow_self_approvals: Optional[bool]
+    restrict_callers: Optional[List[str]]
     timeout: Optional[int]
     constraints: Optional[Dict[str, str]]
     resources: Optional[List[Any]]
@@ -55,6 +56,7 @@ collatz.__airplane = TaskDef(
     description=None,
     require_requests=False,
     allow_self_approvals=False,
+    restrict_callers=None,
     timeout=3600,
     constraints=None,
     resources=None,

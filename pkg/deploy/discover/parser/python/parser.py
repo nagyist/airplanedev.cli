@@ -59,6 +59,7 @@ class Def:
     python: PythonDef
     requireRequests: bool
     allowSelfApprovals: bool
+    restrictCallers: Optional[List[Literal["task", "view"]]]
     timeout: int
     runtime: Literal["standard", "workflow"]
 
@@ -121,6 +122,7 @@ def extract_task_configs(files: List[str]) -> List[Def]:
                         constraints=conf.constraints,
                         requireRequests=conf.require_requests,
                         allowSelfApprovals=conf.allow_self_approvals,
+                        restrictCallers=conf.restrict_callers if hasattr(conf, "restrict_callers") else None,
                         timeout=conf.timeout,
                         runtime=conf.runtime,
                         schedules={
