@@ -339,6 +339,10 @@ func addDevDepsToPackageJSON(existingPackageJSON map[string]interface{}, package
 	return nil
 }
 
+func FindVitePort() (int, error) {
+	return network.FindOpenPortFrom("localhost", 5173, 100)
+}
+
 type ViteOpts struct {
 	Client               *api.Client
 	EnvSlug              string
@@ -363,7 +367,7 @@ func runVite(ctx context.Context, opts ViteOpts, airplaneViewDir string, viewSlu
 
 	if opts.Port == 0 {
 		var err error
-		opts.Port, err = network.FindOpenPortFrom("localhost", 5173, 100)
+		opts.Port, err = FindVitePort()
 		if err != nil {
 			return nil, "", err
 		}

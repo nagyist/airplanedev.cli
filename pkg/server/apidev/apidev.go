@@ -18,7 +18,6 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/handlers"
-	"github.com/airplanedev/cli/pkg/server/network"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/server/status"
 	serverutils "github.com/airplanedev/cli/pkg/server/utils"
@@ -447,7 +446,7 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 	if s.ServerHost != "" {
 		// This is potentially subject to a race condition, but we need to allocate the port before starting Vite in
 		// order to construct Vite config options.
-		port, err = network.FindOpenPort()
+		port, err = views.FindVitePort()
 		if err != nil {
 			return StartViewResponse{}, err
 		}
