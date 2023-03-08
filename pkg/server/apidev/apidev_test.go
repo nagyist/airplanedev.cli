@@ -132,6 +132,13 @@ func TestListEntrypoints(t *testing.T) {
 	}, resp.RemoteEntrypoints)
 }
 
+func getFileSize(require *require.Assertions, path string) *int64 {
+	fi, err := os.Stat(path)
+	require.NoError(err)
+	size := fi.Size()
+	return &size
+}
+
 func TestListFilesHandler(t *testing.T) {
 	require := require.New(t)
 
@@ -150,6 +157,7 @@ func TestListFilesHandler(t *testing.T) {
 	}
 	taskDefFileName := filepath.Join(absoluteDir, "my_task.airplane.ts")
 	taskDefinition.SetDefnFilePath(taskDefFileName)
+	taskDefFileSize := getFileSize(require, taskDefFileName)
 
 	viewSlug := "my_view"
 	viewDefFileName := filepath.Join(absoluteDir, "my_view.view.tsx")
@@ -159,6 +167,10 @@ func TestListFilesHandler(t *testing.T) {
 		Slug:         viewSlug,
 		DefnFilePath: viewDefFileName,
 	}
+	viewDefFileSize := getFileSize(require, viewDefFileName)
+
+	subfilePath := filepath.Join(absoluteDir, "subdir/subfile")
+	subfileSize := getFileSize(require, subfilePath)
 
 	h := test_utils.GetHttpExpect(
 		context.Background(),
@@ -195,6 +207,7 @@ func TestListFilesHandler(t *testing.T) {
 	require.ElementsMatch([]*apidev.FileNode{
 		{
 			Path: taskDefFileName,
+			Size: taskDefFileSize,
 			Entities: []apidev.EntityMetadata{
 				{
 					Name: "My task",
@@ -206,6 +219,7 @@ func TestListFilesHandler(t *testing.T) {
 		},
 		{
 			Path: viewDefFileName,
+			Size: viewDefFileSize,
 			Entities: []apidev.EntityMetadata{
 				{
 					Name: "My view",
@@ -220,7 +234,8 @@ func TestListFilesHandler(t *testing.T) {
 			IsDir: true,
 			Children: []*apidev.FileNode{
 				{
-					Path:     filepath.Join(absoluteDir, "subdir/subfile"),
+					Path:     subfilePath,
+					Size:     subfileSize,
 					Children: []*apidev.FileNode{},
 				},
 			},

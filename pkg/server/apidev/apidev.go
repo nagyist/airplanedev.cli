@@ -222,6 +222,7 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 type FileNode struct {
 	Path     string           `json:"path"`
 	IsDir    bool             `json:"isDir"`
+	Size     *int64           `json:"size"`
 	Children []*FileNode      `json:"children"`
 	Entities []EntityMetadata `json:"entities"`
 }
@@ -278,17 +279,26 @@ func ListFilesHandler(ctx context.Context, state *state.State, r *http.Request) 
 
 			// Ignore non-user-facing directories.
 			var isDir bool
+			var size *int64
 			if info.IsDir() {
 				base := filepath.Base(path)
 				if _, ok := ignoredDirs[base]; ok {
 					return filepath.SkipDir
 				}
 				isDir = true
+			} else {
+				fi, err := os.Stat(path)
+				if err != nil {
+					return err
+				}
+				fileSize := fi.Size()
+				size = &fileSize
 			}
 
 			nodes[path] = &FileNode{
 				Path:     path,
 				IsDir:    isDir,
+				Size:     size,
 				Children: make([]*FileNode, 0),
 				Entities: filepathToEntities[path],
 			}
