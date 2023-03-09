@@ -1,4 +1,11 @@
-import { Stack, Table, Text, Title, useComponentState } from "@airplane/views";
+import {
+  Column,
+  Stack,
+  Table,
+  Text,
+  Title,
+  useComponentState,
+} from "@airplane/views";
 import airplane from "airplane";
 
 // Put the main logic of the view here.
@@ -70,7 +77,7 @@ const usersData = [
 ];
 // End of example data
 
-const customersCols = [
+const customersCols: Column[] = [
   {
     label: "Customer ID",
     accessor: "id",
@@ -85,7 +92,7 @@ const customersCols = [
   },
 ];
 
-const usersCols = [
+const usersCols: Column[] = [
   {
     label: "User ID",
     accessor: "id",
