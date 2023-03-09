@@ -3,7 +3,7 @@ import {
   Stack,
   Table,
   Text,
-  Title,
+  Heading,
   useComponentState,
 } from "@airplane/views";
 
@@ -15,7 +15,7 @@ const ExampleView = () => {
 
   return (
     <Stack>
-      <Title>Customer overview</Title>
+      <Heading>Customer overview</Heading>
       <Text>An example view that showcases customers and users.</Text>
       <Table
         id={customersState.id}
