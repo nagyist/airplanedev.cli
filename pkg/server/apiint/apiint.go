@@ -636,12 +636,13 @@ func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request
 	// we want to best-effort support invalid task definitions (e.g. unknown resources) so that we can render
 	// corresponding validation errors in the UI.
 	req := libapi.Task{
-		Slug:        taskConfig.Def.GetSlug(),
-		Name:        taskConfig.Def.GetName(),
-		Description: taskConfig.Def.GetDescription(),
-		Runtime:     taskConfig.Def.GetRuntime(),
-		Resources:   map[string]string{},
-		UpdatedAt:   metadata.RefreshedAt,
+		Slug:         taskConfig.Def.GetSlug(),
+		Name:         taskConfig.Def.GetName(),
+		Description:  taskConfig.Def.GetDescription(),
+		Runtime:      taskConfig.Def.GetRuntime(),
+		Resources:    map[string]string{},
+		UpdatedAt:    metadata.RefreshedAt,
+		ExecuteRules: libapi.ExecuteRules{RestrictCallers: taskConfig.Def.RestrictCallers},
 	}
 	if resourceAttachments, err := taskConfig.Def.GetResourceAttachments(); err != nil {
 		return libapi.Task{}, errors.Wrap(err, "getting resource attachments")
