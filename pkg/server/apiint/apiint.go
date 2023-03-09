@@ -703,6 +703,10 @@ func GetViewInfoHandler(ctx context.Context, state *state.State, r *http.Request
 		headers["X-Airplane-Studio-Fallback-Env-Slug"] = pointers.ToString(envSlug)
 	}
 
+	if state.SandboxState != nil && state.DevToken != nil {
+		headers["X-Airplane-Sandbox-Token"] = *state.DevToken
+	}
+
 	envVars, err := dev.GetEnvVarsForView(ctx, state.RemoteClient, dev.GetEnvVarsForViewConfig{
 		ViewEnvVars:      viewConfig.Def.EnvVars,
 		DevConfigEnvVars: state.DevConfig.EnvVars,
