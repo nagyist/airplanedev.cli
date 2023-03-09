@@ -304,7 +304,7 @@ func addDevDepsToPackageJSON(existingPackageJSON map[string]interface{}, package
 	defaultDeps := map[string]string{
 		"react":           "18.0.0",
 		"react-dom":       "18.0.0",
-		"@airplane/views": "^1.0.0",
+		"@airplane/views": "^2.0.0",
 		"object-hash":     "3.0.0",
 	}
 	defaultDevDeps := map[string]string{
