@@ -1,15 +1,15 @@
 {
     "dependencies": {
-        "@airplane/views": "1.14.4",
-        "@airplane/workflow-runtime": "0.2.38",
+        "@airplane/views": "1.14.7",
+        "@airplane/workflow-runtime": "0.2.44",
         "@vitejs/plugin-react": "3.1.0",
-        "airplane": "0.2.38",
-        "esbuild": "0.17.8",
+        "airplane": "0.2.44",
+        "esbuild": "0.17.11",
         "esbuild-plugin-tsc": "0.3.1",
         "jsdom": "21.1.0",
         "react": "18.2.0",
         "react-dom": "18.2.0",
         "typescript": "4.9.5",
-        "vite": "4.1.2"
+        "vite": "4.1.4"
     }
 }

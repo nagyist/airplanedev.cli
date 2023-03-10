@@ -17,14 +17,14 @@
   },
   "dependencies": {
     "@airplane/recast": "0.1.0",
-    "@babel/parser": "7.20.15",
+    "@babel/parser": "7.21.2",
     "ast-types": "0.14.2"
   },
   "devDependencies": {
-    "@babel/types": "7.20.7",
-    "@types/node": "18.13.0",
-    "esbuild": "0.17.8",
-    "nodemon": "2.0.20",
+    "@babel/types": "7.21.2",
+    "@types/node": "18.15.0",
+    "esbuild": "0.17.11",
+    "nodemon": "2.0.21",
     "prettier": "2.8.4"
   }
 }
