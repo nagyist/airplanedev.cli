@@ -1,6 +1,6 @@
 {
     "dependencies": {
-        "@airplane/views": "1.14.7",
+        "@airplane/views": "2.0.0",
         "@airplane/workflow-runtime": "0.2.44",
         "@vitejs/plugin-react": "3.1.0",
         "airplane": "0.2.44",
