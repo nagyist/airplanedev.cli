@@ -21,20 +21,22 @@ const (
 var schemaStr string
 
 type JavaScriptConfig struct {
-	Base        string  `yaml:"base,omitempty" json:"base,omitempty"`
-	NodeVersion string  `yaml:"nodeVersion,omitempty" json:"nodeVersion,omitempty"`
-	EnvVars     TaskEnv `yaml:"envVars,omitempty" json:"envVars,omitempty"`
-	Install     string  `yaml:"install,omitempty" json:"install,omitempty"`
-	PreInstall  string  `yaml:"preinstall,omitempty" json:"preinstall,omitempty"`
-	PostInstall string  `yaml:"postinstall,omitempty" json:"postinstall,omitempty"`
+	Base           string   `yaml:"base,omitempty" json:"base,omitempty"`
+	NodeVersion    string   `yaml:"nodeVersion,omitempty" json:"nodeVersion,omitempty"`
+	EnvVars        TaskEnv  `yaml:"envVars,omitempty" json:"envVars,omitempty"`
+	Install        string   `yaml:"install,omitempty" json:"install,omitempty"`
+	PreInstall     string   `yaml:"preinstall,omitempty" json:"preinstall,omitempty"`
+	PostInstall    string   `yaml:"postinstall,omitempty" json:"postinstall,omitempty"`
+	BuildPlatforms []string `yaml:"buildPlatforms,omitempty" json:"buildPlatforms,omitempty"`
 }
 
 type PythonConfig struct {
-	Base        string  `yaml:"base,omitempty" json:"base,omitempty"`
-	Version     string  `yaml:"version,omitempty" json:"version,omitempty"`
-	EnvVars     TaskEnv `yaml:"envVars,omitempty" json:"envVars,omitempty"`
-	PreInstall  string  `yaml:"preinstall,omitempty" json:"preinstall,omitempty"`
-	PostInstall string  `yaml:"postinstall,omitempty" json:"postinstall,omitempty"`
+	Base           string   `yaml:"base,omitempty" json:"base,omitempty"`
+	Version        string   `yaml:"version,omitempty" json:"version,omitempty"`
+	EnvVars        TaskEnv  `yaml:"envVars,omitempty" json:"envVars,omitempty"`
+	PreInstall     string   `yaml:"preinstall,omitempty" json:"preinstall,omitempty"`
+	PostInstall    string   `yaml:"postinstall,omitempty" json:"postinstall,omitempty"`
+	BuildPlatforms []string `yaml:"buildPlatforms,omitempty" json:"buildPlatforms,omitempty"`
 }
 
 type ViewConfig struct {

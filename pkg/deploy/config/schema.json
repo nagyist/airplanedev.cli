@@ -27,6 +27,15 @@
         "postinstall": {
           "description": "A command to run after dependencies are installed",
           "type": "string"
+        },
+        "buildPlatforms": {
+          "type": "array",
+          "items": {
+            "enum": ["linux/amd64", "linux/arm64"]
+          },
+          "minItems": 0,
+          "maxItems": 2,
+          "uniqueItems": true
         }
       },
       "additionalProperties": false
@@ -51,6 +60,15 @@
         "postinstall": {
           "description": "A command to run after dependencies are installed",
           "type": "string"
+        },
+        "buildPlatforms": {
+          "type": "array",
+          "items": {
+            "enum": ["linux/amd64", "linux/arm64"]
+          },
+          "minItems": 0,
+          "maxItems": 2,
+          "uniqueItems": true
         }
       },
       "additionalProperties": false
