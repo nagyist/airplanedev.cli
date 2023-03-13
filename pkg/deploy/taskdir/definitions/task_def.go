@@ -167,6 +167,9 @@ func (d *NodeDefinition) fillInUpdateTaskRequest(ctx context.Context, client api
 		entrypointFunc, _ := bc["entrypointFunc"].(string)
 		entrypoint, _ := bc["entrypoint"].(string)
 		if req.Runtime == build.TaskRuntimeWorkflow {
+			// command needs to be initialized to an empty array
+			// so that workflow commands get set correctly on the update path
+			req.Command = []string{}
 			req.Arguments = []string{
 				"{{JSON.stringify(params)}}",
 				entrypoint,
