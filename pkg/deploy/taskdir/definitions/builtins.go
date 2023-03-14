@@ -1,7 +1,6 @@
 package definitions
 
 import (
-	"context"
 	"encoding/json"
 
 	"github.com/airplanedev/lib/pkg/api"
@@ -98,7 +97,7 @@ func (c BuiltinTaskContainer) MarshalYAML() (interface{}, error) {
 }
 
 // Hydrates a builtin definition from a task.
-func hydrateBuiltin(ctx context.Context, client api.IAPIClient, d *Definition, t *api.Task) error {
+func hydrateBuiltin(d *Definition, t api.Task, availableResources []api.ResourceMetadata) error {
 	fs, err := builtins.GetFunctionSpecificationFromKindOptions(t.KindOptions)
 	if err != nil {
 		return err
@@ -110,7 +109,7 @@ func hydrateBuiltin(ctx context.Context, client api.IAPIClient, d *Definition, t
 	}
 
 	def := plugin.GetTaskKindDefinition()
-	if err := def.hydrateFromTask(ctx, client, t); err != nil {
+	if err := def.hydrateFromTask(t, availableResources); err != nil {
 		return err
 	}
 	d.Builtin = &BuiltinTaskContainer{def: def}

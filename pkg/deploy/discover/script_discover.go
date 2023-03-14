@@ -59,7 +59,12 @@ func (sd *ScriptDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]
 		return nil, nil
 	}
 
-	def, err := definitions.NewDefinitionFromTask(ctx, sd.Client, task)
+	resp, err := sd.Client.ListResourceMetadata(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	def, err := definitions.NewDefinitionFromTask(task, resp.Resources)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +113,12 @@ func (sd *ScriptDiscoverer) GetTaskRoot(ctx context.Context, file string) (strin
 		return "", build.BuildContext{}, nil
 	}
 
-	def, err := definitions.NewDefinitionFromTask(ctx, sd.Client, task)
+	resp, err := sd.Client.ListResourceMetadata(ctx)
+	if err != nil {
+		return "", build.BuildContext{}, err
+	}
+
+	def, err := definitions.NewDefinitionFromTask(task, resp.Resources)
 	if err != nil {
 		return "", build.BuildContext{}, err
 	}

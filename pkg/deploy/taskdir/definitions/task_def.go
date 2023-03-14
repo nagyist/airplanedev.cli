@@ -2,7 +2,6 @@ package definitions
 
 import (
 	"bytes"
-	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -53,8 +52,8 @@ type Definition struct {
 }
 
 type taskKind interface {
-	fillInUpdateTaskRequest(context.Context, api.IAPIClient, *api.UpdateTaskRequest, build.BuildConfig, bool) error
-	hydrateFromTask(context.Context, api.IAPIClient, *api.Task) error
+	copyToTask(*api.Task, build.BuildConfig, GetTaskOpts) error
+	hydrateFromTask(api.Task, []api.ResourceMetadata) error
 	setEntrypoint(string) error
 	setAbsoluteEntrypoint(string) error
 	getAbsoluteEntrypoint() (string, error)
@@ -77,25 +76,25 @@ type ImageDefinition struct {
 	EnvVars    api.TaskEnv `json:"envVars,omitempty"`
 }
 
-func (d *ImageDefinition) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
+func (d *ImageDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts GetTaskOpts) error {
 	if d.Image != "" {
-		req.Image = &d.Image
+		task.Image = &d.Image
 	}
 	if args, err := shlex.Split(d.Command); err != nil {
 		return err
 	} else {
-		req.Arguments = args
+		task.Arguments = args
 	}
 	if cmd, err := shlex.Split(d.Entrypoint); err != nil {
 		return err
 	} else {
-		req.Command = cmd
+		task.Command = cmd
 	}
-	req.Env = d.EnvVars
+	task.Env = d.EnvVars
 	return nil
 }
 
-func (d *ImageDefinition) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *ImageDefinition) hydrateFromTask(t api.Task, availableResources []api.ResourceMetadata) error {
 	if t.Image != nil {
 		d.Image = *t.Image
 	}
@@ -161,16 +160,16 @@ type NodeDefinition struct {
 	absoluteEntrypoint string `json:"-"`
 }
 
-func (d *NodeDefinition) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
-	req.Env = d.EnvVars
-	if forBundle {
+func (d *NodeDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts GetTaskOpts) error {
+	task.Env = d.EnvVars
+	if opts.Bundle {
 		entrypointFunc, _ := bc["entrypointFunc"].(string)
 		entrypoint, _ := bc["entrypoint"].(string)
-		if req.Runtime == build.TaskRuntimeWorkflow {
+		if task.Runtime == build.TaskRuntimeWorkflow {
 			// command needs to be initialized to an empty array
 			// so that workflow commands get set correctly on the update path
-			req.Command = []string{}
-			req.Arguments = []string{
+			task.Command = []string{}
+			task.Arguments = []string{
 				"{{JSON.stringify(params)}}",
 				entrypoint,
 				entrypointFunc,
@@ -179,8 +178,8 @@ func (d *NodeDefinition) fillInUpdateTaskRequest(ctx context.Context, client api
 			entrypoint := path.Join("/airplane/.airplane/", entrypoint)
 			// Ensure that the entrypoint is a .js file.
 			entrypoint = fsx.TrimExtension(entrypoint) + ".js"
-			req.Command = []string{"node"}
-			req.Arguments = []string{
+			task.Command = []string{"node"}
+			task.Arguments = []string{
 				"/airplane/.airplane/dist/universal-shim.js",
 				entrypoint,
 				entrypointFunc,
@@ -191,7 +190,7 @@ func (d *NodeDefinition) fillInUpdateTaskRequest(ctx context.Context, client api
 	return nil
 }
 
-func (d *NodeDefinition) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *NodeDefinition) hydrateFromTask(t api.Task, availableResources []api.ResourceMetadata) error {
 	if v, ok := t.KindOptions["entrypoint"]; ok {
 		if sv, ok := v.(string); ok {
 			d.Entrypoint = sv
@@ -297,12 +296,12 @@ type PythonDefinition struct {
 	absoluteEntrypoint string `json:"-"`
 }
 
-func (d *PythonDefinition) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
-	req.Env = d.EnvVars
-	if forBundle {
+func (d *PythonDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts GetTaskOpts) error {
+	task.Env = d.EnvVars
+	if opts.Bundle {
 		entrypointFunc, _ := bc["entrypointFunc"].(string)
-		req.Command = []string{"python"}
-		req.Arguments = []string{
+		task.Command = []string{"python"}
+		task.Arguments = []string{
 			"/airplane/.airplane/shim.py",
 			path.Join("/airplane/", bc["entrypoint"].(string)),
 			entrypointFunc,
@@ -312,7 +311,7 @@ func (d *PythonDefinition) fillInUpdateTaskRequest(ctx context.Context, client a
 	return nil
 }
 
-func (d *PythonDefinition) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *PythonDefinition) hydrateFromTask(t api.Task, availableResources []api.ResourceMetadata) error {
 	if v, ok := t.KindOptions["entrypoint"]; ok {
 		if sv, ok := v.(string); ok {
 			d.Entrypoint = sv
@@ -414,25 +413,25 @@ type ShellDefinition struct {
 	absoluteEntrypoint string `json:"-"`
 }
 
-func (d *ShellDefinition) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
-	req.Env = d.EnvVars
-	if forBundle {
-		req.Command = []string{"bash"}
-		req.Arguments = []string{
+func (d *ShellDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts GetTaskOpts) error {
+	task.Env = d.EnvVars
+	if opts.Bundle {
+		task.Command = []string{"bash"}
+		task.Arguments = []string{
 			".airplane/shim.sh",
 			fmt.Sprintf("./%s", bc["entrypoint"].(string)),
 		}
 		// Pass slug={{slug}} as an array to the shell task
-		for _, param := range req.Parameters {
-			req.Arguments = append(req.Arguments, fmt.Sprintf("%s={{params.%s}}", param.Slug, param.Slug))
+		for _, param := range task.Parameters {
+			task.Arguments = append(task.Arguments, fmt.Sprintf("%s={{params.%s}}", param.Slug, param.Slug))
 		}
-		req.InterpolationMode = pointers.String("jst")
+		task.InterpolationMode = "jst"
 	}
 
 	return nil
 }
 
-func (d *ShellDefinition) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *ShellDefinition) hydrateFromTask(t api.Task, availableResources []api.ResourceMetadata) error {
 	if v, ok := t.KindOptions["entrypoint"]; ok {
 		if sv, ok := v.(string); ok {
 			d.Entrypoint = sv
@@ -538,31 +537,22 @@ func (d *SQLDefinition) GetQuery() (string, error) {
 	return d.entrypointContents, nil
 }
 
-func (d *SQLDefinition) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
-	collection, err := getResourceIDsBySlugAndName(ctx, client)
-	if err != nil {
-		return err
-	}
-
+func (d *SQLDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts GetTaskOpts) error {
 	// Check slugs first.
-	if id, ok := collection.bySlug[d.Resource]; ok {
-		req.Resources["db"] = id
-	} else if id, ok := collection.byName[d.Resource]; ok {
-		req.Resources["db"] = id
-	} else {
+	if resource := getResourceBySlug(opts.AvailableResources, d.Resource); resource != nil {
+		task.Resources["db"] = resource.ID
+	} else if resource := getResourceByName(opts.AvailableResources, d.Resource); resource != nil {
+		task.Resources["db"] = resource.ID
+	} else if !opts.IgnoreInvalid {
 		return api.ResourceMissingError{Slug: d.Resource}
 	}
 	return nil
 }
 
-func (d *SQLDefinition) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *SQLDefinition) hydrateFromTask(t api.Task, availableResources []api.ResourceMetadata) error {
 	if resID, ok := t.Resources["db"]; ok {
-		resourceSlugsByID, err := getResourceSlugsByID(ctx, client)
-		if err != nil {
-			return err
-		}
-		if slug, ok := resourceSlugsByID[resID]; ok {
-			d.Resource = slug
+		if resource := getResourceByID(availableResources, resID); resource != nil {
+			d.Resource = resource.Slug
 		}
 	}
 	if v, ok := t.KindOptions["entrypoint"]; ok {
@@ -652,23 +642,12 @@ func (d *SQLDefinition) getConfigAttachments() []api.ConfigAttachment {
 }
 
 // Rewrites Resource to be a slug if it's a name.
-func (d *SQLDefinition) normalize(ctx context.Context, client api.IAPIClient) error {
-	collection, err := getResourceIDsBySlugAndName(ctx, client)
-	if err != nil {
-		return err
-	}
-	slugsByID, err := getResourceSlugsByID(ctx, client)
-	if err != nil {
-		return err
-	}
-
+func (d *SQLDefinition) normalize(availableResources []api.ResourceMetadata) error {
 	// Check slugs first.
-	if _, ok := collection.bySlug[d.Resource]; ok {
+	if resource := getResourceBySlug(availableResources, d.Resource); resource != nil {
 		return nil
-	} else if id, ok := collection.byName[d.Resource]; ok {
-		if d.Resource, ok = slugsByID[id]; !ok {
-			return errors.Errorf("could not find slug for resource with name: %s (id=%s)", d.Resource, id)
-		}
+	} else if resource := getResourceByName(availableResources, d.Resource); resource != nil {
+		d.Resource = resource.Slug
 	} else {
 		return api.ResourceMissingError{Slug: d.Resource}
 	}
@@ -700,31 +679,22 @@ type RESTDefinition struct {
 	Configs       []string               `json:"configs,omitempty"`
 }
 
-func (d *RESTDefinition) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
-	collection, err := getResourceIDsBySlugAndName(ctx, client)
-	if err != nil {
-		return err
-	}
-
+func (d *RESTDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts GetTaskOpts) error {
 	// Check slugs first.
-	if id, ok := collection.bySlug[d.Resource]; ok {
-		req.Resources["rest"] = id
-	} else if id, ok := collection.byName[d.Resource]; ok {
-		req.Resources["rest"] = id
-	} else {
+	if resource := getResourceBySlug(opts.AvailableResources, d.Resource); resource != nil {
+		task.Resources["rest"] = resource.ID
+	} else if resource := getResourceByName(opts.AvailableResources, d.Resource); resource != nil {
+		task.Resources["rest"] = resource.ID
+	} else if !opts.IgnoreInvalid {
 		return api.ResourceMissingError{Slug: d.Resource}
 	}
 	return nil
 }
 
-func (d *RESTDefinition) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *RESTDefinition) hydrateFromTask(t api.Task, availableResources []api.ResourceMetadata) error {
 	if resID, ok := t.Resources["rest"]; ok {
-		resourceSlugsByID, err := getResourceSlugsByID(ctx, client)
-		if err != nil {
-			return err
-		}
-		if slug, ok := resourceSlugsByID[resID]; ok {
-			d.Resource = slug
+		if resource := getResourceByID(availableResources, resID); resource != nil {
+			d.Resource = resource.Slug
 		}
 	}
 	if v, ok := t.KindOptions["method"]; ok {
@@ -834,23 +804,12 @@ func (d *RESTDefinition) getConfigAttachments() []api.ConfigAttachment {
 }
 
 // Rewrites Resource to be a slug if it's a name.
-func (d *RESTDefinition) normalize(ctx context.Context, client api.IAPIClient) error {
-	collection, err := getResourceIDsBySlugAndName(ctx, client)
-	if err != nil {
-		return err
-	}
-	slugsByID, err := getResourceSlugsByID(ctx, client)
-	if err != nil {
-		return err
-	}
-
+func (d *RESTDefinition) normalize(availableResources []api.ResourceMetadata) error {
 	// Check slugs first.
-	if _, ok := collection.bySlug[d.Resource]; ok {
+	if resource := getResourceBySlug(availableResources, d.Resource); resource != nil {
 		return nil
-	} else if id, ok := collection.byName[d.Resource]; ok {
-		if d.Resource, ok = slugsByID[id]; !ok {
-			return errors.Errorf("could not find slug for resource with name: %s (id=%s)", d.Resource, id)
-		}
+	} else if resource := getResourceByName(availableResources, d.Resource); resource != nil {
+		d.Resource = resource.Slug
 	} else {
 		return api.ResourceMissingError{Slug: d.Resource}
 	}
@@ -1206,12 +1165,12 @@ func (d *Definition) Unmarshal(format DefFormat, buf []byte) error {
 // Normalize is a chance to rewrite the definition to account for changes in formatting after
 // being unmarshalled. This can result in multiple API calls & is not always needed & so is not
 // lumped in with Unmarshal.
-func (d *Definition) Normalize(ctx context.Context, client api.IAPIClient) error {
+func (d *Definition) Normalize(availableResources []api.ResourceMetadata) error {
 	// Rewrites Resource to be a slug rather than a name.
 	if d.SQL != nil {
-		return d.SQL.normalize(ctx, client)
+		return d.SQL.normalize(availableResources)
 	} else if d.REST != nil {
-		return d.REST.normalize(ctx, client)
+		return d.REST.normalize(availableResources)
 	}
 	return nil
 }
@@ -1280,113 +1239,111 @@ func (d Definition) taskKind() (taskKind, error) {
 	}
 }
 
-func (d Definition) GetUpdateTaskRequest(ctx context.Context, client api.IAPIClient, forBundle bool) (api.UpdateTaskRequest, error) {
-	req := api.UpdateTaskRequest{
+type GetTaskOpts struct {
+	// List of resources that this task can attach. This is used for converting
+	// resource slugs to IDs.
+	AvailableResources []api.ResourceMetadata
+	// Set to `true` if this task is using bundle builds.
+	Bundle bool
+	// Set to `true` to silently ignore invalid definition fields.
+	IgnoreInvalid bool
+}
+
+// GetTask converts a task definition into a Task struct.
+//
+// Note that certain fields are not supported "as-code", e.g. permissions. Those fields
+// will not be set on the task.
+func (d Definition) GetTask(opts GetTaskOpts) (api.Task, error) {
+	task := api.Task{
 		Slug:        d.Slug,
 		Name:        d.Name,
 		Description: d.Description,
 		Timeout:     d.Timeout.Value(),
 		Runtime:     d.Runtime,
-		ExecuteRules: api.UpdateExecuteRulesRequest{
-			RequireRequests: &d.RequireRequests,
-			RestrictCallers: d.RestrictCallers,
+		ExecuteRules: api.ExecuteRules{
+			RequireRequests:     d.RequireRequests,
+			DisallowSelfApprove: !d.AllowSelfApprovals.Value(),
+			RestrictCallers:     d.RestrictCallers,
 		},
-		Resources: make(map[string]string),
+		Resources: api.Resources{},
+		Configs:   []api.ConfigAttachment{},
+		Constraints: api.RunConstraints{
+			Labels: []api.AgentLabel{},
+		},
 	}
 
 	params, err := d.GetParameters()
 	if err != nil {
-		return api.UpdateTaskRequest{}, err
+		return api.Task{}, err
 	}
-	req.Parameters = params
+	task.Parameters = params
 
-	if err := d.addResourcesToUpdateTaskRequest(ctx, client, &req); err != nil {
-		return api.UpdateTaskRequest{}, err
-	}
-
-	if len(d.Configs) > 0 {
-		configAttachments := make([]api.ConfigAttachment, len(d.Configs))
-		for i, configName := range d.Configs {
-			configAttachments[i] = api.ConfigAttachment{NameTag: configName}
-		}
-		req.Configs = &configAttachments
+	if err := d.addResourcesToTask(&task, opts); err != nil {
+		return api.Task{}, err
 	}
 
-	if len(d.Constraints) > 0 {
-		labels := []api.AgentLabel{}
-		for key, val := range d.Constraints {
-			labels = append(labels, api.AgentLabel{
-				Key:   key,
-				Value: val,
-			})
-		}
-		req.Constraints = api.RunConstraints{
-			Labels: labels,
-		}
+	for _, configName := range d.Configs {
+		task.Configs = append(task.Configs, api.ConfigAttachment{NameTag: configName})
 	}
 
-	req.ExecuteRules.DisallowSelfApprove = pointers.Bool(!d.AllowSelfApprovals.Value())
-	req.ExecuteRules.RestrictCallers = d.RestrictCallers
+	for key, val := range d.Constraints {
+		task.Constraints.Labels = append(task.Constraints.Labels, api.AgentLabel{
+			Key:   key,
+			Value: val,
+		})
+	}
 
 	bc, err := d.GetBuildConfig()
 	if err != nil {
-		return api.UpdateTaskRequest{}, err
+		return api.Task{}, err
 	}
-	if err := d.addKindSpecificsToUpdateTaskRequest(ctx, client, &req, bc, forBundle); err != nil {
-		return api.UpdateTaskRequest{}, err
+	if err := d.addKindSpecificsToTask(&task, bc, opts); err != nil {
+		return api.Task{}, err
 	}
 
-	return req, nil
+	return task, nil
 }
 
-func (d Definition) addResourcesToUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest) error {
+func (d Definition) addResourcesToTask(task *api.Task, opts GetTaskOpts) error {
 	if len(d.Resources.Attachments) == 0 {
 		return nil
 	}
 
-	collection, err := getResourceIDsBySlugAndName(ctx, client)
-	if err != nil {
-		return errors.Wrap(err, "fetching resources")
-	}
-
-	for alias, ref := range d.Resources.Attachments {
-		if id, ok := collection.bySlug[ref]; ok {
-			req.Resources[alias] = id
-		} else {
-			return api.ResourceMissingError{Slug: ref}
+	for alias, slug := range d.Resources.Attachments {
+		if resource := getResourceBySlug(opts.AvailableResources, slug); resource != nil {
+			task.Resources[alias] = resource.ID
+		} else if !opts.IgnoreInvalid {
+			return api.ResourceMissingError{Slug: slug}
 		}
 	}
 
 	return nil
 }
 
-func (d Definition) addKindSpecificsToUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, forBundle bool) error {
+func (d Definition) addKindSpecificsToTask(task *api.Task, bc build.BuildConfig, opts GetTaskOpts) error {
 	kind, options, err := d.GetKindAndOptions()
 	if err != nil {
 		return err
 	}
-	req.Kind = kind
-	req.KindOptions = options
+	task.Kind = kind
+	task.KindOptions = options
 
 	env, err := d.GetEnv()
 	if err != nil {
 		return err
 	}
-	req.Env = env
+	task.Env = env
 
-	if req.Configs == nil || len(*req.Configs) == 0 {
-		configAttachments, err := d.GetConfigAttachments()
-		if err != nil {
-			return err
-		}
-		req.Configs = &configAttachments
+	task.Configs, err = d.GetConfigAttachments()
+	if err != nil {
+		return err
 	}
 
 	taskKind, err := d.taskKind()
 	if err != nil {
 		return err
 	}
-	if err := taskKind.fillInUpdateTaskRequest(ctx, client, req, bc, forBundle); err != nil {
+	if err := taskKind.copyToTask(task, bc, opts); err != nil {
 		return err
 	}
 	return nil
@@ -1556,7 +1513,7 @@ func (d *Definition) GetSchedules() map[string]api.Schedule {
 	return schedules
 }
 
-func NewDefinitionFromTask(ctx context.Context, client api.IAPIClient, t api.Task) (Definition, error) {
+func NewDefinitionFromTask(t api.Task, availableResources []api.ResourceMetadata) (Definition, error) {
 	d := Definition{
 		Name:            t.Name,
 		Slug:            t.Slug,
@@ -1572,11 +1529,11 @@ func NewDefinitionFromTask(ctx context.Context, client api.IAPIClient, t api.Tas
 	}
 	d.Parameters = params
 
-	if err := d.convertResourcesFromTask(ctx, client, &t); err != nil {
+	if err := d.convertResourcesFromTask(t, availableResources); err != nil {
 		return Definition{}, err
 	}
 
-	if err := d.convertTaskKindFromTask(ctx, client, &t); err != nil {
+	if err := d.convertTaskKindFromTask(t, availableResources); err != nil {
 		return Definition{}, err
 	}
 
@@ -1622,17 +1579,12 @@ func NewDefinitionFromTask(ctx context.Context, client api.IAPIClient, t api.Tas
 	return d, nil
 }
 
-func (d *Definition) convertResourcesFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *Definition) convertResourcesFromTask(t api.Task, availableResources []api.ResourceMetadata) error {
 	if len(t.Resources) == 0 {
 		return nil
 	}
 
-	resourceSlugsByID, err := getResourceSlugsByID(ctx, client)
-	if err != nil {
-		return errors.Wrap(err, "fetching resources")
-	}
-
-	d.Resources.Attachments = make(map[string]string)
+	d.Resources.Attachments = map[string]string{}
 	for alias, id := range t.Resources {
 		// Ignore SQL/REST resources; they get routed elsewhere.
 		if (t.Kind == build.TaskKindSQL && alias == "db") ||
@@ -1640,37 +1592,36 @@ func (d *Definition) convertResourcesFromTask(ctx context.Context, client api.IA
 			(t.Kind == build.TaskKindBuiltin) {
 			continue
 		}
-		slug, ok := resourceSlugsByID[id]
-		if ok {
-			d.Resources.Attachments[alias] = slug
+		if resource := getResourceByID(availableResources, id); resource != nil {
+			d.Resources.Attachments[alias] = resource.Slug
 		}
 	}
 
 	return nil
 }
 
-func (d *Definition) convertTaskKindFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *Definition) convertTaskKindFromTask(t api.Task, availableResources []api.ResourceMetadata) error {
 	switch t.Kind {
 	case build.TaskKindImage:
 		d.Image = &ImageDefinition{}
-		return d.Image.hydrateFromTask(ctx, client, t)
+		return d.Image.hydrateFromTask(t, availableResources)
 	case build.TaskKindNode:
 		d.Node = &NodeDefinition{}
-		return d.Node.hydrateFromTask(ctx, client, t)
+		return d.Node.hydrateFromTask(t, availableResources)
 	case build.TaskKindPython:
 		d.Python = &PythonDefinition{}
-		return d.Python.hydrateFromTask(ctx, client, t)
+		return d.Python.hydrateFromTask(t, availableResources)
 	case build.TaskKindShell:
 		d.Shell = &ShellDefinition{}
-		return d.Shell.hydrateFromTask(ctx, client, t)
+		return d.Shell.hydrateFromTask(t, availableResources)
 	case build.TaskKindSQL:
 		d.SQL = &SQLDefinition{}
-		return d.SQL.hydrateFromTask(ctx, client, t)
+		return d.SQL.hydrateFromTask(t, availableResources)
 	case build.TaskKindREST:
 		d.REST = &RESTDefinition{}
-		return d.REST.hydrateFromTask(ctx, client, t)
+		return d.REST.hydrateFromTask(t, availableResources)
 	case build.TaskKindBuiltin:
-		return hydrateBuiltin(ctx, client, d, t)
+		return hydrateBuiltin(d, t, availableResources)
 	default:
 		return errors.Errorf("unknown task kind: %s", t.Kind)
 	}
@@ -1786,38 +1737,32 @@ func (r ResourceDefinition) IsZero() bool {
 	return len(r.Attachments) == 0
 }
 
-type resourceCollection struct {
-	bySlug map[string]string
-	byName map[string]string
-}
-
-func getResourceIDsBySlugAndName(ctx context.Context, client api.IAPIClient) (resourceCollection, error) {
-	collection := resourceCollection{
-		bySlug: map[string]string{},
-		byName: map[string]string{},
-	}
-
-	resp, err := client.ListResourceMetadata(ctx)
-	if err != nil {
-		return resourceCollection{}, errors.Wrap(err, "fetching resources")
-	}
-	for _, metadata := range resp.Resources {
-		collection.bySlug[metadata.Slug] = metadata.ID
-		if metadata.DefaultEnvResource != nil {
-			collection.byName[metadata.DefaultEnvResource.Name] = metadata.ID
+// Looks up a resource from `resources`, matching on ID. If no match is found, nil is returned.
+func getResourceByID(resources []api.ResourceMetadata, id string) *api.ResourceMetadata {
+	for i, resource := range resources {
+		if resource.ID == id {
+			return &resources[i]
 		}
 	}
-	return collection, nil
+	return nil
 }
 
-func getResourceSlugsByID(ctx context.Context, client api.IAPIClient) (map[string]string, error) {
-	resp, err := client.ListResourceMetadata(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "fetching resources")
+// Looks up a resource from `resources`, matching on slug. If no match is found, nil is returned.
+func getResourceBySlug(resources []api.ResourceMetadata, slug string) *api.ResourceMetadata {
+	for i, resource := range resources {
+		if resource.Slug == slug {
+			return &resources[i]
+		}
 	}
-	resourceSlugsByID := map[string]string{}
-	for _, resource := range resp.Resources {
-		resourceSlugsByID[resource.ID] = resource.Slug
+	return nil
+}
+
+// Looks up a resource from `resources`, matching on name. If no match is found, nil is returned.
+func getResourceByName(resources []api.ResourceMetadata, name string) *api.ResourceMetadata {
+	for i, resource := range resources {
+		if resource.DefaultEnvResource != nil && resource.DefaultEnvResource.Name == name {
+			return &resources[i]
+		}
 	}
-	return resourceSlugsByID, nil
+	return nil
 }

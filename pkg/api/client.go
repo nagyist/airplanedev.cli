@@ -7,6 +7,7 @@ import (
 
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/resources"
+	"github.com/airplanedev/lib/pkg/utils/pointers"
 	"github.com/airplanedev/ojson"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
@@ -54,6 +55,84 @@ type Task struct {
 	CreatedAt time.Time `json:"createdAt" yaml:"-"`
 	// Computed based on the task's revision.
 	UpdatedAt time.Time `json:"updatedAt" yaml:"-"`
+}
+
+// AsUpdateTaskRequest converts a Task into an UpdateTaskRequest.
+//
+// Keep in mind that fields that are not managed as code are not included:
+// - RequireExplicitPermissions
+// - Permissions
+// - BuildID
+// - EnvSlug
+// - Repo
+// - ResourceRequests
+// - InterpolationMode
+func (t Task) AsUpdateTaskRequest() UpdateTaskRequest {
+	req := UpdateTaskRequest{
+		Slug:        t.Slug,
+		Name:        t.Name,
+		Description: t.Description,
+		Image:       t.Image,
+		Command:     t.Command,
+		Arguments:   t.Arguments,
+		Parameters:  t.Parameters,
+		Configs:     &t.Configs,
+		Constraints: t.Constraints,
+		Env:         t.Env,
+		Resources:   t.Resources,
+		Kind:        t.Kind,
+		KindOptions: t.KindOptions,
+		Runtime:     t.Runtime,
+		ExecuteRules: UpdateExecuteRulesRequest{
+			DisallowSelfApprove: &t.ExecuteRules.DisallowSelfApprove,
+			RequireRequests:     &t.ExecuteRules.RequireRequests,
+			RestrictCallers:     t.ExecuteRules.RestrictCallers,
+		},
+		Timeout: t.Timeout,
+	}
+
+	// Ensure all nullable fields are initialized since UpdateTaskRequest uses patch semantics.
+	if req.Kind == build.TaskKindImage {
+		if req.Command == nil {
+			req.Command = []string{}
+		}
+		if req.Arguments == nil {
+			req.Arguments = []string{}
+		}
+	}
+	if req.Parameters == nil {
+		req.Parameters = []Parameter{}
+	}
+	if req.Configs == nil || *req.Configs == nil {
+		req.Configs = &[]ConfigAttachment{}
+	}
+	if req.Constraints.Labels == nil {
+		req.Constraints.Labels = []AgentLabel{}
+	}
+	if req.Env == nil {
+		req.Env = TaskEnv{}
+	}
+	if req.Resources == nil {
+		req.Resources = map[string]string{}
+	}
+	if req.KindOptions == nil {
+		req.KindOptions = map[string]any{}
+	}
+	if req.ExecuteRules.DisallowSelfApprove == nil {
+		req.ExecuteRules.DisallowSelfApprove = pointers.Bool(false)
+	}
+	if req.ExecuteRules.RequireRequests == nil {
+		req.ExecuteRules.RequireRequests = pointers.Bool(false)
+	}
+	if req.ExecuteRules.RestrictCallers == nil {
+		req.ExecuteRules.RestrictCallers = []string{}
+	}
+
+	if t.InterpolationMode != "" {
+		req.InterpolationMode = &t.InterpolationMode
+	}
+
+	return req
 }
 
 type GetTaskRequest struct {

@@ -77,7 +77,12 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 	}
 
 	if !dd.DisableNormalize {
-		if err := def.Normalize(ctx, dd.Client); err != nil {
+		resp, err := dd.Client.ListResourceMetadata(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := def.Normalize(resp.Resources); err != nil {
 			return nil, err
 		}
 	}

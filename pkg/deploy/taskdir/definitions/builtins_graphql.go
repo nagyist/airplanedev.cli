@@ -1,7 +1,6 @@
 package definitions
 
 import (
-	"context"
 	"log"
 
 	"github.com/airplanedev/lib/pkg/api"
@@ -49,28 +48,19 @@ func (d GraphQLDefinition) getFunctionSpecification() (builtins.FunctionSpecific
 	}, nil
 }
 
-func (d GraphQLDefinition) fillInUpdateTaskRequest(ctx context.Context, client api.IAPIClient, req *api.UpdateTaskRequest, bc build.BuildConfig, isBundle bool) error {
-	collection, err := getResourceIDsBySlugAndName(ctx, client)
-	if err != nil {
-		return err
-	}
-
-	if id, ok := collection.bySlug[d.Resource]; ok {
-		req.Resources["api"] = id
-	} else {
+func (d GraphQLDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts GetTaskOpts) error {
+	if resource := getResourceBySlug(opts.AvailableResources, d.Resource); resource != nil {
+		task.Resources["api"] = resource.ID
+	} else if !opts.IgnoreInvalid {
 		return api.ResourceMissingError{Slug: d.Resource}
 	}
 	return nil
 }
 
-func (d *GraphQLDefinition) hydrateFromTask(ctx context.Context, client api.IAPIClient, t *api.Task) error {
+func (d *GraphQLDefinition) hydrateFromTask(t api.Task, availableResources []api.ResourceMetadata) error {
 	if resID, ok := t.Resources["api"]; ok {
-		resourceSlugsByID, err := getResourceSlugsByID(ctx, client)
-		if err != nil {
-			return err
-		}
-		if slug, ok := resourceSlugsByID[resID]; ok {
-			d.Resource = slug
+		if resource := getResourceByID(availableResources, resID); resource != nil {
+			d.Resource = resource.Slug
 		}
 	}
 	req, ok := t.KindOptions["request"]

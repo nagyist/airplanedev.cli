@@ -1,12 +1,10 @@
 package definitions
 
 import (
-	"context"
 	"testing"
 	"time"
 
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/api/mock"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/utils/pointers"
 	"github.com/stretchr/testify/require"
@@ -360,7 +358,7 @@ func TestTaskToDefinition(t *testing.T) {
 		name       string
 		task       api.Task
 		definition Definition
-		resources  []api.Resource
+		resources  []api.ResourceMetadata
 	}{
 		{
 			name: "python task",
@@ -580,11 +578,13 @@ func TestTaskToDefinition(t *testing.T) {
 		},
 		{
 			name: "rest task",
-			resources: []api.Resource{
+			resources: []api.ResourceMetadata{
 				{
 					ID:   "res20220111foobarx",
-					Name: "httpbin",
 					Slug: "httpbin",
+					DefaultEnvResource: &api.Resource{
+						Name: "httpbin",
+					},
 				},
 			},
 			task: api.Task{
@@ -864,11 +864,13 @@ func TestTaskToDefinition(t *testing.T) {
 		},
 		{
 			name: "check configs",
-			resources: []api.Resource{
+			resources: []api.ResourceMetadata{
 				{
 					ID:   "res20220111foobarx",
-					Name: "httpbin",
 					Slug: "httpbin",
+					DefaultEnvResource: &api.Resource{
+						Name: "httpbin",
+					},
 				},
 			},
 			task: api.Task{
@@ -1076,11 +1078,13 @@ func TestTaskToDefinition(t *testing.T) {
 		},
 		{
 			name: "simple resources",
-			resources: []api.Resource{
+			resources: []api.ResourceMetadata{
 				{
 					ID:   "res20220613localdb",
-					Name: "Local DB",
 					Slug: "local_db",
+					DefaultEnvResource: &api.Resource{
+						Name: "Local DB",
+					},
 				},
 			},
 			task: api.Task{
@@ -1131,11 +1135,7 @@ func TestTaskToDefinition(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			assert := require.New(t)
-			ctx := context.Background()
-			client := &mock.MockClient{
-				Resources: test.resources,
-			}
-			d, err := NewDefinitionFromTask(ctx, client, test.task)
+			d, err := NewDefinitionFromTask(test.task, test.resources)
 			assert.NoError(err)
 			assert.Equal(test.definition, d)
 		})
@@ -1147,7 +1147,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 		name       string
 		definition Definition
 		request    api.UpdateTaskRequest
-		resources  []api.Resource
+		resources  []api.ResourceMetadata
 		isBundle   bool
 	}{
 		{
@@ -1174,8 +1174,13 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				ExecuteRules: api.UpdateExecuteRulesRequest{
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
+					RestrictCallers:     []string{},
 				},
 				Timeout: 0,
+				Env:     api.TaskEnv{},
+				Constraints: api.RunConstraints{
+					Labels: []api.AgentLabel{},
+				},
 			},
 		},
 		{
@@ -1214,8 +1219,13 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				ExecuteRules: api.UpdateExecuteRulesRequest{
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
+					RestrictCallers:     []string{},
 				},
 				Timeout: 0,
+				Env:     api.TaskEnv{},
+				Constraints: api.RunConstraints{
+					Labels: []api.AgentLabel{},
+				},
 			},
 		},
 		{
@@ -1242,8 +1252,13 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				ExecuteRules: api.UpdateExecuteRulesRequest{
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
+					RestrictCallers:     []string{},
 				},
 				Timeout: 0,
+				Env:     api.TaskEnv{},
+				Constraints: api.RunConstraints{
+					Labels: []api.AgentLabel{},
+				},
 			},
 		},
 		{
@@ -1282,8 +1297,13 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				ExecuteRules: api.UpdateExecuteRulesRequest{
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
+					RestrictCallers:     []string{},
 				},
 				Timeout: 0,
+				Env:     api.TaskEnv{},
+				Constraints: api.RunConstraints{
+					Labels: []api.AgentLabel{},
+				},
 			},
 		},
 		{
@@ -1308,8 +1328,13 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				ExecuteRules: api.UpdateExecuteRulesRequest{
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
+					RestrictCallers:     []string{},
 				},
 				Timeout: 0,
+				Env:     api.TaskEnv{},
+				Constraints: api.RunConstraints{
+					Labels: []api.AgentLabel{},
+				},
 			},
 		},
 		{
@@ -1352,9 +1377,14 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				ExecuteRules: api.UpdateExecuteRulesRequest{
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
+					RestrictCallers:     []string{},
 				},
 				InterpolationMode: pointers.String("jst"),
 				Timeout:           0,
+				Env:               api.TaskEnv{},
+				Constraints: api.RunConstraints{
+					Labels: []api.AgentLabel{},
+				},
 			},
 		},
 		{
@@ -1381,8 +1411,14 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				ExecuteRules: api.UpdateExecuteRulesRequest{
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
+					RestrictCallers:     []string{},
 				},
 				Timeout: 0,
+				Env:     api.TaskEnv{},
+				Constraints: api.RunConstraints{
+					Labels: []api.AgentLabel{},
+				},
+				KindOptions: build.KindOptions{},
 			},
 		},
 		{
@@ -1420,13 +1456,20 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				ExecuteRules: api.UpdateExecuteRulesRequest{
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
+					RestrictCallers:     []string{},
 				},
 				Timeout: 0,
+				Env:     api.TaskEnv{},
+				Constraints: api.RunConstraints{
+					Labels: []api.AgentLabel{},
+				},
 			},
-			resources: []api.Resource{
+			resources: []api.ResourceMetadata{
 				{
-					ID:   "rest_id",
-					Name: "rest",
+					ID: "rest_id",
+					DefaultEnvResource: &api.Resource{
+						Name: "rest",
+					},
 				},
 			},
 		},
@@ -1456,8 +1499,13 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				ExecuteRules: api.UpdateExecuteRulesRequest{
 					DisallowSelfApprove: pointers.Bool(true),
 					RequireRequests:     pointers.Bool(true),
+					RestrictCallers:     []string{},
 				},
 				Timeout: 0,
+				Env:     api.TaskEnv{},
+				Constraints: api.RunConstraints{
+					Labels: []api.AgentLabel{},
+				},
 			},
 		},
 		{
@@ -1486,8 +1534,13 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				ExecuteRules: api.UpdateExecuteRulesRequest{
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
+					RestrictCallers:     []string{},
 				},
 				Timeout: 0,
+				Env:     api.TaskEnv{},
+				Constraints: api.RunConstraints{
+					Labels: []api.AgentLabel{},
+				},
 			},
 		},
 		{
@@ -1719,8 +1772,13 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				ExecuteRules: api.UpdateExecuteRulesRequest{
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
+					RestrictCallers:     []string{},
 				},
 				Timeout: 0,
+				Env:     api.TaskEnv{},
+				Constraints: api.RunConstraints{
+					Labels: []api.AgentLabel{},
+				},
 			},
 		},
 		{
@@ -1766,13 +1824,20 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				ExecuteRules: api.UpdateExecuteRulesRequest{
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
+					RestrictCallers:     []string{},
 				},
 				Timeout: 0,
+				Env:     api.TaskEnv{},
+				Constraints: api.RunConstraints{
+					Labels: []api.AgentLabel{},
+				},
 			},
-			resources: []api.Resource{
+			resources: []api.ResourceMetadata{
 				{
-					ID:   "rest_id",
-					Name: "rest",
+					ID: "rest_id",
+					DefaultEnvResource: &api.Resource{
+						Name: "rest",
+					},
 				},
 			},
 		},
@@ -1824,27 +1889,33 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				ExecuteRules: api.UpdateExecuteRulesRequest{
 					DisallowSelfApprove: pointers.Bool(false),
 					RequireRequests:     pointers.Bool(false),
+					RestrictCallers:     []string{},
 				},
-				Timeout: 0,
+				Constraints: api.RunConstraints{
+					Labels: []api.AgentLabel{},
+				},
+				KindOptions: build.KindOptions{},
+				Timeout:     0,
 			},
-			resources: []api.Resource{
+			resources: []api.ResourceMetadata{
 				{
 					ID:   "res20220613localdb",
-					Name: "Local DB",
 					Slug: "local_db",
+					DefaultEnvResource: &api.Resource{
+						Name: "Local DB",
+					},
 				},
 			},
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			assert := require.New(t)
-			ctx := context.Background()
-			client := &mock.MockClient{
-				Resources: test.resources,
-			}
-			req, err := test.definition.GetUpdateTaskRequest(ctx, client, test.isBundle)
+			task, err := test.definition.GetTask(GetTaskOpts{
+				AvailableResources: test.resources,
+				Bundle:             test.isBundle,
+			})
 			assert.NoError(err)
-			assert.Equal(test.request, req)
+			assert.Equal(test.request, task.AsUpdateTaskRequest())
 		})
 	}
 }
