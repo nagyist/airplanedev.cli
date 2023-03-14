@@ -71,6 +71,31 @@ func GenerateAliasToResourceMap(
 	return aliasToResourceMap, nil
 }
 
+func ListResourceMetadata(ctx context.Context, remoteClient api.APIClient, devConfig *conf.DevConfig, envSlug *string) ([]libapi.ResourceMetadata, error) {
+	mergedResources, err := MergeRemoteResources(ctx, remoteClient, devConfig, envSlug)
+	if err != nil {
+		return nil, errors.Wrap(err, "merging local and remote resources")
+	}
+
+	resources := []libapi.ResourceMetadata{}
+	for slug, resourceWithEnv := range mergedResources {
+		res := resourceWithEnv.Resource
+		resources = append(resources, libapi.ResourceMetadata{
+			ID:   res.GetID(),
+			Slug: slug,
+			DefaultEnvResource: &libapi.Resource{
+				ID:             res.GetID(),
+				Name:           res.GetName(),
+				Slug:           slug,
+				Kind:           libapi.ResourceKind(res.Kind()),
+				ExportResource: res,
+			},
+		})
+	}
+
+	return resources, nil
+}
+
 // MergeRemoteResources merges the resources defined in the dev config file with remote resources from the env passed
 // in the local dev server on startup.
 func MergeRemoteResources(ctx context.Context, remoteClient api.APIClient, devConfig *conf.DevConfig, envSlug *string) (map[string]env.ResourceWithEnv, error) {

@@ -23,6 +23,7 @@ import (
 	libapi "github.com/airplanedev/lib/pkg/api"
 	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	libresources "github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/resources/conversion"
 	"github.com/airplanedev/lib/pkg/resources/kind_configs"
@@ -305,7 +306,7 @@ func UpdateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 		Slug: req.Slug,
 		Name: req.Name,
 	}); err != nil {
-		return UpdateResourceResponse{}, errors.Wrap(err, "updating base resoruce")
+		return UpdateResourceResponse{}, errors.Wrap(err, "updating base resource")
 	}
 
 	// Remove the old resource first - we need to do this since DevConfig.Resources is a mapping from slug to resource,
@@ -480,16 +481,16 @@ func GetDescendantsHandler(ctx context.Context, state *state.State, r *http.Requ
 			// There is no task ID for local task revisions so we use the slug
 			taskID := descendant.TaskRevision.Def.GetSlug()
 			if _, ok := taskIDsSeen[taskID]; !ok {
-				utr, err := descendant.TaskRevision.Def.GetUpdateTaskRequest(ctx, state.LocalClient, false)
+				parameters, err := descendant.TaskRevision.Def.GetParameters()
 				if err != nil {
-					return GetDescendantsResponse{}, errors.Errorf("error getting task %s", descendant.TaskRevision.Def.GetSlug())
+					return GetDescendantsResponse{}, errors.Errorf("error getting task parameters %q", descendant.TaskRevision.Def.GetSlug())
 				}
 				localTask := libapi.Task{
 					ID:          taskID,
 					Name:        descendant.TaskRevision.Def.GetName(),
 					Slug:        descendant.TaskRevision.Def.GetSlug(),
 					Description: descendant.TaskRevision.Def.GetDescription(),
-					Parameters:  utr.Parameters,
+					Parameters:  parameters,
 				}
 				descendantTasks = append(descendantTasks, localTask)
 				taskIDsSeen[taskID] = struct{}{}
@@ -558,18 +559,18 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (Ge
 		return response, nil
 	}
 
-	utr, err := run.TaskRevision.Def.GetUpdateTaskRequest(ctx, state.LocalClient, false)
-	run.Parameters = &utr.Parameters
+	parameters, err := run.TaskRevision.Def.GetParameters()
 	if err != nil {
 		logger.Error("Encountered error while getting task info: %v", err)
 		return GetRunResponse{}, errors.Errorf("error getting task %s", run.TaskRevision.Def.GetSlug())
 	}
+	run.Parameters = &parameters
 	task := &libapi.Task{
 		ID:          run.TaskRevision.Def.GetSlug(),
 		Name:        run.TaskRevision.Def.GetName(),
 		Slug:        run.TaskRevision.Def.GetSlug(),
 		Description: run.TaskRevision.Def.GetDescription(),
-		Parameters:  utr.Parameters,
+		Parameters:  parameters,
 	}
 
 	return GetRunResponse{
@@ -619,53 +620,57 @@ func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request
 	if taskSlug == "" {
 		return libapi.Task{}, libhttp.NewErrBadRequest("task slug was not supplied")
 	}
+
 	taskConfig, ok := state.TaskConfigs.Get(taskSlug)
 	if !ok {
 		return libapi.Task{}, libhttp.NewErrNotFound("task with slug %q not found", taskSlug)
 	}
 
 	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
+
+	resources, err := resources.ListResourceMetadata(ctx, state.RemoteClient, state.DevConfig, envSlug)
+	if err != nil {
+		return libapi.Task{}, err
+	}
+
+	task, err := taskConfig.Def.GetTask(definitions.GetTaskOpts{
+		AvailableResources: resources,
+		Bundle:             true,
+		// We want to best-effort support invalid task definitions (e.g. unknown resources) so that
+		// we can render corresponding validation errors in the UI.
+		IgnoreInvalid: true,
+	})
+	if err != nil {
+		return libapi.Task{}, libhttp.NewErrBadRequest("task %q is invalid: %s", taskSlug, err.Error())
+	}
+
+	// Use the studio-generated ID.
+	task.ID = taskConfig.TaskID
+
 	metadata, err := state.GetTaskErrors(ctx, taskSlug, pointers.ToString(envSlug))
 	if err != nil {
 		return libapi.Task{}, err
 	}
-	// For our purposes, the libapi.Task and libapi.UpdateTaskRequest structs contain the same critical data.
-	// Using UpdateTaskRequest and taskConfig.Def.GetUpdateTaskRequest() conveniently
-	//  populates the needed fields (params, config attachments, etc.).
-	// We don't use GetUpdateTaskRequest() directly here since it does additional validation and
-	// we want to best-effort support invalid task definitions (e.g. unknown resources) so that we can render
-	// corresponding validation errors in the UI.
-	req := libapi.Task{
-		Slug:         taskConfig.Def.GetSlug(),
-		Name:         taskConfig.Def.GetName(),
-		Description:  taskConfig.Def.GetDescription(),
-		Runtime:      taskConfig.Def.GetRuntime(),
-		Resources:    map[string]string{},
-		UpdatedAt:    metadata.RefreshedAt,
-		ExecuteRules: libapi.ExecuteRules{RestrictCallers: taskConfig.Def.RestrictCallers},
+	task.UpdatedAt = metadata.RefreshedAt
+
+	// Certain fields are not supported by tasks-as-code, so give them default values.
+	if task.Triggers == nil {
+		task.Triggers = []libapi.Trigger{}
 	}
-	if resourceAttachments, err := taskConfig.Def.GetResourceAttachments(); err != nil {
-		return libapi.Task{}, errors.Wrap(err, "getting resource attachments")
-	} else if resourceAttachments != nil {
-		req.Resources = resourceAttachments
+	if task.ResourceRequests == nil {
+		task.ResourceRequests = libapi.ResourceRequests{}
 	}
-	configs, err := taskConfig.Def.GetConfigAttachments()
-	if err != nil {
-		return libapi.Task{}, errors.Wrap(err, "getting config attachments")
+	if task.Permissions == nil {
+		task.Permissions = libapi.Permissions{}
 	}
-	req.Configs = configs
-	parameters, err := taskConfig.Def.GetParameters()
-	if err != nil {
-		return libapi.Task{}, errors.Wrap(err, "getting parameters")
+	if task.InterpolationMode == "" {
+		task.InterpolationMode = "jst"
 	}
-	req.Parameters = parameters
-	kind, options, err := taskConfig.Def.GetKindAndOptions()
-	if err != nil {
-		return libapi.Task{}, errors.Wrap(err, "getting kind and options")
+	if task.CreatedAt.IsZero() {
+		task.CreatedAt = task.UpdatedAt
 	}
-	req.Kind = kind
-	req.KindOptions = options
-	return req, nil
+
+	return task, nil
 }
 
 type ViewInfo struct {

@@ -632,25 +632,9 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 // ListResourceMetadataHandler handles requests to the /v0/resources/listMetadata endpoint
 func ListResourceMetadataHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.ListResourceMetadataResponse, error) {
 	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
-	mergedResources, err := resources.MergeRemoteResources(ctx, state.RemoteClient, state.DevConfig, envSlug)
+	resources, err := resources.ListResourceMetadata(ctx, state.RemoteClient, state.DevConfig, envSlug)
 	if err != nil {
-		return libapi.ListResourceMetadataResponse{}, errors.Wrap(err, "merging local and remote resources")
-	}
-
-	resources := make([]libapi.ResourceMetadata, 0, len(mergedResources))
-	for slug, resourceWithEnv := range mergedResources {
-		res := resourceWithEnv.Resource
-		resources = append(resources, libapi.ResourceMetadata{
-			ID:   res.GetID(),
-			Slug: slug,
-			DefaultEnvResource: &libapi.Resource{
-				ID:             res.GetID(),
-				Name:           res.GetName(),
-				Slug:           slug,
-				Kind:           libapi.ResourceKind(res.Kind()),
-				ExportResource: res,
-			},
-		})
+		return libapi.ListResourceMetadataResponse{}, err
 	}
 
 	return libapi.ListResourceMetadataResponse{

@@ -170,7 +170,12 @@ func initTask(ctx context.Context, cfg config) error {
 			cfg.inline = true
 		}
 
-		def, err = definitions.NewDefinitionFromTask(ctx, cfg.client, task)
+		resp, err := client.ListResourceMetadata(ctx)
+		if err != nil {
+			return err
+		}
+
+		def, err = definitions.NewDefinitionFromTask(task, resp.Resources)
 		if err != nil {
 			return err
 		}
