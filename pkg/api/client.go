@@ -634,9 +634,9 @@ type Prompt struct {
 }
 
 type PromptReviewers struct {
-	// Groups are indentified by their slugs.
+	// Groups are identified by their slugs.
 	Groups []string `json:"groups"`
-	// Users are indentified by their emails.
+	// Users are identified by their emails.
 	Users              []string `json:"users"`
 	AllowSelfApprovals *bool    `json:"allowSelfApprovals"`
 }
