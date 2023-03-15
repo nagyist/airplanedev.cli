@@ -28,7 +28,7 @@ func run(ctx context.Context, c *cli.Config) error {
 			return err
 		}
 
-		delete(cfg.Tokens, c.Client.Host)
+		delete(cfg.Tokens, c.Client.Host())
 
 		if err := conf.WriteDefaultUserConfig(cfg); err != nil {
 			return err

@@ -61,7 +61,7 @@ func Init(cfg *cli.Config) error {
 		return err
 	}
 
-	tok := cli.ParseTokenForAnalytics(cfg.Client.Token)
+	tok := cli.ParseTokenForAnalytics(cfg.Client.Token())
 	sentry.ConfigureScope(func(scope *sentry.Scope) {
 		scope.SetUser(sentry.User{ID: tok.UserID})
 		scope.SetTag("team_id", tok.TeamID)
@@ -111,7 +111,7 @@ func Track(c api.APIClient, event string, properties map[string]interface{}, opt
 	if segmentClient == nil {
 		return
 	}
-	tok := cli.ParseTokenForAnalytics(c.GetToken())
+	tok := cli.ParseTokenForAnalytics(c.Token())
 	props := analytics.NewProperties().
 		Set("team_id", tok.TeamID).
 		Set("user_id", tok.UserID).

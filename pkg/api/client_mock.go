@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/airplanedev/cli/pkg/utils"
@@ -11,6 +12,7 @@ import (
 )
 
 type MockClient struct {
+	token                 string
 	Configs               []Config
 	Deploys               []CreateDeploymentRequest
 	Envs                  map[string]libapi.Env
@@ -22,9 +24,23 @@ type MockClient struct {
 	Users                 map[string]User
 	Views                 map[string]libapi.View
 	Uploads               map[string]libapi.Upload
+	apiKey                string
+	source                string
+	teamID                string
+	tunnelToken           *string
 }
 
 var _ APIClient = &MockClient{}
+
+func NewMockClient() *MockClient {
+	return &MockClient{
+		token: "mock-token",
+	}
+}
+
+func (mc *MockClient) AuthInfo(ctx context.Context) (res AuthInfoResponse, err error) {
+	return AuthInfoResponse{}, nil
+}
 
 func (mc *MockClient) GetTask(ctx context.Context, req libapi.GetTaskRequest) (res libapi.Task, err error) {
 	task, ok := mc.Tasks[req.Slug]
@@ -186,6 +202,10 @@ func (mc *MockClient) CreateTask(ctx context.Context, req CreateTaskRequest) (re
 	panic("not implemented") // TODO: Implement
 }
 
+func (mc *MockClient) ListRuns(ctx context.Context, req ListRunsRequest) (ListRunsResponse, error) {
+	panic("not implemented")
+}
+
 // TODO add other functions when needed.
 func (mc *MockClient) GetRegistryToken(ctx context.Context) (res RegistryTokenResponse, err error) {
 	return RegistryTokenResponse{Token: "token"}, nil
@@ -249,6 +269,10 @@ func (mc *MockClient) CreateDemoDB(ctx context.Context, name string) (string, er
 	panic("not implemented")
 }
 
+func (mc *MockClient) ResetDemoDB(ctx context.Context) (string, error) {
+	panic("not implemented")
+}
+
 func (mc *MockClient) ListFlags(ctx context.Context) (res ListFlagsResponse, err error) {
 	panic("not implemented") // TODO: Implement
 }
@@ -283,8 +307,47 @@ func (mc *MockClient) GetResource(ctx context.Context, req GetResourceRequest) (
 	return libapi.GetResourceResponse{}, errors.Errorf("resource with slug %s does not exist", req.Slug)
 }
 
-func (mc *MockClient) GetToken() string {
-	return "mock-token"
+func (mc *MockClient) Token() string {
+	return mc.token
+}
+
+func (mc *MockClient) SetToken(token string) {
+	mc.token = token
+}
+
+func (mc *MockClient) SetHost(host string) {
+}
+
+func (mc *MockClient) TunnelToken() *string {
+	return mc.tunnelToken
+}
+
+func (mc *MockClient) APIKey() string {
+	return mc.apiKey
+}
+
+func (mc *MockClient) SetAPIKey(apiKey string) {
+	mc.apiKey = apiKey
+}
+
+func (mc *MockClient) TeamID() string {
+	return mc.teamID
+}
+
+func (mc *MockClient) SetTeamID(teamID string) {
+	mc.teamID = teamID
+}
+
+func (mc *MockClient) Source() string {
+	return mc.source
+}
+
+func (mc *MockClient) SetSource(source string) {
+	mc.source = source
+}
+
+func (mc *MockClient) AppURL() *url.URL {
+	panic("not implemented")
 }
 
 func (mc *MockClient) EvaluateTemplate(ctx context.Context, req libapi.EvaluateTemplateRequest) (res libapi.EvaluateTemplateResponse, err error) {
@@ -352,5 +415,49 @@ func (mc *MockClient) GetTunnelToken(ctx context.Context) (res GetTunnelTokenRes
 }
 
 func (mc *MockClient) CreateSandbox(ctx context.Context, req CreateSandboxRequest) (res CreateSandboxResponse, err error) {
+	panic("not implemented")
+}
+
+func (mc *MockClient) SetDevSecret(ctx context.Context, token string) (err error) {
+	panic("not implemented")
+}
+
+func (mc *MockClient) CreateAPIKey(ctx context.Context, req CreateAPIKeyRequest) (res CreateAPIKeyResponse, err error) {
+	panic("not implemented")
+}
+
+func (mc *MockClient) ListAPIKeys(ctx context.Context) (res ListAPIKeysResponse, err error) {
+	panic("not implemented")
+}
+
+func (mc *MockClient) DeleteAPIKey(ctx context.Context, req DeleteAPIKeyRequest) (err error) {
+	panic("not implemented")
+}
+
+func (mc *MockClient) Host() string {
+	return ""
+}
+
+func (mc *MockClient) GetUniqueSlug(ctx context.Context, name, preferredSlug string) (res GetUniqueSlugResponse, err error) {
+	panic("not implemented")
+}
+
+func (mc *MockClient) TokenURL() string {
+	panic("not implemented")
+}
+
+func (mc *MockClient) LoginURL(uri string) string {
+	panic("not implemented")
+}
+
+func (mc *MockClient) LoginSuccessURL() string {
+	panic("not implemented")
+}
+
+func (mc *MockClient) Watcher(ctx context.Context, req RunTaskRequest) (*Watcher, error) {
+	panic("not implemented")
+}
+
+func (mc *MockClient) RunURL(id string, envSlug string) string {
 	panic("not implemented")
 }

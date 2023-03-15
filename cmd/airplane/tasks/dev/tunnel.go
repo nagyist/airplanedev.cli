@@ -13,7 +13,7 @@ import (
 	"golang.ngrok.com/ngrok/config"
 )
 
-func configureTunnel(ctx context.Context, client *api.Client, authInfo api.AuthInfoResponse) (token *string, userSubdomain string, ln net.Listener, err error) {
+func configureTunnel(ctx context.Context, client api.APIClient, authInfo api.AuthInfoResponse) (token *string, userSubdomain string, ln net.Listener, err error) {
 	// Obtain user-specific ngrok auth token.
 	tokenResp, err := client.GetTunnelToken(ctx)
 	if err != nil {

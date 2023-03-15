@@ -20,13 +20,19 @@ import (
 )
 
 const (
-	// Host is the default API host.
-	Host = "api.airplane.dev"
+	// DefaultAPIHost is the default API host.
+	DefaultAPIHost = "api.airplane.dev"
 )
 
 // Client implements Airplane client.
 type Client struct {
-	ClientOpts
+	host        string
+	token       string
+	tunnelToken *string
+	source      string
+	apiKey      string
+	teamID      string
+
 	http libhttp.Client
 }
 
@@ -53,7 +59,7 @@ type ClientOpts struct {
 	TeamID string
 }
 
-func NewClient(opts ClientOpts) Client {
+func NewClient(opts ClientOpts) *Client {
 	headers := map[string]string{
 		"X-Airplane-Client-Kind":    "cli",
 		"X-Airplane-Client-Version": version.Get(),
@@ -62,8 +68,13 @@ func NewClient(opts ClientOpts) Client {
 		headers["X-Airplane-Client-Source"] = opts.Source
 	}
 
-	return Client{
-		ClientOpts: opts,
+	return &Client{
+		host:        opts.Host,
+		token:       opts.Token,
+		tunnelToken: opts.TunnelToken,
+		source:      opts.Source,
+		apiKey:      opts.APIKey,
+		teamID:      opts.TeamID,
 		http: libhttp.NewClient(libhttp.ClientOpts{
 			Headers:   headers,
 			UserAgent: "airplane/cli/" + version.Get(),
@@ -117,6 +128,7 @@ type APIClient interface {
 	UpdateTask(ctx context.Context, req libapi.UpdateTaskRequest) (res UpdateTaskResponse, err error)
 	RunTask(ctx context.Context, req RunTaskRequest) (RunTaskResponse, error)
 	TaskURL(slug string, envSlug string) string
+	ListRuns(ctx context.Context, req ListRunsRequest) (ListRunsResponse, error)
 
 	GetRun(ctx context.Context, id string) (res GetRunResponse, err error)
 	GetOutputs(ctx context.Context, runID string) (res GetOutputsResponse, err error)
@@ -133,6 +145,10 @@ type APIClient interface {
 
 	GetRegistryToken(ctx context.Context) (res RegistryTokenResponse, err error)
 
+	CreateAPIKey(ctx context.Context, req CreateAPIKeyRequest) (res CreateAPIKeyResponse, err error)
+	ListAPIKeys(ctx context.Context) (res ListAPIKeysResponse, err error)
+	DeleteAPIKey(ctx context.Context, req DeleteAPIKeyRequest) (err error)
+
 	GetDeploymentLogs(ctx context.Context, deploymentID string, prevToken string) (res GetDeploymentLogsResponse, err error)
 	GetDeployment(ctx context.Context, id string) (res Deployment, err error)
 	CreateDeployment(ctx context.Context, req CreateDeploymentRequest) (CreateDeploymentResponse, error)
@@ -147,6 +163,7 @@ type APIClient interface {
 	GetView(ctx context.Context, req libapi.GetViewRequest) (libapi.View, error)
 	CreateView(ctx context.Context, req libapi.CreateViewRequest) (libapi.View, error)
 	CreateDemoDB(ctx context.Context, name string) (string, error)
+	ResetDemoDB(ctx context.Context) (string, error)
 
 	GetEnv(ctx context.Context, envSlug string) (libapi.Env, error)
 	ListEnvs(ctx context.Context) (ListEnvsResponse, error)
@@ -155,8 +172,11 @@ type APIClient interface {
 
 	GetPermissions(ctx context.Context, taskSlug string, actions []string) (GetPermissionsResponse, error)
 
-	// All methods below this point represent CLI-specific API operations, and not requests to api.airplane.dev.
-	GetToken() string
+	GetUniqueSlug(ctx context.Context, name, preferredSlug string) (res GetUniqueSlugResponse, err error)
+
+	SetDevSecret(ctx context.Context, token string) (err error)
+	GetTunnelToken(ctx context.Context) (GetTunnelTokenResponse, error)
+	CreateSandbox(ctx context.Context, req CreateSandboxRequest) (CreateSandboxResponse, error)
 
 	ListFlags(ctx context.Context) (ListFlagsResponse, error)
 
@@ -164,16 +184,33 @@ type APIClient interface {
 
 	GetUser(ctx context.Context, userID string) (GetUserResponse, error)
 
-	GetTunnelToken(ctx context.Context) (GetTunnelTokenResponse, error)
-	CreateSandbox(ctx context.Context, req CreateSandboxRequest) (CreateSandboxResponse, error)
+	// All methods below this point represent CLI-specific API operations, and not requests to api.airplane.dev.
+	AuthInfo(ctx context.Context) (res AuthInfoResponse, err error)
+	Token() string
+	SetToken(token string)
+	TunnelToken() *string
+	Host() string
+	SetHost(host string)
+	TokenURL() string
+	LoginURL(uri string) string
+	LoginSuccessURL() string
+	APIKey() string
+	SetAPIKey(apiKey string)
+	TeamID() string
+	SetTeamID(teamID string)
+	Source() string
+	SetSource(source string)
+	AppURL() *url.URL
+	Watcher(ctx context.Context, req RunTaskRequest) (*Watcher, error)
+	RunURL(id string, envSlug string) string
 }
 
-var _ APIClient = Client{}
-var _ libapi.IAPIClient = Client{}
+var _ APIClient = &Client{}
+var _ libapi.IAPIClient = &Client{}
 
 // AppURL returns the app URL.
-func (c Client) AppURL() *url.URL {
-	apphost := c.host()
+func (c *Client) AppURL() *url.URL {
+	apphost := c.Host()
 	apphost = strings.ReplaceAll(apphost, "api.airstage.app", "web.airstage.app")
 	apphost = strings.ReplaceAll(apphost, "api", "app")
 	u, _ := url.Parse(c.scheme() + apphost)
@@ -181,22 +218,54 @@ func (c Client) AppURL() *url.URL {
 }
 
 // HostURL returns the api URL, e.g. api.airstage.app
-func (c Client) HostURL() string {
-	return c.scheme() + c.host()
+func (c *Client) HostURL() string {
+	return c.scheme() + c.Host()
 }
 
-func (c Client) GetToken() string {
-	return c.Token
+func (c *Client) Token() string {
+	return c.token
 }
 
-func (c Client) TokenURL() string {
+func (c *Client) SetToken(token string) {
+	c.token = token
+}
+
+func (c *Client) TunnelToken() *string {
+	return c.tunnelToken
+}
+
+func (c *Client) APIKey() string {
+	return c.apiKey
+}
+
+func (c *Client) SetAPIKey(apiKey string) {
+	c.apiKey = apiKey
+}
+
+func (c *Client) TeamID() string {
+	return c.teamID
+}
+
+func (c *Client) SetTeamID(teamID string) {
+	c.teamID = teamID
+}
+
+func (c *Client) Source() string {
+	return c.source
+}
+
+func (c *Client) SetSource(source string) {
+	c.source = source
+}
+
+func (c *Client) TokenURL() string {
 	u := c.AppURL()
 	u.Path = "/cli/login"
 	u.RawQuery = url.Values{"showToken": []string{"1"}}.Encode()
 	return u.String()
 }
 
-func (c Client) LoginURL(uri string) string {
+func (c *Client) LoginURL(uri string) string {
 	u := c.AppURL()
 	u.Path = "/cli/login"
 	u.RawQuery = url.Values{"redirect": []string{uri}}.Encode()
@@ -204,14 +273,14 @@ func (c Client) LoginURL(uri string) string {
 }
 
 // LoginSuccessURL returns a URL showing a message that logging in was successful.
-func (c Client) LoginSuccessURL() string {
+func (c *Client) LoginSuccessURL() string {
 	u := c.AppURL()
 	u.Path = "/cli/success"
 	return u.String()
 }
 
 // DeploymentURL returns a URL for a deployment.
-func (c Client) DeploymentURL(deploymentID string, envSlug string) string {
+func (c *Client) DeploymentURL(deploymentID string, envSlug string) string {
 	u := c.AppURL()
 	u.Path = fmt.Sprintf("/deployments/%s", deploymentID)
 	if envSlug != "" {
@@ -221,7 +290,7 @@ func (c Client) DeploymentURL(deploymentID string, envSlug string) string {
 }
 
 // RunURL returns a run URL for a run ID.
-func (c Client) RunURL(id string, envSlug string) string {
+func (c *Client) RunURL(id string, envSlug string) string {
 	u := c.AppURL()
 	u.Path = "/runs/" + id
 	if envSlug != "" {
@@ -231,7 +300,7 @@ func (c Client) RunURL(id string, envSlug string) string {
 }
 
 // TaskURL returns a task URL for a task slug.
-func (c Client) TaskURL(slug string, envSlug string) string {
+func (c *Client) TaskURL(slug string, envSlug string) string {
 	u := c.AppURL()
 	u.Path = "/t/" + slug
 	if envSlug != "" {
@@ -241,19 +310,19 @@ func (c Client) TaskURL(slug string, envSlug string) string {
 }
 
 // AuthInfo responds with the currently authenticated details.
-func (c Client) AuthInfo(ctx context.Context) (res AuthInfoResponse, err error) {
+func (c *Client) AuthInfo(ctx context.Context) (res AuthInfoResponse, err error) {
 	err = c.get(ctx, "/auth/info", &res)
 	return
 }
 
 // GetRegistryToken responds with the registry token.
-func (c Client) GetRegistryToken(ctx context.Context) (res RegistryTokenResponse, err error) {
+func (c *Client) GetRegistryToken(ctx context.Context) (res RegistryTokenResponse, err error) {
 	err = c.post(ctx, "/registry/getToken", nil, &res)
 	return
 }
 
 // CreateTask creates a task with the given request.
-func (c Client) CreateTask(ctx context.Context, req CreateTaskRequest) (res CreateTaskResponse, err error) {
+func (c *Client) CreateTask(ctx context.Context, req CreateTaskRequest) (res CreateTaskResponse, err error) {
 	err = c.post(ctx, encodeQueryString("/tasks/create", url.Values{
 		"envSlug": []string{req.EnvSlug},
 	}), req, &res)
@@ -261,13 +330,13 @@ func (c Client) CreateTask(ctx context.Context, req CreateTaskRequest) (res Crea
 }
 
 // UpdateTask updates a task with the given req.
-func (c Client) UpdateTask(ctx context.Context, req libapi.UpdateTaskRequest) (res UpdateTaskResponse, err error) {
+func (c *Client) UpdateTask(ctx context.Context, req libapi.UpdateTaskRequest) (res UpdateTaskResponse, err error) {
 	err = c.post(ctx, "/tasks/update", req, &res)
 	return
 }
 
 // ListTasks lists all tasks.
-func (c Client) ListTasks(ctx context.Context, envSlug string) (res ListTasksResponse, err error) {
+func (c *Client) ListTasks(ctx context.Context, envSlug string) (res ListTasksResponse, err error) {
 	err = c.get(ctx, encodeQueryString("/tasks/list", url.Values{
 		"envSlug": []string{envSlug},
 	}), &res)
@@ -280,7 +349,7 @@ func (c Client) ListTasks(ctx context.Context, envSlug string) (res ListTasksRes
 	return
 }
 
-func (c Client) ListFlags(ctx context.Context) (res ListFlagsResponse, err error) {
+func (c *Client) ListFlags(ctx context.Context) (res ListFlagsResponse, err error) {
 	err = c.get(ctx, "/flags/list", &res)
 	if err != nil {
 		return
@@ -289,7 +358,7 @@ func (c Client) ListFlags(ctx context.Context) (res ListFlagsResponse, err error
 }
 
 // GetUniqueSlug gets a unique slug based on the given name.
-func (c Client) GetUniqueSlug(ctx context.Context, name, preferredSlug string) (res GetUniqueSlugResponse, err error) {
+func (c *Client) GetUniqueSlug(ctx context.Context, name, preferredSlug string) (res GetUniqueSlugResponse, err error) {
 	q := url.Values{
 		"name": []string{name},
 		"slug": []string{preferredSlug},
@@ -299,7 +368,7 @@ func (c Client) GetUniqueSlug(ctx context.Context, name, preferredSlug string) (
 }
 
 // ListRuns lists most recent runs.
-func (c Client) ListRuns(ctx context.Context, req ListRunsRequest) (ListRunsResponse, error) {
+func (c *Client) ListRuns(ctx context.Context, req ListRunsRequest) (ListRunsResponse, error) {
 	pageLimit := 100
 	if req.Limit > 0 && req.Limit < 100 {
 		// If a user provides a smaller limit, fetch exactly that many items.
@@ -349,7 +418,7 @@ func (c Client) ListRuns(ctx context.Context, req ListRunsRequest) (ListRunsResp
 }
 
 // RunTask runs a task.
-func (c Client) RunTask(ctx context.Context, req RunTaskRequest) (RunTaskResponse, error) {
+func (c *Client) RunTask(ctx context.Context, req RunTaskRequest) (RunTaskResponse, error) {
 	var res RunTaskResponse
 	if err := c.post(ctx, encodeQueryString("/tasks/execute", url.Values{
 		"envSlug": []string{req.EnvSlug},
@@ -371,7 +440,7 @@ func (c Client) RunTask(ctx context.Context, req RunTaskRequest) (RunTaskRespons
 }
 
 // Watcher runs a task with the given arguments and returns a run watcher.
-func (c Client) Watcher(ctx context.Context, req RunTaskRequest) (*Watcher, error) {
+func (c *Client) Watcher(ctx context.Context, req RunTaskRequest) (*Watcher, error) {
 	resp, err := c.RunTask(ctx, req)
 	if err != nil {
 		return nil, err
@@ -380,14 +449,14 @@ func (c Client) Watcher(ctx context.Context, req RunTaskRequest) (*Watcher, erro
 }
 
 // GetRun returns a run by id.
-func (c Client) GetRun(ctx context.Context, id string) (res GetRunResponse, err error) {
+func (c *Client) GetRun(ctx context.Context, id string) (res GetRunResponse, err error) {
 	q := url.Values{"runID": []string{id}}
 	err = c.get(ctx, "/runs/get?"+q.Encode(), &res)
 	return
 }
 
 // GetLogs returns the logs by runID and since timestamp.
-func (c Client) GetLogs(ctx context.Context, runID, prevToken string) (res GetLogsResponse, err error) {
+func (c *Client) GetLogs(ctx context.Context, runID, prevToken string) (res GetLogsResponse, err error) {
 	q := url.Values{"runID": []string{runID}}
 	if prevToken != "" {
 		q.Set("prev_token", prevToken)
@@ -400,21 +469,21 @@ func (c Client) GetLogs(ctx context.Context, runID, prevToken string) (res GetLo
 }
 
 // GetOutputs returns the outputs by runID.
-func (c Client) GetOutputs(ctx context.Context, runID string) (res GetOutputsResponse, err error) {
+func (c *Client) GetOutputs(ctx context.Context, runID string) (res GetOutputsResponse, err error) {
 	q := url.Values{"runID": []string{runID}}
 	err = c.get(ctx, "/runs/getOutputs?"+q.Encode(), &res)
 	return
 }
 
 // GetRunbook returns the details of a runbook by slug.
-func (c Client) GetRunbook(ctx context.Context, runbookSlug string, envSlug string) (res GetRunbookResponse, err error) {
+func (c *Client) GetRunbook(ctx context.Context, runbookSlug string, envSlug string) (res GetRunbookResponse, err error) {
 	q := url.Values{"runbookSlug": []string{runbookSlug}, "envSlug": []string{envSlug}}
 	err = c.get(ctx, "/runbooks/get?"+q.Encode(), &res)
 	return
 }
 
 // GetOutputs returns the outputs by runID.
-func (c Client) ListSessionBlocks(ctx context.Context, sessionID string) (
+func (c *Client) ListSessionBlocks(ctx context.Context, sessionID string) (
 	res ListSessionBlocksResponse,
 	err error,
 ) {
@@ -426,7 +495,7 @@ func (c Client) ListSessionBlocks(ctx context.Context, sessionID string) (
 }
 
 // GetTask fetches a task by slug. If the slug does not match a task, a *TaskMissingError is returned.
-func (c Client) GetTask(ctx context.Context, req libapi.GetTaskRequest) (res libapi.Task, err error) {
+func (c *Client) GetTask(ctx context.Context, req libapi.GetTaskRequest) (res libapi.Task, err error) {
 	err = c.get(ctx, encodeQueryString("/tasks/get", url.Values{
 		"slug":    []string{req.Slug},
 		"envSlug": []string{req.EnvSlug},
@@ -447,7 +516,7 @@ func (c Client) GetTask(ctx context.Context, req libapi.GetTaskRequest) (res lib
 	return
 }
 
-func (c Client) GetTaskByID(ctx context.Context, id string) (res libapi.Task, err error) {
+func (c *Client) GetTaskByID(ctx context.Context, id string) (res libapi.Task, err error) {
 	err = c.get(ctx, encodeQueryString("/tasks/get", url.Values{
 		"id": []string{id},
 	}), &res)
@@ -465,7 +534,7 @@ func (c Client) GetTaskByID(ctx context.Context, id string) (res libapi.Task, er
 }
 
 // GetTaskMetadata fetches a task's metadata by slug. If the slug does not match a task, a *TaskMissingError is returned.
-func (c Client) GetTaskMetadata(ctx context.Context, slug string) (res libapi.TaskMetadata, err error) {
+func (c *Client) GetTaskMetadata(ctx context.Context, slug string) (res libapi.TaskMetadata, err error) {
 	err = c.get(ctx, encodeQueryString("/tasks/getMetadata", url.Values{
 		"slug": []string{slug},
 	}), &res)
@@ -482,7 +551,7 @@ func (c Client) GetTaskMetadata(ctx context.Context, slug string) (res libapi.Ta
 }
 
 // GetTaskReviewers fetches a task and reviewers by slug. If the slug does not match a task, a *TaskMissingError is returned.
-func (c Client) GetTaskReviewers(ctx context.Context, slug string) (res GetTaskReviewersResponse, err error) {
+func (c *Client) GetTaskReviewers(ctx context.Context, slug string) (res GetTaskReviewersResponse, err error) {
 	err = c.get(ctx, encodeQueryString("/tasks/getTaskReviewers", url.Values{
 		"taskSlug": []string{slug},
 	}), &res)
@@ -499,7 +568,7 @@ func (c Client) GetTaskReviewers(ctx context.Context, slug string) (res GetTaskR
 }
 
 // GetView fetches a view. If the view does not exist, a *ViewMissingError is returned.
-func (c Client) GetView(ctx context.Context, req libapi.GetViewRequest) (res libapi.View, err error) {
+func (c *Client) GetView(ctx context.Context, req libapi.GetViewRequest) (res libapi.View, err error) {
 	err = c.get(ctx, encodeQueryString("/views/get", url.Values{
 		"slug": []string{req.Slug},
 		"id":   []string{req.ID},
@@ -516,12 +585,12 @@ func (c Client) GetView(ctx context.Context, req libapi.GetViewRequest) (res lib
 	return
 }
 
-func (c Client) CreateView(ctx context.Context, req libapi.CreateViewRequest) (res libapi.View, err error) {
+func (c *Client) CreateView(ctx context.Context, req libapi.CreateViewRequest) (res libapi.View, err error) {
 	err = c.post(ctx, "/views/create", req, &res)
 	return
 }
 
-func (c Client) CreateDemoDB(ctx context.Context, name string) (string, error) {
+func (c *Client) CreateDemoDB(ctx context.Context, name string) (string, error) {
 	reply := struct {
 		ResourceID string `json:"resourceID"`
 	}{}
@@ -534,7 +603,7 @@ func (c Client) CreateDemoDB(ctx context.Context, name string) (string, error) {
 	return reply.ResourceID, nil
 }
 
-func (c Client) ResetDemoDB(ctx context.Context) (string, error) {
+func (c *Client) ResetDemoDB(ctx context.Context) (string, error) {
 	reply := struct {
 		ResourceID string `json:"resourceID"`
 	}{}
@@ -546,7 +615,7 @@ func (c Client) ResetDemoDB(ctx context.Context) (string, error) {
 }
 
 // GetConfig returns a config by name and tag.
-func (c Client) GetConfig(ctx context.Context, req GetConfigRequest) (res GetConfigResponse, err error) {
+func (c *Client) GetConfig(ctx context.Context, req GetConfigRequest) (res GetConfigResponse, err error) {
 	err = c.post(ctx, encodeQueryString("/configs/get", url.Values{
 		"envSlug": []string{req.EnvSlug},
 	}), req, &res)
@@ -554,7 +623,7 @@ func (c Client) GetConfig(ctx context.Context, req GetConfigRequest) (res GetCon
 }
 
 // SetConfig sets a config, creating it if new and updating it if already exists.
-func (c Client) SetConfig(ctx context.Context, req SetConfigRequest) (err error) {
+func (c *Client) SetConfig(ctx context.Context, req SetConfigRequest) (err error) {
 	err = c.post(ctx, encodeQueryString("/configs/set", url.Values{
 		"envSlug": []string{req.EnvSlug},
 	}), req, nil)
@@ -562,7 +631,7 @@ func (c Client) SetConfig(ctx context.Context, req SetConfigRequest) (err error)
 }
 
 // ListConfigs returns a config by name and tag.
-func (c Client) ListConfigs(ctx context.Context, req ListConfigsRequest) (res ListConfigsResponse, err error) {
+func (c *Client) ListConfigs(ctx context.Context, req ListConfigsRequest) (res ListConfigsResponse, err error) {
 	err = c.get(ctx, encodeQueryString("/configs/list", url.Values{
 		"names":       req.Names,
 		"showSecrets": []string{strconv.FormatBool(req.ShowSecrets)},
@@ -572,48 +641,48 @@ func (c Client) ListConfigs(ctx context.Context, req ListConfigsRequest) (res Li
 }
 
 // GetDeployment returns a deployment.
-func (c Client) GetDeployment(ctx context.Context, id string) (res Deployment, err error) {
+func (c *Client) GetDeployment(ctx context.Context, id string) (res Deployment, err error) {
 	q := url.Values{"id": []string{id}}
 	err = c.get(ctx, "/deployments/get?"+q.Encode(), &res)
 	return
 }
 
 // CreateBuildUpload creates an Airplane upload and returns metadata about it.
-func (c Client) CreateBuildUpload(ctx context.Context, req libapi.CreateBuildUploadRequest) (res libapi.CreateBuildUploadResponse, err error) {
+func (c *Client) CreateBuildUpload(ctx context.Context, req libapi.CreateBuildUploadRequest) (res libapi.CreateBuildUploadResponse, err error) {
 	err = c.post(ctx, "/builds/createUpload", req, &res)
 	return
 }
 
 // CreateAPIKey creates a new API key and returns data about it.
-func (c Client) CreateAPIKey(ctx context.Context, req CreateAPIKeyRequest) (res CreateAPIKeyResponse, err error) {
+func (c *Client) CreateAPIKey(ctx context.Context, req CreateAPIKeyRequest) (res CreateAPIKeyResponse, err error) {
 	err = c.post(ctx, "/apiKeys/create", req, &res)
 	return
 }
 
 // ListAPIKeys lists API keys.
-func (c Client) ListAPIKeys(ctx context.Context) (res ListAPIKeysResponse, err error) {
+func (c *Client) ListAPIKeys(ctx context.Context) (res ListAPIKeysResponse, err error) {
 	err = c.get(ctx, "/apiKeys/list", &res)
 	return
 }
 
 // DeleteAPIKey deletes an API key.
-func (c Client) DeleteAPIKey(ctx context.Context, req DeleteAPIKeyRequest) (err error) {
+func (c *Client) DeleteAPIKey(ctx context.Context, req DeleteAPIKeyRequest) (err error) {
 	err = c.post(ctx, "/apiKeys/delete", req, nil)
 	return
 }
 
-func (c Client) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) (res CreateDeploymentResponse, err error) {
+func (c *Client) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) (res CreateDeploymentResponse, err error) {
 	err = c.post(ctx, encodeQueryString("/deployments/create", url.Values{
 		"envSlug": []string{req.EnvSlug},
 	}), req, &res)
 	return
 }
 
-func (c Client) CancelDeployment(ctx context.Context, req CancelDeploymentRequest) error {
+func (c *Client) CancelDeployment(ctx context.Context, req CancelDeploymentRequest) error {
 	return c.post(ctx, "/deployments/cancel", req, nil)
 }
 
-func (c Client) GetDeploymentLogs(ctx context.Context, deploymentID string, prevToken string) (res GetDeploymentLogsResponse, err error) {
+func (c *Client) GetDeploymentLogs(ctx context.Context, deploymentID string, prevToken string) (res GetDeploymentLogsResponse, err error) {
 	q := url.Values{
 		"id": []string{deploymentID},
 	}
@@ -627,19 +696,19 @@ func (c Client) GetDeploymentLogs(ctx context.Context, deploymentID string, prev
 	return
 }
 
-func (c Client) ListResources(ctx context.Context, envSlug string) (res libapi.ListResourcesResponse, err error) {
+func (c *Client) ListResources(ctx context.Context, envSlug string) (res libapi.ListResourcesResponse, err error) {
 	err = c.get(ctx, encodeQueryString("/resources/list", url.Values{
 		"envSlug": []string{envSlug},
 	}), &res)
 	return
 }
 
-func (c Client) ListResourceMetadata(ctx context.Context) (res libapi.ListResourceMetadataResponse, err error) {
+func (c *Client) ListResourceMetadata(ctx context.Context) (res libapi.ListResourceMetadataResponse, err error) {
 	err = c.get(ctx, "/resources/listMetadata", &res)
 	return
 }
 
-func (c Client) GetResource(ctx context.Context, req GetResourceRequest) (res libapi.GetResourceResponse, err error) {
+func (c *Client) GetResource(ctx context.Context, req GetResourceRequest) (res libapi.GetResourceResponse, err error) {
 	err = c.get(ctx, encodeQueryString("/resources/get", url.Values{
 		"id":                   []string{req.ID},
 		"slug":                 []string{req.Slug},
@@ -656,24 +725,24 @@ func (c Client) GetResource(ctx context.Context, req GetResourceRequest) (res li
 	return
 }
 
-func (c Client) GetEnv(ctx context.Context, envSlug string) (res libapi.Env, err error) {
+func (c *Client) GetEnv(ctx context.Context, envSlug string) (res libapi.Env, err error) {
 	err = c.get(ctx, encodeQueryString("/envs/get", url.Values{
 		"slug": []string{envSlug},
 	}), &res)
 	return
 }
 
-func (c Client) ListEnvs(ctx context.Context) (res ListEnvsResponse, err error) {
+func (c *Client) ListEnvs(ctx context.Context) (res ListEnvsResponse, err error) {
 	err = c.get(ctx, "/envs/list", &res)
 	return
 }
 
-func (c Client) EvaluateTemplate(ctx context.Context, req libapi.EvaluateTemplateRequest) (res libapi.EvaluateTemplateResponse, err error) {
+func (c *Client) EvaluateTemplate(ctx context.Context, req libapi.EvaluateTemplateRequest) (res libapi.EvaluateTemplateResponse, err error) {
 	err = c.post(ctx, "/templates/evaluate", req, &res)
 	return
 }
 
-func (c Client) GetPermissions(ctx context.Context, taskSlug string, actions []string) (res GetPermissionsResponse, err error) {
+func (c *Client) GetPermissions(ctx context.Context, taskSlug string, actions []string) (res GetPermissionsResponse, err error) {
 	err = c.get(ctx, encodeQueryString("/permissions/get", url.Values{
 		"task_slug": []string{taskSlug},
 		"actions":   actions,
@@ -681,82 +750,82 @@ func (c Client) GetPermissions(ctx context.Context, taskSlug string, actions []s
 	return
 }
 
-func (c Client) CreateUpload(ctx context.Context, req libapi.CreateUploadRequest) (res libapi.CreateUploadResponse, err error) {
+func (c *Client) CreateUpload(ctx context.Context, req libapi.CreateUploadRequest) (res libapi.CreateUploadResponse, err error) {
 	err = c.post(ctx, "/uploads/create", req, &res)
 	return
 }
 
-func (c Client) GetUpload(ctx context.Context, uploadID string) (res libapi.GetUploadResponse, err error) {
+func (c *Client) GetUpload(ctx context.Context, uploadID string) (res libapi.GetUploadResponse, err error) {
 	err = c.get(ctx, encodeQueryString("/uploads/get", url.Values{
 		"id": []string{uploadID},
 	}), &res)
 	return
 }
 
-func (c Client) GenerateSignedURLs(ctx context.Context, envSlug string) (res GenerateSignedURLsResponse, err error) {
+func (c *Client) GenerateSignedURLs(ctx context.Context, envSlug string) (res GenerateSignedURLsResponse, err error) {
 	err = c.get(ctx, encodeQueryString("/uploads/generateSignedURLs", url.Values{
 		"envSlug": []string{envSlug},
 	}), &res)
 	return
 }
 
-func (c Client) GetWebHost(ctx context.Context) (webHost string, err error) {
+func (c *Client) GetWebHost(ctx context.Context) (webHost string, err error) {
 	err = c.get(ctx, "/hosts/web", &webHost)
 	return
 }
 
-func (c Client) GetUser(ctx context.Context, userID string) (res GetUserResponse, err error) {
+func (c *Client) GetUser(ctx context.Context, userID string) (res GetUserResponse, err error) {
 	err = c.get(ctx, encodeQueryString("/users/get", url.Values{
 		"userID": []string{userID},
 	}), &res)
 	return
 }
 
-func (c Client) GetTunnelToken(ctx context.Context) (res GetTunnelTokenResponse, err error) {
-	err = c.get(ctx, "/studio/tunnelToken/get", &res)
+func (c *Client) GetTunnelToken(ctx context.Context) (res GetTunnelTokenResponse, err error) {
+	err = c.get(ctx, "/studio/TunnelToken/get", &res)
 	return
 }
 
-func (c Client) SetDevSecret(ctx context.Context, token string) (err error) {
-	return c.post(ctx, "/studio/tunnelToken/setDevSecret", &SetDevSecretRequest{
+func (c *Client) SetDevSecret(ctx context.Context, token string) (err error) {
+	return c.post(ctx, "/studio/TunnelToken/setDevSecret", &SetDevSecretRequest{
 		Token: token,
 	}, nil)
 }
 
-func (c Client) CreateSandbox(ctx context.Context, req CreateSandboxRequest) (res CreateSandboxResponse, err error) {
+func (c *Client) CreateSandbox(ctx context.Context, req CreateSandboxRequest) (res CreateSandboxResponse, err error) {
 	err = c.post(ctx, "/studio/createSandbox", req, &res)
 	return
 }
 
-func (c Client) headers() (map[string]string, error) {
+func (c *Client) headers() (map[string]string, error) {
 	headers := map[string]string{}
-	if c.Token != "" {
-		headers["X-Airplane-Token"] = c.Token
-	} else if c.APIKey != "" {
-		headers["X-Airplane-API-Key"] = c.APIKey
-		if c.TeamID == "" {
+	if c.Token() != "" {
+		headers["X-Airplane-Token"] = c.Token()
+	} else if c.apiKey != "" {
+		headers["X-Airplane-API-Key"] = c.apiKey
+		if c.teamID == "" {
 			return nil, errors.New("team ID is missing")
 		}
-		headers["X-Team-ID"] = c.TeamID
+		headers["X-Team-ID"] = c.teamID
 	} else {
-		return nil, errors.Errorf("authentication is missing: %s", c.APIKey)
+		return nil, errors.Errorf("authentication is missing: %s", c.apiKey)
 	}
 
-	if c.TunnelToken != nil {
-		headers["X-Airplane-Dev-Token"] = *c.TunnelToken
+	if c.tunnelToken != nil {
+		headers["X-Airplane-Dev-Token"] = *c.tunnelToken
 	}
 
 	return headers, nil
 }
 
-func (c Client) get(ctx context.Context, path string, reply interface{}) error {
+func (c *Client) get(ctx context.Context, path string, reply interface{}) error {
 	headers, err := c.headers()
 	if err != nil {
 		return err
 	}
 
 	pathname := "/v0" + path
-	url := c.scheme() + c.host() + pathname
+	url := c.scheme() + c.Host() + pathname
 	err = c.http.GetJSON(ctx, url, reply, libhttp.ReqOpts{
 		Headers: headers,
 	})
@@ -768,14 +837,14 @@ func (c Client) get(ctx context.Context, path string, reply interface{}) error {
 	return nil
 }
 
-func (c Client) post(ctx context.Context, path string, payload, reply interface{}) error {
+func (c *Client) post(ctx context.Context, path string, payload, reply interface{}) error {
 	headers, err := c.headers()
 	if err != nil {
 		return err
 	}
 
 	pathname := "/v0" + path
-	url := c.scheme() + c.host() + pathname
+	url := c.scheme() + c.Host() + pathname
 	err = c.http.PostJSON(ctx, url, payload, reply, libhttp.ReqOpts{
 		Headers: headers,
 	})
@@ -788,11 +857,15 @@ func (c Client) post(ctx context.Context, path string, payload, reply interface{
 }
 
 // Host returns the configured endpoint.
-func (c Client) host() string {
-	if c.Host != "" {
-		return c.Host
+func (c *Client) Host() string {
+	if c.host != "" {
+		return c.host
 	}
-	return Host
+	return DefaultAPIHost
+}
+
+func (c *Client) SetHost(host string) {
+	c.host = host
 }
 
 var httpHosts = []string{
@@ -803,12 +876,12 @@ var httpHosts = []string{
 	"api",
 }
 
-func (c Client) scheme() string {
-	if c.Host == Host {
+func (c *Client) scheme() string {
+	if c.host == DefaultAPIHost {
 		return "https://"
 	}
 
-	host := c.Host
+	host := c.host
 	// If the host didn't come with a scheme, force a "//" in front of it.
 	if !strings.HasPrefix(host, "http") {
 		host = fmt.Sprintf("//%s", host)

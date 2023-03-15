@@ -26,7 +26,7 @@ import (
 
 type config struct {
 	root        *cli.Config
-	client      *api.Client
+	client      api.APIClient
 	template    string
 	resetDemoDB bool
 	download    bool

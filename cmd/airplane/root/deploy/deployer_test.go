@@ -219,14 +219,14 @@ func TestDeploy(t *testing.T) {
 				os.Setenv(k, v)
 			}
 			client := api.NewClient(api.ClientOpts{
-				Host: api.Host,
+				Host: api.DefaultAPIHost,
 			})
 			cfg := Config{
 				ChangedFiles: tC.changedFiles,
 				Client:       mockClient,
 				EnvSlug:      tC.envSlug,
 				Root: &cli.Config{
-					Client: &client,
+					Client: client,
 				},
 				assumeYes: true,
 			}

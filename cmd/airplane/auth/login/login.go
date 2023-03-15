@@ -58,10 +58,10 @@ var (
 	ErrLoggedOut = errors.New("you are not logged in. To login, run:\n    airplane login")
 )
 
-// validateToken returns a boolean indicating whether or not the current
+// validateToken returns a boolean indicating whether the current
 // client token is valid.
 func validateToken(ctx context.Context, c *cli.Config) (bool, error) {
-	if c.Client.Token == "" {
+	if c.Client.Token() == "" {
 		return false, nil
 	}
 
@@ -115,7 +115,7 @@ func EnsureLoggedIn(ctx context.Context, c *cli.Config) error {
 
 func login(ctx context.Context, cfg config) error {
 	writeToken := func(token string) error {
-		cfg.root.Client.Token = token
+		cfg.root.Client.SetToken(token)
 		userConf, err := conf.ReadDefaultUserConfig()
 		if err != nil && !errors.Is(err, conf.ErrMissing) {
 			return err
@@ -123,7 +123,7 @@ func login(ctx context.Context, cfg config) error {
 		if userConf.Tokens == nil {
 			userConf.Tokens = map[string]string{}
 		}
-		userConf.Tokens[cfg.root.Client.Host] = token
+		userConf.Tokens[cfg.root.Client.Host()] = token
 		if err := conf.WriteDefaultUserConfig(userConf); err != nil {
 			return err
 		}

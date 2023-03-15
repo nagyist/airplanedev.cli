@@ -411,7 +411,7 @@ func SubmitPromptHandler(ctx context.Context, state *state.State, r *http.Reques
 		return PromptResponse{}, libhttp.NewErrBadRequest("run ID is required")
 	}
 
-	userID := cli.ParseTokenForAnalytics(state.RemoteClient.GetToken()).UserID
+	userID := cli.ParseTokenForAnalytics(state.RemoteClient.Token()).UserID
 
 	_, err := state.UpdateRun(req.RunID, func(run *dev.LocalRun) error {
 		for i := range run.Prompts {

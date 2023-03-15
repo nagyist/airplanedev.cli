@@ -36,9 +36,8 @@ import (
 // New returns a new root cobra command.
 func New() *cobra.Command {
 	var output string
-	client := api.NewClient(api.ClientOpts{})
 	var cfg = &cli.Config{
-		Client: &client,
+		Client: api.NewClient(api.ClientOpts{}),
 	}
 
 	cmd := &cobra.Command{
@@ -50,13 +49,16 @@ func New() *cobra.Command {
 			airplane deploy ./path/to/script
 		`),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			cfg.Client.SetHost(cfg.Host)
+			cfg.Client.SetSource(conf.GetSource())
+			cfg.Client.SetAPIKey(conf.GetAPIKey())
+			cfg.Client.SetTeamID(conf.GetTeamID())
+
 			c, err := conf.ReadDefaultUserConfig()
 			if err == nil {
-				cfg.Client.Token = c.Tokens[cfg.Client.Host]
+				cfg.Client.SetToken(c.Tokens[cfg.Host])
 			}
-			cfg.Client.APIKey = conf.GetAPIKey()
-			cfg.Client.TeamID = conf.GetTeamID()
-			cfg.Client.Source = conf.GetSource()
+
 			if err := analytics.Init(cfg); err != nil {
 				logger.Debug("error in analytics.Init: %v", err)
 			}
@@ -100,7 +102,7 @@ func New() *cobra.Command {
 	cmd.SetVersionTemplate(version.Version() + "\n")
 
 	// Persistent flags, set globally to all commands.
-	cmd.PersistentFlags().StringVarP(&cfg.Client.Host, "host", "", api.Host, "Airplane API Host.")
+	cmd.PersistentFlags().StringVarP(&cfg.Host, "host", "", api.DefaultAPIHost, "Airplane API Host.")
 	defaultFormat := "table"
 	if !isatty.IsTerminal(os.Stdout.Fd()) {
 		defaultFormat = "json"

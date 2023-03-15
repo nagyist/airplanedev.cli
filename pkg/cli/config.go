@@ -17,7 +17,7 @@ type Config struct {
 	//
 	// It is initialized in the root command and passed
 	// down to all commands.
-	Client *api.Client
+	Client api.APIClient
 
 	// Flagger supports querying feature flags.
 	Flagger flagsiface.Flagger
@@ -35,6 +35,9 @@ type Config struct {
 
 	// Dev indicates that we are in dev mode.
 	Dev bool
+
+	// The API host to use.
+	Host string
 }
 
 type AnalyticsToken struct {

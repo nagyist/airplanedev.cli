@@ -42,7 +42,7 @@ import (
 
 type config struct {
 	root        *cli.Config
-	client      *api.Client
+	client      api.APIClient
 	file        string
 	from        string
 	fromRunbook string
@@ -59,7 +59,7 @@ type config struct {
 }
 
 type ConfigOpts struct {
-	Client      *api.Client
+	Client      api.APIClient
 	Root        *cli.Config
 	FromRunbook string
 }

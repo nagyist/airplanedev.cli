@@ -61,10 +61,10 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	var devToken *string
 	var ln net.Listener
 	localClientOpts := api.ClientOpts{
-		Token:  cfg.root.Client.Token,
-		Source: cfg.root.Client.Source,
-		APIKey: cfg.root.Client.APIKey,
-		TeamID: cfg.root.Client.TeamID,
+		Token:  cfg.root.Client.Token(),
+		Source: cfg.root.Client.Source(),
+		APIKey: cfg.root.Client.APIKey(),
+		TeamID: cfg.root.Client.TeamID(),
 	}
 
 	if cfg.tunnel {
@@ -109,34 +109,34 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	d := &discover.Discoverer{
 		TaskDiscoverers: []discover.TaskDiscoverer{
 			&discover.DefnDiscoverer{
-				Client:                  &localClient,
+				Client:                  localClient,
 				Logger:                  l,
 				DisableNormalize:        true,
 				DoNotVerifyMissingTasks: true,
 			},
 			&discover.CodeTaskDiscoverer{
-				Client:                  &localClient,
+				Client:                  localClient,
 				Logger:                  l,
 				DoNotVerifyMissingTasks: true,
 			},
 		},
 		ViewDiscoverers: []discover.ViewDiscoverer{
 			&discover.ViewDefnDiscoverer{
-				Client:                  &localClient,
+				Client:                  localClient,
 				Logger:                  l,
 				DoNotVerifyMissingViews: true,
 			},
 			&discover.CodeViewDiscoverer{
-				Client:                  &localClient,
+				Client:                  localClient,
 				Logger:                  l,
 				DoNotVerifyMissingViews: true,
 			},
 		},
 		EnvSlug: cfg.envSlug,
-		Client:  &localClient,
+		Client:  localClient,
 	}
 
-	bd := build.BundleDiscoverer(&localClient, l, "")
+	bd := build.BundleDiscoverer(localClient, l, "")
 	var sandboxState *state.SandboxState
 	if cfg.sandbox {
 		sandboxState = state.NewSandboxState(l)
@@ -150,7 +150,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 	apiServer.RegisterState(&state.State{
 		Flagger:              cfg.root.Flagger,
-		LocalClient:          &localClient,
+		LocalClient:          localClient,
 		RemoteClient:         cfg.root.Client,
 		InitialRemoteEnvSlug: envSlug,
 		DevConfig:            cfg.devConfig,

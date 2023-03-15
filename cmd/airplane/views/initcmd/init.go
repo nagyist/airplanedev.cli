@@ -12,7 +12,6 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
-	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/node"
@@ -24,7 +23,6 @@ import (
 )
 
 type config struct {
-	client  *api.Client
 	root    *cli.Config
 	inline  bool
 	name    string
@@ -59,7 +57,6 @@ func New(c *cli.Config) *cobra.Command {
 
 func GetConfig(c *cli.Config) config {
 	return config{
-		client: c.Client,
 		root:   c,
 		inline: true,
 	}

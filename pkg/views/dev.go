@@ -344,7 +344,7 @@ func FindVitePort() (int, error) {
 }
 
 type ViteOpts struct {
-	Client               *api.Client
+	Client               api.APIClient
 	EnvSlug              string
 	TTY                  bool
 	RebundleDependencies bool
@@ -380,7 +380,7 @@ func runVite(ctx context.Context, opts ViteOpts, airplaneViewDir string, viewSlu
 
 	cmd := exec.Command(filepath.Join("node_modules", ".bin", "vite"), args...)
 	cmd.Dir = airplaneViewDir
-	cmd.Env = append(os.Environ(), getAdditionalEnvs(opts.Client.Host, opts.Client.APIKey, opts.Client.Token, opts.EnvSlug, opts.Client.TunnelToken)...)
+	cmd.Env = append(os.Environ(), getAdditionalEnvs(opts.Client.Host(), opts.Client.APIKey(), opts.Client.Token(), opts.EnvSlug, opts.Client.TunnelToken())...)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

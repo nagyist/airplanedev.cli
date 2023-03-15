@@ -104,7 +104,7 @@ func GetInfoHandler(ctx context.Context, s *state.State, r *http.Request) (Studi
 
 	var host string
 	if s.LocalClient != nil {
-		host = strings.Replace(s.LocalClient.Host, "127.0.0.1", "localhost", 1)
+		host = strings.Replace(s.LocalClient.Host(), "127.0.0.1", "localhost", 1)
 	}
 
 	if s.ServerHost != "" {
@@ -454,11 +454,9 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 		serverURL = fmt.Sprintf("%s%s", s.ServerHost, build.BasePath(port, s.DevToken))
 
 		// If a server host is specified, we send (Airplane) API requests to that host.
-		client = &api.Client{
-			ClientOpts: api.ClientOpts{
-				Host: s.ServerHost,
-			},
-		}
+		client = api.NewClient(api.ClientOpts{
+			Host: s.ServerHost,
+		})
 	}
 
 	cmd, viteServer, closer, err := views.Dev(ctx, &vd, views.ViteOpts{

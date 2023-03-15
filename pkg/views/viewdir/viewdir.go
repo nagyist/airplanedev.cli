@@ -45,7 +45,7 @@ func missingViewHandler(ctx context.Context, defn definitions.ViewDefinition) (*
 	}, nil
 }
 
-func NewViewDirectory(ctx context.Context, client *api.Client, searchPath string, envSlug string) (ViewDirectory, error) {
+func NewViewDirectory(ctx context.Context, client api.APIClient, searchPath string, envSlug string) (ViewDirectory, error) {
 	d := &discover.Discoverer{
 		ViewDiscoverers: []discover.ViewDiscoverer{
 			&discover.ViewDefnDiscoverer{
