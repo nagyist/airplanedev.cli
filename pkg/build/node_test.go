@@ -1116,6 +1116,7 @@ func TestReadPackageJSON(t *testing.T) {
 			desc:    "reads package.json from directory",
 			fixture: "node_externals/yarnworkspace",
 			packageJSON: PackageJSON{
+				Name:            "airplane",
 				DevDependencies: map[string]string{"react": "18.2.0"},
 				Workspaces: PackageJSONWorkspaces{
 					Workspaces: []string{"lib", "examples/*"},

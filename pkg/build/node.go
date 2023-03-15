@@ -924,6 +924,7 @@ type Settings struct {
 }
 
 type PackageJSON struct {
+	Name                 string                 `json:"name"`
 	Settings             Settings               `json:"airplane"`
 	Workspaces           PackageJSONWorkspaces  `json:"workspaces"`
 	Scripts              map[string]interface{} `json:"scripts"`
