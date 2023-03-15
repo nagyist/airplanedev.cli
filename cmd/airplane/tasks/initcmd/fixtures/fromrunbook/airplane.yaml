@@ -1,0 +1,3 @@
+javascript:
+  base: slim
+  nodeVersion: "18"

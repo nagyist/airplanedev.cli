@@ -1,0 +1,11 @@
+{
+  "name": "fromrunbook",
+  "version": "1.0.0",
+  "license": "MIT",
+  "dependencies": {
+    "airplane": "^0.2.44"
+  },
+  "devDependencies": {
+    "@types/node": "^18.15.3"
+  }
+}
