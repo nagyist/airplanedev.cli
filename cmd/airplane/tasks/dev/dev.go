@@ -255,7 +255,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	if err != nil {
 		return err
 	}
-	paramValues, err := params.CLI(cfg.args, taskConfig.Def.GetName(), parameters)
+	paramValues, err := params.CLI(cfg.args, taskConfig.Def.GetName(), parameters, cfg.root.Prompter)
 	if errors.Is(err, flag.ErrHelp) {
 		return nil
 	} else if err != nil {

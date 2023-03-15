@@ -10,7 +10,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	taskinit "github.com/airplanedev/cli/cmd/airplane/tasks/initcmd"
@@ -19,6 +18,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -109,14 +109,14 @@ func run(ctx context.Context, cfg config) error {
 			analytics.Track(cfg.root.Client, "Template Cloned", map[string]interface{}{
 				"template_path": cfg.template,
 			})
-			return utils.CopyFromGithubPath(cfg.template)
+			return utils.CopyFromGithubPath(cfg.template, cfg.root.Prompter)
 		}
 
 		templates, err := ListTemplates(ctx)
 		if err != nil {
 			return err
 		}
-		return initFromTemplate(ctx, cfg, templates, cfg.template)
+		return initFromTemplate(cfg, templates, cfg.template, cfg.root.Prompter)
 	}
 
 	if cfg.fromRunbook != "" {
@@ -129,13 +129,11 @@ func run(ctx context.Context, cfg config) error {
 	}
 
 	var selectedInit string
-	if err := survey.AskOne(
-		&survey.Select{
-			Message: "What would you like to initialize?",
-			Options: orderedInitOptions,
-			Default: orderedInitOptions[0],
-		},
+	if err := cfg.root.Prompter.Input(
+		"What would you like to initialize?",
 		&selectedInit,
+		prompts.WithSelectOptions(orderedInitOptions),
+		prompts.WithDefault(orderedInitOptions[0]),
 	); err != nil {
 		return err
 	}
@@ -148,12 +146,12 @@ func run(ctx context.Context, cfg config) error {
 		if err != nil {
 			return err
 		}
-		selectedTemplate, err := selectTemplate(ctx, templates)
+		selectedTemplate, err := selectTemplate(templates, cfg.root.Prompter)
 		if err != nil {
 			return err
 		}
 
-		return initFromTemplate(ctx, cfg, templates, selectedTemplate)
+		return initFromTemplate(cfg, templates, selectedTemplate, cfg.root.Prompter)
 	}
 
 	return nil
@@ -168,7 +166,7 @@ type Template struct {
 	TaskSlugs     []string `json:"taskSlugs"`
 }
 
-func selectTemplate(ctx context.Context, templates []Template) (string, error) {
+func selectTemplate(templates []Template, p prompts.Prompter) (string, error) {
 	const templateBrowser = "Explore templates in the browser"
 	optionToPath := map[string]string{}
 
@@ -181,17 +179,14 @@ func selectTemplate(ctx context.Context, templates []Template) (string, error) {
 	}
 	var selectedTemplate string
 	for selectedTemplate == "" || selectedTemplate == templateBrowser {
-		if err := survey.AskOne(
-			&survey.Select{
-				Message: "Which template would you like to initialize?",
-				Options: templateShortPaths,
-				Default: templateShortPaths[0],
-			},
+		if err := p.Input(
+			"Which template would you like to initialize?",
 			&selectedTemplate,
+			prompts.WithSelectOptions(templateShortPaths),
+			prompts.WithDefault(templateShortPaths[0]),
 		); err != nil {
 			return "", err
 		}
-
 		if selectedTemplate == templateBrowser {
 			if ok := utils.Open(templateGallery); ok {
 				logger.Log("Something went wrong with opening templates in the browser")
@@ -201,7 +196,12 @@ func selectTemplate(ctx context.Context, templates []Template) (string, error) {
 	return optionToPath[selectedTemplate], nil
 }
 
-func initFromTemplate(ctx context.Context, cfg config, templates []Template, gitPath string) error {
+func initFromTemplate(
+	cfg config,
+	templates []Template,
+	gitPath string,
+	p prompts.Prompter,
+) error {
 	analytics.Track(cfg.root.Client, "Template Cloned", map[string]interface{}{
 		"template_path": gitPath,
 	})
@@ -209,7 +209,7 @@ func initFromTemplate(ctx context.Context, cfg config, templates []Template, git
 	if err != nil {
 		return err
 	}
-	return utils.CopyFromGithubPath(template.GitHubPath)
+	return utils.CopyFromGithubPath(template.GitHubPath, p)
 }
 
 const docsUrl = "http://docs.airplane.dev/templates/templates.json"

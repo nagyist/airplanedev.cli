@@ -67,7 +67,7 @@ func run(ctx context.Context, c *cli.Config, cfg config) error {
 		value = *cfg.value
 	} else {
 		var err error
-		value, err = configs.ReadValue(cfg.secret)
+		value, err = configs.ReadValue(cfg.secret, cfg.root.Prompter)
 		if err != nil {
 			return err
 		}

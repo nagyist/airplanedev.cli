@@ -3,14 +3,13 @@ package params
 import (
 	"flag"
 	"fmt"
-	"os"
 	"reflect"
 	"regexp"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/prompts"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/pkg/errors"
 )
@@ -19,7 +18,7 @@ import (
 //
 // A flag.ErrHelp error will be returned if a -h or --help was provided, in which case
 // this function will print out help text on how to pass this task's parameters as flags.
-func CLI(args []string, taskName string, parameters libapi.Parameters) (api.Values, error) {
+func CLI(args []string, taskName string, parameters libapi.Parameters, p prompts.Prompter) (api.Values, error) {
 	values := api.Values{}
 
 	if len(args) > 0 {
@@ -30,7 +29,7 @@ func CLI(args []string, taskName string, parameters libapi.Parameters) (api.Valu
 		}
 	} else {
 		// Otherwise, try to prompt for parameters
-		if err := promptForParamValues(taskName, parameters, values); err != nil {
+		if err := promptForParamValues(parameters, values, p); err != nil {
 			return nil, err
 		}
 	}
@@ -70,12 +69,16 @@ func flagset(taskName string, parameters libapi.Parameters, args api.Values) *fl
 // If there are no parameters, does nothing.
 // If TTY, prompts for parameters and then asks user to confirm.
 // If no TTY, errors.
-func promptForParamValues(taskName string, parameters libapi.Parameters, paramValues map[string]interface{}) error {
+func promptForParamValues(
+	parameters libapi.Parameters,
+	paramValues map[string]interface{},
+	p prompts.Prompter,
+) error {
 	if len(parameters) == 0 {
 		return nil
 	}
 
-	if !utils.CanPrompt() {
+	if !prompts.CanPrompt() {
 		// Error since we have no params and no way to prompt for it
 		// TODO: if all parameters optional (or have defaults), do not error.
 		logger.Log("Parameters were not specified! Task has %d parameter(s):\n", len(parameters))
@@ -96,23 +99,38 @@ func promptForParamValues(taskName string, parameters libapi.Parameters, paramVa
 			continue
 		}
 
-		prompt, err := promptForParam(param)
+		message := fmt.Sprintf("%s %s:", param.Name, logger.Gray("(--%s)", param.Slug))
+		defaultValue, err := APIValueToInput(param, param.Default)
 		if err != nil {
 			return err
 		}
-		opts := []survey.AskOpt{
-			survey.WithStdio(os.Stdin, os.Stderr, os.Stderr),
-			survey.WithValidator(validateInput(param)),
+
+		opts := []prompts.Opt{
+			prompts.WithValidator(validateParam(param)),
+			prompts.WithHelp(param.Desc),
 		}
 		if !param.Constraints.Optional {
-			opts = append(opts, survey.WithValidator(survey.Required))
+			opts = append(opts, prompts.WithRequired())
 		}
 		if param.Constraints.Regex != "" {
-			opts = append(opts, survey.WithValidator(regexValidator(param.Constraints.Regex, param.Constraints.Optional)))
+			opts = append(opts, prompts.WithValidator(validateRegex(param.Constraints.Regex, param.Constraints.Optional)))
 		}
 		var inputValue string
-		if err := survey.AskOne(prompt, &inputValue, opts...); err != nil {
-			return errors.Wrap(err, "asking prompt for param")
+
+		switch param.Type {
+		case libapi.TypeBoolean:
+			if defaultValue != "" {
+				opts = append(opts, prompts.WithDefault(defaultValue))
+			}
+			opts = append(opts, prompts.WithSelectOptions([]string{YesString, NoString}))
+			if err := p.Input(message, &inputValue, opts...); err != nil {
+				return err
+			}
+		default:
+			opts = append(opts, prompts.WithDefault(defaultValue))
+			if err := p.Input(message, &inputValue, opts...); err != nil {
+				return err
+			}
 		}
 
 		value, err := ParseInput(param, inputValue)
@@ -124,56 +142,17 @@ func promptForParamValues(taskName string, parameters libapi.Parameters, paramVa
 		}
 	}
 
-	confirmed := false
-	if err := survey.AskOne(
-		&survey.Confirm{
-			Message: "Execute?",
-			Default: true,
-		},
-		&confirmed,
-		survey.WithStdio(os.Stdin, os.Stderr, os.Stderr),
-	); err != nil {
-		return errors.Wrap(err, "confirming")
-	}
-	if !confirmed {
+	if confirmed, err := p.Confirm("Execute?", prompts.WithDefault(true)); err != nil {
+		return err
+	} else if !confirmed {
 		return errors.New("user cancelled")
 	}
 
 	return nil
 }
 
-// promptForParam returns a survey.Prompt matching the param type
-func promptForParam(param libapi.Parameter) (survey.Prompt, error) {
-	message := fmt.Sprintf("%s %s:", param.Name, logger.Gray("(--%s)", param.Slug))
-	defaultValue, err := APIValueToInput(param, param.Default)
-	if err != nil {
-		return nil, err
-	}
-	switch param.Type {
-	case libapi.TypeBoolean:
-		var dv interface{}
-		if defaultValue == "" {
-			dv = nil
-		} else {
-			dv = defaultValue
-		}
-		return &survey.Select{
-			Message: message,
-			Help:    param.Desc,
-			Options: []string{YesString, NoString},
-			Default: dv,
-		}, nil
-	default:
-		return &survey.Input{
-			Message: message,
-			Help:    param.Desc,
-			Default: defaultValue,
-		}, nil
-	}
-}
-
-// validateInput returns a survey.Validator to perform rudimentary checks on CLI input
-func validateInput(param libapi.Parameter) func(interface{}) error {
+// validateParam returns a survey.Validator to perform rudimentary checks on CLI input
+func validateParam(param libapi.Parameter) func(interface{}) error {
 	return func(ans interface{}) error {
 		var v string
 		switch a := ans.(type) {
@@ -188,8 +167,8 @@ func validateInput(param libapi.Parameter) func(interface{}) error {
 	}
 }
 
-// regexValidator returns a Survey validator from the pattern
-func regexValidator(pattern string, optional bool) func(interface{}) error {
+// validateRegex returns a Survey validator from the pattern
+func validateRegex(pattern string, optional bool) func(interface{}) error {
 	return func(val interface{}) error {
 		str, ok := val.(string)
 		if !ok {

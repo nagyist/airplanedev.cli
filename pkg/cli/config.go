@@ -5,6 +5,7 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/flags/flagsiface"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/golang-jwt/jwt/v4"
 )
 
@@ -38,6 +39,9 @@ type Config struct {
 
 	// The API host to use.
 	Host string
+
+	// Prompter represents the prompter to use to get user input.
+	Prompter prompts.Prompter
 }
 
 type AnalyticsToken struct {

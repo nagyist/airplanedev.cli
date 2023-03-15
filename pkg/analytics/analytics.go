@@ -10,7 +10,7 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/cli/pkg/version"
 	"github.com/getsentry/sentry-go"
 	"github.com/segmentio/analytics-go"
@@ -30,7 +30,7 @@ func Init(cfg *cli.Config) error {
 	}
 	if c.EnableTelemetry == nil {
 		// User has not specified one way or the other, ask them to opt-in.
-		if err := telemetryOptIn(c); err != nil {
+		if err := telemetryOptIn(c, cfg.Prompter); err != nil {
 			return err
 		}
 		// Now try again.
@@ -69,11 +69,11 @@ func Init(cfg *cli.Config) error {
 	return nil
 }
 
-func telemetryOptIn(c conf.UserConfig) error {
+func telemetryOptIn(c conf.UserConfig, p prompts.Prompter) error {
 	var allow bool
 	logger.Log("Is it OK for Airplane to collect usage analytics and error reports? This data will solely be used to improve the service.")
 	logger.Log("")
-	allow, err := utils.Confirm("Opt in")
+	allow, err := p.Confirm("Opt in")
 	if err != nil {
 		return err
 	}

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/github"
 	"github.com/pkg/errors"
@@ -50,11 +51,11 @@ func CopyDirectoryContents(srcDirectory string, dstDirectory string) error {
 	})
 }
 
-func CreateDirectory(directoryName string) error {
+func CreateDirectory(directoryName string, p prompts.Prompter) error {
 	if fsx.Exists(directoryName) {
 		question := fmt.Sprintf("Directory %s already exists. Do you want to remove its existing files and continue?", directoryName)
 
-		if ok, err := ConfirmDefaultFalse(question); err != nil {
+		if ok, err := p.Confirm(question, prompts.WithDefault(false)); err != nil {
 			return err
 		} else if !ok {
 			return errors.New(fmt.Sprintf("canceled creating directory %s", directoryName))
@@ -68,7 +69,7 @@ func CreateDirectory(directoryName string) error {
 	return nil
 }
 
-func CopyFromGithubPath(gitPath string) error {
+func CopyFromGithubPath(gitPath string, p prompts.Prompter) error {
 	if !(strings.HasPrefix(gitPath, "github.com/") || strings.HasPrefix(gitPath, "https://github.com/")) {
 		return errors.New("expected path to be in the format github.com/ORG/REPO/PATH/TO/FOLDER[@REF]")
 	}
@@ -85,7 +86,7 @@ func CopyFromGithubPath(gitPath string) error {
 
 	if fileInfo.IsDir() {
 		directory := filepath.Base(tempPath)
-		if err := CreateDirectory(directory); err != nil {
+		if err := CreateDirectory(directory, p); err != nil {
 			return err
 		}
 		if err := CopyDirectoryContents(tempPath, directory); err != nil {
@@ -133,7 +134,7 @@ func CopyFromGithubPath(gitPath string) error {
 		if fsx.Exists(fileName) {
 			question := fmt.Sprintf("File %s already exists. Do you want to overwrite it?", fileName)
 
-			if ok, err := ConfirmDefaultFalse(question); err != nil {
+			if ok, err := p.Confirm(question, prompts.WithDefault(false)); err != nil {
 				return err
 			} else if !ok {
 				return errors.New("canceled airplane views init")

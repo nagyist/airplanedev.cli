@@ -9,6 +9,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/prompts"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/archive"
@@ -226,7 +227,8 @@ func TestDeploy(t *testing.T) {
 				Client:       mockClient,
 				EnvSlug:      tC.envSlug,
 				Root: &cli.Config{
-					Client: client,
+					Client:   client,
+					Prompter: prompts.NewMock(),
 				},
 				assumeYes: true,
 			}

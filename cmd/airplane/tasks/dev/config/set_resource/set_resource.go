@@ -4,14 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"reflect"
 	"sort"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/resources/kinds"
 	"github.com/pkg/errors"
@@ -41,22 +40,20 @@ func New(c *cli.DevCLI) *cobra.Command {
 			if len(args) > 0 {
 				cfg.slug = args[0]
 			} else {
-				if err := survey.AskOne(
-					&survey.Input{Message: "What's the slug of your resource? This should match the <alias>: <slug> entry in your resource attachments."},
+				if err := c.Prompter.Input(
+					"What's the slug of your resource? This should match the <alias>: <slug> entry in your resource attachments.",
 					&cfg.slug,
-					survey.WithStdio(os.Stdin, os.Stderr, os.Stderr),
-					survey.WithValidator(survey.Required),
+					prompts.WithRequired(),
 				); err != nil {
 					return err
 				}
 			}
 
 			if cfg.name == "" {
-				if err := survey.AskOne(
-					&survey.Input{Message: "What's the name of your resource? This should be a human-readable name for your resource."},
+				if err := c.Prompter.Input(
+					"What's the name of your resource? This should be a human-readable name for your resource.",
 					&cfg.name,
-					survey.WithStdio(os.Stdin, os.Stderr, os.Stderr),
-					survey.WithValidator(survey.Required),
+					prompts.WithRequired(),
 				); err != nil {
 					return err
 				}
@@ -78,11 +75,10 @@ func New(c *cli.DevCLI) *cobra.Command {
 				}
 				message += "\n>"
 
-				if err := survey.AskOne(
-					&survey.Input{Message: message},
+				if err := c.Prompter.Input(
+					message,
 					&cfg.kind,
-					survey.WithStdio(os.Stdin, os.Stderr, os.Stderr),
-					survey.WithValidator(survey.Required),
+					prompts.WithRequired(),
 				); err != nil {
 					return err
 				}
@@ -131,10 +127,9 @@ func run(ctx context.Context, cfg config) error {
 		}
 		var value string
 		if !cfg.useDefaults {
-			if err := survey.AskOne(
-				&survey.Input{Message: fmt.Sprintf("Enter %s resource `%s`:", cfg.kind, fieldName)},
+			if err := cfg.devCLI.Prompter.Input(
+				fmt.Sprintf("Enter %s resource `%s`:", cfg.kind, fieldName),
 				&value,
-				survey.WithStdio(os.Stdin, os.Stderr, os.Stderr),
 			); err != nil {
 				return err
 			}

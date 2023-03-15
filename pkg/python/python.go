@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
 )
@@ -30,7 +30,7 @@ type RequirementsTxtOptions = struct {
 // If requirements.txt exists in parent directory, ask user if they want to use that or create a new one.
 // If requirements.txt doesn't exist, create a new one.
 // Returns the path to the directory where the requirements.txt is created/found.
-func CreateRequirementsTxt(directory string, options RequirementsTxtOptions) (string, error) {
+func CreateRequirementsTxt(directory string, options RequirementsTxtOptions, p prompts.Prompter) (string, error) {
 	// Check if there's a requirements.txt in the current or parent directory of entrypoint
 	requirementsTxtDirPath, ok := fsx.Find(directory, "requirements.txt")
 
@@ -49,13 +49,11 @@ func CreateRequirementsTxt(directory string, options RequirementsTxtOptions) (st
 			if err != nil {
 				return "", err
 			}
-			if err := survey.AskOne(
-				&survey.Select{
-					Message: fmt.Sprintf("Found an existing project with requirements.txt at %s. Use this project?", formattedPath),
-					Options: opts,
-					Default: useExisting,
-				},
+			if err := p.Input(
+				fmt.Sprintf("Found an existing project with requirements.txt at %s. Use this project?", formattedPath),
 				&surveyResp,
+				prompts.WithSelectOptions(opts),
+				prompts.WithDefault(useExisting),
 			); err != nil {
 				return "", err
 			}

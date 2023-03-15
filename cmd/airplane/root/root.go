@@ -27,6 +27,7 @@ import (
 	"github.com/airplanedev/cli/pkg/flags"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
+	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/cli/pkg/version/latest"
 	"github.com/airplanedev/trap"
 	isatty "github.com/mattn/go-isatty"
@@ -37,7 +38,8 @@ import (
 func New() *cobra.Command {
 	var output string
 	var cfg = &cli.Config{
-		Client: api.NewClient(api.ClientOpts{}),
+		Client:   api.NewClient(api.ClientOpts{}),
+		Prompter: prompts.Surveyor{},
 	}
 
 	cmd := &cobra.Command{

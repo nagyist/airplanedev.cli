@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
@@ -37,7 +37,7 @@ type PackageJSONOptions = struct {
 // If package.json exists in parent directory, ask user if they want to use that or create a new one.
 // If package.json doesn't exist, create a new one.
 // Returns the path to the directory where the package.json is created/found.
-func CreatePackageJSON(directory string, packageJSONOptions PackageJSONOptions) (string, error) {
+func CreatePackageJSON(directory string, packageJSONOptions PackageJSONOptions, p prompts.Prompter) (string, error) {
 	// Check if there's a package.json in the current or parent directory of entrypoint
 	packageJSONDirPath, ok := fsx.Find(directory, "package.json")
 	useYarn := utils.ShouldUseYarn(packageJSONDirPath)
@@ -57,13 +57,11 @@ func CreatePackageJSON(directory string, packageJSONOptions PackageJSONOptions) 
 			if err != nil {
 				return "", err
 			}
-			if err := survey.AskOne(
-				&survey.Select{
-					Message: fmt.Sprintf("Found an existing project with package.json at %s. Use this project?", formattedPath),
-					Options: opts,
-					Default: useExisting,
-				},
+			if err := p.Input(
+				fmt.Sprintf("Found an existing project with package.json at %s. Use this project?", formattedPath),
 				&surveyResp,
+				prompts.WithSelectOptions(opts),
+				prompts.WithDefault(useExisting),
 			); err != nil {
 				return "", err
 			}
@@ -212,15 +210,15 @@ func createPackageJSONFile(cwd string) error {
 //go:embed scaffolding/viewTSConfig.json
 var defaultViewTSConfig []byte
 
-func CreateViewTSConfig(configDir string) error {
-	return mergeTSConfig(configDir, defaultViewTSConfig, MergeStrategyPreferTemplate)
+func CreateViewTSConfig(configDir string, p prompts.Prompter) error {
+	return mergeTSConfig(configDir, defaultViewTSConfig, MergeStrategyPreferTemplate, p)
 }
 
 //go:embed scaffolding/taskTSConfig.json
 var defaultTaskTSConfig []byte
 
-func CreateTaskTSConfig(configDir string) error {
-	return mergeTSConfig(configDir, defaultTaskTSConfig, MergeStrategyPreferExisting)
+func CreateTaskTSConfig(configDir string, p prompts.Prompter) error {
+	return mergeTSConfig(configDir, defaultTaskTSConfig, MergeStrategyPreferExisting, p)
 }
 
 type MergeStrategy string
@@ -230,7 +228,7 @@ const (
 	MergeStrategyPreferTemplate MergeStrategy = "template"
 )
 
-func mergeTSConfig(configDir string, configFile []byte, strategy MergeStrategy) error {
+func mergeTSConfig(configDir string, configFile []byte, strategy MergeStrategy, p prompts.Prompter) error {
 	configPath, err := formatTSConfigPath(configDir)
 	if err != nil {
 		return errors.Wrap(err, "getting tsconfig path")
@@ -268,18 +266,12 @@ func mergeTSConfig(configDir string, configFile []byte, strategy MergeStrategy) 
 		}
 
 		if changesNeeded {
-			var ok bool
-			err = survey.AskOne(
-				&survey.Confirm{
-					Message: fmt.Sprintf("Would you like to override %s with these changes?", configPath),
-					Default: true,
-				},
-				&ok,
-			)
-			if err != nil {
-				return errors.Wrap(err, "asking user confirmation")
-			}
-			if !ok {
+			if ok, err := p.Confirm(
+				fmt.Sprintf("Would you like to override %s with these changes?", configPath),
+				prompts.WithDefault(true),
+			); err != nil {
+				return err
+			} else if !ok {
 				return nil
 			}
 

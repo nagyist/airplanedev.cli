@@ -13,7 +13,6 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/deploy/archive"
 	"github.com/airplanedev/lib/pkg/deploy/bundlediscover"
@@ -172,7 +171,10 @@ func (d *deployer) Deploy(ctx context.Context, bundles []bundlediscover.Bundle) 
 }
 
 // tarAndUploadBatch concurrently tars and uploads bundles.
-func (d *deployer) tarAndUploadBatch(ctx context.Context, bundles []bundlediscover.Bundle) (map[string]string, error) {
+func (d *deployer) tarAndUploadBatch(
+	ctx context.Context,
+	bundles []bundlediscover.Bundle,
+) (map[string]string, error) {
 	pathsToUpload := make(map[string]interface{})
 	for _, b := range bundles {
 		pathsToUpload[b.RootPath] = struct{}{}
@@ -286,7 +288,7 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, bundles []bundledi
 		}
 
 		question := "Continue deploying to the default environment?"
-		if ok, err := utils.ConfirmWithAssumptions(question, d.cfg.assumeYes, d.cfg.assumeNo); err != nil {
+		if ok, err := d.cfg.Root.Prompter.ConfirmWithAssumptions(question, d.cfg.assumeYes, d.cfg.assumeNo); err != nil {
 			return err
 		} else if !ok {
 			return errors.New("Deployment cancelled")
@@ -378,7 +380,7 @@ func (d *deployer) confirmBuildRoot(root string) error {
 	if wasActive {
 		defer d.logger.StartLoader()
 	}
-	if ok, err := utils.Confirm("Are you sure?"); err != nil {
+	if ok, err := d.cfg.Root.Prompter.Confirm("Are you sure?"); err != nil {
 		return err
 	} else if !ok {
 		return errors.New("aborting deployment")

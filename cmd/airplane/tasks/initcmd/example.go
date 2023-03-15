@@ -69,7 +69,7 @@ func initWithExample(ctx context.Context, cfg config) error {
 			// Warn if we're going to overwrite something.
 			if fsx.Exists(localDefPath) {
 				question := fmt.Sprintf("File %s exists. Would you like to overwrite it?", localDefPath)
-				if ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
+				if ok, err := cfg.root.Prompter.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
 					return err
 				} else if !ok {
 					// bail here, nothing to do.
@@ -106,7 +106,7 @@ func initWithExample(ctx context.Context, cfg config) error {
 			// Warn if we're going to overwrite something.
 			if err := checkForFileCollisions(taskroot, dstDirectory); err == ErrFileCollisionsExist {
 				question := fmt.Sprintf("Folder %s exists. Continue anyway? (Some files may get overwritten.)", dstDirectory)
-				if ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
+				if ok, err := cfg.root.Prompter.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
 					return err
 				} else if !ok {
 					// bail here, nothing to do.

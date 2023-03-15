@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	"github.com/airplanedev/cli/pkg/cli"
@@ -64,7 +63,7 @@ func GetConfig(c *cli.Config) config {
 
 func Run(ctx context.Context, cfg config) error {
 	if cfg.from != "" {
-		if err := utils.CopyFromGithubPath(cfg.from); err != nil {
+		if err := utils.CopyFromGithubPath(cfg.from, cfg.root.Prompter); err != nil {
 			return err
 		}
 		(&cfg).viewDir = filepath.Base(cfg.from)
@@ -72,7 +71,7 @@ func Run(ctx context.Context, cfg config) error {
 		if err := promptForNewView(&cfg); err != nil {
 			return err
 		}
-		if err := createViewScaffolding(ctx, &cfg); err != nil {
+		if err := createViewScaffolding(&cfg); err != nil {
 			return err
 		}
 	}
@@ -81,18 +80,10 @@ func Run(ctx context.Context, cfg config) error {
 }
 
 func promptForNewView(config *config) error {
-	if err := survey.AskOne(
-		&survey.Input{
-			Message: "What should this view be called?",
-		},
-		&config.name,
-	); err != nil {
-		return err
-	}
-	return nil
+	return config.root.Prompter.Input("What should this view be called?", &config.name)
 }
 
-func createViewScaffolding(ctx context.Context, cfg *config) error {
+func createViewScaffolding(cfg *config) error {
 	if cfg.name == "" {
 		return errors.New("missing new view name")
 	}
@@ -104,7 +95,7 @@ func createViewScaffolding(ctx context.Context, cfg *config) error {
 	if !cfg.inline {
 		// Nest non-inline views in a folder.
 		directory = slug
-		if err := utils.CreateDirectory(directory); err != nil {
+		if err := utils.CreateDirectory(directory, cfg.root.Prompter); err != nil {
 			return err
 		}
 	}
@@ -136,13 +127,13 @@ func createViewScaffolding(ctx context.Context, cfg *config) error {
 			Dependencies:    deps,
 			DevDependencies: []string{"@types/react", "@types/react-dom", "typescript"},
 		},
-	})
+	}, cfg.root.Prompter)
 	if err != nil {
 		return err
 	}
 	if filepath.Ext(entrypoint) == ".tsx" {
 		// Create/update tsconfig in the same directory as the package.json file
-		if err := node.CreateViewTSConfig(packageJSONDir); err != nil {
+		if err := node.CreateViewTSConfig(packageJSONDir, cfg.root.Prompter); err != nil {
 			return err
 		}
 	}

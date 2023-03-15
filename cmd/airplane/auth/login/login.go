@@ -2,13 +2,12 @@ package login
 
 import (
 	"context"
-	"os"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/cli/pkg/token"
 	"github.com/airplanedev/cli/pkg/utils"
 	libhttp "github.com/airplanedev/lib/pkg/api/http"
@@ -92,11 +91,11 @@ func EnsureLoggedIn(ctx context.Context, c *cli.Config) error {
 		return nil
 	}
 
-	if !utils.CanPrompt() {
+	if !prompts.CanPrompt() {
 		return ErrLoggedOut
 	}
 
-	if ok, err := utils.Confirm("You are not logged in. Do you want to login now?"); err != nil {
+	if ok, err := c.Prompter.Confirm("You are not logged in. Do you want to login now?"); err != nil {
 		return err
 	} else if !ok {
 		return ErrLoggedOut
@@ -137,14 +136,12 @@ func login(ctx context.Context, cfg config) error {
 
 	logger.Log("Enter your %s from %s\nor hit ENTER to log in with your browser.", logger.Bold("token"), logger.Blue(cfg.root.Client.TokenURL()))
 	var tkn string
-	if err := survey.AskOne(
-		&survey.Password{
-			Message: "Token:",
-		},
+	if err := cfg.root.Prompter.Input(
+		"Token:",
 		&tkn,
-		survey.WithStdio(os.Stdin, os.Stderr, os.Stderr),
+		prompts.WithSecret(),
 	); err != nil {
-		return errors.Wrap(err, "prompting for token")
+		return err
 	}
 
 	// If the user entered a token, finish logging in.

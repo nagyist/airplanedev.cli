@@ -6,17 +6,16 @@ import (
 	"os"
 	"strings"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/pkg/errors"
 )
 
 // ReadValue reads a config value from prompt if allowed, else stdin
-func ReadValue(secret bool) (string, error) {
-	if utils.CanPrompt() {
-		return ReadValueFromPrompt("Config value:", secret)
+func ReadValue(secret bool, p prompts.Prompter) (string, error) {
+	if prompts.CanPrompt() {
+		return ReadValueFromPrompt("Config value:", secret, p)
 	}
 	// Read from stdin
 	logger.Log("Reading secret from stdin...")
@@ -28,21 +27,17 @@ func ReadValue(secret bool) (string, error) {
 }
 
 // ReadValueFromPrompt prompts user for config value
-func ReadValueFromPrompt(message string, secret bool) (string, error) {
+func ReadValueFromPrompt(message string, secret bool, p prompts.Prompter) (string, error) {
 	var value string
-	var prompt survey.Prompt
+	promptOpts := make([]prompts.Opt, 0)
 	if secret {
-		prompt = &survey.Password{Message: message}
-	} else {
-		prompt = &survey.Input{Message: message}
+		promptOpts = append(promptOpts, prompts.WithSecret())
 	}
-	if err := survey.AskOne(
-		prompt,
-		&value,
-		survey.WithStdio(os.Stdin, os.Stderr, os.Stderr),
-	); err != nil {
+
+	if err := p.Input(message, &value, promptOpts...); err != nil {
 		return "", errors.Wrap(err, "prompting value")
 	}
+
 	return strings.TrimSpace(value), nil
 }
 

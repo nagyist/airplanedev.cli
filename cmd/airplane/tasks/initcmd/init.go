@@ -12,13 +12,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/node"
+	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/cli/pkg/python"
 	"github.com/airplanedev/cli/pkg/rb2wf"
 	"github.com/airplanedev/cli/pkg/utils"
@@ -144,7 +144,7 @@ func Run(ctx context.Context, cfg config) error {
 
 	if cfg.from == "" {
 		// Prompt for new task information.
-		if err := promptForNewTask(cfg.file, &cfg.newTaskInfo, cfg.workflow); err != nil {
+		if err := promptForNewTask(cfg.file, &cfg.newTaskInfo, cfg.workflow, cfg.root.Prompter); err != nil {
 			return err
 		}
 	}
@@ -248,7 +248,7 @@ func initTask(ctx context.Context, cfg config) error {
 
 		if filepath.Ext(entrypoint) == "tsx" || filepath.Ext(entrypoint) == "jsx" {
 			logger.Log("You are trying to deploy a React file. Use `airplane views init` if you'd like to initialize a view.")
-			if ok, err := utils.ConfirmWithAssumptions("Are you sure you'd like to continue?", cfg.assumeYes, cfg.assumeNo); err != nil {
+			if ok, err := cfg.root.Prompter.ConfirmWithAssumptions("Are you sure you'd like to continue?", cfg.assumeYes, cfg.assumeNo); err != nil {
 				return err
 			} else if !ok {
 				logger.Log("Exiting flow")
@@ -383,13 +383,11 @@ func shouldOverwriteEntrypoint(cfg config, entrypoint string, kind build.TaskKin
 			chooseDifferentFileOption,
 		}
 		var selectedOption string
-		if err := survey.AskOne(
-			&survey.Select{
-				Message: fmt.Sprintf("%s already exists. What would you like to do?", entrypoint),
-				Options: options,
-				Default: options[0],
-			},
+		if err := cfg.root.Prompter.Input(
+			fmt.Sprintf("%s already exists. What would you like to do?", entrypoint),
 			&selectedOption,
+			prompts.WithSelectOptions(options),
+			prompts.WithDefault(options[0]),
 		); err != nil {
 			return false, false, err
 		}
@@ -404,7 +402,7 @@ func shouldOverwriteEntrypoint(cfg config, entrypoint string, kind build.TaskKin
 		if kind == build.TaskKindSQL {
 			question = fmt.Sprintf("Would you like to overwrite %s?", entrypoint)
 		}
-		if ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
+		if ok, err := cfg.root.Prompter.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
 			return false, false, err
 		} else if ok {
 			return true, false, nil
@@ -480,7 +478,7 @@ func writeDefnFile(def *definitions.Definition, cfg config) (*writeDefnFileRespo
 	if !definitions.IsTaskDef(cfg.file) {
 		defaultDefnFn := fmt.Sprintf("%s.task.yaml", def.Slug)
 		entrypoint, _ := def.Entrypoint()
-		fn, err := promptForNewDefinition(defaultDefnFn, entrypoint)
+		fn, err := promptForNewDefinition(defaultDefnFn, entrypoint, cfg.root.Prompter)
 		if err != nil {
 			return nil, err
 		}
@@ -489,7 +487,7 @@ func writeDefnFile(def *definitions.Definition, cfg config) (*writeDefnFileRespo
 	if fsx.Exists(defnFilename) {
 		// If it exists, check for existence of this file before overwriting it.
 		question := fmt.Sprintf("Would you like to overwrite %s?", defnFilename)
-		if ok, err := utils.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
+		if ok, err := cfg.root.Prompter.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
 			return nil, err
 		} else if !ok {
 			// User answered "no", so bail here.
@@ -618,17 +616,15 @@ func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint str
 	}
 
 	exts := runtime.SuggestExts(kind)
-	if err := survey.AskOne(
-		&survey.Input{
-			Message: "Where is the script for this task?",
-			Default: entrypoint,
-			Suggest: func(toComplete string) []string {
-				files, _ := filepath.Glob(toComplete + "*")
-				return files
-			},
-		},
+	if err := cfg.root.Prompter.Input(
+		"Where is the script for this task?",
 		&entrypoint,
-		survey.WithValidator(func(val interface{}) error {
+		prompts.WithDefault(entrypoint),
+		prompts.WithSuggest(func(toComplete string) []string {
+			files, _ := filepath.Glob(toComplete + "*")
+			return files
+		}),
+		prompts.WithValidator(func(val interface{}) error {
 			if len(exts) == 0 {
 				return nil
 			}
@@ -682,22 +678,20 @@ func getEntrypointFile(slug string, kind build.TaskKind, cfg config) (string, er
 	return entrypoint, nil
 }
 
-func promptForNewDefinition(defaultFilename, entrypoint string) (string, error) {
+func promptForNewDefinition(defaultFilename, entrypoint string, p prompts.Prompter) (string, error) {
 	entrypointDir := filepath.Dir(entrypoint)
 	defaultFilename = filepath.Join(entrypointDir, defaultFilename)
 
 	var filename string
-	if err := survey.AskOne(
-		&survey.Input{
-			Message: "Where should the definition file be created?",
-			Default: defaultFilename,
-			Suggest: func(toComplete string) []string {
-				files, _ := filepath.Glob(toComplete + "*")
-				return files
-			},
-		},
+	if err := p.Input(
+		"Where should the definition file be created?",
 		&filename,
-		survey.WithValidator(func(val interface{}) error {
+		prompts.WithDefault(defaultFilename),
+		prompts.WithSuggest(func(toComplete string) []string {
+			files, _ := filepath.Glob(toComplete + "*")
+			return files
+		}),
+		prompts.WithValidator(func(val interface{}) error {
 			if str, ok := val.(string); ok {
 				if definitions.IsTaskDef(str) {
 					return nil
@@ -759,7 +753,7 @@ var supportedWorkflowKindNames = []string{
 	"JavaScript",
 }
 
-func promptForNewTask(file string, info *newTaskInfo, workflow bool) error {
+func promptForNewTask(file string, info *newTaskInfo, workflow bool, p prompts.Prompter) error {
 	defFormat := definitions.GetTaskDefFormat(file)
 	ext := filepath.Ext(file)
 	base := strings.TrimSuffix(filepath.Base(file), ext)
@@ -772,12 +766,10 @@ func promptForNewTask(file string, info *newTaskInfo, workflow bool) error {
 	}
 
 	// Ask for a name.
-	if err := survey.AskOne(
-		&survey.Input{
-			Message: "What should this task be called?",
-			Default: base,
-		},
+	if err := p.Input(
+		"What should this task be called?",
 		&info.name,
+		prompts.WithDefault(base),
 	); err != nil {
 		return err
 	}
@@ -800,13 +792,11 @@ func promptForNewTask(file string, info *newTaskInfo, workflow bool) error {
 	}
 
 	var selectedKindName string
-	if err := survey.AskOne(
-		&survey.Select{
-			Message: "What kind of task should this be?",
-			Options: kindNames,
-			Default: defaultName,
-		},
+	if err := p.Input(
+		"What kind of task should this be?",
 		&selectedKindName,
+		prompts.WithSelectOptions(kindNames),
+		prompts.WithDefault(defaultName),
 	); err != nil {
 		return err
 	}
@@ -921,7 +911,7 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 				Dependencies:    []string{"airplane"},
 				DevDependencies: []string{"@types/node"},
 			},
-		})
+		}, cfg.root.Prompter)
 		if err != nil {
 			return err
 		}
@@ -944,7 +934,7 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 		}
 		if filepath.Ext(entrypoint) == ".ts" || filepath.Ext(entrypoint) == ".tsx" {
 			// Create/update tsconfig in the same directory as the package.json file
-			if err := node.CreateTaskTSConfig(packageJSONDir); err != nil {
+			if err := node.CreateTaskTSConfig(packageJSONDir, cfg.root.Prompter); err != nil {
 				return err
 			}
 		}
@@ -962,7 +952,7 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 		}
 		requirementsTxtDir, err := python.CreateRequirementsTxt(filepath.Dir(entrypoint), python.RequirementsTxtOptions{
 			Dependencies: deps,
-		})
+		}, cfg.root.Prompter)
 		if err != nil {
 			return err
 		}
