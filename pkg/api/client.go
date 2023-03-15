@@ -782,12 +782,12 @@ func (c *Client) GetUser(ctx context.Context, userID string) (res GetUserRespons
 }
 
 func (c *Client) GetTunnelToken(ctx context.Context) (res GetTunnelTokenResponse, err error) {
-	err = c.get(ctx, "/studio/TunnelToken/get", &res)
+	err = c.get(ctx, "/studio/tunnelToken/get", &res)
 	return
 }
 
 func (c *Client) SetDevSecret(ctx context.Context, token string) (err error) {
-	return c.post(ctx, "/studio/TunnelToken/setDevSecret", &SetDevSecretRequest{
+	return c.post(ctx, "/studio/tunnelToken/setDevSecret", &SetDevSecretRequest{
 		Token: token,
 	}, nil)
 }
