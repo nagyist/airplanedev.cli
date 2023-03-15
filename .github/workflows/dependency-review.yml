@@ -5,7 +5,15 @@
 # Source repository: https://github.com/actions/dependency-review-action
 # Public documentation: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-dependency-review#dependency-review-enforcement
 name: dependency-review
-on: [pull_request]
+
+on:
+  pull_request: {}
+
+concurrency:
+  # If this was triggered from a pull request, only run one at a time and cancel any older,
+  # in-progress runs.
+  group: deps-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

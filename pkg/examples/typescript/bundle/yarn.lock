@@ -11,10 +11,10 @@
     cross-fetch "3.1.5"
     uuid "9.0.0"
 
-"@airplane/views@2.0.0":
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/@airplane/views/-/views-2.0.0.tgz#a26878e4646d50e1f24d57af23a0463072cf0e65"
-  integrity sha512-m05EqvLVx9zjngwoZwV0v+41Xn8cqKfODzj5gEno5KLw6sXIaTdn90DhzvLBYDYehAZHgC+08L97mFU/bqe1lw==
+"@airplane/views@2.0.2":
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/@airplane/views/-/views-2.0.2.tgz#3bfe1953b237d95001b7c19c7ac028a196ace9bb"
+  integrity sha512-dVjjiRCXRL6ubyeQzr7FcqHQ4Br44VSYLJ+ts6BKue9EjHFa0BIF19wuD16LT1KAAgvlxF4Pd6NPJNX2SYINYA==
   dependencies:
     "@airplane/lib" "0.2.44"
     "@babel/runtime" "7.21.0"

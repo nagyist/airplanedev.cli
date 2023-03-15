@@ -397,7 +397,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
-					SearchString:  "3.3.1",
+					SearchString:  "3.4.1",
 				},
 			},
 		},
@@ -1049,7 +1049,7 @@ func TestGenShimPackageJSON(t *testing.T) {
 					"@airplane/workflow-runtime": buildToolsPackageJSON.Dependencies["@airplane/workflow-runtime"],
 					"esbuild":                    buildToolsPackageJSON.Dependencies["esbuild"],
 					"jsdom":                      buildToolsPackageJSON.Dependencies["jsdom"],
-					"typescript":                 "4.8.2",
+					"typescript":                 "4.9.5",
 					"esbuild-plugin-tsc":         buildToolsPackageJSON.Dependencies["esbuild-plugin-tsc"],
 				},
 			},
@@ -1061,7 +1061,7 @@ func TestGenShimPackageJSON(t *testing.T) {
 			expectedShimPackageJSON: shimPackageJSON{
 				Dependencies: map[string]string{
 					// XXX(fleung): this needs to get bumped when dependencies change
-					"@airplane/workflow-runtime": "0.2.29",
+					"@airplane/workflow-runtime": "0.2.44",
 				},
 			},
 		},
@@ -1108,7 +1108,7 @@ func TestReadPackageJSON(t *testing.T) {
 			fixture: "node_externals/dependencies/package.json",
 			packageJSON: PackageJSON{
 				Dependencies:         map[string]string{"react": "18.2.0"},
-				DevDependencies:      map[string]string{"@types/react": "18.0.26"},
+				DevDependencies:      map[string]string{"@types/react": "18.0.28"},
 				OptionalDependencies: map[string]string{"react-table": "7.8.0"},
 			},
 		},

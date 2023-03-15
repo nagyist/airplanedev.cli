@@ -24,9 +24,7 @@
   integrity sha512-0nBr+VZNKm9tvNDZFstI3Pq1fCTEDK5OZTnVKNvBNAKgd0yIvmwsP4m61rEv7ZP+tOUjWJhROpxK5MsnlF911g==
 
 airplane@^0.2:
-  version "0.2.38"
-  resolved "https://registry.yarnpkg.com/airplane/-/airplane-0.2.38.tgz#9760d1cab208b37bcec47d901ea00ae658b558f0"
-  integrity sha512-32h4MWU/40ArtM0DqBMDF7JUEKtGki7P1zxPPs1x9m7S4KTyr+zDaQZv8l+dn6CFTt4vo2f6Q7GdvmNCQ7WQfA==
+  version "0.2.44"
   dependencies:
     "@airplane/lib" "0.2.38"
     "@azure/abort-controller" "1.1.0"

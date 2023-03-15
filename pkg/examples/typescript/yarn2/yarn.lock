@@ -5,6 +5,17 @@ __metadata:
   version: 6
   cacheKey: 8
 
+"@airplane/lib@npm:0.2.44":
+  version: 0.2.44
+  resolution: "@airplane/lib@npm:0.2.44"
+  dependencies:
+    "@azure/abort-controller": 1.1.0
+    cross-fetch: 3.1.5
+    uuid: 9.0.0
+  checksum: 499fa06f62f41b949191f31ad8a4c6aacd4bc7afe958e2804f4114cb5917b51f9961aa5b03d2a1c15a0791304f6cf33dc84be863e37f3cc6589aeef54da8d3aa
+  languageName: node
+  linkType: hard
+
 "@azure/abort-controller@npm:1.1.0":
   version: 1.1.0
   resolution: "@azure/abort-controller@npm:1.1.0"
@@ -21,19 +32,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"airplane@npm:0.2.29":
-  version: 0.2.29
-  resolution: "airplane@npm:0.2.29"
+"airplane@npm:0.2.44":
+  version: 0.2.44
+  resolution: "airplane@npm:0.2.44"
   dependencies:
+    "@airplane/lib": 0.2.44
     "@azure/abort-controller": 1.1.0
     "@opentelemetry/api": 1.2.0
-    cross-fetch: 3.1.5
     fast-equals: 4.0.3
+    humanize-string: 3.0.0
     ms: 3.0.0-canary.1
-    query-string: 7.1.3
     ts-dedent: 2.2.0
     uuid: 9.0.0
-  checksum: 70fef73a2b6db723408808166ec426786f6cb086a12d9d837d9c3f4bdc34cd9bbed0afc416ec6392993e5983277556c0aaba6b338c29e4ea9d9bf3a6d1fd0d3a
+  checksum: 6a0f6c99ea060ee3cfc9527413545fa5fe96bd8b384d55ff45228544a1c427e5264088f8466e00d6245caec4a6689c43184b4162c82aeea2fcaecb99d30a1482
   languageName: node
   linkType: hard
 
@@ -46,10 +57,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"decode-uri-component@npm:^0.2.2":
-  version: 0.2.2
-  resolution: "decode-uri-component@npm:0.2.2"
-  checksum: 95476a7d28f267292ce745eac3524a9079058bbb35767b76e3ee87d42e34cd0275d2eb19d9d08c3e167f97556e8a2872747f5e65cbebcac8b0c98d83e285f139
+"decamelize@npm:^6.0.0":
+  version: 6.0.0
+  resolution: "decamelize@npm:6.0.0"
+  checksum: 0066bc30798ec11e01adf0c19ad975caef86545d4bb6f70cfb90b7eb8e3cbf7974cf774ac2e6ea2586e4e07b1f654bfecc4e772c42128a79a89f8584fc546753
   languageName: node
   linkType: hard
 
@@ -60,10 +71,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"filter-obj@npm:^1.1.0":
-  version: 1.1.0
-  resolution: "filter-obj@npm:1.1.0"
-  checksum: cf2104a7c45ff48e7f505b78a3991c8f7f30f28bd8106ef582721f321f1c6277f7751aacd5d83026cb079d9d5091082f588d14a72e7c5d720ece79118fa61e10
+"humanize-string@npm:3.0.0":
+  version: 3.0.0
+  resolution: "humanize-string@npm:3.0.0"
+  dependencies:
+    decamelize: ^6.0.0
+  checksum: af88f94d6d5642a9d516a59f7c35f9bcdd6993710b7ff41be4e1564d413137afc1d084bb24741fe8a32584c7892f3ab28abbcbe606d0c060a77d6bb9a33469f6
   languageName: node
   linkType: hard
 
@@ -88,39 +101,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"query-string@npm:7.1.3":
-  version: 7.1.3
-  resolution: "query-string@npm:7.1.3"
-  dependencies:
-    decode-uri-component: ^0.2.2
-    filter-obj: ^1.1.0
-    split-on-first: ^1.0.0
-    strict-uri-encode: ^2.0.0
-  checksum: 91af02dcd9cc9227a052841d5c2eecb80a0d6489d05625df506a097ef1c59037cfb5e907f39b84643cbfd535c955abec3e553d0130a7b510120c37d06e0f4346
-  languageName: node
-  linkType: hard
-
 "root-workspace-0b6124@workspace:.":
   version: 0.0.0-use.local
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
-    airplane: 0.2.29
+    airplane: 0.2.44
   languageName: unknown
   linkType: soft
-
-"split-on-first@npm:^1.0.0":
-  version: 1.1.0
-  resolution: "split-on-first@npm:1.1.0"
-  checksum: 16ff85b54ddcf17f9147210a4022529b343edbcbea4ce977c8f30e38408b8d6e0f25f92cd35b86a524d4797f455e29ab89eb8db787f3c10708e0b47ebf528d30
-  languageName: node
-  linkType: hard
-
-"strict-uri-encode@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "strict-uri-encode@npm:2.0.0"
-  checksum: eaac4cf978b6fbd480f1092cab8b233c9b949bcabfc9b598dd79a758f7243c28765ef7639c876fa72940dac687181b35486ea01ff7df3e65ce3848c64822c581
-  languageName: node
-  linkType: hard
 
 "tr46@npm:~0.0.3":
   version: 0.0.3

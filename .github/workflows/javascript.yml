@@ -1,5 +1,16 @@
 name: javascript
-on: push
+
+on:
+  push:
+    branches: ["main"]
+  pull_request: {}
+
+concurrency:
+  # If this was triggered from a pull request, only run one at a time and cancel any older,
+  # in-progress runs.
+  group: javascript-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   run:
     name: test (${{ matrix.dir }})

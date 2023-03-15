@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "airplane": "0.2.29"
+    "airplane": "0.2.44"
   },
   "airplane": {
     "root": ".."

@@ -5,7 +5,7 @@
   "types": "dist/index.d.ts",
   "private": true,
   "dependencies": {
-    "node-fetch": "3.3.0",
+    "node-fetch": "3.3.1",
     "pg": "^8.7.3",
     "pg-format": "^1.0.4"
   },

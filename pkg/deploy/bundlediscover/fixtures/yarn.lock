@@ -15,14 +15,10 @@
   integrity sha512-0nBr+VZNKm9tvNDZFstI3Pq1fCTEDK5OZTnVKNvBNAKgd0yIvmwsP4m61rEv7ZP+tOUjWJhROpxK5MsnlF911g==
 
 "@types/node@^18.11.9":
-  version "18.11.9"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.11.9.tgz#02d013de7058cea16d36168ef2fc653464cfbad4"
-  integrity sha512-CRpX21/kGdzjOpFsZSkcrXMGIBWMGNIHXXBVFSH+ggkftxg+XYP20TESbh+zFvFj3EQOl5byk0HTRn1IL6hbqg==
+  version "18.15.3"
 
 airplane@^0.2.16:
-  version "0.2.16"
-  resolved "https://registry.yarnpkg.com/airplane/-/airplane-0.2.16.tgz#1831b0b4c36d33085e90ab454f3771213f6f1697"
-  integrity sha512-uD1FobsU5L6KMieR33l+JXSpSRQ0TISHnWkCHBoWFQfS5Z40tVRJw4fnhVTiAl5H5fDpIadU+y19XXfhQ3aIlg==
+  version "0.2.44"
   dependencies:
     "@azure/abort-controller" "1.1.0"
     "@opentelemetry/api" "1.2.0"
