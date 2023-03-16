@@ -34,7 +34,7 @@ func (d *ImageDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts 
 	return nil
 }
 
-func (d *ImageDefinition) hydrateFromTask(t api.Task, availableResources []api.ResourceMetadata) error {
+func (d *ImageDefinition) update(t api.UpdateTaskRequest, availableResources []api.ResourceMetadata) error {
 	if t.Image != nil {
 		d.Image = *t.Image
 	}

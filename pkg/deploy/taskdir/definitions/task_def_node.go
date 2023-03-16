@@ -52,7 +52,7 @@ func (d *NodeDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts G
 	return nil
 }
 
-func (d *NodeDefinition) hydrateFromTask(t api.Task, availableResources []api.ResourceMetadata) error {
+func (d *NodeDefinition) update(t api.UpdateTaskRequest, availableResources []api.ResourceMetadata) error {
 	if v, ok := t.KindOptions["entrypoint"]; ok {
 		if sv, ok := v.(string); ok {
 			d.Entrypoint = sv

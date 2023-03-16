@@ -33,7 +33,7 @@ func (d *RESTDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts G
 	return nil
 }
 
-func (d *RESTDefinition) hydrateFromTask(t api.Task, availableResources []api.ResourceMetadata) error {
+func (d *RESTDefinition) update(t api.UpdateTaskRequest, availableResources []api.ResourceMetadata) error {
 	if resID, ok := t.Resources["rest"]; ok {
 		if resource := getResourceByID(availableResources, resID); resource != nil {
 			d.Resource = resource.Slug

@@ -36,7 +36,7 @@ func (d *PythonDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts
 	return nil
 }
 
-func (d *PythonDefinition) hydrateFromTask(t api.Task, availableResources []api.ResourceMetadata) error {
+func (d *PythonDefinition) update(t api.UpdateTaskRequest, availableResources []api.ResourceMetadata) error {
 	if v, ok := t.KindOptions["entrypoint"]; ok {
 		if sv, ok := v.(string); ok {
 			d.Entrypoint = sv

@@ -96,8 +96,8 @@ func (c BuiltinTaskContainer) MarshalYAML() (interface{}, error) {
 	}, nil
 }
 
-// Hydrates a builtin definition from a task.
-func hydrateBuiltin(d *Definition, t api.Task, availableResources []api.ResourceMetadata) error {
+// Updates a builtin's kind-specific definition fields.
+func updateBuiltin(d *Definition, t api.UpdateTaskRequest, availableResources []api.ResourceMetadata) error {
 	fs, err := builtins.GetFunctionSpecificationFromKindOptions(t.KindOptions)
 	if err != nil {
 		return err
@@ -109,7 +109,7 @@ func hydrateBuiltin(d *Definition, t api.Task, availableResources []api.Resource
 	}
 
 	def := plugin.GetTaskKindDefinition()
-	if err := def.hydrateFromTask(t, availableResources); err != nil {
+	if err := def.update(t, availableResources); err != nil {
 		return err
 	}
 	d.Builtin = &BuiltinTaskContainer{def: def}

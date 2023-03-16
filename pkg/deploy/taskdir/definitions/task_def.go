@@ -9,7 +9,6 @@ import (
 
 	"github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
-	"github.com/airplanedev/lib/pkg/utils/pointers"
 	"github.com/goccy/go-yaml"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
@@ -47,7 +46,7 @@ type Definition struct {
 
 type taskKind interface {
 	copyToTask(*api.Task, build.BuildConfig, GetTaskOpts) error
-	hydrateFromTask(api.Task, []api.ResourceMetadata) error
+	update(api.UpdateTaskRequest, []api.ResourceMetadata) error
 	setEntrypoint(string) error
 	setAbsoluteEntrypoint(string) error
 	getAbsoluteEntrypoint() (string, error)
@@ -165,6 +164,22 @@ func NewBuiltinDefinition(name string, slug string, builtin BuiltinTaskDef) (Def
 		Slug:    slug,
 		Builtin: &BuiltinTaskContainer{def: builtin},
 	}, nil
+}
+
+func NewDefinitionFromTask(t api.Task, availableResources []api.ResourceMetadata) (Definition, error) {
+	d := Definition{}
+	opts := UpdateOptions{
+		Triggers:           t.Triggers,
+		AvailableResources: availableResources,
+	}
+	if opts.Triggers == nil {
+		opts.Triggers = []api.Trigger{}
+	}
+	if err := d.Update(t.AsUpdateTaskRequest(), opts); err != nil {
+		return Definition{}, err
+	}
+
+	return d, nil
 }
 
 // Customize the UnmarshalJSON to pull out the builtin, if there is any. The MarshalJSON
@@ -631,10 +646,6 @@ func (d *Definition) SetDefnFilePath(filePath string) {
 	d.defnFilePath = filePath
 }
 
-func (d *Definition) UpgradeJST() error {
-	return nil
-}
-
 func (d *Definition) GetKindAndOptions() (build.TaskKind, build.KindOptions, error) {
 	kind, err := d.Kind()
 	if err != nil {
@@ -746,120 +757,6 @@ func (d *Definition) GetSchedules() map[string]api.Schedule {
 		}
 	}
 	return schedules
-}
-
-func NewDefinitionFromTask(t api.Task, availableResources []api.ResourceMetadata) (Definition, error) {
-	d := Definition{
-		Name:            t.Name,
-		Slug:            t.Slug,
-		Description:     t.Description,
-		RequireRequests: t.ExecuteRules.RequireRequests,
-		RestrictCallers: t.ExecuteRules.RestrictCallers,
-		Runtime:         t.Runtime,
-	}
-
-	params, err := convertParametersAPIToDef(t.Parameters)
-	if err != nil {
-		return Definition{}, err
-	}
-	d.Parameters = params
-
-	if err := d.convertResourcesFromTask(t, availableResources); err != nil {
-		return Definition{}, err
-	}
-
-	if err := d.convertTaskKindFromTask(t, availableResources); err != nil {
-		return Definition{}, err
-	}
-
-	if len(t.Configs) > 0 {
-		d.Configs = make([]string, len(t.Configs))
-		for idx, config := range t.Configs {
-			d.Configs[idx] = config.NameTag
-		}
-	}
-
-	if !t.Constraints.IsEmpty() {
-		d.Constraints = map[string]string{}
-		for _, label := range t.Constraints.Labels {
-			d.Constraints[label.Key] = label.Value
-		}
-	}
-
-	d.AllowSelfApprovals.value = pointers.Bool(!t.ExecuteRules.DisallowSelfApprove)
-	d.Timeout.value = t.Timeout
-
-	schedules := make(map[string]ScheduleDefinition)
-	for _, trigger := range t.Triggers {
-		if trigger.Kind != api.TriggerKindSchedule || trigger.Slug == nil {
-			// Trigger is not a schedule deployed via code
-			continue
-		}
-		if trigger.ArchivedAt != nil || trigger.DisabledAt != nil {
-			// Trigger is archived or disabled, so don't add to task defn file
-			continue
-		}
-
-		schedules[*trigger.Slug] = ScheduleDefinition{
-			Name:        trigger.Name,
-			Description: trigger.Description,
-			CronExpr:    trigger.KindConfig.Schedule.CronExpr.String(),
-			ParamValues: trigger.KindConfig.Schedule.ParamValues,
-		}
-	}
-	if len(schedules) > 0 {
-		d.Schedules = schedules
-	}
-
-	return d, nil
-}
-
-func (d *Definition) convertResourcesFromTask(t api.Task, availableResources []api.ResourceMetadata) error {
-	if len(t.Resources) == 0 {
-		return nil
-	}
-
-	d.Resources.Attachments = map[string]string{}
-	for alias, id := range t.Resources {
-		// Ignore SQL/REST resources; they get routed elsewhere.
-		if (t.Kind == build.TaskKindSQL && alias == "db") ||
-			(t.Kind == build.TaskKindREST && alias == "rest") ||
-			(t.Kind == build.TaskKindBuiltin) {
-			continue
-		}
-		if resource := getResourceByID(availableResources, id); resource != nil {
-			d.Resources.Attachments[alias] = resource.Slug
-		}
-	}
-
-	return nil
-}
-
-func (d *Definition) convertTaskKindFromTask(t api.Task, availableResources []api.ResourceMetadata) error {
-	switch t.Kind {
-	case build.TaskKindImage:
-		d.Image = &ImageDefinition{}
-		return d.Image.hydrateFromTask(t, availableResources)
-	case build.TaskKindNode:
-		d.Node = &NodeDefinition{}
-		return d.Node.hydrateFromTask(t, availableResources)
-	case build.TaskKindPython:
-		d.Python = &PythonDefinition{}
-		return d.Python.hydrateFromTask(t, availableResources)
-	case build.TaskKindShell:
-		d.Shell = &ShellDefinition{}
-		return d.Shell.hydrateFromTask(t, availableResources)
-	case build.TaskKindSQL:
-		d.SQL = &SQLDefinition{}
-		return d.SQL.hydrateFromTask(t, availableResources)
-	case build.TaskKindREST:
-		d.REST = &RESTDefinition{}
-		return d.REST.hydrateFromTask(t, availableResources)
-	case build.TaskKindBuiltin:
-		return hydrateBuiltin(d, t, availableResources)
-	default:
-		return errors.Errorf("unknown task kind: %s", t.Kind)
-	}
 }
 
 // GetBuildConfig gets the full build config, synthesized from KindOptions and explicitly set

@@ -57,7 +57,7 @@ func (d GraphQLDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts
 	return nil
 }
 
-func (d *GraphQLDefinition) hydrateFromTask(t api.Task, availableResources []api.ResourceMetadata) error {
+func (d *GraphQLDefinition) update(t api.UpdateTaskRequest, availableResources []api.ResourceMetadata) error {
 	if resID, ok := t.Resources["api"]; ok {
 		if resource := getResourceByID(availableResources, resID); resource != nil {
 			d.Resource = resource.Slug
