@@ -609,8 +609,16 @@ func ListRunsHandler(ctx context.Context, state *state.State, r *http.Request) (
 		return ListRunsResponse{}, err
 	}
 
+	// Filter out remote runs.
+	localRuns := []dev.LocalRun{}
+	for _, run := range runs {
+		if !run.Remote {
+			localRuns = append(localRuns, run)
+		}
+	}
+
 	return ListRunsResponse{
-		Runs: runs,
+		Runs: localRuns,
 	}, nil
 }
 

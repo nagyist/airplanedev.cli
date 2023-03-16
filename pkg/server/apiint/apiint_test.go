@@ -317,7 +317,7 @@ func TestListRuns(t *testing.T) {
 			TaskConfigs: state.NewStore[string, discover.TaskConfig](nil),
 		}, server.Options{}),
 	)
-	var resp apiext.ListRunsResponse
+	var resp apiint.ListRunsResponse
 	body := h.GET("/i/runs/list").
 		WithQuery("taskSlug", taskSlug).
 		Expect().

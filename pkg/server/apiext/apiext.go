@@ -441,21 +441,6 @@ func GetViewHandler(ctx context.Context, state *state.State, r *http.Request) (l
 	}, nil
 }
 
-type ListRunsResponse struct {
-	Runs []dev.LocalRun `json:"runs"`
-}
-
-func ListRunsHandler(ctx context.Context, state *state.State, r *http.Request) (ListRunsResponse, error) {
-	taskSlug := r.URL.Query().Get("taskSlug")
-	runs, err := state.GetRunHistory(ctx, taskSlug)
-	if err != nil {
-		return ListRunsResponse{}, err
-	}
-	return ListRunsResponse{
-		Runs: runs,
-	}, nil
-}
-
 type CreateDisplayRequest struct {
 	Display libapi.Display `json:"display"`
 }
