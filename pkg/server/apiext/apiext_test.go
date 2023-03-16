@@ -69,7 +69,7 @@ func TestExecute(t *testing.T) {
 			RemoteClient: &api.MockClient{},
 			Executor:     mockExecutor,
 			Runs:         store,
-			TaskConfigs: state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{
+			TaskConfigs: state.NewStore(map[string]discover.TaskConfig{
 				slug: {
 					TaskID:         "tsk123",
 					TaskRoot:       ".",
@@ -148,7 +148,7 @@ func TestExecuteFallback(t *testing.T) {
 			},
 			Executor:             mockExecutor,
 			Runs:                 store,
-			TaskConfigs:          state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{}),
+			TaskConfigs:          state.NewStore(map[string]discover.TaskConfig{}),
 			DevConfig:            &conf.DevConfig{},
 			InitialRemoteEnvSlug: pointers.String("test"),
 		}, server.Options{}),
@@ -200,7 +200,7 @@ func TestExecuteDescendantFallback(t *testing.T) {
 			RemoteClient:         &api.MockClient{},
 			Executor:             mockExecutor,
 			Runs:                 runstore,
-			TaskConfigs:          state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{}),
+			TaskConfigs:          state.NewStore(map[string]discover.TaskConfig{}),
 			DevConfig:            &conf.DevConfig{},
 			InitialRemoteEnvSlug: pointers.String("test"),
 		}, server.Options{}),
@@ -270,7 +270,7 @@ func TestExecuteBuiltin(t *testing.T) {
 			RemoteClient: &api.MockClient{},
 			Executor:     mockExecutor,
 			Runs:         store,
-			TaskConfigs: state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{
+			TaskConfigs: state.NewStore(map[string]discover.TaskConfig{
 				slug: {
 					TaskID:         "tsk123",
 					TaskRoot:       ".",
@@ -406,7 +406,7 @@ func TestRefresh(t *testing.T) {
 			RemoteClient: &api.MockClient{},
 			Executor:     mockExecutor,
 			Runs:         store,
-			TaskConfigs: state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{
+			TaskConfigs: state.NewStore(map[string]discover.TaskConfig{
 				slug: {
 					TaskID:         "tsk123",
 					TaskRoot:       ".",

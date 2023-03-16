@@ -61,7 +61,7 @@ type State struct {
 
 	Discoverer       *discover.Discoverer
 	BundleDiscoverer *bundlediscover.Discoverer
-	//Debouncer returns the debouncing function for a given key
+	// Debouncer returns the debouncing function for a given key
 	Debouncer DebounceStore
 
 	DevConfig *conf.DevConfig

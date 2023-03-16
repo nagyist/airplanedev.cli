@@ -27,6 +27,7 @@ import (
 	libresources "github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/resources/conversion"
 	"github.com/airplanedev/lib/pkg/resources/kind_configs"
+	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/gorilla/mux"
 	"github.com/gosimple/slug"
@@ -61,8 +62,9 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/runs/cancel", handlers.WithBody(state, CancelRunHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/runs/getOutputs", handlers.New(state, outputs.GetOutputsHandler)).Methods("GET", "OPTIONS")
 
-	r.Handle("/tasks/get", handlers.New(state, GetTaskInfoHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/views/get", handlers.New(state, GetViewInfoHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/tasks/get", handlers.New(state, GetTaskHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/tasks/update", handlers.WithBody(state, UpdateTaskHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/views/get", handlers.New(state, GetViewHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/users/get", handlers.New(state, GetUserHandler)).Methods("GET", "OPTIONS")
 
@@ -622,8 +624,8 @@ func ListRunsHandler(ctx context.Context, state *state.State, r *http.Request) (
 	}, nil
 }
 
-// GetTaskInfoHandler handles requests to the /i/tasks/get?slug=<task_slug> endpoint.
-func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.Task, error) {
+// GetTaskHandler handles requests to the /i/tasks/get?slug=<task_slug> endpoint.
+func GetTaskHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.Task, error) {
 	taskSlug := r.URL.Query().Get("slug")
 	if taskSlug == "" {
 		return libapi.Task{}, libhttp.NewErrBadRequest("task slug was not supplied")
@@ -681,13 +683,51 @@ func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request
 	return task, nil
 }
 
+func UpdateTaskHandler(ctx context.Context, state *state.State, r *http.Request, req libapi.UpdateTaskRequest) (struct{}, error) {
+	taskConfig, ok := state.TaskConfigs.Get(req.Slug)
+	if !ok {
+		return struct{}{}, libhttp.NewErrNotFound("task with slug %q not found", req.Slug)
+	}
+
+	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
+	resources, err := resources.ListResourceMetadata(ctx, state.RemoteClient, state.DevConfig, envSlug)
+	if err != nil {
+		return struct{}{}, err
+	}
+
+	if err := taskConfig.Def.Update(req, definitions.UpdateOptions{
+		// TODO(colin, 04012023): add support for updating schedules. For now, we leave them as-is.
+		Triggers:           nil,
+		AvailableResources: resources,
+	}); err != nil {
+		return struct{}{}, libhttp.NewErrBadRequest("unable to update task %q: %s", req.Slug, err.Error())
+	}
+
+	kind, err := taskConfig.Def.Kind()
+	if err != nil {
+		return struct{}{}, err
+	}
+
+	rt, err := runtime.Lookup(taskConfig.TaskEntrypoint, kind)
+	if err != nil {
+		return struct{}{}, err
+	}
+
+	// Update the underlying task file.
+	if err := rt.Edit(ctx, state.Logger, taskConfig.TaskEntrypoint, req.Slug, taskConfig.Def); err != nil {
+		return struct{}{}, err
+	}
+
+	return struct{}{}, nil
+}
+
 type ViewInfo struct {
 	libapi.View
 	ViewsPkgVersion string `json:"viewsPkgVersion"`
 }
 
-// GetViewInfoHandler handles requests to the /i/views/get?slug=<view_slug> endpoint.
-func GetViewInfoHandler(ctx context.Context, state *state.State, r *http.Request) (ViewInfo, error) {
+// GetViewHandler handles requests to the /i/views/get?slug=<view_slug> endpoint.
+func GetViewHandler(ctx context.Context, state *state.State, r *http.Request) (ViewInfo, error) {
 	viewSlug := r.URL.Query().Get("slug")
 	if viewSlug == "" {
 		return ViewInfo{}, libhttp.NewErrBadRequest("view slug was not supplied")

@@ -20,12 +20,12 @@ import (
 // TaskInfo bundles together information about a task from the ECS
 // and CW APIs.
 type TaskInfo struct {
-	ID               string
-	Group            string
-	CreatedAt        time.Time
-	DesiredStatus    string
-	CurrentStatus    string
-	TaskDefintionARN string
+	ID                string
+	Group             string
+	CreatedAt         time.Time
+	DesiredStatus     string
+	CurrentStatus     string
+	TaskDefinitionARN string
 
 	// These fields are only filled in for a subset of tasks
 	TaskDefinition *types.TaskDefinition
@@ -189,13 +189,13 @@ func GetTaskInfos(
 				taskInfos = append(
 					taskInfos,
 					TaskInfo{
-						ID:               taskID,
-						Group:            taskGroup,
-						CreatedAt:        pointers.ToTime(task.CreatedAt),
-						DesiredStatus:    pointers.ToString(task.DesiredStatus),
-						CurrentStatus:    pointers.ToString(task.LastStatus),
-						TaskDefintionARN: pointers.ToString(task.TaskDefinitionArn),
-						TaskDefinition:   taskDefResp.TaskDefinition,
+						ID:                taskID,
+						Group:             taskGroup,
+						CreatedAt:         pointers.ToTime(task.CreatedAt),
+						DesiredStatus:     pointers.ToString(task.DesiredStatus),
+						CurrentStatus:     pointers.ToString(task.LastStatus),
+						TaskDefinitionARN: pointers.ToString(task.TaskDefinitionArn),
+						TaskDefinition:    taskDefResp.TaskDefinition,
 					},
 				)
 			}
