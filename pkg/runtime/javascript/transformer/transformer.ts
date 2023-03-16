@@ -82,21 +82,17 @@ const buildTaskConfig = (
   const output = builders.objectExpression([]);
 
   {
-    const value = builders.stringLiteral(def.slug);
-    value.comments = getComments(input, "slug");
-    output.properties.push(buildObjectProperty("slug", value));
+    output.properties.push(buildObjectProperty("slug", builders.stringLiteral(def.slug)));
   }
 
   if (def.name) {
-    const value = builders.stringLiteral(def.name);
-    value.comments = getComments(input, "name");
-    output.properties.push(buildObjectProperty("name", value));
+    output.properties.push(buildObjectProperty("name", builders.stringLiteral(def.name)));
   }
 
   if (def.description) {
-    const value = builders.stringLiteral(def.description);
-    value.comments = getComments(input, "description");
-    output.properties.push(buildObjectProperty("description", value));
+    output.properties.push(
+      buildObjectProperty("description", builders.stringLiteral(def.description))
+    );
   }
 
   if (def.parameters && def.parameters.length > 0) {
@@ -153,9 +149,7 @@ const buildTaskConfig = (
   }
 
   if (def.runtime && def.runtime !== "standard") {
-    const value = builders.stringLiteral(def.runtime);
-    value.comments = getComments(input, "runtime");
-    output.properties.push(buildObjectProperty("runtime", value));
+    output.properties.push(buildObjectProperty("runtime", builders.stringLiteral(def.runtime)));
   }
 
   if (def.resources) {
@@ -196,9 +190,7 @@ const buildTaskConfig = (
 
   const defaultTimeout = def.runtime === "workflow" ? 0 : 3600;
   if (def.timeout && def.timeout !== defaultTimeout) {
-    const value = builders.numericLiteral(def.timeout);
-    value.comments = getComments(input, "timeout");
-    output.properties.push(buildObjectProperty("timeout", value));
+    output.properties.push(buildObjectProperty("timeout", builders.numericLiteral(def.timeout)));
   }
 
   if (def.constraints && Object.keys(def.constraints).length > 0) {
@@ -212,15 +204,15 @@ const buildTaskConfig = (
   }
 
   if (def.requireRequests) {
-    const value = builders.booleanLiteral(def.requireRequests);
-    value.comments = getComments(input, "requireRequests");
-    output.properties.push(buildObjectProperty("requireRequests", value));
+    output.properties.push(
+      buildObjectProperty("requireRequests", builders.booleanLiteral(def.requireRequests))
+    );
   }
 
   if (def.allowSelfApprovals === false) {
-    const value = builders.booleanLiteral(def.allowSelfApprovals);
-    value.comments = getComments(input, "allowSelfApprovals");
-    output.properties.push(buildObjectProperty("allowSelfApprovals", value));
+    output.properties.push(
+      buildObjectProperty("allowSelfApprovals", builders.booleanLiteral(def.allowSelfApprovals))
+    );
   }
 
   if (def.schedules && Object.keys(def.schedules).length > 0) {
@@ -357,28 +349,6 @@ const getStringValue = (e: namedTypes.ObjectExpression, fieldName: string): stri
   } else {
     throw new Error(
       `Cannot get slug due to unsupported value syntax "${value.type}"${printLOC(value.loc)}`
-    );
-  }
-};
-
-const getComments = (
-  e: namedTypes.ObjectExpression,
-  fieldName: string
-): CommentKind[] | null | undefined => {
-  const value = getPropertyValue(e, fieldName);
-  if (!value) {
-    return undefined;
-  }
-
-  if (namedTypes.StringLiteral.check(value) || namedTypes.TemplateLiteral.check(value)) {
-    console.log(`Found comments for ${fieldName}: ${inspect(value.comments)}`);
-    return value.comments;
-  } else {
-    // There are too many cases to handle here (since `value` can be any expression), so we can't `assertNever(value)`.
-    throw new Error(
-      `Cannot edit field "${fieldName}" due to unsupported value syntax "${value.type}"${printLOC(
-        value.loc
-      )}`
     );
   }
 };
