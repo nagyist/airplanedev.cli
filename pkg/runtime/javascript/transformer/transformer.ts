@@ -1,29 +1,14 @@
-// After changing this file, run `yarn build` to bundle into a JS file. Or
-// use `yarn build:watch` to rebuild after every change.
-
-// To learn more about how to use recast, see their README for docs:
-// - https://github.com/benjamn/recast (parsing/printing logic)
-// - https://github.com/benjamn/ast-types (core "types" like "ObjectExpression")
-//
-// You can also visually explore the parsed AST:
-// - https://astexplorer.net/#/gist/39078d85ea26b8553d533aeb7c235c9f/4858d0d7ccff7b0c3bacc9ea2aff8ff395601518
-//
-// The recast pretty-printer has some outdated styling opinions. We forked recast so we can
-// tweak these behaviors.
-//
-// 1. If an object parameter has multiple lines, a newline will be inserted above and below it.
-//    See: https://github.com/benjamn/recast/issues/228
-//    Fix: https://github.com/airplanedev/recast/pull/1
 import { parse, print } from "@airplane/recast";
 import * as typescript from "@airplane/recast/parsers/typescript";
-import { namedTypes, ASTNode, visit, builders } from "ast-types";
+import { ASTNode, builders, namedTypes, visit } from "ast-types";
 import type { CommentKind, ExpressionKind, PatternKind } from "ast-types/gen/kinds";
-import { writeFile, readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { inspect } from "node:util";
 
 export const transform = async (file: string, existingSlug: string, def: any) => {
   const buf = await readFile(file);
-  const ast = parse(buf.toString(), {
+  const contents = buf.toString();
+  const ast = parse(contents, {
     parser: typescript,
     // When printing string literals, prefer the quote that will generate the shortest literal.
     quote: "auto",
@@ -70,8 +55,24 @@ export const transform = async (file: string, existingSlug: string, def: any) =>
     },
   });
 
-  const result = print(ast);
-  await writeFile(file, result.code);
+  let result = print(ast).code;
+
+  // Recast always uses spaces for indentation even if the source file uses tabs.
+  // This is an upstream bug that we could fix upstream, but for now we use a workaround.
+  const originalIndentation = getIndentation(contents);
+  if (originalIndentation === "tabs" && getIndentation(result) !== originalIndentation) {
+    // Replace all indentation with tabs.
+    result = result.replace(/^\t*( +)/gm, (_, match: string) => {
+      // Since this file uses spaces, Recast will fallback to the default tabWidth (4). Therefore,
+      // we know that 4 spaces is always equivalent to 1 tab.
+      return "\t".repeat(match.length / 4);
+    });
+    if (getIndentation(result) !== originalIndentation) {
+      console.error("Failed to re-format indentation to be consistent.");
+    }
+  }
+
+  await writeFile(file, result);
 };
 
 const buildTaskConfig = (
@@ -384,4 +385,51 @@ const printLOC = (loc: namedTypes.SourceLocation | null | undefined): string => 
 const assertNever = (value: never): never => {
   const desc = value && "type" in value ? (value as any).type : JSON.stringify(value);
   throw new Error(`Unhandled syntax: ${desc}`);
+};
+
+/**
+ * Inspects a file's contents and determines if it consistently uses tabs or spaces.
+ *
+ * If it uses a mix of indentation (or none), it returns undefined.
+ */
+const getIndentation = (contents: string): "tabs" | "spaces" | undefined => {
+  if (!contents) {
+    return undefined;
+  }
+  const regex = /^[ \t]*/gm;
+  let tabLines = 0;
+  let spaceLines = 0;
+  let m: RegExpExecArray | null;
+  while ((m = regex.exec(contents)) !== null) {
+    // This is necessary to avoid infinite loops with zero-width matches
+    if (m.index === regex.lastIndex) {
+      regex.lastIndex++;
+    }
+
+    // The result can be accessed through the `m`-variable.
+    m.forEach((match) => {
+      if (match.includes(" ")) {
+        spaceLines++;
+        if (tabLines > 0) {
+          // There is a mixture of indentation. Return early.
+          return undefined;
+        }
+      }
+      if (match.includes("\t")) {
+        tabLines++;
+        if (spaceLines > 0) {
+          // There is a mixture of indentation. Return early.
+          return undefined;
+        }
+      }
+    });
+  }
+
+  if (spaceLines && !tabLines) {
+    return "spaces";
+  }
+  if (!spaceLines && tabLines) {
+    return "tabs";
+  }
+  return undefined;
 };

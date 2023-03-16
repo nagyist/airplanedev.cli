@@ -248,6 +248,15 @@ func TestEdit(t *testing.T) {
 				Name: "My task (v2)",
 			},
 		},
+		{
+			// Tests the case where a task uses tabs.
+			name: "tabs",
+			slug: "my_task",
+			def: definitions.Definition{
+				Slug: "my_task",
+				Name: "Task name",
+			},
+		},
 		// TODO: support basic variable references
 		// {
 		// 	// Tests the case where a task's options are stored in a separate variable.
@@ -283,7 +292,6 @@ func TestEdit(t *testing.T) {
 
 		// TODO: support `import { task } from 'airplane'` syntax where it won't be a member expression
 		// TODO: tolerant parsing
-		// TODO: test spaces vs. tabs
 		// TODO: add parameter test cases (incl options/regex which aren't supported yet)
 		// TODO: add schedule test cases
 		// TODO: add resource test cases
@@ -333,5 +341,17 @@ func TestEdit(t *testing.T) {
 			require.NoError(err)
 			require.Equal(string(expected), string(actual))
 		})
+	}
+}
+
+func TestFixtures(t *testing.T) {
+	require := require.New(t)
+
+	// Assert that the "tabs" fixtures contains tab indentation. This guards against
+	// an IDE reverting the indentation in that file.
+	for _, file := range []string{"./fixtures/transformer/tabs.airplane.js", "./fixtures/transformer/tabs.out.airplane.js"} {
+		contents, err := os.ReadFile(file)
+		require.NoError(err)
+		require.Contains(string(contents), "\t")
 	}
 }
