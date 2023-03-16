@@ -121,7 +121,29 @@ const buildTaskConfig = (
         }
         if (p.default != null) {
           parameter.properties.push(
-            buildObjectProperty("default", builders.booleanLiteral(p.default))
+            buildObjectProperty("default", buildParamValue(p.default, p.type))
+          );
+        }
+        if (p.regex) {
+          parameter.properties.push(buildObjectProperty("regex", builders.stringLiteral(p.regex)));
+        }
+        if (p.options) {
+          parameter.properties.push(
+            buildObjectProperty(
+              "options",
+              builders.arrayExpression(
+                p.options.map((option) => {
+                  const value = buildParamValue(option.value, p.type);
+                  if (option.label) {
+                    return builders.objectExpression([
+                      buildObjectProperty("label", builders.stringLiteral(option.label)),
+                      buildObjectProperty("value", value),
+                    ]);
+                  }
+                  return value;
+                })
+              )
+            )
           );
         }
         return buildObjectProperty(p.slug, parameter);
@@ -244,19 +266,55 @@ const buildObjectProperty = (key: string, value: any) => {
 
 const buildParamValues = (paramValues: any): namedTypes.ObjectExpression => {
   return builders.objectExpression(
-    Object.entries(paramValues).map(([param, paramValue]) => {
-      if (typeof paramValue === "string") {
-        return buildObjectProperty(param, builders.stringLiteral(paramValue));
-      }
-      if (typeof paramValue === "number") {
-        return buildObjectProperty(param, builders.numericLiteral(paramValue));
-      }
-      if (typeof paramValue === "boolean") {
-        return buildObjectProperty(param, builders.booleanLiteral(paramValue));
-      }
-      throw new Error(`Unhandled parameter value type: ${paramValue}`);
-    })
+    Object.entries(paramValues).map(([param, paramValue]) =>
+      buildObjectProperty(param, buildParamValue(paramValue))
+    )
   );
+};
+
+const buildParamValue = (paramValue: any, type?: string): ExpressionKind => {
+  // Certain parameter kinds are serialized in specific ways.
+  if (type === "datetime" && typeof paramValue === "string") {
+    // Rewrite datetimes using the Date object.
+    return builders.newExpression(builders.identifier("Date"), [
+      builders.stringLiteral(paramValue),
+    ]);
+  }
+  if (
+    type === "configvar" &&
+    typeof paramValue === "object" &&
+    typeof paramValue["config"] === "string"
+  ) {
+    // Rewrite the legacy config var format (used in YAML definitions).
+    return builders.stringLiteral(paramValue["config"]);
+  }
+
+  return buildJSON(paramValue);
+};
+
+/** Serialize a value as a JSON object. */
+const buildJSON = (value: any): ExpressionKind => {
+  if (value == null) {
+    return builders.nullLiteral();
+  }
+  if (typeof value === "string") {
+    return builders.stringLiteral(value);
+  }
+  if (typeof value === "number") {
+    return builders.numericLiteral(value);
+  }
+  if (typeof value === "boolean") {
+    return builders.booleanLiteral(value);
+  }
+  if (Array.isArray(value)) {
+    return builders.arrayExpression(value.map(buildJSON));
+  }
+  if (typeof value === "object") {
+    return builders.objectExpression(
+      Object.keys(value).map((key) => buildObjectProperty(key, buildJSON(value[key])))
+    );
+  }
+  throw new Error(`Unable to serialize value as JSON: ${value}`);
 };
 
 const airplaneExpressions = ["airplane.task", "airplane.workflow", "airplane.view"] as const;

@@ -257,6 +257,103 @@ func TestEdit(t *testing.T) {
 				Name: "Task name",
 			},
 		},
+		{
+			// Tests the case where a task uses all forms of parameters.
+			name: "parameters",
+			slug: "my_task",
+			def: definitions.Definition{
+				Slug: "my_task",
+				Parameters: []definitions.ParameterDefinition{
+					{
+						Name:        "All fields",
+						Description: "My description",
+						Type:        "shorttext",
+						Required:    definitions.NewDefaultTrueDefinition(false),
+						Slug:        "all",
+						Default:     "My default",
+						Regex:       "^.*$",
+						Options: []definitions.OptionDefinition{
+							{Value: "Thing 1"},
+							{Value: "Thing 2"},
+							{Label: "Thing 3", Value: "Secret gremlin"},
+						},
+					},
+					{
+						Slug:    "shorttext",
+						Type:    "shorttext",
+						Default: "Text",
+					},
+					{
+						Slug:    "longtext",
+						Type:    "longtext",
+						Default: "Longer text",
+					},
+					{
+						Slug:    "sql",
+						Type:    "sql",
+						Default: "SELECT 1",
+					},
+					{
+						Slug:    "boolean_true",
+						Type:    "boolean",
+						Default: true,
+					},
+					{
+						Slug:    "boolean_false",
+						Type:    "boolean",
+						Default: false,
+					},
+					{
+						Slug:    "upload",
+						Type:    "upload",
+						Default: "upl123",
+					},
+					{
+						Slug:    "integer",
+						Type:    "integer",
+						Default: 10,
+					},
+					{
+						Slug:    "integer_zero",
+						Type:    "integer",
+						Default: 0,
+					},
+					{
+						Slug:    "float",
+						Type:    "float",
+						Default: 3.14,
+					},
+					{
+						Slug:    "float_zero",
+						Type:    "float",
+						Default: 0,
+					},
+					{
+						Slug:    "date",
+						Type:    "date",
+						Default: "2006-01-02",
+					},
+					{
+						Slug:    "datetime",
+						Type:    "datetime",
+						Default: "2006-01-02T15:04:05Z07:00",
+					},
+					{
+						Slug:    "configvar",
+						Type:    "configvar",
+						Default: "MY_CONFIG",
+					},
+					{
+						Slug: "configvar_legacy",
+						Type: "configvar",
+						// This is the legacy format for passing config vars as parameter values.
+						Default: map[string]any{
+							"config": "MY_CONFIG",
+						},
+					},
+				},
+			},
+		},
 		// TODO: support basic variable references
 		// {
 		// 	// Tests the case where a task's options are stored in a separate variable.
@@ -292,8 +389,7 @@ func TestEdit(t *testing.T) {
 
 		// TODO: support `import { task } from 'airplane'` syntax where it won't be a member expression
 		// TODO: tolerant parsing
-		// TODO: add parameter test cases (incl options/regex which aren't supported yet)
-		// TODO: add schedule test cases
+		// TODO: add schedule test cases (including one with a date param value)
 		// TODO: add resource test cases
 		// TODO: non-identifier keys
 		// TODO: add tests that cover TypeScript
