@@ -8,7 +8,29 @@ import (
 var ResourceKindGraphQL resources.ResourceKind = "graphql"
 
 func init() {
-	resources.RegisterBaseResourceFactory(ResourceKindGraphQL, func() resources.Resource { return &GraphQLResource{} })
+	resources.RegisterResourceFactory(ResourceKindGraphQL, GraphQLResourceFactory)
+}
+
+// GraphQLResourceFactory needs to be explicit due to the auth field in RESTResource.
+func GraphQLResourceFactory(serialized map[string]interface{}) (resources.Resource, error) {
+	r, err := RESTResourceFactory(serialized)
+	if err != nil {
+		return nil, err
+	}
+
+	restResource, ok := r.(*RESTResource)
+	if !ok {
+		return nil, errors.Errorf("expected *RESTResource got %T", r)
+	}
+
+	resource := GraphQLResource{}
+	if err := resources.BaseFactory(serialized, &resource); err != nil {
+		return nil, err
+	}
+
+	resource.RESTResource = *restResource
+
+	return &resource, nil
 }
 
 type GraphQLResource struct {
