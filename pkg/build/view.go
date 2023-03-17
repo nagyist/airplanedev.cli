@@ -349,14 +349,14 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		# Copy build tools.
 		COPY .airplane-build-tools .airplane-build-tools/
 
+		# Install copy and build user code.
+		WORKDIR /airplane/src
+
 		# Support setting BUILD_NPM_RC or BUILD_NPM_TOKEN to configure private registry auth
 		ARG BUILD_NPM_RC
 		ARG BUILD_NPM_TOKEN
 		RUN [ -z "${BUILD_NPM_RC}" ] || echo "${BUILD_NPM_RC}" > .npmrc
 		RUN [ -z "${BUILD_NPM_TOKEN}" ] || echo "//registry.npmjs.org/:_authToken=${BUILD_NPM_TOKEN}" > .npmrc
-
-		# Install copy and build user code.
-		WORKDIR /airplane/src
 
 		{{.InstallInstructions}}
 		{{if .HasTailwind}}
