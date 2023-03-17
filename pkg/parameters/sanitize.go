@@ -53,6 +53,7 @@ var secretWords = []string{
 	"apikey",
 	"api_key",
 	"api key",
+	"api-key",
 }
 
 func isSecretValue(key string, param *api.Parameter) bool {
