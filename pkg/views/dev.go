@@ -308,8 +308,8 @@ func addDevDepsToPackageJSON(existingPackageJSON map[string]interface{}, package
 		"object-hash":     "3.0.0",
 	}
 	defaultDevDeps := map[string]string{
-		"@vitejs/plugin-react": "2.1.0",
-		"vite":                 "3.1.3",
+		"@vitejs/plugin-react": "3.1.0",
+		"vite":                 "4.2.0",
 	}
 
 	existingDeps, ok := existingPackageJSON["dependencies"].(map[string]interface{})
