@@ -610,6 +610,9 @@ type Display struct {
 
 	// kind=json
 	Value any `json:"value"`
+
+	// kind=file
+	UploadID string `json:"uploadID"`
 }
 
 type DisplayTableColumn struct {
