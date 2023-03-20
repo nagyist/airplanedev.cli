@@ -525,11 +525,10 @@ func node(
 	}
 
 	pjson, err := GenShimPackageJSON(GenShimPackageJSONOpts{
-		RootDir:            root,
-		PackageJSONs:       packageJSONs,
-		IsWorkflow:         isWorkflow,
-		IsBundle:           false,
-		FallbackToUserDeps: true,
+		RootDir:      root,
+		PackageJSONs: packageJSONs,
+		IsWorkflow:   isWorkflow,
+		IsBundle:     false,
 	})
 	if err != nil {
 		return "", err
@@ -678,17 +677,16 @@ type shimPackageJSON struct {
 }
 
 type GenShimPackageJSONOpts struct {
-	RootDir            string
-	PackageJSONs       []string
-	IsWorkflow         bool
-	IsBundle           bool
-	FallbackToUserDeps bool
+	RootDir      string
+	PackageJSONs []string
+	IsWorkflow   bool
+	IsBundle     bool
 }
 
 // GenShimPackageJSON generates the `package.json` that contains the dependencies required for the shim to run. If the
 // dependency is satisfied by a parent directory (i.e. the user's code), then no need to include it here.
 func GenShimPackageJSON(opts GenShimPackageJSONOpts) ([]byte, error) {
-	deps, err := ListDependenciesFromPackageJSONs(opts.PackageJSONs)
+	existingDeps, err := ListDependenciesFromPackageJSONs(opts.PackageJSONs)
 	if err != nil {
 		return nil, err
 	}
@@ -698,59 +696,45 @@ func GenShimPackageJSON(opts GenShimPackageJSONOpts) ([]byte, error) {
 		return nil, errors.Wrap(err, "unmarshaling build tools package.json")
 	}
 
-	var pjson shimPackageJSON
+	shimDeps := []string{"airplane"}
+	buildDeps := []string{}
+
 	if opts.IsWorkflow {
-		pjson = shimPackageJSON{
-			Dependencies: map[string]string{
-				"airplane":         buildToolsPackageJSON.Dependencies["airplane"],
-				workflowRuntimePkg: buildToolsPackageJSON.Dependencies[workflowRuntimePkg],
-			},
-		}
-	} else {
-		pjson = shimPackageJSON{
-			Dependencies: map[string]string{
-				"airplane": buildToolsPackageJSON.Dependencies["airplane"],
-			},
-		}
+		shimDeps = append(shimDeps, workflowRuntimePkg)
 	}
-
-	// Allow users to override any shim dependencies. Given shim code is bundled
-	// with user code, we cannot use separate versions of these dependencies so
-	// default to whichever version the user requests.
-	for dep := range deps {
-		delete(pjson.Dependencies, dep)
-	}
-
-	// TODO(lee): Don't fallback to user dependencies.
-	setBuildDep := func(dep string) {
-		if opts.FallbackToUserDeps {
-			pjson.Dependencies[dep] = getLockPackageVersion(opts.RootDir, dep, buildToolsPackageJSON.Dependencies[dep])
-		} else {
-			pjson.Dependencies[dep] = buildToolsPackageJSON.Dependencies[dep]
-		}
-	}
-
-	// These dependencies must be included in order to build the universal task shim. We do not install user
-	// dependencies before building the shim in bundle builds, so we include them here.
 	if opts.IsBundle {
-		setBuildDep("esbuild")
-		setBuildDep("esbuild-plugin-tsc")
-		setBuildDep("typescript")
-		setBuildDep("jsdom")
+		buildDeps = append(buildDeps, []string{"esbuild", "esbuild-plugin-tsc", "typescript", "jsdom"}...)
+	}
+
+	requiredDepsMap := make(map[string]string, len(shimDeps)+len(buildDeps))
+	for _, de := range shimDeps {
+		requiredDepsMap[de] = buildToolsPackageJSON.Dependencies[de]
 	}
 
 	// Always keep the versions of airplane and @airplane/workflow-runtime in sync, unless the task's dependencies
 	// explicitly include @airplane/workflow-runtime.
 	if opts.IsWorkflow {
-		if depVersion, containsAirplane := deps["airplane"]; containsAirplane {
+		if depVersion, containsAirplane := existingDeps["airplane"]; containsAirplane {
 			apVersion := getLockPackageVersion(opts.RootDir, "airplane", depVersion)
-
-			if _, containsWorkflowRuntime := deps[workflowRuntimePkg]; !containsWorkflowRuntime {
-				pjson.Dependencies[workflowRuntimePkg] = apVersion
+			if _, containsWorkflowRuntime := existingDeps[workflowRuntimePkg]; !containsWorkflowRuntime {
+				requiredDepsMap[workflowRuntimePkg] = apVersion
 			}
 		}
 	}
 
+	// Allow users to override shim dependencies. If the user has specified a dependency, we won't
+	// install it for them and will rely on their version instead.
+	for dep := range existingDeps {
+		delete(requiredDepsMap, dep)
+	}
+	// Don't allow users to override build dependencies.
+	for _, de := range buildDeps {
+		requiredDepsMap[de] = buildToolsPackageJSON.Dependencies[de]
+	}
+
+	pjson := shimPackageJSON{
+		Dependencies: requiredDepsMap,
+	}
 	b, err := json.Marshal(pjson)
 	return b, errors.Wrap(err, "marshalling shim dependencies")
 }
@@ -1131,11 +1115,10 @@ func nodeBundle(
 	}
 
 	pjson, err := GenShimPackageJSON(GenShimPackageJSONOpts{
-		RootDir:            root,
-		PackageJSONs:       packageJSONs,
-		IsWorkflow:         false,
-		IsBundle:           true,
-		FallbackToUserDeps: true,
+		RootDir:      root,
+		PackageJSONs: packageJSONs,
+		IsWorkflow:   false,
+		IsBundle:     true,
 	})
 	if err != nil {
 		return "", err
@@ -1143,11 +1126,10 @@ func nodeBundle(
 	cfg.InlineShimPackageJSON = inlineString(string(pjson))
 
 	workflowpjson, err := GenShimPackageJSON(GenShimPackageJSONOpts{
-		RootDir:            root,
-		PackageJSONs:       packageJSONs,
-		IsWorkflow:         true,
-		IsBundle:           true,
-		FallbackToUserDeps: true,
+		RootDir:      root,
+		PackageJSONs: packageJSONs,
+		IsWorkflow:   true,
+		IsBundle:     true,
 	})
 	if err != nil {
 		return "", err

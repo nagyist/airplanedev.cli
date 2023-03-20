@@ -417,11 +417,10 @@ func (r Runtime) PrepareRun(
 	}
 
 	pjson, err := build.GenShimPackageJSON(build.GenShimPackageJSONOpts{
-		RootDir:            root,
-		PackageJSONs:       packageJSONs,
-		IsWorkflow:         false,
-		IsBundle:           true,
-		FallbackToUserDeps: false,
+		RootDir:      root,
+		PackageJSONs: packageJSONs,
+		IsWorkflow:   false,
+		IsBundle:     true,
 	})
 	if err != nil {
 		return nil, nil, err

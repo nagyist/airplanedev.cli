@@ -1058,10 +1058,14 @@ func TestGenShimPackageJSON(t *testing.T) {
 			desc:        "Yarn workspace with shim dependency already included",
 			packageJSON: "typescript/yarnworkspaces/package.json",
 			isWorkflow:  true,
+			isBundle:    true,
 			expectedShimPackageJSON: shimPackageJSON{
 				Dependencies: map[string]string{
-					// XXX(fleung): this needs to get bumped when dependencies change
-					"@airplane/workflow-runtime": "0.2.44",
+					"@airplane/workflow-runtime": buildToolsPackageJSON.Dependencies["@airplane/workflow-runtime"],
+					"esbuild":                    buildToolsPackageJSON.Dependencies["esbuild"],
+					"jsdom":                      buildToolsPackageJSON.Dependencies["jsdom"],
+					"typescript":                 "4.9.5",
+					"esbuild-plugin-tsc":         buildToolsPackageJSON.Dependencies["esbuild-plugin-tsc"],
 				},
 			},
 		},
@@ -1076,11 +1080,10 @@ func TestGenShimPackageJSON(t *testing.T) {
 			require.NoError(err)
 
 			shimPackageJSONSerialized, err := GenShimPackageJSON(GenShimPackageJSONOpts{
-				RootDir:            filepath.Dir(examples.Path(t, tc.packageJSON)),
-				PackageJSONs:       packageJSONs,
-				IsWorkflow:         tc.isWorkflow,
-				IsBundle:           tc.isBundle,
-				FallbackToUserDeps: true,
+				RootDir:      filepath.Dir(examples.Path(t, tc.packageJSON)),
+				PackageJSONs: packageJSONs,
+				IsWorkflow:   tc.isWorkflow,
+				IsBundle:     tc.isBundle,
 			})
 			require.NoError(err)
 
