@@ -184,6 +184,8 @@ type APIClient interface {
 
 	GetUser(ctx context.Context, userID string) (GetUserResponse, error)
 
+	AutopilotComplete(ctx context.Context, req AutopilotCompleteRequest) (AutopilotCompleteResponse, error)
+
 	// All methods below this point represent CLI-specific API operations, and not requests to api.airplane.dev.
 	AuthInfo(ctx context.Context) (res AuthInfoResponse, err error)
 	Token() string
@@ -794,6 +796,11 @@ func (c *Client) SetDevSecret(ctx context.Context, token string) (err error) {
 
 func (c *Client) CreateSandbox(ctx context.Context, req CreateSandboxRequest) (res CreateSandboxResponse, err error) {
 	err = c.post(ctx, "/studio/createSandbox", req, &res)
+	return
+}
+
+func (c *Client) AutopilotComplete(ctx context.Context, req AutopilotCompleteRequest) (res AutopilotCompleteResponse, err error) {
+	err = c.post(ctx, "/autopilot/complete", req, &res)
 	return
 }
 

@@ -63,6 +63,8 @@ func AttachDevRoutes(r *mux.Router, s *state.State) {
 
 	r.PathPrefix("/views").HandlerFunc(ProxyViewHandler(s.PortProxy)).Methods("GET", "POST", "OPTIONS")
 	r.Handle("/dependencies/reinstall", handlers.New(s, ReinstallDependenciesHandler)).Methods("POST", "OPTIONS")
+
+	r.Handle("/autopilot/generate", handlers.WithBody(s, AutopilotGenerateHandler)).Methods("POST", "OPTIONS")
 }
 
 func GetVersionHandler(ctx context.Context, s *state.State, r *http.Request) (version.Metadata, error) {
