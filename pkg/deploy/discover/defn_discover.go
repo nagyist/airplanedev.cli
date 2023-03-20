@@ -134,20 +134,30 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 		return []TaskConfig{tc}, nil
 	} else if err != nil {
 		return nil, err
-	} else if err = fsx.AssertExistsAll(entrypoint); err != nil {
-		return nil, err
-	} else {
-		tc.TaskEntrypoint = entrypoint
+	}
 
-		// Entrypoint for builder needs to be relative to taskroot, not definition directory.
-		defnDir := filepath.Dir(dir.DefinitionPath())
-		if defnDir != tc.TaskRoot {
-			ep, err := filepath.Rel(tc.TaskRoot, entrypoint)
-			if err != nil {
-				return nil, err
-			}
-			tc.Def.SetBuildConfig("entrypoint", ep)
+	if err = fsx.AssertExistsAll(entrypoint); err != nil {
+		kind, err2 := tc.Def.Kind()
+		if err2 != nil {
+			return nil, err2
 		}
+		// For shell tasks specifically, we allow the entrypoint file to not exist,
+		// since it might be inside the Docker image.
+		if kind != build.TaskKindShell {
+			return nil, err
+		}
+	}
+
+	tc.TaskEntrypoint = entrypoint
+
+	// Entrypoint for builder needs to be relative to taskroot, not definition directory.
+	defnDir := filepath.Dir(dir.DefinitionPath())
+	if defnDir != tc.TaskRoot {
+		ep, err := filepath.Rel(tc.TaskRoot, entrypoint)
+		if err != nil {
+			return nil, err
+		}
+		tc.Def.SetBuildConfig("entrypoint", ep)
 	}
 
 	return []TaskConfig{tc}, nil
@@ -192,7 +202,15 @@ func setBuildVersionAndWorkingDir(file string, def *definitions.Definition) (str
 		return "", build.BuildContext{}, err
 	}
 	if err = fsx.AssertExistsAll(entrypoint); err != nil {
-		return "", build.BuildContext{}, err
+		kind, err2 := def.Kind()
+		if err2 != nil {
+			return "", build.BuildContext{}, err2
+		}
+		// For shell tasks specifically, we allow the entrypoint file to not exist,
+		// since it might be inside the Docker image.
+		if kind != build.TaskKindShell {
+			return "", build.BuildContext{}, err
+		}
 	}
 	kind, _, err := def.GetKindAndOptions()
 	if err != nil {

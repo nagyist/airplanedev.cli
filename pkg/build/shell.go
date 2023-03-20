@@ -12,13 +12,11 @@ import (
 )
 
 func shell(root string, options KindOptions) (string, error) {
-	// Assert that the entrypoint file exists:
+	// Note that we don't require the entrypoint to exist - it might be existing
+	// inside the image already.
 	entrypoint, _ := options["entrypoint"].(string)
 	if entrypoint == "" {
 		return "", errors.New("entrypoint is unexpectedly missing")
-	}
-	if err := fsx.AssertExistsAll(filepath.Join(root, entrypoint)); err != nil {
-		return "", err
 	}
 
 	dockerfileTemplate, workDir, err := getBaseDockerfileTemplate(root)

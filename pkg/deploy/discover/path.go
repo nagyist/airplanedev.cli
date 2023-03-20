@@ -41,7 +41,8 @@ func taskPathMetadata(file string, kind build.TaskKind) (TaskPathMetadata, error
 	// Entrypoint needs to be relative to the taskroot.
 	absEntrypoint, err := pathcase.ActualFilename(absFile)
 	if err != nil {
-		return TaskPathMetadata{}, err
+		// If we couldn't find the actual filename, assume the provided file is already correct
+		absEntrypoint = absFile
 	}
 	ep, err := filepath.Rel(taskroot, absEntrypoint)
 	if err != nil {
