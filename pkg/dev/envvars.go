@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/airplanedev/cli/pkg/api"
 	devenv "github.com/airplanedev/cli/pkg/dev/env"
@@ -74,7 +76,8 @@ func getEnvVars(
 	entrypoint string,
 	interpolateRequest libapi.EvaluateTemplateRequest,
 ) ([]string, error) {
-	env := make([]string, 0)
+	env := filteredSystemEnvVars()
+
 	// only non builtins have a runtime
 	if r != nil {
 		// Collect all environment variables for the current run.
@@ -345,4 +348,25 @@ func getCommonEnvVars() map[string]string {
 		"AIRPLANE_ENV_NAME":       devenv.StudioEnvID,
 		"AIRPLANE_ENV_IS_DEFAULT": "true", // For local dev, there is one env.
 	}
+}
+
+var allowedSystemEnvVars = map[string]bool{
+	"HOME": true, // Used by the snowflake client to identify the user's home directory for caching.
+}
+
+// filteredSystemEnvVars returns a list of environment variables from the user's system that can be passed to the task.
+func filteredSystemEnvVars() []string {
+	var filtered []string
+	for _, env := range os.Environ() {
+		parts := strings.SplitN(env, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+
+		k, v := parts[0], parts[1]
+		if _, ok := allowedSystemEnvVars[k]; ok {
+			filtered = append(filtered, fmt.Sprintf("%s=%s", k, v))
+		}
+	}
+	return filtered
 }
