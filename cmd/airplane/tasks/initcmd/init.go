@@ -1018,9 +1018,13 @@ func writeNewAirplaneConfig(writer io.Writer, opts getNewAirplaneConfigOptions) 
 			// some helpful hints.
 			if opts.cfg.Javascript.NodeVersion != "" && opts.existingConfig.Javascript.NodeVersion == "" {
 				logger.Warning("We recommend specifying a javascript.nodeVersion in your %s.", deployconfig.FileName)
+				logger.Warning("> javascript:")
+				logger.Warning(">   nodeVersion: \"18\"")
 			}
 			if opts.cfg.Python.Version != "" && opts.existingConfig.Python.Version == "" {
 				logger.Warning("We recommend specifying a python.version in your %s.", deployconfig.FileName)
+				logger.Warning("> python:")
+				logger.Warning(">   version: \"3.10\"")
 			}
 			return nil
 		}
