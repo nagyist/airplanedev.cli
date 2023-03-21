@@ -95,7 +95,7 @@ type ParsedJSConfigs struct {
 }
 
 // Extracts view and code configs from a compiled JS file.
-func extractJSConfigs(file string) (ParsedJSConfigs, error) {
+func extractJSConfigs(file string, env []string) (ParsedJSConfigs, error) {
 	tempFile, err := os.CreateTemp("", "airplane.parser.node.*.js")
 	if err != nil {
 		return ParsedJSConfigs{}, errors.Wrap(err, "creating temporary file")
@@ -107,7 +107,9 @@ func extractJSConfigs(file string) (ParsedJSConfigs, error) {
 	}
 
 	// Run parser on the file
-	out, err := exec.Command("node", tempFile.Name(), file).Output()
+	parserCmd := exec.Command("node", tempFile.Name(), file)
+	parserCmd.Env = append(os.Environ(), env...)
+	out, err := parserCmd.Output()
 	if err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
 			return ParsedJSConfigs{}, errors.Wrapf(err, "parsing file=%q: %s", file, ee.Stderr)
@@ -125,8 +127,10 @@ func extractJSConfigs(file string) (ParsedJSConfigs, error) {
 	return parsedConfigs, nil
 }
 
-func extractPythonConfigs(file string) ([]map[string]interface{}, error) {
-	out, err := exec.Command("python3", "-c", string(pythonParserScript), file).Output()
+func extractPythonConfigs(file string, env []string) ([]map[string]interface{}, error) {
+	parserCmd := exec.Command("python3", "-c", string(pythonParserScript), file)
+	parserCmd.Env = append(os.Environ(), env...)
+	out, err := parserCmd.Output()
 	if err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
 			return []map[string]interface{}{}, errors.Wrapf(err, "parsing file=%q: %s", file, ee.Stderr)

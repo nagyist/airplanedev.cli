@@ -24,6 +24,9 @@ type CodeViewDiscoverer struct {
 	// DoNotVerifyMissingViews will return ViewConfigs for views without verifying their existence
 	// in the api. If this value is set to true, MissingViewHandler is ignored.
 	DoNotVerifyMissingViews bool
+
+	// Optional key=value pairs to pass to the parser.
+	Env []string
 }
 
 var _ ViewDiscoverer = &CodeViewDiscoverer{}
@@ -56,7 +59,7 @@ func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 		return nil, err
 	}
 
-	parsedConfigs, err := extractJSConfigs(compiledJSPath)
+	parsedConfigs, err := extractJSConfigs(compiledJSPath, dd.Env)
 	if err != nil {
 		dd.Logger.Warning(`Unable to discover inline configured views: %s`, err.Error())
 	}

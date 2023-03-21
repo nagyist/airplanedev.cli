@@ -35,6 +35,9 @@ type CodeTaskDiscoverer struct {
 	// DoNotVerifyMissingTasks will return TaskConfigs for tasks without verifying their existence
 	// in the api. If this value is set to true, MissingTaskHandler is ignored.
 	DoNotVerifyMissingTasks bool
+
+	// Optional key=value pairs to pass to the parser.
+	Env []string
 }
 
 var _ TaskDiscoverer = &CodeTaskDiscoverer{}
@@ -184,7 +187,7 @@ func (c *CodeTaskDiscoverer) parseNodeDefinitions(ctx context.Context, file stri
 		return nil, err
 	}
 
-	parsedConfigs, err := extractJSConfigs(compiledJSPath)
+	parsedConfigs, err := extractJSConfigs(compiledJSPath, c.Env)
 	if err != nil {
 		c.Logger.Warning(`Unable to discover inline configured tasks: %s`, err.Error())
 	}
@@ -211,7 +214,7 @@ func (c *CodeTaskDiscoverer) parseNodeDefinitions(ctx context.Context, file stri
 }
 
 func (c *CodeTaskDiscoverer) parsePythonDefinitions(ctx context.Context, file string) ([]ParsedDefinition, error) {
-	parsedConfigs, err := extractPythonConfigs(file)
+	parsedConfigs, err := extractPythonConfigs(file, c.Env)
 	if err != nil {
 		c.Logger.Warning(`Unable to discover inline configured tasks: %s`, err.Error())
 	}
