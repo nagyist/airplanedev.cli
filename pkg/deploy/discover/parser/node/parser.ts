@@ -61,8 +61,11 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
 
     for (const exportName in exports) {
       const item = exports[exportName];
-
-      if ("__airplane" in item) {
+      if (
+        (typeof item === "object" || typeof item === "function") &&
+        item !== null &&
+        "__airplane" in item
+      ) {
         const config = item.__airplane.config;
         if (item.__airplane.type === "view") {
           viewConfigs.push({
