@@ -51,6 +51,8 @@ type Test struct {
 	// Target is the docker target to build.
 	Target string
 
+	ExpectedStatusCode int
+
 	// TODO: pipe to actual build/container run etc. set increased timeout if times out
 }
 
@@ -126,10 +128,11 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 					case NodeBuildType:
 						for _, testRun := range test.BundleRuns {
 							out := runTask(t, ctx, client, runTaskConfig{
-								Image:       resp.ImageURL,
-								ParamValues: test.ParamValues,
-								Entrypoint:  []string{"node", "/airplane/.airplane/dist/universal-shim.js", path.Join("/airplane/.airplane/", testRun.RelEntrypoint), testRun.ExportName},
-								Kind:        test.Kind,
+								Image:              resp.ImageURL,
+								ParamValues:        test.ParamValues,
+								Entrypoint:         []string{"node", "/airplane/.airplane/dist/universal-shim.js", path.Join("/airplane/.airplane/", testRun.RelEntrypoint), testRun.ExportName},
+								Kind:               test.Kind,
+								ExpectedStatusCode: test.ExpectedStatusCode,
 							})
 							ss := testRun.SearchString
 							if ss == "" {
@@ -140,10 +143,11 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 					case PythonBuildType:
 						for _, testRun := range test.BundleRuns {
 							out := runTask(t, ctx, client, runTaskConfig{
-								Image:       resp.ImageURL,
-								ParamValues: test.ParamValues,
-								Entrypoint:  []string{"python", "/airplane/.airplane/shim.py", path.Join("/airplane/", testRun.RelEntrypoint), testRun.ExportName},
-								Kind:        test.Kind,
+								Image:              resp.ImageURL,
+								ParamValues:        test.ParamValues,
+								Entrypoint:         []string{"python", "/airplane/.airplane/shim.py", path.Join("/airplane/", testRun.RelEntrypoint), testRun.ExportName},
+								Kind:               test.Kind,
+								ExpectedStatusCode: test.ExpectedStatusCode,
 							})
 							ss := testRun.SearchString
 							if ss == "" {
@@ -154,10 +158,11 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 					case ShellBuildType:
 						for _, testRun := range test.BundleRuns {
 							out := runTask(t, ctx, client, runTaskConfig{
-								Image:       resp.ImageURL,
-								ParamValues: test.ParamValues,
-								Cmd:         []string{"bash", ".airplane/shim.sh", "./" + testRun.RelEntrypoint},
-								Kind:        test.Kind,
+								Image:              resp.ImageURL,
+								ParamValues:        test.ParamValues,
+								Cmd:                []string{"bash", ".airplane/shim.sh", "./" + testRun.RelEntrypoint},
+								Kind:               test.Kind,
+								ExpectedStatusCode: test.ExpectedStatusCode,
 							})
 							require.True(strings.Contains(string(out), testRun.SearchString), "unable to find %q in output:\n%s", test.SearchString, string(out))
 						}
@@ -167,9 +172,10 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 				} else {
 					// Run the produced docker image:
 					out := runTask(t, ctx, client, runTaskConfig{
-						Image:       resp.ImageURL,
-						ParamValues: test.ParamValues,
-						Kind:        test.Kind,
+						Image:              resp.ImageURL,
+						ParamValues:        test.ParamValues,
+						Kind:               test.Kind,
+						ExpectedStatusCode: test.ExpectedStatusCode,
 					})
 					require.True(strings.Contains(string(out), test.SearchString), "unable to find %q in output:\n%s", test.SearchString, string(out))
 				}
@@ -179,11 +185,12 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 }
 
 type runTaskConfig struct {
-	Image       string
-	ParamValues Values
-	Entrypoint  strslice.StrSlice
-	Cmd         strslice.StrSlice
-	Kind        TaskKind
+	Image              string
+	ParamValues        Values
+	Entrypoint         strslice.StrSlice
+	Cmd                strslice.StrSlice
+	Kind               TaskKind
+	ExpectedStatusCode int
 }
 
 func runTask(t *testing.T, ctx context.Context, dclient *client.Client, c runTaskConfig) []byte {
@@ -254,7 +261,7 @@ func runTask(t *testing.T, ctx context.Context, dclient *client.Client, c runTas
 	select {
 	case result := <-resultC:
 		require.Nil(result.Error)
-		require.Equal(int64(0), result.StatusCode, "container exited with non-zero status code: %v", result.StatusCode)
+		require.Equal(int64(c.ExpectedStatusCode), result.StatusCode, "container exited with non-zero status code: %v", result.StatusCode)
 	case err := <-errC:
 		require.NoError(err)
 	}

@@ -282,6 +282,29 @@ func TestPythonBundleBuilder(t *testing.T) {
 				},
 			},
 		},
+		{
+			Root: "python/moduleerror",
+			Kind: TaskKindPython,
+			Options: KindOptions{
+				"shim": "true",
+			},
+			Bundle: true,
+			BuildContext: BuildContext{
+				Type:    PythonBuildType,
+				Version: BuildTypeVersionPython310,
+			},
+			FilesToDiscover: []string{
+				"main_airplane.py",
+			},
+			BundleRuns: []BundleTestRun{
+				{
+					RelEntrypoint: "main_airplane.py",
+					ExportName:    "my_task",
+					SearchString:  `airplane_output_set:["error"] "Test"`,
+				},
+			},
+			ExpectedStatusCode: 1,
+		},
 	}
 
 	RunTests(t, ctx, tests)
