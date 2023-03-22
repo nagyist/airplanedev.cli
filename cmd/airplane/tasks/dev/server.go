@@ -105,6 +105,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	localClient := api.NewClient(localClientOpts)
 
 	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{})
+	discoveryEnvVars := dev.GetDiscoveryEnvVars(cfg.devConfig)
 	// Discover local tasks and views in the directory of the file.
 	d := &discover.Discoverer{
 		TaskDiscoverers: []discover.TaskDiscoverer{
@@ -118,6 +119,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 				Client:                  localClient,
 				Logger:                  l,
 				DoNotVerifyMissingTasks: true,
+				Env:                     discoveryEnvVars,
 			},
 		},
 		ViewDiscoverers: []discover.ViewDiscoverer{
@@ -130,6 +132,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 				Client:                  localClient,
 				Logger:                  l,
 				DoNotVerifyMissingViews: true,
+				Env:                     discoveryEnvVars,
 			},
 		},
 		EnvSlug: cfg.envSlug,

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/conf"
 	devenv "github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
@@ -369,4 +370,25 @@ func filteredSystemEnvVars() []string {
 		}
 	}
 	return filtered
+}
+
+// GetDiscoveryEnvVars get environment variables that are available during discovery.
+func GetDiscoveryEnvVars(devConfig *conf.DevConfig) []string {
+	discoveryEnvVars := getCommonEnvVars()
+	discoveryEnvVars["AIRPLANE_RUNTIME"] = "build" // emulates builder behavior
+	envVars := generateEnvVarList(discoveryEnvVars)
+
+	if devConfig != nil {
+		envVars = append(envVars, generateEnvVarList(devConfig.EnvVars)...)
+	}
+
+	return envVars
+}
+
+func generateEnvVarList(envVarMap map[string]string) []string {
+	var envVarList []string
+	for key, value := range envVarMap {
+		envVarList = append(envVarList, fmt.Sprintf("%s=%s", key, value))
+	}
+	return envVarList
 }
