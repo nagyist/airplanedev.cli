@@ -19,12 +19,13 @@ var (
 		"node-fetch": true,
 		"fetch-blob": true,
 		// airplane>=0.2.0 depends on node-fetch
-		"airplane":        true,
-		"@airplane/views": true,
-		"lodash-es":       true,
-		"p-limit":         true,
-		"p-retry":         true,
-		"humanize-string": true,
+		"airplane":                   true,
+		"@airplane/workflow-runtime": true,
+		"@airplane/views":            true,
+		"lodash-es":                  true,
+		"p-limit":                    true,
+		"p-retry":                    true,
+		"humanize-string":            true,
 	}
 
 	installHookScripts = []string{
