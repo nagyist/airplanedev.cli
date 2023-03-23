@@ -682,11 +682,19 @@ func (d *Definition) SetEnv(e api.TaskEnv) error {
 }
 
 func (d *Definition) GetConfigAttachments() ([]api.ConfigAttachment, error) {
-	taskKind, err := d.taskKind()
-	if err != nil {
-		return nil, err
+	if d.Configs == nil || len(d.Configs) == 0 {
+		taskKind, err := d.taskKind()
+		if err != nil {
+			return nil, err
+		}
+		return taskKind.getConfigAttachments(), nil
 	}
-	return taskKind.getConfigAttachments(), nil
+
+	configAttachments := make([]api.ConfigAttachment, len(d.Configs))
+	for i, configName := range d.Configs {
+		configAttachments[i] = api.ConfigAttachment{NameTag: configName}
+	}
+	return configAttachments, nil
 }
 
 func (d *Definition) GetResourceAttachments() (map[string]string, error) {

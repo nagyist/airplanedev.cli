@@ -2017,3 +2017,33 @@ func TestDefinitionGetSchedules(t *testing.T) {
 	require.Contains(scheduleDef.ParamValues, "param_one")
 	require.Equal(scheduleDef.ParamValues["param_one"], 5.5)
 }
+
+func TestDefinitionGetConfigAttachments(t *testing.T) {
+	require := require.New(t)
+
+	def := Definition{
+		SQL: &SQLDefinition{
+			Configs: []string{"CONFIG-VAR-NESTED"},
+		},
+	}
+
+	ca, err := def.GetConfigAttachments()
+	require.NoError(err)
+	require.Equal(ca, []api.ConfigAttachment{
+		{
+			NameTag: "CONFIG-VAR-NESTED",
+		},
+	})
+
+	def = Definition{
+		SQL:     &SQLDefinition{},
+		Configs: []string{"CONFIG-VAR-TOP"},
+	}
+	ca, err = def.GetConfigAttachments()
+	require.NoError(err)
+	require.Equal(ca, []api.ConfigAttachment{
+		{
+			NameTag: "CONFIG-VAR-TOP",
+		},
+	})
+}
