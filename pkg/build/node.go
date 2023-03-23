@@ -1283,7 +1283,8 @@ func makeInstallCommand(req makeInstallCommandReq) string {
 		installCommand = "npm ci"
 	}
 	// Remove large binaries for platforms that we aren't using
-	installCommand += " && rm -Rf /airplane/node_modules/@swc/core-linux-x64-musl /airplane/node_modules/@temporalio/core-bridge/releases/aarch64* /airplane/node_modules/@temporalio/core-bridge/releases/*windows* /airplane/node_modules/@temporalio/core-bridge/releases/*darwin*"
+	// TODO: Remove the ARM binaries if on AMD64 and vice versa to save a bit of extra space
+	installCommand += " && rm -Rf /airplane/node_modules/@swc/core-linux-x64-musl /airplane/node_modules/@temporalio/core-bridge/releases/*windows* /airplane/node_modules/@temporalio/core-bridge/releases/*darwin*"
 
 	return strings.ReplaceAll(installCommand, "\n", "\\n")
 }
