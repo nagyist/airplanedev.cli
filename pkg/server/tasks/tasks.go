@@ -68,7 +68,16 @@ func UpdateTaskHandler(ctx context.Context, state *state.State, r *http.Request,
 	}
 
 	// Update the underlying task file.
-	if err := rt.Edit(ctx, state.Logger, taskConfig.TaskEntrypoint, req.Slug, taskConfig.Def); err != nil {
+	if err := rt.Edit(ctx, state.Logger, taskConfig.Def.GetDefnFilePath(), req.Slug, taskConfig.Def); err != nil {
+		return struct{}{}, err
+	}
+
+	// Optimistically update the task in the cache.
+	_, err = state.TaskConfigs.Update(req.Slug, func(val *discover.TaskConfig) error {
+		val.Def = taskConfig.Def
+		return nil
+	})
+	if err != nil {
 		return struct{}{}, err
 	}
 
