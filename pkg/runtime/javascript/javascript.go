@@ -165,9 +165,9 @@ export default airplane.task(
 		{{- end}}
 		},
 		{{- end}}
-		{{- if .Resources.Attachments}}
+		{{- if .Resources}}
 		resources: {
-		{{- range $key, $value := .Resources.Attachments}}
+		{{- range $key, $value := .Resources}}
 			"{{escape $key}}": "{{$value}}",
 		{{- end}}
 		},
@@ -272,7 +272,7 @@ func (r Runtime) GenerateInline(def *definitions.Definition) ([]byte, fs.FileMod
 	helper := inlineHelper{
 		Definition:         def,
 		AllowSelfApprovals: def.AllowSelfApprovals.Value(),
-		Timeout:            def.Timeout.Value(),
+		Timeout:            def.Timeout,
 		Workflow:           def.Runtime == build.TaskRuntimeWorkflow,
 	}
 	if err := inlineCode.Execute(&buf, helper); err != nil {

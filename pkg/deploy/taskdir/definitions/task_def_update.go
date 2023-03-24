@@ -25,7 +25,7 @@ func (d *Definition) Update(req api.UpdateTaskRequest, opts UpdateOptions) error
 	d.Name = req.Name
 	d.Description = req.Description
 	d.Runtime = req.Runtime
-	d.Timeout.value = req.Timeout
+	d.Timeout = req.Timeout
 
 	if err := d.updateKindSpecific(req, opts.AvailableResources); err != nil {
 		return err
@@ -54,7 +54,7 @@ func (d *Definition) Update(req api.UpdateTaskRequest, opts UpdateOptions) error
 	}
 
 	if req.Resources != nil {
-		d.Resources = ResourceDefinition{Attachments: map[string]string{}}
+		d.Resources = map[string]string{}
 		if err := d.updateResources(req.Resources, req.Kind, opts.AvailableResources); err != nil {
 			return err
 		}
@@ -100,7 +100,7 @@ func (d *Definition) updateResources(resources api.Resources, kind build.TaskKin
 		return nil
 	}
 
-	d.Resources.Attachments = map[string]string{}
+	d.Resources = map[string]string{}
 	for alias, id := range resources {
 		// Ignore SQL/REST resources; they get routed elsewhere.
 		if (kind == build.TaskKindSQL && alias == "db") ||
@@ -109,7 +109,7 @@ func (d *Definition) updateResources(resources api.Resources, kind build.TaskKin
 			continue
 		}
 		if resource := getResourceByID(availableResources, id); resource != nil {
-			d.Resources.Attachments[alias] = resource.Slug
+			d.Resources[alias] = resource.Slug
 		}
 	}
 

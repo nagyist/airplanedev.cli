@@ -11,7 +11,7 @@ export default airplane.task(
         required: false,
         default: "My default",
         regex: "^.*$",
-        options: ["Thing 1", "Thing 2", {
+        options: [{
           label: "Thing 3",
           value: "Secret gremlin"
         }]

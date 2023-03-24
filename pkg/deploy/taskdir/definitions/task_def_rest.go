@@ -14,7 +14,7 @@ type RESTDefinition struct {
 	Path          string                 `json:"path"`
 	URLParams     map[string]interface{} `json:"urlParams,omitempty"`
 	Headers       map[string]interface{} `json:"headers,omitempty"`
-	BodyType      string                 `json:"bodyType"`
+	BodyType      string                 `json:"bodyType,omitempty"`
 	Body          interface{}            `json:"body,omitempty"`
 	FormData      map[string]interface{} `json:"formData,omitempty"`
 	RetryFailures interface{}            `json:"retryFailures,omitempty"`

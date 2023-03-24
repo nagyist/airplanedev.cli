@@ -230,7 +230,7 @@
                 }
               },
               "additionalProperties": false,
-              "required": ["resource", "method", "path", "bodyType"]
+              "required": ["resource", "method", "path"]
             }
           },
           "required": ["rest"]
@@ -410,7 +410,7 @@
         }
       },
       "additionalProperties": false,
-      "required": ["name", "slug", "type"]
+      "required": ["slug", "type"]
     },
     "envVars": {
       "description": "A map of environment variables to use when running the task. If specifying raw values, the value may be a string; if using config variables, the value must be an object with config mapped to the name of the config variable.",
@@ -576,7 +576,7 @@
           ]
         }
       },
-      "required": ["name", "slug"]
+      "required": ["slug"]
     }
   }
 }

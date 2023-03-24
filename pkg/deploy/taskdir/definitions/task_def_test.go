@@ -78,14 +78,14 @@ var fullJSON = []byte(
 
 // Contains no explicit defaults.
 var yamlWithDefault = []byte(
-	`name: Hello World
-slug: hello_world
+	`slug: hello_world
+name: Hello World
 description: A starter task.
 parameters:
-- name: Name
-  slug: name
-  type: shorttext
+- slug: name
+  name: Name
   description: Someone's name.
+  type: shorttext
   default: World
 resources:
   db: demo_db
@@ -106,15 +106,15 @@ schedules:
 // Contains no explicit defaults.
 var jsonWithDefault = []byte(
 	`{
-	"name": "Hello World",
 	"slug": "hello_world",
+	"name": "Hello World",
 	"description": "A starter task.",
 	"parameters": [
 		{
-			"name": "Name",
 			"slug": "name",
-			"type": "shorttext",
+			"name": "Name",
 			"description": "Someone's name.",
+			"type": "shorttext",
 			"default": "World"
 		}
 	],
@@ -156,11 +156,11 @@ var fullDef = Definition{
 			Required:    DefaultTrueDefinition{pointers.Bool(true)},
 		},
 	},
-	Resources: ResourceDefinition{Attachments: map[string]string{"db": "demo_db"}},
+	Resources: map[string]string{"db": "demo_db"},
 	Python: &PythonDefinition{
 		Entrypoint: "hello_world.py",
 	},
-	Timeout: DefaultTimeoutDefinition{3600},
+	Timeout: 3600,
 	Schedules: map[string]ScheduleDefinition{
 		"every_midnight": {
 			Name:     "Every Midnight",
@@ -193,8 +193,8 @@ var defWithDefault = Definition{
 	Python: &PythonDefinition{
 		Entrypoint: "hello_world.py",
 	},
-	Timeout:   DefaultTimeoutDefinition{3600},
-	Resources: ResourceDefinition{Attachments: map[string]string{"db": "demo_db"}},
+	Timeout:   3600,
+	Resources: map[string]string{"db": "demo_db"},
 	Schedules: map[string]ScheduleDefinition{
 		"every_midnight": {
 			Name:     "Every Midnight",
@@ -243,11 +243,11 @@ func TestDefinitionMarshal(t *testing.T) {
 					BodyType: "json",
 					Body:     "{\n  \"name\": \"foo\",\n  \"number\": 30\n}\n",
 				},
-				Timeout: DefaultTimeoutDefinition{300},
+				Timeout: 300,
 			},
 			expected: []byte(
-				`name: REST task
-slug: rest_task
+				`slug: rest_task
+name: REST task
 rest:
   resource: httpbin
   method: POST
@@ -274,12 +274,12 @@ timeout: 300
 					BodyType: "json",
 					Body:     "{\n  \"name\": \"foo\",\n  \"number\": 30\n}\n",
 				},
-				Timeout: DefaultTimeoutDefinition{300},
+				Timeout: 300,
 			},
 			expected: []byte(
 				`{
-	"name": "REST task",
 	"slug": "rest_task",
+	"name": "REST task",
 	"rest": {
 		"resource": "httpbin",
 		"method": "POST",
@@ -401,7 +401,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          ResourceDefinition{Attachments: map[string]string{}},
+				Resources:          map[string]string{},
 			},
 		},
 		{
@@ -445,7 +445,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          ResourceDefinition{Attachments: map[string]string{}},
+				Resources:          map[string]string{},
 			},
 		},
 		{
@@ -472,7 +472,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          ResourceDefinition{Attachments: map[string]string{}},
+				Resources:          map[string]string{},
 			},
 		},
 		{
@@ -518,7 +518,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          ResourceDefinition{Attachments: map[string]string{}},
+				Resources:          map[string]string{},
 			},
 		},
 		{
@@ -560,7 +560,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          ResourceDefinition{Attachments: map[string]string{}},
+				Resources:          map[string]string{},
 			},
 		},
 		{
@@ -604,7 +604,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          ResourceDefinition{Attachments: map[string]string{}},
+				Resources:          map[string]string{},
 			},
 		},
 		{
@@ -644,9 +644,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Name:       "REST Task",
 				Slug:       "rest_task",
 				Parameters: []ParameterDefinition{},
-				Resources: ResourceDefinition{
-					Attachments: map[string]string{},
-				},
+				Resources:  map[string]string{},
 				REST: &RESTDefinition{
 					Resource: "httpbin",
 					Method:   "GET",
@@ -848,7 +846,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          ResourceDefinition{Attachments: map[string]string{}},
+				Resources:          map[string]string{},
 			},
 		},
 		{
@@ -880,7 +878,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          ResourceDefinition{Attachments: map[string]string{}},
+				Resources:          map[string]string{},
 			},
 		},
 		{
@@ -912,7 +910,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          ResourceDefinition{Attachments: map[string]string{}},
+				Resources:          map[string]string{},
 			},
 		},
 		{
@@ -960,9 +958,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Name:       "REST Task",
 				Slug:       "rest_task",
 				Parameters: []ParameterDefinition{},
-				Resources: ResourceDefinition{
-					Attachments: map[string]string{},
-				},
+				Resources:  map[string]string{},
 				REST: &RESTDefinition{
 					Resource: "httpbin",
 					Method:   "GET",
@@ -1092,7 +1088,7 @@ func TestTaskToDefinition(t *testing.T) {
 				RestrictCallers:    []string{},
 				Configs:            []string{},
 				Constraints:        map[string]string{},
-				Resources:          ResourceDefinition{Attachments: map[string]string{}},
+				Resources:          map[string]string{},
 			},
 		},
 		{
@@ -1138,7 +1134,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          ResourceDefinition{Attachments: map[string]string{}},
+				Resources:          map[string]string{},
 			},
 		},
 		{
@@ -1176,10 +1172,8 @@ func TestTaskToDefinition(t *testing.T) {
 				Name:       "Image Task",
 				Slug:       "image_task",
 				Parameters: []ParameterDefinition{},
-				Resources: ResourceDefinition{
-					Attachments: map[string]string{
-						"db": "local_db",
-					},
+				Resources: map[string]string{
+					"db": "local_db",
 				},
 				Image: &ImageDefinition{
 					Image:      "ubuntu:latest",
@@ -1915,10 +1909,8 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 			definition: Definition{
 				Name: "Image Task",
 				Slug: "image_task",
-				Resources: ResourceDefinition{
-					Attachments: map[string]string{
-						"db": "local_db",
-					},
+				Resources: map[string]string{
+					"db": "local_db",
 				},
 				Image: &ImageDefinition{
 					Image:      "ubuntu:latest",

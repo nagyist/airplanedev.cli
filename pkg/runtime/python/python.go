@@ -307,9 +307,9 @@ import airplane
     {{- end}}
     },
     {{- end}}
-    {{- if .Resources.Attachments}}
+    {{- if .Resources}}
     resources=[
-    {{- range $key, $value := .Resources.Attachments}}
+    {{- range $key, $value := .Resources}}
         airplane.Resource(
             alias={{quote $key}},
             slug={{quote $value}},
@@ -441,7 +441,7 @@ func (r Runtime) GenerateInline(def *definitions.Definition) ([]byte, fs.FileMod
 	helper := inlineHelper{
 		Definition:          def,
 		AllowSelfApprovals:  def.AllowSelfApprovals.Value(),
-		Timeout:             def.Timeout.Value(),
+		Timeout:             def.Timeout,
 		SDKMethod:           method,
 		NeedsOptionalImport: needsOptionalImport(def.Parameters),
 		NeedsDatetimeImport: needsDatetimeImport(def.Parameters),

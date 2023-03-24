@@ -427,7 +427,7 @@ func TestInlineEveryType(t *testing.T) {
 
 	out, _, err := Runtime{}.GenerateInline(def)
 	require.NoError(err)
-	require.Equal(string(out), `import datetime
+	require.Equal(`import datetime
 from typing import Optional
 
 import airplane
@@ -827,5 +827,5 @@ def inline_python_full2(
     # You can return data to show output to users.
     # Output documentation: https://docs.airplane.dev/tasks/output
     return data
-`)
+`, string(out))
 }

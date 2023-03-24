@@ -51,7 +51,7 @@ func TestDiscover(t *testing.T) {
 						Configs:            []string{},
 						Constraints:        map[string]string{},
 						Schedules:          map[string]definitions.ScheduleDefinition{},
-						Resources:          definitions.ResourceDefinition{Attachments: map[string]string{}},
+						Resources:          map[string]string{},
 					},
 					Source: ConfigSourceScript,
 				},
@@ -86,7 +86,7 @@ func TestDiscover(t *testing.T) {
 						Configs:            []string{},
 						Constraints:        map[string]string{},
 						Schedules:          map[string]definitions.ScheduleDefinition{},
-						Resources:          definitions.ResourceDefinition{Attachments: map[string]string{}},
+						Resources:          map[string]string{},
 					},
 					Source: ConfigSourceScript,
 				},
@@ -105,7 +105,7 @@ func TestDiscover(t *testing.T) {
 						Configs:            []string{},
 						Constraints:        map[string]string{},
 						Schedules:          map[string]definitions.ScheduleDefinition{},
-						Resources:          definitions.ResourceDefinition{Attachments: map[string]string{}},
+						Resources:          map[string]string{},
 					},
 					Source: ConfigSourceScript,
 				},
@@ -144,7 +144,7 @@ func TestDiscover(t *testing.T) {
 						Configs:            []string{},
 						Constraints:        map[string]string{},
 						Schedules:          map[string]definitions.ScheduleDefinition{},
-						Resources:          definitions.ResourceDefinition{Attachments: map[string]string{}},
+						Resources:          map[string]string{},
 					},
 					Source: ConfigSourceScript,
 				},
@@ -163,7 +163,7 @@ func TestDiscover(t *testing.T) {
 						Configs:            []string{},
 						Constraints:        map[string]string{},
 						Schedules:          map[string]definitions.ScheduleDefinition{},
-						Resources:          definitions.ResourceDefinition{Attachments: map[string]string{}},
+						Resources:          map[string]string{},
 					},
 					Source: ConfigSourceScript,
 				},
@@ -353,7 +353,7 @@ func TestDiscover(t *testing.T) {
 						Configs:            []string{},
 						Constraints:        map[string]string{},
 						Schedules:          map[string]definitions.ScheduleDefinition{},
-						Resources:          definitions.ResourceDefinition{Attachments: map[string]string{}},
+						Resources:          map[string]string{},
 					},
 					Source: ConfigSourceScript,
 				},
@@ -514,7 +514,7 @@ func TestDiscover(t *testing.T) {
 					Def: definitions.Definition{
 						Name:    "Task A",
 						Slug:    "task_a",
-						Timeout: definitions.NewDefaultTimeoutDefinition(3600),
+						Timeout: 3600,
 						Parameters: []definitions.ParameterDefinition{
 							{
 								Name:     "Num",
@@ -524,7 +524,7 @@ func TestDiscover(t *testing.T) {
 								Options:  []definitions.OptionDefinition{},
 							},
 						},
-						Resources:          definitions.ResourceDefinition{Attachments: map[string]string{}},
+						Resources:          map[string]string{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
 						Python: &definitions.PythonDefinition{
 							EnvVars: api.TaskEnv{},
@@ -562,7 +562,7 @@ func TestDiscover(t *testing.T) {
 					Def: definitions.Definition{
 						Name:    "Task B",
 						Slug:    "task_b",
-						Timeout: definitions.NewDefaultTimeoutDefinition(3600),
+						Timeout: 3600,
 						Parameters: []definitions.ParameterDefinition{
 							{
 								Name:     "Num",
@@ -572,7 +572,7 @@ func TestDiscover(t *testing.T) {
 								Options:  []definitions.OptionDefinition{},
 							},
 						},
-						Resources:          definitions.ResourceDefinition{Attachments: map[string]string{}},
+						Resources:          map[string]string{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
 						Python: &definitions.PythonDefinition{
 							EnvVars: api.TaskEnv{},
@@ -610,7 +610,7 @@ func TestDiscover(t *testing.T) {
 					Def: definitions.Definition{
 						Name:    "Task C",
 						Slug:    "task_c",
-						Timeout: definitions.NewDefaultTimeoutDefinition(3600),
+						Timeout: 3600,
 						Parameters: []definitions.ParameterDefinition{
 							{
 								Name:     "Num",
@@ -620,7 +620,7 @@ func TestDiscover(t *testing.T) {
 								Options:  []definitions.OptionDefinition{},
 							},
 						},
-						Resources:          definitions.ResourceDefinition{Attachments: map[string]string{}},
+						Resources:          map[string]string{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
 						Python: &definitions.PythonDefinition{
 							EnvVars: api.TaskEnv{},
@@ -636,7 +636,7 @@ func TestDiscover(t *testing.T) {
 					Def: definitions.Definition{
 						Name:    "Task D",
 						Slug:    "task_d",
-						Timeout: definitions.NewDefaultTimeoutDefinition(3600),
+						Timeout: 3600,
 						Parameters: []definitions.ParameterDefinition{
 							{
 								Name:     "Num",
@@ -646,7 +646,7 @@ func TestDiscover(t *testing.T) {
 								Options:  []definitions.OptionDefinition{},
 							},
 						},
-						Resources:          definitions.ResourceDefinition{Attachments: map[string]string{}},
+						Resources:          map[string]string{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
 						Python: &definitions.PythonDefinition{
 							EnvVars: api.TaskEnv{},

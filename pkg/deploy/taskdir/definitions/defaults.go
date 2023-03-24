@@ -42,32 +42,3 @@ func (d DefaultTrueDefinition) MarshalJSON() ([]byte, error) {
 func (d DefaultTrueDefinition) IsZero() bool {
 	return d.Value()
 }
-
-type DefaultTimeoutDefinition struct {
-	value int
-}
-
-var _ yaml.IsZeroer = &DefaultTimeoutDefinition{}
-var _ json.Unmarshaler = &DefaultTimeoutDefinition{}
-var _ json.Marshaler = &DefaultTimeoutDefinition{}
-
-func NewDefaultTimeoutDefinition(value int) DefaultTimeoutDefinition {
-	return DefaultTimeoutDefinition{value}
-}
-
-func (d DefaultTimeoutDefinition) Value() int {
-	return d.value
-}
-
-func (d *DefaultTimeoutDefinition) UnmarshalJSON(b []byte) error {
-	ret := json.Unmarshal(b, &d.value)
-	return ret
-}
-
-func (d DefaultTimeoutDefinition) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d.Value())
-}
-
-func (d DefaultTimeoutDefinition) IsZero() bool {
-	return d.Value() == 0
-}

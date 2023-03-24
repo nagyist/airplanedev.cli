@@ -15,11 +15,12 @@ import (
 )
 
 type Definition struct {
-	Name        string                `json:"name"`
 	Slug        string                `json:"slug"`
+	Name        string                `json:"name,omitempty"`
 	Description string                `json:"description,omitempty"`
 	Parameters  []ParameterDefinition `json:"parameters,omitempty"`
-	Resources   ResourceDefinition    `json:"resources,omitempty"`
+	Runtime     build.TaskRuntime     `json:"runtime,omitempty"`
+	Resources   ResourcesDefinition   `json:"resources,omitempty"`
 
 	Image  *ImageDefinition  `json:"docker,omitempty"`
 	Node   *NodeDefinition   `json:"node,omitempty"`
@@ -30,13 +31,12 @@ type Definition struct {
 	REST    *RESTDefinition       `json:"rest,omitempty"`
 	Builtin *BuiltinTaskContainer `json:",inline,omitempty"`
 
-	Configs            []string                 `json:"configs,omitempty"`
-	Constraints        map[string]string        `json:"constraints,omitempty"`
-	RequireRequests    bool                     `json:"requireRequests,omitempty"`
-	AllowSelfApprovals DefaultTrueDefinition    `json:"allowSelfApprovals,omitempty"`
-	RestrictCallers    []string                 `json:"restrictCallers,omitempty"`
-	Timeout            DefaultTimeoutDefinition `json:"timeout,omitempty"`
-	Runtime            build.TaskRuntime        `json:"runtime,omitempty"`
+	Configs            []string              `json:"configs,omitempty"`
+	Timeout            int                   `json:"timeout,omitempty"`
+	Constraints        map[string]string     `json:"constraints,omitempty"`
+	RequireRequests    bool                  `json:"requireRequests,omitempty"`
+	AllowSelfApprovals DefaultTrueDefinition `json:"allowSelfApprovals,omitempty"`
+	RestrictCallers    []string              `json:"restrictCallers,omitempty"`
 
 	Schedules map[string]ScheduleDefinition `json:"schedules,omitempty"`
 
@@ -61,14 +61,14 @@ type taskKind interface {
 }
 
 type ParameterDefinition struct {
-	Name        string                `json:"name"`
 	Slug        string                `json:"slug"`
-	Type        string                `json:"type"`
+	Name        string                `json:"name,omitempty"`
 	Description string                `json:"description,omitempty"`
-	Default     interface{}           `json:"default,omitempty"`
+	Type        string                `json:"type"`
 	Required    DefaultTrueDefinition `json:"required,omitempty"`
-	Options     []OptionDefinition    `json:"options,omitempty"`
+	Default     interface{}           `json:"default,omitempty"`
 	Regex       string                `json:"regex,omitempty"`
+	Options     []OptionDefinition    `json:"options,omitempty"`
 }
 
 type OptionDefinition struct {
@@ -78,6 +78,8 @@ type OptionDefinition struct {
 }
 
 var _ json.Unmarshaler = &OptionDefinition{}
+var _ json.Marshaler = OptionDefinition{}
+var _ yaml.InterfaceMarshaler = OptionDefinition{}
 
 func (o *OptionDefinition) UnmarshalJSON(b []byte) error {
 	// If it's just a string, dump it in the value field.
@@ -98,6 +100,35 @@ func (o *OptionDefinition) UnmarshalJSON(b []byte) error {
 	*o = OptionDefinition(opt)
 
 	return nil
+}
+
+func (o OptionDefinition) MarshalJSON() ([]byte, error) {
+	v, err := o.MarshalYAML()
+	if err != nil {
+		return nil, err
+	}
+	out, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (o OptionDefinition) MarshalYAML() (interface{}, error) {
+	if o.Label == "" && o.Value != nil {
+		return o.Value, nil
+	}
+	m := map[string]any{}
+	if o.Label != "" {
+		m["label"] = o.Label
+	}
+	if o.Value != nil {
+		m["value"] = o.Value
+	}
+	if o.Config != nil {
+		m["config"] = *o.Config
+	}
+	return m, nil
 }
 
 type ScheduleDefinition struct {
@@ -264,11 +295,11 @@ func (d Definition) GenerateCommentedFile(format DefFormat) ([]byte, error) {
 	if format != DefFormatYAML ||
 		d.Description != "" ||
 		len(d.Parameters) > 0 ||
-		len(d.Resources.Attachments) > 0 ||
+		len(d.Resources) > 0 ||
 		len(d.Constraints) > 0 ||
 		d.RequireRequests ||
 		!d.AllowSelfApprovals.IsZero() ||
-		!d.Timeout.IsZero() ||
+		d.Timeout != 0 ||
 		d.Builtin != nil {
 		return d.Marshal(format)
 	}
@@ -508,7 +539,7 @@ func (d Definition) GetTask(opts GetTaskOpts) (api.Task, error) {
 		Slug:        d.Slug,
 		Name:        d.Name,
 		Description: d.Description,
-		Timeout:     d.Timeout.Value(),
+		Timeout:     d.Timeout,
 		Runtime:     d.Runtime,
 		ExecuteRules: api.ExecuteRules{
 			RequireRequests:     d.RequireRequests,
@@ -555,11 +586,7 @@ func (d Definition) GetTask(opts GetTaskOpts) (api.Task, error) {
 }
 
 func (d Definition) addResourcesToTask(task *api.Task, opts GetTaskOpts) error {
-	if len(d.Resources.Attachments) == 0 {
-		return nil
-	}
-
-	for alias, slug := range d.Resources.Attachments {
+	for alias, slug := range d.Resources {
 		if resource := getResourceBySlug(opts.AvailableResources, slug); resource != nil {
 			task.Resources[alias] = resource.ID
 		} else if !opts.IgnoreInvalid {
@@ -703,15 +730,14 @@ func (d *Definition) GetResourceAttachments() (map[string]string, error) {
 		return nil, err
 	}
 
-	taskKindResourceAttachments := taskKind.getResourceAttachments()
-	resourceAttachments := make(map[string]string, len(d.Resources.Attachments)+len(taskKindResourceAttachments))
 	// Append explicit resource attachments.
-	for alias, id := range d.Resources.Attachments {
+	resourceAttachments := map[string]string{}
+	for alias, id := range d.Resources {
 		resourceAttachments[alias] = id
 	}
 
-	// Append kind-specific resource attachments - these override any explicit resource attachments above
-	for alias, id := range taskKindResourceAttachments {
+	// Append kind-specific resource attachments - these override any explicit resource attachments above.
+	for alias, id := range taskKind.getResourceAttachments() {
 		resourceAttachments[alias] = id
 	}
 
@@ -804,13 +830,12 @@ func (d *Definition) SetBuildConfig(key string, value interface{}) {
 	d.buildConfig[key] = value
 }
 
-type ResourceDefinition struct {
-	Attachments map[string]string
-}
+type ResourcesDefinition map[string]string
 
-func (r *ResourceDefinition) UnmarshalJSON(b []byte) error {
-	// If it's just a map, dump it in the Attachments field.
-	if err := json.Unmarshal(b, &r.Attachments); err == nil {
+func (r *ResourcesDefinition) UnmarshalJSON(b []byte) error {
+	var m map[string]string
+	if err := json.Unmarshal(b, &m); err == nil {
+		*r = m
 		return nil
 	}
 
@@ -820,27 +845,30 @@ func (r *ResourceDefinition) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	r.Attachments = make(map[string]string)
+	resources := map[string]string{}
 	for _, item := range list {
 		if s, ok := item.(string); ok {
-			if _, exists := r.Attachments[s]; exists {
+			if _, exists := resources[s]; exists {
 				return errors.New("aliases in resource list must be unique")
 			}
-			r.Attachments[s] = s
+			resources[s] = s
 		} else {
 			return errors.New("expected string in resource list")
 		}
 	}
+	*r = resources
+
 	return nil
 }
 
-func (r ResourceDefinition) MarshalJSON() ([]byte, error) {
+func (r ResourcesDefinition) MarshalJSON() ([]byte, error) {
 	// Return a list if we can.
 	var slugs []string
-	for alias, slug := range r.Attachments {
+	for alias, slug := range r {
 		// If we have a single case of alias != slug, just return the map.
 		if alias != slug {
-			return json.Marshal(r.Attachments)
+			// Cast `r` into a map so that `MarshalJSON` is not called recursively.
+			return json.Marshal(map[string]string(r))
 		}
 		slugs = append(slugs, slug)
 	}
@@ -860,21 +888,18 @@ func (r ResourceDefinition) MarshalJSON() ([]byte, error) {
 // resources:
 //
 //	demo: db
-func (r ResourceDefinition) MarshalYAML() (interface{}, error) {
+func (r ResourcesDefinition) MarshalYAML() (interface{}, error) {
 	// Return a list if we can.
 	var slugs []string
-	for alias, slug := range r.Attachments {
+	for alias, slug := range r {
 		// If we have a single case of alias != slug, just return the map.
 		if alias != slug {
-			return r.Attachments, nil
+			// Cast `r` into a map so that `MarshalYAML` is not called recursively.
+			return map[string]string(r), nil
 		}
 		slugs = append(slugs, slug)
 	}
 	return slugs, nil
-}
-
-func (r ResourceDefinition) IsZero() bool {
-	return len(r.Attachments) == 0
 }
 
 // Looks up a resource from `resources`, matching on ID. If no match is found, nil is returned.
