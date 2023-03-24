@@ -102,7 +102,26 @@ type Interface interface {
 
 	// Edit edits the task configuration contained in the specified file to match the
 	// provided definition.
+	//
+	// Certain task definitions cannot be edited (see `CanEdit()` below), in which case an error
+	// will be returned.
 	Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error
+
+	// CanEdit checks if the task configuration contained in the specified file can be automatically edited.
+	//
+	// If this method returns `false`, calling `Edit()` on this file will return an error.
+	//
+	// For example, the following JavaScript task definition cannot be automatically edited because it
+	// includes programmatic logic:
+	//
+	//   export default airplane.task({
+	//     allowSelfApprovals: process.env.AIRPLANE_ENV_SLUG !== "prod"
+	//     // ...
+	//   }, /*...*/)
+	//
+	// If this task definition was edited, the logic would be overwritten with a computed
+	// value for `allowSelfApprovals`. Therefore, we don't allow automatic edits of this task definition.
+	CanEdit(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error)
 }
 
 type PrepareRunOptions struct {

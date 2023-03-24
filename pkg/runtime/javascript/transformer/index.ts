@@ -21,21 +21,40 @@ import { transform } from "./transformer";
  */
 const run = async () => {
   try {
-    const file = process.argv[2];
+    const command = process.argv[2];
+    if (!command) {
+      throw new Error("a command arg is not set");
+    }
+
+    const file = process.argv[3];
     if (!file) {
       throw new Error("a file arg is not set");
     }
-    const slug = process.argv[3];
+    const slug = process.argv[4];
     if (!slug) {
       throw new Error("a slug arg is not set");
     }
-    const defSerialized = process.argv[4];
-    if (!defSerialized) {
-      throw new Error("a definition arg is not set");
-    }
-    const def = JSON.parse(defSerialized);
 
-    await transform(file, slug, def);
+    if (command === "can_transform") {
+      let ok = true;
+      try {
+        await transform(file, slug, {}, { dryRun: true });
+      } catch (err) {
+        console.error(String(err));
+        ok = false;
+      }
+      console.log(`__airplane_output ${ok}`);
+    } else if (command === "transform") {
+      const defSerialized = process.argv[5];
+      if (!defSerialized) {
+        throw new Error("a definition arg is not set");
+      }
+      const def = JSON.parse(defSerialized);
+
+      await transform(file, slug, def, { dryRun: false });
+    } else {
+      throw new Error(`Unknown command: ${command}`);
+    }
   } catch (err: any) {
     console.error(err);
     if ("message" in err) {

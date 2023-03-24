@@ -456,6 +456,10 @@ func TestEditYAML(t *testing.T) {
 
 			l := &logger.MockLogger{}
 
+			canEdit, err := CanEditYAML(f.Name())
+			require.NoError(err)
+			require.True(canEdit)
+
 			// Perform the edit on the temporary file.
 			err = EditYAML(context.Background(), l, f.Name(), tC.slug, tC.def)
 			require.NoError(err)

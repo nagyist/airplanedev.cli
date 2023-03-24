@@ -26,8 +26,26 @@ func EditYAML(ctx context.Context, logger logger.Logger, path string, slug strin
 	if err != nil {
 		return err
 	}
+
+	if _, err := os.Stat(path); err != nil {
+		return errors.Wrap(err, "opening file")
+	}
+
 	if err := os.WriteFile(path, content, 0655); err != nil {
 		return errors.Wrap(err, "editing task")
 	}
+
 	return nil
+}
+
+func CanEditYAML(path string) (bool, error) {
+	if !definitions.IsTaskDef(path) {
+		return false, errors.Errorf("updating tasks within %q files is not supported", filepath.Base(path))
+	}
+
+	if _, err := os.Stat(path); err != nil {
+		return true, errors.Wrap(err, "opening file")
+	}
+
+	return true, nil
 }

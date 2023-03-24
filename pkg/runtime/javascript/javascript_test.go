@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/airplanedev/lib/pkg/api"
+	"github.com/airplanedev/lib/pkg/build/types"
 	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/examples"
@@ -454,6 +455,10 @@ func TestEdit(t *testing.T) {
 
 			l := &logger.MockLogger{}
 
+			ok, err := r.CanEdit(context.Background(), l, f.Name(), tC.slug)
+			require.NoError(err)
+			require.True(ok)
+
 			// Perform the edit on the temporary file.
 			err = r.Edit(context.Background(), l, f.Name(), tC.slug, tC.def)
 			require.NoError(err)
@@ -464,6 +469,57 @@ func TestEdit(t *testing.T) {
 			expected, err := os.ReadFile(fmt.Sprintf("./fixtures/transformer/%s.out.airplane.js", tC.name))
 			require.NoError(err)
 			require.Equal(string(expected), string(actual))
+		})
+	}
+}
+
+func TestCanEdit(t *testing.T) {
+	testCases := []struct {
+		slug    string
+		canEdit bool
+	}{
+		{
+			slug:    "spread",
+			canEdit: false,
+		},
+		{
+			slug:    "computed",
+			canEdit: false,
+		},
+		{
+			slug:    "key",
+			canEdit: false,
+		},
+		{
+			slug:    "template",
+			canEdit: false,
+		},
+		{
+			slug:    "tagged_template",
+			canEdit: false,
+		},
+		{
+			// There is no task that matches this slug.
+			slug:    "slug_not_found",
+			canEdit: false,
+		},
+		{
+			slug:    "good",
+			canEdit: true,
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.slug, func(t *testing.T) {
+			require := require.New(t)
+
+			r, err := runtime.Lookup(".js", types.TaskKindNode)
+			require.NoError(err)
+
+			l := &logger.MockLogger{}
+
+			canEdit, err := r.CanEdit(context.Background(), l, "./fixtures/transformer/can_edit.airplane.js", tC.slug)
+			require.NoError(err)
+			require.Equal(tC.canEdit, canEdit)
 		})
 	}
 }

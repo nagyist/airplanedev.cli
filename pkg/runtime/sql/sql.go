@@ -94,3 +94,7 @@ func (r Runtime) SupportsLocalExecution() bool {
 func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
 	return transformers.EditYAML(ctx, logger, path, slug, def)
 }
+
+func (r Runtime) CanEdit(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error) {
+	return transformers.CanEditYAML(path)
+}

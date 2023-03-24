@@ -514,3 +514,12 @@ func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, sl
 
 	return transformers.EditYAML(ctx, logger, path, slug, def)
 }
+
+func (r Runtime) CanEdit(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error) {
+	if deployutils.IsPythonInlineAirplaneEntity(path) {
+		// TODO(colin, 04012023): support editing inline python
+		return false, errors.New("Support for editing .py files is coming soon.")
+	}
+
+	return transformers.CanEditYAML(path)
+}

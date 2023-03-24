@@ -22,7 +22,7 @@ import (
 	buildversions "github.com/airplanedev/lib/pkg/build/versions"
 	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
-	"github.com/airplanedev/lib/pkg/deploy/utils"
+	deployutils "github.com/airplanedev/lib/pkg/deploy/utils"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/runtime/transformers"
 	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
@@ -577,9 +577,14 @@ func (r Runtime) SupportsLocalExecution() bool {
 }
 
 var airplaneErrorRegex = regexp.MustCompile("__airplane_error (.*)\n")
+var airplaneOutputRegex = regexp.MustCompile("__airplane_output (.*)\n")
 
 func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
 	if deployutils.IsNodeInlineAirplaneEntity(path) {
+		if _, err := os.Stat(path); err != nil {
+			return errors.Wrap(err, "opening file")
+		}
+
 		tempFile, err := os.CreateTemp("", "airplane.transformer-js-*")
 		if err != nil {
 			return errors.Wrap(err, "creating temporary file")
@@ -595,27 +600,79 @@ func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, sl
 			return errors.Wrap(err, "marshalling definition as JSON")
 		}
 
-		cmd := exec.Command("node", tempFile.Name(), path, slug, string(defJSON))
-		logger.Debug("Running %s", strings.Join(cmd.Args, " "))
-		out, err := cmd.Output()
-		if len(out) == 0 {
-			out = []byte("(none)")
-		}
-		logger.Debug("Output from editing task %q at %q:\n%s", slug, path, out)
+		_, err = runNodeCommand(ctx, logger, transformerScript, "transform", path, slug, string(defJSON))
 		if err != nil {
-			if ee, ok := err.(*exec.ExitError); ok {
-				matches := airplaneErrorRegex.FindStringSubmatch(string(ee.Stderr))
-				if len(matches) >= 2 {
-					errMsg := matches[1]
-					return errors.Errorf("editing task at %q (re-run with --debug for more context): %s", path, errMsg)
-				}
-			}
-			return errors.Wrapf(err, "editing task at %q (re-run with --debug for more context)", path)
+			return errors.WithMessagef(err, "editing task at %q (re-run with --debug for more context)", path)
 		}
+
 		return nil
 	}
 
 	return transformers.EditYAML(ctx, logger, path, slug, def)
+}
+
+func (r Runtime) CanEdit(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error) {
+	if deployutils.IsNodeInlineAirplaneEntity(path) {
+		if _, err := os.Stat(path); err != nil {
+			return false, errors.Wrap(err, "opening file")
+		}
+
+		out, err := runNodeCommand(ctx, logger, transformerScript, "can_transform", path, slug)
+		if err != nil {
+			return false, errors.WithMessagef(err, "checking if task can be edited at %q (re-run with --debug for more context)", path)
+		}
+
+		var canEdit bool
+		if err := json.Unmarshal([]byte(out), &canEdit); err != nil {
+			return false, errors.Wrap(err, "checking if task can be edited")
+		}
+
+		return canEdit, nil
+	}
+
+	return transformers.CanEditYAML(path)
+}
+
+func runNodeCommand(ctx context.Context, logger logger.Logger, script []byte, args ...string) (string, error) {
+	tempFile, err := os.CreateTemp("", "airplane.runtime.javascript-*")
+	if err != nil {
+		return "", errors.Wrap(err, "creating temporary file")
+	}
+	defer os.Remove(tempFile.Name())
+
+	_, err = tempFile.Write(script)
+	if err != nil {
+		return "", errors.Wrap(err, "writing script")
+	}
+
+	allArgs := append([]string{tempFile.Name()}, args...)
+	cmd := exec.Command("node", allArgs...)
+	logger.Debug("Running %s", strings.Join(cmd.Args, " "))
+
+	out, err := cmd.Output()
+	if len(out) == 0 {
+		out = []byte("(none)")
+	}
+	logger.Debug("Output:\n%s", out)
+
+	if err != nil {
+		if ee, ok := err.(*exec.ExitError); ok {
+			matches := airplaneErrorRegex.FindStringSubmatch(string(ee.Stderr))
+			if len(matches) >= 2 {
+				errMsg := matches[1]
+				return "", errors.New(errMsg)
+			}
+		}
+		return "", errors.Wrap(err, "running node command")
+	}
+
+	matches := airplaneOutputRegex.FindStringSubmatch(string(out))
+	if len(matches) >= 2 {
+		msg := matches[1]
+		return msg, nil
+	}
+
+	return "", nil
 }
 
 // checkNodeVersion compares the major version of the currently installed

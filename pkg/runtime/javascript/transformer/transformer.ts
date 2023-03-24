@@ -4,10 +4,16 @@ import { ASTNode, builders, namedTypes, visit } from "ast-types";
 import type { ExpressionKind, PatternKind } from "ast-types/gen/kinds";
 import { readFile, writeFile } from "node:fs/promises";
 
-export const transform = async (file: string, existingSlug: string, def: any) => {
+export const transform = async (
+  file: string,
+  existingSlug: string,
+  def: any,
+  opts: { dryRun: boolean }
+) => {
   const buf = await readFile(file);
   const contents = buf.toString();
   const ast = parse(contents, { parser: typescript }) as ASTNode;
+  let found = 0;
   visit(ast, {
     // `airplane.task(...)` is a CallExpression
     visitCallExpression(path) {
@@ -28,11 +34,8 @@ export const transform = async (file: string, existingSlug: string, def: any) =>
       if (namedTypes.ObjectExpression.check(arg1)) {
         // Continue...
       } else {
-        throw new Error(
-          `Cannot inspect task options due to unsupported syntax "${arg1.type}"${printLOC(
-            arg1.loc
-          )}`
-        );
+        // This is not an object, so we cannot inspect its slug.
+        return this.traverse(path);
       }
 
       // There may be multiple tasks in this file. Confirm this task's slug matches
@@ -40,6 +43,12 @@ export const transform = async (file: string, existingSlug: string, def: any) =>
       const slug = getStringValue(arg1, "slug");
       if (slug !== existingSlug) {
         return this.traverse(path);
+      }
+      found++;
+
+      const cf = hasComputedFields(arg1);
+      if (cf) {
+        throw new Error("Tasks that use computed fields must be edited manually.");
       }
 
       const newNode = buildTaskConfig(def);
@@ -49,6 +58,17 @@ export const transform = async (file: string, existingSlug: string, def: any) =>
       return this.traverse(path);
     },
   });
+
+  if (found === 0) {
+    throw new Error(`Could not find task with slug "${existingSlug}".`);
+  } else if (found > 1) {
+    throw new Error(`Found more than one task with slug "${existingSlug}".`);
+  }
+
+  // Return early without writing out any changes.
+  if (opts.dryRun) {
+    return;
+  }
 
   let result = print(ast, {
     // When printing string literals, prefer the quote that will generate the shortest literal.
@@ -247,17 +267,11 @@ const getMemberExpressionName = (e: namedTypes.MemberExpression): string | undef
  */
 const getStringValue = (e: namedTypes.ObjectExpression, fieldName: string): string => {
   const value = getPropertyValue(e, fieldName);
-  if (!value) {
-    return "";
-  }
-
   if (namedTypes.StringLiteral.check(value)) {
     return value.value;
-  } else {
-    throw new Error(
-      `Cannot get slug due to unsupported value syntax "${value.type}"${printLOC(value.loc)}`
-    );
   }
+
+  return "";
 };
 
 const getPropertyValue = (
@@ -287,14 +301,9 @@ const getPropertyValue = (
       keyName = key.value;
     } else {
       // There are too many cases to handle here (since `key` can be any expression), so we can't `assertNever(key)`.
-      throw new Error(
-        `Cannot inspect field "${fieldName}" due to unsupported syntax "${key.type}"${printLOC(
-          key.loc
-        )}`
-      );
+      continue;
     }
 
-    console.log(`Found field ${keyName}`);
     if (keyName !== fieldName) {
       // This is not the property we want to edit.
       continue;
@@ -304,13 +313,6 @@ const getPropertyValue = (
   }
 
   return undefined;
-};
-
-const printLOC = (loc: namedTypes.SourceLocation | null | undefined): string => {
-  if (!loc) {
-    return "";
-  }
-  return ` at ${loc.start?.line}:${loc.start?.column}...${loc.end?.line}:${loc.end?.column}`;
 };
 
 /**
@@ -367,4 +369,77 @@ const getIndentation = (contents: string): "tabs" | "spaces" | undefined => {
     return "tabs";
   }
   return undefined;
+};
+
+// Returns `true` if the value `v` contains any non-literal values.
+const hasComputedFields = (v: any): boolean => {
+  if (namedTypes.ObjectExpression.check(v)) {
+    for (const property of v.properties.values()) {
+      if (namedTypes.ObjectProperty.check(property)) {
+        // Continue...
+      } else if (
+        namedTypes.SpreadProperty.check(property) ||
+        namedTypes.ObjectMethod.check(property) ||
+        namedTypes.Property.check(property) ||
+        namedTypes.SpreadElement.check(property)
+      ) {
+        return true;
+      } else {
+        return assertNever(property);
+      }
+
+      // e.g. `{ [name]: "value" }`
+      if (property.computed) {
+        return true;
+      }
+
+      if (
+        namedTypes.StringLiteral.check(property.key) ||
+        namedTypes.Identifier.check(property.key)
+      ) {
+        // Continue...
+      } else {
+        return true;
+      }
+
+      if (hasComputedFields(property.value)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  if (namedTypes.ArrayExpression.check(v)) {
+    for (const element of v.elements) {
+      if (hasComputedFields(element)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  if (
+    namedTypes.NullLiteral.check(v) ||
+    namedTypes.BooleanLiteral.check(v) ||
+    namedTypes.NumericLiteral.check(v) ||
+    namedTypes.StringLiteral.check(v)
+  ) {
+    return false;
+  }
+
+  if (namedTypes.TemplateLiteral.check(v)) {
+    return v.expressions.length > 0;
+  }
+
+  if (namedTypes.TaggedTemplateExpression.check(v)) {
+    return hasComputedFields(v.quasi);
+  }
+
+  if (namedTypes.Identifier.check(v) && v.name === "undefined") {
+    return false;
+  }
+
+  return true;
 };
