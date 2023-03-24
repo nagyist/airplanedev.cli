@@ -271,9 +271,8 @@ func TestEdit(t *testing.T) {
 						Default:     "My default",
 						Regex:       "^.*$",
 						Options: []definitions.OptionDefinition{
-							// The following cases are fixed in an upstream PR.
-							// {Value: "Thing 1"},
-							// {Value: "Thing 2"},
+							{Value: "Thing 1"},
+							{Value: "Thing 2"},
 							{Label: "Thing 3", Value: "Secret gremlin"},
 						},
 					},

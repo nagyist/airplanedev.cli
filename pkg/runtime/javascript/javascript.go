@@ -585,7 +585,7 @@ func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, sl
 		return errors.Wrap(err, "writing script")
 	}
 
-	defJSON, err := json.Marshal(def)
+	defJSON, err := def.Marshal(definitions.DefFormatJSON)
 	if err != nil {
 		return errors.Wrap(err, "marshalling definition as JSON")
 	}

@@ -1,9 +1,8 @@
 import { parse, print } from "@airplane/recast";
 import * as typescript from "@airplane/recast/parsers/typescript";
 import { ASTNode, builders, namedTypes, visit } from "ast-types";
-import type { CommentKind, ExpressionKind, PatternKind } from "ast-types/gen/kinds";
+import type { ExpressionKind, PatternKind } from "ast-types/gen/kinds";
 import { readFile, writeFile } from "node:fs/promises";
-import { inspect } from "node:util";
 
 export const transform = async (file: string, existingSlug: string, def: any) => {
   const buf = await readFile(file);
@@ -47,7 +46,7 @@ export const transform = async (file: string, existingSlug: string, def: any) =>
         return this.traverse(path);
       }
 
-      const newNode = buildTaskConfig(arg1, def);
+      const newNode = buildTaskConfig(def);
       node.arguments[0] = newNode;
 
       // Continue traversing.
@@ -75,172 +74,60 @@ export const transform = async (file: string, existingSlug: string, def: any) =>
   await writeFile(file, result);
 };
 
-const buildTaskConfig = (
-  input: namedTypes.ObjectExpression,
-  def: any
-): namedTypes.ObjectExpression => {
-  const output = builders.objectExpression([]);
+const buildTaskConfig = (def: any): ExpressionKind => {
+  // Rewrite the definition from JSON format into what is used by the JS SDK.
+  //
+  // The JS SDK does not have a "node" field since it's a JS task by definition.
+  if (def.node) {
+    // Environment variables are a top-level field, so bubble them up from within "node".
+    if (def.node.envVars) {
+      // Insert it via `entries` so that we can insert it where "node" was in the definition.
+      const entries = Object.entries(def);
+      const i = entries.findIndex((e) => e[0] === "node");
+      entries.splice(i + 1, 0, ["envVars", def.node.envVars]);
+      def = Object.fromEntries(entries);
+    }
 
-  {
-    output.properties.push(buildObjectProperty("slug", builders.stringLiteral(def.slug)));
+    delete def.node;
   }
-
-  if (def.name) {
-    output.properties.push(buildObjectProperty("name", builders.stringLiteral(def.name)));
+  // Apply a default value to the timeout field.
+  if (def.timeout === 0 || (def.runtime !== "workflow" && def.timeout === 3600)) {
+    delete def.timeout;
   }
-
-  if (def.description) {
-    output.properties.push(
-      buildObjectProperty("description", builders.stringLiteral(def.description))
-    );
-  }
-
-  if (def.parameters && def.parameters.length > 0) {
-    const parameters = builders.objectExpression(
-      def.parameters.map((p) => {
-        const parameter = builders.objectExpression([]);
-        if (p.name) {
-          parameter.properties.push(buildObjectProperty("name", builders.stringLiteral(p.name)));
-        }
-        if (p.description) {
-          parameter.properties.push(
-            buildObjectProperty("description", builders.stringLiteral(p.description))
-          );
-        }
-        if (p.type) {
-          parameter.properties.push(buildObjectProperty("type", builders.stringLiteral(p.type)));
-        }
-        if (p.required === false) {
-          parameter.properties.push(
-            buildObjectProperty("required", builders.booleanLiteral(p.required))
-          );
-        }
-        if (p.default != null) {
-          parameter.properties.push(
-            buildObjectProperty("default", buildParamValue(p.default, p.type))
-          );
-        }
-        if (p.regex) {
-          parameter.properties.push(buildObjectProperty("regex", builders.stringLiteral(p.regex)));
-        }
-        if (p.options) {
-          parameter.properties.push(
-            buildObjectProperty(
-              "options",
-              builders.arrayExpression(
-                p.options.map((option) => {
-                  const value = buildParamValue(option.value, p.type);
-                  if (option.label) {
-                    return builders.objectExpression([
-                      buildObjectProperty("label", builders.stringLiteral(option.label)),
-                      buildObjectProperty("value", value),
-                    ]);
-                  }
-                  return value;
-                })
-              )
-            )
-          );
-        }
-        return buildObjectProperty(p.slug, parameter);
-      })
-    );
-    output.properties.push(buildObjectProperty("parameters", parameters));
-  }
-
-  if (def.runtime && def.runtime !== "standard") {
-    output.properties.push(buildObjectProperty("runtime", builders.stringLiteral(def.runtime)));
-  }
-
-  if (def.resources) {
-    if (Array.isArray(def.resources)) {
-      if (def.resources.length > 0) {
-        const value = builders.arrayExpression(def.resources.map(builders.stringLiteral));
-        output.properties.push(buildObjectProperty("resources", value));
+  // Parameters are stored as a map of slug to parameter definition rather than a list of definitions.
+  if (def.parameters) {
+    const parameters = {};
+    for (let p of def.parameters) {
+      const { slug, ...rest } = p;
+      // Convert default parameter values from JSON to JS values.
+      if (rest.default != null) {
+        rest.default = asRecastNode(buildParamValue(rest.default, rest.type));
       }
-    } else if (Object.keys(def.resources).length > 0) {
-      const value = builders.objectExpression([]);
-      for (const [resourceAlias, resourceSlug] of Object.entries<string>(def.resources)) {
-        value.properties.push(
-          buildObjectProperty(resourceAlias, builders.stringLiteral(resourceSlug))
-        );
+      // Convert option parameter values from JSON to JS values.
+      if (rest.options) {
+        rest.options = rest.options.map((option) => {
+          const value = typeof option === "object" ? option.value : option;
+          const rv = asRecastNode(buildParamValue(value, rest.type));
+          return typeof option === "object" ? { ...option, value: rv } : rv;
+        });
       }
-      output.properties.push(buildObjectProperty("resources", value));
+      parameters[slug] = rest;
+    }
+    def.parameters = parameters;
+  }
+  // Convert schedule parameter values from JSON to JS values.
+  if (def.schedules) {
+    for (const [sslug, schedule] of Object.entries<any>(def.schedules)) {
+      if (schedule.paramValues) {
+        for (const [pslug, value] of Object.entries<any>(schedule.paramValues)) {
+          const newValue = buildParamValue(value, def.parameters[pslug].type);
+          def.schedules[sslug].paramValues[pslug] = asRecastNode(newValue);
+        }
+      }
     }
   }
 
-  if (def.node && def.node.envVars && Object.keys(def.node.envVars).length > 0) {
-    const value = builders.objectExpression([]);
-    for (const envVar in def.node.envVars) {
-      const envVarValue = def.node.envVars[envVar];
-      var propertyValue: ExpressionKind;
-      if (typeof envVarValue === "string") {
-        propertyValue = builders.stringLiteral(envVarValue);
-      } else if (envVarValue["config"]) {
-        propertyValue = builders.objectExpression([
-          buildObjectProperty("config", builders.stringLiteral(envVarValue["config"])),
-        ]);
-      } else {
-        propertyValue = builders.stringLiteral(envVarValue["value"] ?? "");
-      }
-      value.properties.push(buildObjectProperty(envVar, propertyValue));
-    }
-    output.properties.push(buildObjectProperty("envVars", value));
-  }
-
-  const defaultTimeout = def.runtime === "workflow" ? 0 : 3600;
-  if (def.timeout && def.timeout !== defaultTimeout) {
-    output.properties.push(buildObjectProperty("timeout", builders.numericLiteral(def.timeout)));
-  }
-
-  if (def.constraints && Object.keys(def.constraints).length > 0) {
-    const value = builders.objectExpression([]);
-    for (const [constraint, constraintValue] of Object.entries<string>(def.constraints)) {
-      value.properties.push(
-        buildObjectProperty(constraint, builders.stringLiteral(constraintValue))
-      );
-    }
-    output.properties.push(buildObjectProperty("constraints", value));
-  }
-
-  if (def.requireRequests) {
-    output.properties.push(
-      buildObjectProperty("requireRequests", builders.booleanLiteral(def.requireRequests))
-    );
-  }
-
-  if (def.allowSelfApprovals === false) {
-    output.properties.push(
-      buildObjectProperty("allowSelfApprovals", builders.booleanLiteral(def.allowSelfApprovals))
-    );
-  }
-
-  if (def.schedules && Object.keys(def.schedules).length > 0) {
-    const schedules = builders.objectExpression([]);
-    for (const [alias, s] of Object.entries<any>(def.schedules)) {
-      const schedule = builders.objectExpression([]);
-      if (s.name) {
-        schedule.properties.push(buildObjectProperty("name", builders.stringLiteral(s.name)));
-      }
-      if (s.description) {
-        schedule.properties.push(
-          buildObjectProperty("description", builders.stringLiteral(s.description))
-        );
-      }
-      if (s.cron) {
-        schedule.properties.push(buildObjectProperty("cron", builders.stringLiteral(s.cron)));
-      }
-      if (s.paramValues && Object.keys(s.paramValues).length > 0) {
-        schedule.properties.push(
-          buildObjectProperty("paramValues", buildParamValues(s.paramValues))
-        );
-      }
-      schedules.properties.push(buildObjectProperty(alias, schedule));
-    }
-    output.properties.push(buildObjectProperty("schedules", schedules));
-  }
-
-  return output;
+  return buildJSON(def);
 };
 
 /**
@@ -254,14 +141,6 @@ const buildObjectProperty = (key: string, value: any) => {
     ? builders.identifier(key)
     : builders.stringLiteral(key);
   return builders.objectProperty(keyExpression, value);
-};
-
-const buildParamValues = (paramValues: any): namedTypes.ObjectExpression => {
-  return builders.objectExpression(
-    Object.entries(paramValues).map(([param, paramValue]) =>
-      buildObjectProperty(param, buildParamValue(paramValue))
-    )
-  );
 };
 
 const buildParamValue = (paramValue: any, type?: string): ExpressionKind => {
@@ -284,10 +163,31 @@ const buildParamValue = (paramValue: any, type?: string): ExpressionKind => {
   return buildJSON(paramValue);
 };
 
-/** Serialize a value as a JSON object. */
+type RecastNode = {
+  __airplaneType: "recast_node";
+  node: ExpressionKind;
+};
+
+const asRecastNode = (node: ExpressionKind): RecastNode => {
+  return { __airplaneType: "recast_node", node };
+};
+
+const isRecastNode = (value: any): value is RecastNode => {
+  return value && value.__airplaneType === "recast_node";
+};
+
+/**
+ * Serialize a value as a JSON object.
+ *
+ * To override the serialization of a field value, wrap the value with a RecastNode using
+ * `asRecastNode`. It's `.node` property will be used verbatim as the serialized value.
+ */
 const buildJSON = (value: any): ExpressionKind => {
   if (value == null) {
     return builders.nullLiteral();
+  }
+  if (isRecastNode(value)) {
+    return value.node;
   }
   if (typeof value === "string") {
     return builders.stringLiteral(value);

@@ -28,6 +28,7 @@ export default airplane.task(
     },
     requireRequests: true,
     allowSelfApprovals: false,
+    restrictCallers: ["view", "task"],
     schedules: {
       daily: {
         name: "Daily",
