@@ -3,7 +3,10 @@ import airplane from "airplane";
 export default airplane.task(
   {
     slug: "my_task",
-    name: "This task is mine"
+    resources: {
+      my_alias: "alias",
+      no_alias: "no_alias"
+    }
   },
   async () => {
     return []

@@ -12,13 +12,20 @@ export default airplane.task(
         type: "boolean",
         required: false,
         default: true
+      },
+      datetime: {
+        type: "datetime",
+        required: false
       }
     },
     runtime: "workflow",
     resources: ["db"],
     envVars: {
-      AWS_ACCESS_KEY: {
+      CONFIG: {
         config: "aws_access_key"
+      },
+      VALUE: {
+        value: "Hello World!"
       }
     },
     timeout: 60,
@@ -30,13 +37,16 @@ export default airplane.task(
     allowSelfApprovals: false,
     restrictCallers: ["view", "task"],
     schedules: {
-      daily: {
-        name: "Daily",
-        description: "Runs every day at 12 UTC",
+      all: {
+        name: "All fields",
+        description: "A description",
         cron: "0 12 * * *",
         paramValues: {
-          dry: false
+          datetime: new Date("2006-01-02T15:04:05Z07:00")
         }
+      },
+      min: {
+        cron: "* * * * *"
       }
     }
   },

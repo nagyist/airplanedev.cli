@@ -7,11 +7,7 @@ import { readFile, writeFile } from "node:fs/promises";
 export const transform = async (file: string, existingSlug: string, def: any) => {
   const buf = await readFile(file);
   const contents = buf.toString();
-  const ast = parse(contents, {
-    parser: typescript,
-    // When printing string literals, prefer the quote that will generate the shortest literal.
-    quote: "auto",
-  }) as ASTNode;
+  const ast = parse(contents, { parser: typescript }) as ASTNode;
   visit(ast, {
     // `airplane.task(...)` is a CallExpression
     visitCallExpression(path) {
@@ -54,7 +50,10 @@ export const transform = async (file: string, existingSlug: string, def: any) =>
     },
   });
 
-  let result = print(ast).code;
+  let result = print(ast, {
+    // When printing string literals, prefer the quote that will generate the shortest literal.
+    quote: "auto",
+  }).code;
 
   // Recast always uses spaces for indentation even if the source file uses tabs.
   // This is an upstream bug that we could fix upstream, but for now we use a workaround.
@@ -99,19 +98,25 @@ const buildTaskConfig = (def: any): ExpressionKind => {
     const parameters = {};
     for (let p of def.parameters) {
       const { slug, ...rest } = p;
-      // Convert default parameter values from JSON to JS values.
-      if (rest.default != null) {
-        rest.default = asRecastNode(buildParamValue(rest.default, rest.type));
+      if (Object.keys(rest).length === 1) {
+        // Use the shorthand for parameters when only the type is set where the value
+        // is the type instead of an object.
+        parameters[slug] = rest.type;
+      } else {
+        // Convert default parameter values from JSON to JS values.
+        if (rest.default != null) {
+          rest.default = asRecastNode(buildParamValue(rest.default, rest.type));
+        }
+        // Convert option parameter values from JSON to JS values.
+        if (rest.options) {
+          rest.options = rest.options.map((option) => {
+            const value = typeof option === "object" ? option.value : option;
+            const rv = asRecastNode(buildParamValue(value, rest.type));
+            return typeof option === "object" ? { ...option, value: rv } : rv;
+          });
+        }
+        parameters[slug] = rest;
       }
-      // Convert option parameter values from JSON to JS values.
-      if (rest.options) {
-        rest.options = rest.options.map((option) => {
-          const value = typeof option === "object" ? option.value : option;
-          const rv = asRecastNode(buildParamValue(value, rest.type));
-          return typeof option === "object" ? { ...option, value: rv } : rv;
-        });
-      }
-      parameters[slug] = rest;
     }
     def.parameters = parameters;
   }
@@ -120,7 +125,9 @@ const buildTaskConfig = (def: any): ExpressionKind => {
     for (const [sslug, schedule] of Object.entries<any>(def.schedules)) {
       if (schedule.paramValues) {
         for (const [pslug, value] of Object.entries<any>(schedule.paramValues)) {
-          const newValue = buildParamValue(value, def.parameters[pslug].type);
+          const param = def.parameters[pslug];
+          const type = typeof param === "string" ? param : param.type;
+          const newValue = buildParamValue(value, type);
           def.schedules[sslug].paramValues[pslug] = asRecastNode(newValue);
         }
       }

@@ -575,39 +575,46 @@ func (r Runtime) SupportsLocalExecution() bool {
 var airplaneErrorRegex = regexp.MustCompile("__airplane_error (.*)\n")
 
 func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
-	tempFile, err := os.CreateTemp("", "airplane.transformer-*.js")
-	if err != nil {
-		return errors.Wrap(err, "creating temporary file")
-	}
-	defer os.Remove(tempFile.Name())
-	_, err = tempFile.Write(transformerScript)
-	if err != nil {
-		return errors.Wrap(err, "writing script")
-	}
-
-	defJSON, err := def.Marshal(definitions.DefFormatJSON)
-	if err != nil {
-		return errors.Wrap(err, "marshalling definition as JSON")
-	}
-
-	cmd := exec.Command("node", tempFile.Name(), path, slug, string(defJSON))
-	logger.Debug("Running %s", strings.Join(cmd.Args, " "))
-	out, err := cmd.Output()
-	if len(out) == 0 {
-		out = []byte("(none)")
-	}
-	logger.Debug("Output from editing task %q at %q:\n%s", slug, path, out)
-	if err != nil {
-		if ee, ok := err.(*exec.ExitError); ok {
-			matches := airplaneErrorRegex.FindStringSubmatch(string(ee.Stderr))
-			if len(matches) >= 2 {
-				errMsg := matches[1]
-				return errors.Errorf("editing task at %q (re-run with --debug for more context): %s", path, errMsg)
-			}
+	ext := filepath.Ext(path)
+	switch ext {
+	case ".js", ".jsx", ".ts", ".tsx":
+		tempFile, err := os.CreateTemp("", "airplane.transformer-js-*")
+		if err != nil {
+			return errors.Wrap(err, "creating temporary file")
 		}
-		return errors.Wrapf(err, "editing task at %q (re-run with --debug for more context)", path)
-	}
+		defer os.Remove(tempFile.Name())
+		_, err = tempFile.Write(transformerScript)
+		if err != nil {
+			return errors.Wrap(err, "writing script")
+		}
 
+		defJSON, err := def.Marshal(definitions.DefFormatJSON)
+		if err != nil {
+			return errors.Wrap(err, "marshalling definition as JSON")
+		}
+
+		cmd := exec.Command("node", tempFile.Name(), path, slug, string(defJSON))
+		logger.Debug("Running %s", strings.Join(cmd.Args, " "))
+		out, err := cmd.Output()
+		if len(out) == 0 {
+			out = []byte("(none)")
+		}
+		logger.Debug("Output from editing task %q at %q:\n%s", slug, path, out)
+		if err != nil {
+			if ee, ok := err.(*exec.ExitError); ok {
+				matches := airplaneErrorRegex.FindStringSubmatch(string(ee.Stderr))
+				if len(matches) >= 2 {
+					errMsg := matches[1]
+					return errors.Errorf("editing task at %q (re-run with --debug for more context): %s", path, errMsg)
+				}
+			}
+			return errors.Wrapf(err, "editing task at %q (re-run with --debug for more context)", path)
+		}
+	case ".yaml", ".yml", ".json":
+		return errors.New("unimplemented")
+	default:
+		return errors.Errorf("editing JS tasks within %q files is not supported", ext)
+	}
 	return nil
 }
 

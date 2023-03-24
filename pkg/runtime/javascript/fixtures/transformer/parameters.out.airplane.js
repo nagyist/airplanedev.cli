@@ -4,6 +4,7 @@ export default airplane.task(
   {
     slug: "my_task",
     parameters: {
+      simple: "shorttext",
       all: {
         name: "All fields",
         description: "My description",

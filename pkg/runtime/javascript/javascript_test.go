@@ -166,6 +166,11 @@ func TestEdit(t *testing.T) {
 						Required:    definitions.NewDefaultTrueDefinition(false),
 						Default:     true,
 					},
+					{
+						Slug:     "datetime",
+						Type:     "datetime",
+						Required: definitions.NewDefaultTrueDefinition(false),
+					},
 				},
 				Runtime:            "workflow",
 				RequireRequests:    true,
@@ -177,13 +182,16 @@ func TestEdit(t *testing.T) {
 					"vpc":     "tasks",
 				},
 				Schedules: map[string]definitions.ScheduleDefinition{
-					"daily": {
-						Name:        "Daily",
+					"all": {
+						Name:        "All fields",
+						Description: "A description",
 						CronExpr:    "0 12 * * *",
-						Description: "Runs every day at 12 UTC",
 						ParamValues: map[string]interface{}{
-							"dry": false,
+							"datetime": "2006-01-02T15:04:05Z07:00",
 						},
+					},
+					"min": {
+						CronExpr: "* * * * *",
 					},
 				},
 				Resources: map[string]string{
@@ -191,8 +199,11 @@ func TestEdit(t *testing.T) {
 				},
 				Node: &definitions.NodeDefinition{
 					EnvVars: api.TaskEnv{
-						"AWS_ACCESS_KEY": api.EnvVarValue{
+						"CONFIG": api.EnvVarValue{
 							Config: pointers.String("aws_access_key"),
+						},
+						"VALUE": api.EnvVarValue{
+							Value: pointers.String("Hello World!"),
 						},
 					},
 				},
@@ -229,16 +240,28 @@ func TestEdit(t *testing.T) {
 			},
 		},
 		{
-			// Tests the case where the slug's key is a string literal ("slug") instead of an identifier (slug).
-			name: "slug_string_literal",
+			// Tests edge cases for object keys and (string) values:
+			// 1. The slug's key is a string literal ("slug") instead of an identifier (slug).
+			// 2. A field is edited that is a valid identifier (it should not be wrapped in quotes).
+			// 3. A field is edited that is not a valid identifier (it should be wrapped in quotes).
+			// 4. A field is edited that includes single quotes.
+			// 5. A field is edited that includes double quotes.
+			// 6. A field is edited that includes both quotes.
+			name: "keys",
 			slug: "my_task",
 			def: definitions.Definition{
 				Slug: "my_task",
-				Name: "This task is mine",
+				Constraints: map[string]string{
+					"a_valid_identifier":    "...",
+					"an invalid identifier": "...",
+					"double\"":              "\"",
+					"single'":               "'",
+					"both'\"'\"":            "'\"'\"",
+				},
 			},
 		},
 		{
-			// Tests the case where the slug's key is a string literal ("slug") instead of an identifier (slug).
+			// Tests the case a file contains multiple tasks.
 			name: "multiple_tasks",
 			slug: "my_task_2",
 			def: definitions.Definition{
@@ -262,6 +285,10 @@ func TestEdit(t *testing.T) {
 			def: definitions.Definition{
 				Slug: "my_task",
 				Parameters: []definitions.ParameterDefinition{
+					{
+						Slug: "simple",
+						Type: "shorttext",
+					},
 					{
 						Name:        "All fields",
 						Description: "My description",
@@ -352,18 +379,29 @@ func TestEdit(t *testing.T) {
 				},
 			},
 		},
-		// TODO: support basic variable references
-		// {
-		// 	// Tests the case where a task's options are stored in a separate variable.
-		// 	name: "variable_opts",
-		// 	slug: "my_task",
-		// 	def: definitions.Definition{
-		// 		Slug: "my_task",
-		// 		Name: "This task is mine",
-		// 	},
-		// },
-		// TODO: get dedenting working
-		// TODO: test other dedentable fields, too, like parameter descriptions
+		{
+			// Tests the case where a resource has at least one alias. The "all" case checks for
+			// the case where no aliases are used.
+			name: "resource_aliases",
+			slug: "my_task",
+			def: definitions.Definition{
+				Slug: "my_task",
+				Resources: definitions.ResourcesDefinition{
+					"my_alias": "alias",
+					"no_alias": "no_alias",
+				},
+			},
+		},
+		{
+			// Tests the case where the file contains invalid JS.
+			name: "invalid_code",
+			slug: "my_task",
+			def: definitions.Definition{
+				Slug:        "my_task",
+				Description: "Added a description!",
+			},
+		},
+		// TODO: get dedenting working (including other fields that support it, like parameter descriptions)
 		// {
 		// 	// Tests the case where a (dedentable) string value is set that can be
 		// 	// pretty-printed as a multi-line string.
@@ -385,23 +423,15 @@ func TestEdit(t *testing.T) {
 		// 	},
 		// },
 
-		// TODO: support `import { task } from 'airplane'` syntax where it won't be a member expression
-		// TODO: tolerant parsing
-		// TODO: add schedule test cases (including one with a date param value)
-		// TODO: add resource test cases
-		// TODO: non-identifier keys
 		// TODO: add tests that cover TypeScript
+		// TODO: support `import { task } from 'airplane'` syntax where it won't be a member expression (and ignore other functions called task)
 
-		// TODO: confirm various error cases return user-friendly errors
-		// TODO: ignore non-airplane call expressions even with matching names
-		// TODO: detect if fields are explicitly set to a default value + retain the value if so
-		// TODO: test case where we can't edit the task for some reason (e.g. parsing), and that we get a sensible error back
-		// TODO: support serializing parameters as type-only strings
-		// TODO: support views
-		// TODO: multiple fields with the same field name
-		// TODO: audit all possible errors
+		// Test various error conditions:
+		// TODO: test airplane.task call without params or with an invalid first argument
+		// TODO: audit all possible errors + confirm return user-friendly errors
 		// TODO: audit unexpected config format error
-		// TODO: string literal with double/single quotes in it
+		// TODO: check error when there is no matching airplane.task call
+		// TODO: test case where we can't edit the task for some reason (e.g. parsing), and that we get a sensible error back
 	}
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
@@ -413,7 +443,7 @@ func TestEdit(t *testing.T) {
 			// Clone the input file into a temporary directory as it will be overwritten by `Edit()`.
 			in, err := os.Open(fmt.Sprintf("./fixtures/transformer/%s.airplane.js", tC.name))
 			require.NoError(err)
-			f, err := os.CreateTemp("", "runtime-edit-javascript-*")
+			f, err := os.CreateTemp("", "runtime-edit-javascript-*.js")
 			require.NoError(err)
 			t.Cleanup(func() {
 				require.NoError(os.Remove(f.Name()))

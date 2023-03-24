@@ -17,7 +17,7 @@ var (
 	// gitHubRegex handles `-f ...` file paths that reference GitHub.
 	//
 	// Specifically, they should specify the organization and repo name
-	// followed by a path from the repo root to an airplane.yml file.
+	// followed by a path from the repo root to an airplane.yaml file.
 	// They can be optionally suffixed by a git ref selector, using
 	// `@ref` syntax, where ref can be a branch name (and soon, a tag or commit, too).
 	// As of now, refs must be exact matches, not prefix matches.
