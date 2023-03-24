@@ -910,14 +910,14 @@ type Settings struct {
 }
 
 type PackageJSON struct {
-	Name                 string                 `json:"name"`
-	Settings             Settings               `json:"airplane"`
-	Workspaces           PackageJSONWorkspaces  `json:"workspaces"`
-	Scripts              map[string]interface{} `json:"scripts"`
-	Engines              PackageJSONEngines     `json:"engines"`
-	Dependencies         map[string]string      `json:"dependencies"`
-	DevDependencies      map[string]string      `json:"devDependencies"`
-	OptionalDependencies map[string]string      `json:"optionalDependencies"`
+	Name                 string                 `json:"name,omitempty"`
+	Settings             Settings               `json:"airplane,omitempty"`
+	Workspaces           PackageJSONWorkspaces  `json:"workspaces,omitempty"`
+	Scripts              map[string]interface{} `json:"scripts,omitempty"`
+	Engines              PackageJSONEngines     `json:"engines,omitempty"`
+	Dependencies         map[string]string      `json:"dependencies,omitempty"`
+	DevDependencies      map[string]string      `json:"devDependencies,omitempty"`
+	OptionalDependencies map[string]string      `json:"optionalDependencies,omitempty"`
 }
 
 type PackageJSONEngines struct {
