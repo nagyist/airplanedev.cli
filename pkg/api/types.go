@@ -513,3 +513,35 @@ type CreateSandboxResponse struct {
 type ListEnvsResponse struct {
 	Envs []libapi.Env `json:"envs"`
 }
+
+// TODO: Move autocomplete types to lib
+
+type CompletionType string
+
+const (
+	SQLCompletionType      CompletionType = "sql"
+	TaskYAMLCompletionType CompletionType = "task-yaml"
+)
+
+type AutopilotCompleteRequest struct {
+	Type    CompletionType   `json:"type"`
+	Prompt  string           `json:"prompt"`
+	Context *CompleteContext `json:"context"`
+}
+
+type AutopilotCompleteResponse struct {
+	Content string `json:"content"`
+}
+
+type CompleteContext struct {
+	CompleteSQLContext      *CompleteSQLContext      `json:"sql"`
+	CompleteTaskYAMLContext *CompleteTaskYAMLContext `json:"taskYAML"`
+}
+
+type CompleteSQLContext struct {
+	ResourceID string `json:"resourceID"`
+}
+
+type CompleteTaskYAMLContext struct {
+	Kind build.TaskKind `json:"kind"`
+}

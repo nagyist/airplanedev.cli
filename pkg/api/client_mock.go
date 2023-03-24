@@ -461,3 +461,7 @@ func (mc *MockClient) Watcher(ctx context.Context, req RunTaskRequest) (*Watcher
 func (mc *MockClient) RunURL(id string, envSlug string) string {
 	panic("not implemented")
 }
+
+func (mc *MockClient) AutopilotComplete(ctx context.Context, req AutopilotCompleteRequest) (AutopilotCompleteResponse, error) {
+	panic("not implemented")
+}

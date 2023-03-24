@@ -2,6 +2,7 @@ package dev
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -56,6 +57,33 @@ func TestSetEnvVars(t *testing.T) {
 
 	require.True(requireEnvVarExists(envVars, "ENV_VAR_FROM_VALUE", envVarValue))
 	require.True(requireEnvVarExists(envVars, "ENV_VAR_FROM_CONFIG", configVarValue))
+}
+
+func TestSetSystemEnvVars(t *testing.T) {
+	var home string
+	var ok bool
+	if home, ok = os.LookupEnv("HOME"); !ok {
+		t.Skip("$HOME not set")
+	}
+
+	require := require.New(t)
+
+	tempDir := t.TempDir()
+	entrypoint := filepath.Join(tempDir, "my_task.airplane.ts")
+
+	runConfig := LocalRunConfig{
+		LocalClient:  &api.Client{},
+		RemoteClient: &api.MockClient{},
+		Kind:         build.TaskKindNode,
+	}
+
+	r, err := runtime.Lookup(entrypoint, runConfig.Kind)
+	require.NoError(err)
+
+	envVars, err := getEnvVars(context.Background(), runConfig, r, entrypoint, libapi.EvaluateTemplateRequest{})
+	require.NoError(err)
+
+	require.True(requireEnvVarExists(envVars, "HOME", home))
 }
 
 func TestSetEnvVarsOverride(t *testing.T) {

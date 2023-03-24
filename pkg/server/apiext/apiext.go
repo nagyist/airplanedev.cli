@@ -491,6 +491,8 @@ func CreateDisplayHandler(ctx context.Context, state *state.State, r *http.Reque
 		}
 	case "json":
 		display.Value = req.Display.Value
+	case "file":
+		display.UploadID = req.Display.UploadID
 	}
 
 	run, err := state.UpdateRun(runID, func(run *dev.LocalRun) error {
@@ -526,6 +528,13 @@ func CreatePromptHandler(ctx context.Context, state *state.State, r *http.Reques
 	if req.Values == nil {
 		req.Values = map[string]interface{}{}
 	}
+
+	req.Values = params.ApplyDefaults(req.Schema, req.Values)
+	// NOTE: we don't standardize param values here since currently parameter values
+	// are represented as map[string]interface{} whereas in Airport, they are a Values type.
+	// The Aiport Values type has a custom JSON marshaler that converts upload objects to
+	// upload IDs. StandardizeParamValues converts upload IDs to objects which would differ
+	// in behavior when returning the prompt values.
 
 	reviewersWithDefaults := req.Reviewers
 	if reviewersWithDefaults == nil {
@@ -589,6 +598,12 @@ func GetPromptHandler(ctx context.Context, state *state.State, r *http.Request) 
 
 	for _, p := range run.Prompts {
 		if p.ID == promptID {
+			// Standardize the prompt values here to convert upload IDs to objects. We do it in the
+			// prompts get handler (not list) to agree with Airport.
+			p.Values, err = params.StandardizeParamValues(ctx, state.RemoteClient, p.Schema, p.Values)
+			if err != nil {
+				return GetPromptResponse{}, err
+			}
 			return GetPromptResponse{Prompt: p}, nil
 		}
 	}

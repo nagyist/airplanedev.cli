@@ -52,6 +52,7 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 
 	r.Handle("/prompts/list", handlers.New(state, ListPromptHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/prompts/submit", handlers.WithBody(state, SubmitPromptHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/prompts/cancel", handlers.WithBody(state, CancelPromptHandler)).Methods("POST", "OPTIONS")
 
 	r.Handle("/sleeps/list", handlers.New(state, ListSleepsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/sleeps/skip", handlers.WithBody(state, SkipSleepHandler)).Methods("POST", "OPTIONS")
@@ -418,6 +419,9 @@ func SubmitPromptHandler(ctx context.Context, state *state.State, r *http.Reques
 	_, err := state.UpdateRun(req.RunID, func(run *dev.LocalRun) error {
 		for i := range run.Prompts {
 			if run.Prompts[i].ID == req.ID {
+				if run.Prompts[i].SubmittedAt != nil || run.Prompts[i].CancelledAt != nil {
+					return libhttp.NewErrBadRequest("prompt has already completed")
+				}
 				now := time.Now()
 				run.Prompts[i].SubmittedAt = &now
 				run.Prompts[i].Values = req.Values
@@ -426,7 +430,50 @@ func SubmitPromptHandler(ctx context.Context, state *state.State, r *http.Reques
 				// Check if the run is still waiting for user input.
 				run.IsWaitingForUser = false
 				for _, prompt := range run.Prompts {
-					run.IsWaitingForUser = run.IsWaitingForUser || prompt.SubmittedAt == nil
+					run.IsWaitingForUser = run.IsWaitingForUser || (prompt.SubmittedAt == nil || prompt.CancelledAt == nil)
+				}
+
+				return nil
+			}
+		}
+		return libhttp.NewErrNotFound("prompt does not exist")
+	})
+	if err != nil {
+		return PromptResponse{}, err
+	}
+	return PromptResponse{ID: req.ID}, nil
+}
+
+type CancelPromptRequest struct {
+	ID          string  `json:"id"`
+	RunID       string  `json:"runID"`
+	CancelledBy *string `json:"-"`
+}
+
+func CancelPromptHandler(ctx context.Context, state *state.State, r *http.Request, req CancelPromptRequest) (PromptResponse, error) {
+	if req.ID == "" {
+		return PromptResponse{}, libhttp.NewErrBadRequest("prompt ID is required")
+	}
+	if req.RunID == "" {
+		return PromptResponse{}, libhttp.NewErrBadRequest("run ID is required")
+	}
+
+	userID := cli.ParseTokenForAnalytics(state.RemoteClient.Token()).UserID
+
+	_, err := state.Runs.Update(req.RunID, func(run *dev.LocalRun) error {
+		for i := range run.Prompts {
+			if run.Prompts[i].ID == req.ID {
+				if run.Prompts[i].SubmittedAt != nil || run.Prompts[i].CancelledAt != nil {
+					return libhttp.NewErrBadRequest("prompt has already completed")
+				}
+				now := time.Now()
+				run.Prompts[i].CancelledAt = &now
+				run.Prompts[i].CancelledBy = &userID
+
+				// Check if the run is still waiting for user input.
+				run.IsWaitingForUser = false
+				for _, prompt := range run.Prompts {
+					run.IsWaitingForUser = run.IsWaitingForUser || (prompt.SubmittedAt == nil || prompt.CancelledAt == nil)
 				}
 
 				return nil

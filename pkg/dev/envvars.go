@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/conf"
 	devenv "github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
@@ -74,7 +77,8 @@ func getEnvVars(
 	entrypoint string,
 	interpolateRequest libapi.EvaluateTemplateRequest,
 ) ([]string, error) {
-	env := make([]string, 0)
+	env := filteredSystemEnvVars()
+
 	// only non builtins have a runtime
 	if r != nil {
 		// Collect all environment variables for the current run.
@@ -345,4 +349,46 @@ func getCommonEnvVars() map[string]string {
 		"AIRPLANE_ENV_NAME":       devenv.StudioEnvID,
 		"AIRPLANE_ENV_IS_DEFAULT": "true", // For local dev, there is one env.
 	}
+}
+
+var allowedSystemEnvVars = map[string]bool{
+	"HOME": true, // Used by the snowflake client to identify the user's home directory for caching.
+}
+
+// filteredSystemEnvVars returns a list of environment variables from the user's system that can be passed to the task.
+func filteredSystemEnvVars() []string {
+	var filtered []string
+	for _, env := range os.Environ() {
+		parts := strings.SplitN(env, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+
+		k, v := parts[0], parts[1]
+		if _, ok := allowedSystemEnvVars[k]; ok {
+			filtered = append(filtered, fmt.Sprintf("%s=%s", k, v))
+		}
+	}
+	return filtered
+}
+
+// GetDiscoveryEnvVars get environment variables that are available during discovery.
+func GetDiscoveryEnvVars(devConfig *conf.DevConfig) []string {
+	discoveryEnvVars := getCommonEnvVars()
+	discoveryEnvVars["AIRPLANE_RUNTIME"] = "build" // emulates builder behavior
+	envVars := generateEnvVarList(discoveryEnvVars)
+
+	if devConfig != nil {
+		envVars = append(envVars, generateEnvVarList(devConfig.EnvVars)...)
+	}
+
+	return envVars
+}
+
+func generateEnvVarList(envVarMap map[string]string) []string {
+	var envVarList []string
+	for key, value := range envVarMap {
+		envVarList = append(envVarList, fmt.Sprintf("%s=%s", key, value))
+	}
+	return envVarList
 }
