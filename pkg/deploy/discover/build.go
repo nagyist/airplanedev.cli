@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/airplanedev/lib/pkg/utils/pointers"
@@ -42,7 +43,7 @@ func esbuildUserFiles(log logger.Logger, rootDir, file string) error {
 
 		Platform: esbuild.PlatformNode,
 		Engines: []esbuild.Engine{
-			{Name: esbuild.EngineNode, Version: string(build.DefaultNodeVersion)},
+			{Name: esbuild.EngineNode, Version: string(buildtypes.DefaultNodeVersion)},
 		},
 		Format:   esbuild.FormatCommonJS,
 		Bundle:   true,

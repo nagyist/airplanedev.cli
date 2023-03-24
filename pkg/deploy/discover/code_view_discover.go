@@ -8,7 +8,7 @@ import (
 	"path"
 
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	deployutils "github.com/airplanedev/lib/pkg/deploy/utils"
 	"github.com/airplanedev/lib/pkg/utils/logger"
@@ -36,7 +36,7 @@ func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 		return nil, nil
 	}
 
-	pm, err := taskPathMetadata(file, build.TaskKindNode)
+	pm, err := taskPathMetadata(file, buildtypes.TaskKindNode)
 	if err != nil {
 		return nil, err
 	}
@@ -144,21 +144,21 @@ func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 	}, nil
 }
 
-func (dd *CodeViewDiscoverer) GetViewRoot(ctx context.Context, file string) (string, build.BuildContext, error) {
+func (dd *CodeViewDiscoverer) GetViewRoot(ctx context.Context, file string) (string, buildtypes.BuildContext, error) {
 	if !deployutils.IsViewInlineAirplaneEntity(file) {
-		return "", build.BuildContext{}, nil
+		return "", buildtypes.BuildContext{}, nil
 	}
-	pm, err := taskPathMetadata(file, build.TaskKindNode)
+	pm, err := taskPathMetadata(file, buildtypes.TaskKindNode)
 	if err != nil {
-		return "", build.BuildContext{}, errors.Wrap(err, "unable to interpret task path metadata")
+		return "", buildtypes.BuildContext{}, errors.Wrap(err, "unable to interpret task path metadata")
 	}
 	bc, err := ViewBuildContext(pm.RootDir)
 	if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 
-	return pm.RootDir, build.BuildContext{
-		Type:    build.ViewBuildType,
+	return pm.RootDir, buildtypes.BuildContext{
+		Type:    buildtypes.ViewBuildType,
 		Version: bc.Version,
 		Base:    bc.Base,
 		EnvVars: bc.EnvVars,

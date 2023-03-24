@@ -7,11 +7,13 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc/v2"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
+	"github.com/airplanedev/lib/pkg/build/utils"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
 )
 
-func shell(root string, options KindOptions) (string, error) {
+func shell(root string, options buildtypes.KindOptions) (string, error) {
 	// Note that we don't require the entrypoint to exist - it might be existing
 	// inside the image already.
 	entrypoint, _ := options["entrypoint"].(string)
@@ -34,13 +36,13 @@ func shell(root string, options KindOptions) (string, error) {
 
 		ENTRYPOINT ["bash", ".airplane/shim.sh", "./{{.Entrypoint}}"]
 	`)
-	return applyTemplate(dockerfileTemplate, struct {
+	return utils.ApplyTemplate(dockerfileTemplate, struct {
 		InlineShim string
 		Entrypoint string
 		Workdir    string
 	}{
-		InlineShim: inlineString(ShellShim()),
-		Entrypoint: backslashEscape(entrypoint, `"`),
+		InlineShim: utils.InlineString(ShellShim()),
+		Entrypoint: utils.BackslashEscape(entrypoint, `"`),
 		Workdir:    workDir,
 	})
 }
@@ -60,12 +62,12 @@ func shellBundle(root string) (string, error) {
 		# Set an empty entrypoint to override any entrypoints that may be set in the base image.
 		ENTRYPOINT []
 	`)
-	return applyTemplate(dockerfileTemplate, struct {
+	return utils.ApplyTemplate(dockerfileTemplate, struct {
 		InlineShim string
 		Entrypoint string
 		Workdir    string
 	}{
-		InlineShim: inlineString(ShellShim()),
+		InlineShim: utils.InlineString(ShellShim()),
 		Workdir:    workDir,
 	})
 }

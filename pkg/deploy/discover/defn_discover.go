@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
@@ -143,7 +143,7 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 		}
 		// For shell tasks specifically, we allow the entrypoint file to not exist,
 		// since it might be inside the Docker image.
-		if kind != build.TaskKindShell {
+		if kind != buildtypes.TaskKindShell {
 			return nil, err
 		}
 	}
@@ -163,24 +163,24 @@ func (dd *DefnDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]Ta
 	return []TaskConfig{tc}, nil
 }
 
-func (dd *DefnDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, build.BuildContext, error) {
+func (dd *DefnDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, buildtypes.BuildContext, error) {
 	if !definitions.IsTaskDef(file) {
 		siblingDef := searchTaskDefnInSibling(file)
 		if siblingDef != "" {
 			return dd.GetTaskRoot(ctx, siblingDef)
 		}
-		return "", build.BuildContext{}, nil
+		return "", buildtypes.BuildContext{}, nil
 	}
 
 	dir, err := taskdir.Open(file)
 	if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 	defer dir.Close()
 
 	def, err := dir.ReadDefinition()
 	if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 
 	return setBuildVersionAndWorkingDir(file, &def)
@@ -190,66 +190,66 @@ func (dd *DefnDiscoverer) ConfigSource() ConfigSource {
 	return ConfigSourceDefn
 }
 
-func setBuildVersionAndWorkingDir(file string, def *definitions.Definition) (string, build.BuildContext, error) {
+func setBuildVersionAndWorkingDir(file string, def *definitions.Definition) (string, buildtypes.BuildContext, error) {
 	entrypoint, err := def.GetAbsoluteEntrypoint()
 	if err == definitions.ErrNoEntrypoint {
 		absFile, err := filepath.Abs(file)
 		if err != nil {
-			return "", build.BuildContext{}, err
+			return "", buildtypes.BuildContext{}, err
 		}
 		entrypoint = absFile
 	} else if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 	if err = fsx.AssertExistsAll(entrypoint); err != nil {
 		kind, err2 := def.Kind()
 		if err2 != nil {
-			return "", build.BuildContext{}, err2
+			return "", buildtypes.BuildContext{}, err2
 		}
 		// For shell tasks specifically, we allow the entrypoint file to not exist,
 		// since it might be inside the Docker image.
-		if kind != build.TaskKindShell {
-			return "", build.BuildContext{}, err
+		if kind != buildtypes.TaskKindShell {
+			return "", buildtypes.BuildContext{}, err
 		}
 	}
 	kind, _, err := def.GetKindAndOptions()
 	if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 
 	taskPathMetadata, err := taskPathMetadata(entrypoint, kind)
 	if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 	bc, err := TaskBuildContext(taskPathMetadata.RootDir, taskPathMetadata.Runtime)
 	if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 	if err := def.SetBuildVersionBase(bc.Version, bc.Base); err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 	if err := def.SetWorkdir(taskPathMetadata.RootDir, taskPathMetadata.WorkDir); err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 	// Recalculate the build types.
 	buildType, buildTypeVersion, buildBase, err := def.GetBuildType()
 	if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 
 	// Calculate the full list of env vars. This is the env vars (from airplane config)
 	// plus the env vars from the task. Set this new list on the task def
 	// and on the build context.
-	envVars := make(map[string]build.EnvVarValue)
+	envVars := make(map[string]buildtypes.EnvVarValue)
 	envVarsFromDefn, err := def.GetEnv()
 	if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 	for k, v := range bc.EnvVars {
 		envVars[k] = v
 	}
 	for k, v := range envVarsFromDefn {
-		envVars[k] = build.EnvVarValue(v)
+		envVars[k] = buildtypes.EnvVarValue(v)
 	}
 	if len(envVars) == 0 {
 		envVars = nil
@@ -259,11 +259,11 @@ func setBuildVersionAndWorkingDir(file string, def *definitions.Definition) (str
 			newDefnEnvVars[k] = api.EnvVarValue(v)
 		}
 		if err := def.SetEnv(newDefnEnvVars); err != nil {
-			return "", build.BuildContext{}, err
+			return "", buildtypes.BuildContext{}, err
 		}
 	}
 
-	return taskPathMetadata.RootDir, build.BuildContext{
+	return taskPathMetadata.RootDir, buildtypes.BuildContext{
 		Type:    buildType,
 		Version: buildTypeVersion,
 		Base:    buildBase,

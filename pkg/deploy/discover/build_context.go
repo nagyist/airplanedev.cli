@@ -3,7 +3,7 @@ package discover
 import (
 	"path/filepath"
 
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/runtime/javascript"
@@ -11,10 +11,10 @@ import (
 )
 
 // TaskBuildContext gets the build context for a task.
-func TaskBuildContext(taskroot string, taskRuntime runtime.Interface) (build.BuildContext, error) {
+func TaskBuildContext(taskroot string, taskRuntime runtime.Interface) (buildtypes.BuildContext, error) {
 	buildVersion, err := taskRuntime.Version(taskroot)
 	if err != nil {
-		return build.BuildContext{}, err
+		return buildtypes.BuildContext{}, err
 	}
 
 	var c config.AirplaneConfig
@@ -22,19 +22,19 @@ func TaskBuildContext(taskroot string, taskRuntime runtime.Interface) (build.Bui
 	if hasAirplaneConfig {
 		c, err = config.NewAirplaneConfigFromFile(taskroot)
 		if err != nil {
-			return build.BuildContext{}, err
+			return buildtypes.BuildContext{}, err
 		}
 	}
 
-	envVars := make(map[string]build.EnvVarValue)
+	envVars := make(map[string]buildtypes.EnvVarValue)
 	switch taskRuntime.Kind() {
-	case build.TaskKindNode:
+	case buildtypes.TaskKindNode:
 		for k, v := range c.Javascript.EnvVars {
-			envVars[k] = build.EnvVarValue(v)
+			envVars[k] = buildtypes.EnvVarValue(v)
 		}
-	case build.TaskKindPython:
+	case buildtypes.TaskKindPython:
 		for k, v := range c.Python.EnvVars {
-			envVars[k] = build.EnvVarValue(v)
+			envVars[k] = buildtypes.EnvVarValue(v)
 		}
 	}
 
@@ -42,15 +42,15 @@ func TaskBuildContext(taskroot string, taskRuntime runtime.Interface) (build.Bui
 		envVars = nil
 	}
 
-	var base build.BuildBase
+	var base buildtypes.BuildBase
 	switch taskRuntime.Kind() {
-	case build.TaskKindNode:
-		base = build.BuildBase(c.Javascript.Base)
-	case build.TaskKindPython:
-		base = build.BuildBase(c.Python.Base)
+	case buildtypes.TaskKindNode:
+		base = buildtypes.BuildBase(c.Javascript.Base)
+	case buildtypes.TaskKindPython:
+		base = buildtypes.BuildBase(c.Python.Base)
 	}
 
-	return build.BuildContext{
+	return buildtypes.BuildContext{
 		Version: buildVersion,
 		Base:    base,
 		EnvVars: envVars,
@@ -58,10 +58,10 @@ func TaskBuildContext(taskroot string, taskRuntime runtime.Interface) (build.Bui
 }
 
 // ViewBuildContext gets the build context for a view.
-func ViewBuildContext(viewroot string) (build.BuildContext, error) {
+func ViewBuildContext(viewroot string) (buildtypes.BuildContext, error) {
 	buildVersion, err := javascript.Runtime{}.Version(viewroot)
 	if err != nil {
-		return build.BuildContext{}, err
+		return buildtypes.BuildContext{}, err
 	}
 
 	var c config.AirplaneConfig
@@ -69,21 +69,21 @@ func ViewBuildContext(viewroot string) (build.BuildContext, error) {
 	if hasAirplaneConfig {
 		c, err = config.NewAirplaneConfigFromFile(viewroot)
 		if err != nil {
-			return build.BuildContext{}, err
+			return buildtypes.BuildContext{}, err
 		}
 	}
 
-	envVars := make(map[string]build.EnvVarValue)
+	envVars := make(map[string]buildtypes.EnvVarValue)
 	for k, v := range c.View.EnvVars {
-		envVars[k] = build.EnvVarValue(v)
+		envVars[k] = buildtypes.EnvVarValue(v)
 	}
 	if len(envVars) == 0 {
 		envVars = nil
 	}
 
-	return build.BuildContext{
+	return buildtypes.BuildContext{
 		Version: buildVersion,
-		Base:    build.BuildBaseSlim,
+		Base:    buildtypes.BuildBaseSlim,
 		EnvVars: envVars,
 	}, nil
 }

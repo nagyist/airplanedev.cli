@@ -18,6 +18,8 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
+	buildversions "github.com/airplanedev/lib/pkg/build/versions"
 	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
@@ -273,7 +275,7 @@ func (r Runtime) GenerateInline(def *definitions.Definition) ([]byte, fs.FileMod
 		Definition:         def,
 		AllowSelfApprovals: def.AllowSelfApprovals.Value(),
 		Timeout:            def.Timeout,
-		Workflow:           def.Runtime == build.TaskRuntimeWorkflow,
+		Workflow:           def.Runtime == buildtypes.TaskRuntimeWorkflow,
 	}
 	if err := inlineCode.Execute(&buf, helper); err != nil {
 		return nil, 0, fmt.Errorf("javascript: template execute - %w", err)
@@ -323,7 +325,7 @@ func (r Runtime) Root(path string) (string, error) {
 	return root, nil
 }
 
-func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, err error) {
+func (r Runtime) Version(rootPath string) (buildVersion buildtypes.BuildTypeVersion, err error) {
 	pkg, err := build.ReadPackageJSON(rootPath)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return "", err
@@ -336,11 +338,11 @@ func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, 
 			return "", errors.Wrapf(err, "parsing node engine %s", pkg.Engines.NodeVersion)
 		}
 
-		v, err := build.GetVersions()
+		v, err := buildversions.GetVersions()
 		if err != nil {
 			return "", err
 		}
-		supportedVersionsMap := v[string(build.NameNode)]
+		supportedVersionsMap := v[string(buildtypes.NameNode)]
 		var supportedVersions []string
 		for supportedVersion := range supportedVersionsMap {
 			supportedVersions = append(supportedVersions, supportedVersion)
@@ -355,7 +357,7 @@ func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, 
 				return "", err
 			}
 			if nodeConstraint.Check(sv) {
-				return build.BuildTypeVersion(supportedVersion), nil
+				return buildtypes.BuildTypeVersion(supportedVersion), nil
 			}
 		}
 	}
@@ -365,7 +367,7 @@ func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, 
 	if hasAirplaneConfig {
 		c, err := config.NewAirplaneConfigFromFile(rootPath)
 		if err == nil && c.Javascript.NodeVersion != "" {
-			return build.BuildTypeVersion(c.Javascript.NodeVersion), nil
+			return buildtypes.BuildTypeVersion(c.Javascript.NodeVersion), nil
 		}
 	}
 
@@ -373,8 +375,8 @@ func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, 
 }
 
 // Kind implementation.
-func (r Runtime) Kind() build.TaskKind {
-	return build.TaskKindNode
+func (r Runtime) Kind() buildtypes.TaskKind {
+	return buildtypes.TaskKindNode
 }
 
 func (r Runtime) FormatComment(s string) string {
@@ -621,7 +623,7 @@ func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, sl
 // checkNodeVersion compares the major version of the currently installed
 // node binary with that of the configured task and logs a warning if they
 // do not match.
-func checkNodeVersion(ctx context.Context, logger logger.Logger, opts build.KindOptions) {
+func checkNodeVersion(ctx context.Context, logger logger.Logger, opts buildtypes.KindOptions) {
 	nodeVersion, ok := opts["nodeVersion"].(string)
 	if !ok {
 		return

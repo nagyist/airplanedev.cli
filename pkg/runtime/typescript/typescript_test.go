@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/examples"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/runtime/runtimetest"
@@ -19,42 +19,42 @@ func TestDev(tt *testing.T) {
 
 	tests := []runtimetest.Test{
 		{
-			Kind: build.TaskKindNode,
+			Kind: buildtypes.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{
 				Path:     "typescript/simple/main.ts",
 				TaskSlug: "simple",
 			},
 		},
 		{
-			Kind: build.TaskKindNode,
+			Kind: buildtypes.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{
 				Path:     "typescript/airplaneoverride/main.ts",
 				TaskSlug: "override",
 			},
 		},
 		{
-			Kind: build.TaskKindNode,
+			Kind: buildtypes.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{
 				Path:     "typescript/npm/main.ts",
 				TaskSlug: "npm",
 			},
 		},
 		{
-			Kind: build.TaskKindNode,
+			Kind: buildtypes.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{
 				Path:     "typescript/yarn/main.ts",
 				TaskSlug: "yarn",
 			},
 		},
 		{
-			Kind: build.TaskKindNode,
+			Kind: buildtypes.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{
 				Path:     "typescript/imports/task/main.ts",
 				TaskSlug: "imports",
 			},
 		},
 		{
-			Kind: build.TaskKindNode,
+			Kind: buildtypes.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{
 				Path:     "typescript/noparams/main.ts",
 				TaskSlug: "no_params",
@@ -62,14 +62,14 @@ func TestDev(tt *testing.T) {
 			SearchString: "success",
 		},
 		{
-			Kind: build.TaskKindNode,
+			Kind: buildtypes.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{
 				Path:     "typescript/esnext/main.ts",
 				TaskSlug: "esnext",
 			},
 		},
 		{
-			Kind: build.TaskKindNode,
+			Kind: buildtypes.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{
 				Path: "typescript/esnext/main.ts",
 				// This tests that we can compile to an older version of Node syntax.
@@ -78,26 +78,26 @@ func TestDev(tt *testing.T) {
 				// latest version of Node) it doesn't actually test that the compiled
 				// code _runs_ in an older version of Node. We have more control over
 				// this in our Docker-based builder tests, so we test that there.
-				KindOptions: build.KindOptions{"nodeVersion": "14"},
+				KindOptions: buildtypes.KindOptions{"nodeVersion": "14"},
 				TaskSlug:    "esnext_14",
 			},
 		},
 		{
-			Kind: build.TaskKindNode,
+			Kind: buildtypes.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{
 				Path:     "typescript/esm/main.ts",
 				TaskSlug: "esm",
 			},
 		},
 		{
-			Kind: build.TaskKindNode,
+			Kind: buildtypes.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{
 				Path:     "typescript/aliases/main.ts",
 				TaskSlug: "aliases",
 			},
 		},
 		{
-			Kind: build.TaskKindNode,
+			Kind: buildtypes.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{
 				Path:     "typescript/bundle/taskInView.airplane.tsx",
 				TaskSlug: "default_export_root_folder",
@@ -105,7 +105,7 @@ func TestDev(tt *testing.T) {
 			SearchString: "running:in_view",
 		},
 		{
-			Kind: build.TaskKindNode,
+			Kind: buildtypes.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{
 				Path:     "typescript/bundle/rootInlineTask.airplane.ts",
 				TaskSlug: "default_export_root_folder",
@@ -113,22 +113,22 @@ func TestDev(tt *testing.T) {
 			SearchString: "running:default_export_root_folder",
 		},
 		{
-			Kind: build.TaskKindNode,
+			Kind: buildtypes.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{
 				Path:     "typescript/bundle/rootInlineTask.airplane.ts",
 				TaskSlug: "default_export_root_folder",
-				KindOptions: build.KindOptions{
+				KindOptions: buildtypes.KindOptions{
 					"entrypointFunc": "named",
 				},
 			},
 			SearchString: "running:named_export_root_folder",
 		},
 		{
-			Kind: build.TaskKindNode,
+			Kind: buildtypes.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{
 				Path:     "typescript/bundle/subfolder/subfolderInlineTask.airplane.ts",
 				TaskSlug: "default_export_subfolder",
-				KindOptions: build.KindOptions{
+				KindOptions: buildtypes.KindOptions{
 					"entrypointFunc": "default",
 				},
 			},

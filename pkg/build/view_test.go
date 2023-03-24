@@ -3,6 +3,8 @@ package build
 import (
 	"context"
 	"testing"
+
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 )
 
 // These tests ensure that a View image can be built without error.
@@ -15,7 +17,7 @@ func TestViewBuilder(t *testing.T) {
 		{
 			Root: "view/simple",
 			Kind: "view",
-			Options: KindOptions{
+			Options: buildtypes.KindOptions{
 				"entrypoint": "src/App.tsx",
 				"apiHost":    "https://api:5000",
 			},
@@ -33,14 +35,14 @@ func TestViewBundleBuilder(t *testing.T) {
 		{
 			Root: "view/simple",
 			Kind: "view",
-			Options: KindOptions{
+			Options: buildtypes.KindOptions{
 				"apiHost": "https://api:5000",
 			},
 			SkipRun: true,
 			Bundle:  true,
-			BuildContext: BuildContext{
-				Type:    ViewBuildType,
-				Version: BuildTypeVersionUnspecified,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.ViewBuildType,
+				Version: buildtypes.BuildTypeVersionUnspecified,
 			},
 			FilesToBuild: []string{
 				"src/App.tsx",
@@ -49,14 +51,14 @@ func TestViewBundleBuilder(t *testing.T) {
 		{
 			Root: "view/inline",
 			Kind: "view",
-			Options: KindOptions{
+			Options: buildtypes.KindOptions{
 				"apiHost": "https://api:5000",
 			},
 			SkipRun: true,
 			Bundle:  true,
-			BuildContext: BuildContext{
-				Type:    ViewBuildType,
-				Version: BuildTypeVersionUnspecified,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.ViewBuildType,
+				Version: buildtypes.BuildTypeVersionUnspecified,
 			},
 			FilesToBuild: []string{
 				"src/App.view.tsx",
@@ -68,14 +70,14 @@ func TestViewBundleBuilder(t *testing.T) {
 		{
 			Root: "view/inlinemulti",
 			Kind: "view",
-			Options: KindOptions{
+			Options: buildtypes.KindOptions{
 				"apiHost": "https://api:5000",
 			},
 			SkipRun: true,
 			Bundle:  true,
-			BuildContext: BuildContext{
-				Type:    ViewBuildType,
-				Version: BuildTypeVersionUnspecified,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.ViewBuildType,
+				Version: buildtypes.BuildTypeVersionUnspecified,
 			},
 			FilesToBuild: []string{
 				"src/App.view.tsx",
@@ -91,14 +93,14 @@ func TestViewBundleBuilder(t *testing.T) {
 		{
 			Root: "view/yarnworkspaces",
 			Kind: "view",
-			Options: KindOptions{
+			Options: buildtypes.KindOptions{
 				"apiHost": "https://api:5000",
 			},
 			SkipRun: true,
 			Bundle:  true,
-			BuildContext: BuildContext{
-				Type:    ViewBuildType,
-				Version: BuildTypeVersionUnspecified,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.ViewBuildType,
+				Version: buildtypes.BuildTypeVersionUnspecified,
 			},
 			FilesToBuild: []string{
 				"pkg2/src/main.airplane.tsx",
@@ -110,14 +112,14 @@ func TestViewBundleBuilder(t *testing.T) {
 		{
 			Root: "view/css",
 			Kind: "view",
-			Options: KindOptions{
+			Options: buildtypes.KindOptions{
 				"apiHost": "https://api:5000",
 			},
 			SkipRun: true,
 			Bundle:  true,
-			BuildContext: BuildContext{
-				Type:    ViewBuildType,
-				Version: BuildTypeVersionUnspecified,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.ViewBuildType,
+				Version: buildtypes.BuildTypeVersionUnspecified,
 			},
 			FilesToBuild: []string{
 				"myView.airplane.tsx",

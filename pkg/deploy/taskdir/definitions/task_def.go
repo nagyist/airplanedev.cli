@@ -8,19 +8,19 @@ import (
 	"text/template"
 
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/goccy/go-yaml"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
 
 type Definition struct {
-	Slug        string                `json:"slug"`
-	Name        string                `json:"name,omitempty"`
-	Description string                `json:"description,omitempty"`
-	Parameters  []ParameterDefinition `json:"parameters,omitempty"`
-	Runtime     build.TaskRuntime     `json:"runtime,omitempty"`
-	Resources   ResourcesDefinition   `json:"resources,omitempty"`
+	Slug        string                 `json:"slug"`
+	Name        string                 `json:"name,omitempty"`
+	Description string                 `json:"description,omitempty"`
+	Parameters  []ParameterDefinition  `json:"parameters,omitempty"`
+	Runtime     buildtypes.TaskRuntime `json:"runtime,omitempty"`
+	Resources   ResourcesDefinition    `json:"resources,omitempty"`
 
 	Image  *ImageDefinition  `json:"docker,omitempty"`
 	Node   *NodeDefinition   `json:"node,omitempty"`
@@ -40,24 +40,24 @@ type Definition struct {
 
 	Schedules map[string]ScheduleDefinition `json:"schedules,omitempty"`
 
-	buildConfig  build.BuildConfig
+	buildConfig  buildtypes.BuildConfig
 	defnFilePath string
 }
 
 type taskKind interface {
-	copyToTask(*api.Task, build.BuildConfig, GetTaskOpts) error
+	copyToTask(*api.Task, buildtypes.BuildConfig, GetTaskOpts) error
 	update(api.UpdateTaskRequest, []api.ResourceMetadata) error
 	setEntrypoint(string) error
 	setAbsoluteEntrypoint(string) error
 	getAbsoluteEntrypoint() (string, error)
-	getKindOptions() (build.KindOptions, error)
+	getKindOptions() (buildtypes.KindOptions, error)
 	getEntrypoint() (string, error)
 	getEnv() (api.TaskEnv, error)
 	setEnv(api.TaskEnv) error
 	getConfigAttachments() []api.ConfigAttachment
 	getResourceAttachments() map[string]string
-	getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase)
-	SetBuildVersionBase(build.BuildTypeVersion, build.BuildBase)
+	getBuildType() (buildtypes.BuildType, buildtypes.BuildTypeVersion, buildtypes.BuildBase)
+	SetBuildVersionBase(buildtypes.BuildTypeVersion, buildtypes.BuildBase)
 }
 
 type ParameterDefinition struct {
@@ -144,43 +144,43 @@ type ScheduleDefinition struct {
 //go:embed schema_0_3.json
 var schemaStr string
 
-func NewDefinition(name string, slug string, kind build.TaskKind, entrypoint string) (Definition, error) {
+func NewDefinition(name string, slug string, kind buildtypes.TaskKind, entrypoint string) (Definition, error) {
 	def := Definition{
 		Name: name,
 		Slug: slug,
 	}
 
 	switch kind {
-	case build.TaskKindImage:
+	case buildtypes.TaskKindImage:
 		def.Image = &ImageDefinition{
 			Image:   "alpine:3",
 			Command: `echo "hello world"`,
 		}
-	case build.TaskKindNode:
+	case buildtypes.TaskKindNode:
 		def.Node = &NodeDefinition{
 			Entrypoint:  entrypoint,
-			NodeVersion: string(build.DefaultNodeVersion),
+			NodeVersion: string(buildtypes.DefaultNodeVersion),
 		}
-	case build.TaskKindPython:
+	case buildtypes.TaskKindPython:
 		def.Python = &PythonDefinition{
 			Entrypoint: entrypoint,
 		}
-	case build.TaskKindShell:
+	case buildtypes.TaskKindShell:
 		def.Shell = &ShellDefinition{
 			Entrypoint: entrypoint,
 		}
-	case build.TaskKindSQL:
+	case buildtypes.TaskKindSQL:
 		def.SQL = &SQLDefinition{
 			Entrypoint: entrypoint,
 		}
-	case build.TaskKindREST:
+	case buildtypes.TaskKindREST:
 		def.REST = &RESTDefinition{
 			Method:   "POST",
 			Path:     "/",
 			BodyType: "json",
 			Body:     "{}",
 		}
-	case build.TaskKindBuiltin:
+	case buildtypes.TaskKindBuiltin:
 		return Definition{}, errors.New("use NewBuiltinDefinition instead")
 	default:
 		return Definition{}, errors.Errorf("unknown kind: %s", kind)
@@ -312,7 +312,7 @@ func (d Definition) GenerateCommentedFile(format DefFormat) ([]byte, error) {
 	taskDefinition := new(bytes.Buffer)
 	var paramsExtraInfo string
 	switch kind {
-	case build.TaskKindImage:
+	case buildtypes.TaskKindImage:
 		if d.Image.Entrypoint != "" || len(d.Image.EnvVars) > 0 {
 			return d.Marshal(format)
 		}
@@ -324,7 +324,7 @@ func (d Definition) GenerateCommentedFile(format DefFormat) ([]byte, error) {
 			return nil, errors.Wrap(err, "executing image template")
 		}
 		paramsExtraInfo = imageParamsExtraDescription
-	case build.TaskKindNode:
+	case buildtypes.TaskKindNode:
 		if len(d.Node.EnvVars) > 0 {
 			return d.Marshal(format)
 		}
@@ -335,7 +335,7 @@ func (d Definition) GenerateCommentedFile(format DefFormat) ([]byte, error) {
 		if err := tmpl.Execute(taskDefinition, d.Node); err != nil {
 			return nil, errors.Wrap(err, "executing node template")
 		}
-	case build.TaskKindPython:
+	case buildtypes.TaskKindPython:
 		if len(d.Python.EnvVars) > 0 {
 			return d.Marshal(format)
 		}
@@ -346,7 +346,7 @@ func (d Definition) GenerateCommentedFile(format DefFormat) ([]byte, error) {
 		if err := tmpl.Execute(taskDefinition, d.Python); err != nil {
 			return nil, errors.Wrap(err, "executing python template")
 		}
-	case build.TaskKindShell:
+	case buildtypes.TaskKindShell:
 		if len(d.Shell.EnvVars) > 0 {
 			return d.Marshal(format)
 		}
@@ -358,7 +358,7 @@ func (d Definition) GenerateCommentedFile(format DefFormat) ([]byte, error) {
 			return nil, errors.Wrap(err, "executing shell template")
 		}
 		paramsExtraInfo = shellParamsExtraDescription
-	case build.TaskKindSQL:
+	case buildtypes.TaskKindSQL:
 		if d.SQL.Resource != "" || len(d.SQL.QueryArgs) > 0 {
 			return d.Marshal(format)
 		}
@@ -369,7 +369,7 @@ func (d Definition) GenerateCommentedFile(format DefFormat) ([]byte, error) {
 		if err := tmpl.Execute(taskDefinition, d.SQL); err != nil {
 			return nil, errors.Wrap(err, "executing sql template")
 		}
-	case build.TaskKindREST:
+	case buildtypes.TaskKindREST:
 		if d.REST.Resource != "" ||
 			len(d.REST.URLParams) > 0 ||
 			len(d.REST.Headers) > 0 ||
@@ -480,21 +480,21 @@ func (d *Definition) GetAbsoluteEntrypoint() (string, error) {
 	return taskKind.getAbsoluteEntrypoint()
 }
 
-func (d Definition) Kind() (build.TaskKind, error) {
+func (d Definition) Kind() (buildtypes.TaskKind, error) {
 	if d.Image != nil {
-		return build.TaskKindImage, nil
+		return buildtypes.TaskKindImage, nil
 	} else if d.Node != nil {
-		return build.TaskKindNode, nil
+		return buildtypes.TaskKindNode, nil
 	} else if d.Python != nil {
-		return build.TaskKindPython, nil
+		return buildtypes.TaskKindPython, nil
 	} else if d.Shell != nil {
-		return build.TaskKindShell, nil
+		return buildtypes.TaskKindShell, nil
 	} else if d.SQL != nil {
-		return build.TaskKindSQL, nil
+		return buildtypes.TaskKindSQL, nil
 	} else if d.REST != nil {
-		return build.TaskKindREST, nil
+		return buildtypes.TaskKindREST, nil
 	} else if d.Builtin != nil {
-		return build.TaskKindBuiltin, nil
+		return buildtypes.TaskKindBuiltin, nil
 	} else {
 		return "", errors.New("incomplete task definition")
 	}
@@ -597,7 +597,7 @@ func (d Definition) addResourcesToTask(task *api.Task, opts GetTaskOpts) error {
 	return nil
 }
 
-func (d Definition) addKindSpecificsToTask(task *api.Task, bc build.BuildConfig, opts GetTaskOpts) error {
+func (d Definition) addKindSpecificsToTask(task *api.Task, bc buildtypes.BuildConfig, opts GetTaskOpts) error {
 	kind, options, err := d.GetKindAndOptions()
 	if err != nil {
 		return err
@@ -649,7 +649,7 @@ func (d Definition) GetParameters() (api.Parameters, error) {
 	return convertParametersDefToAPI(d.Parameters)
 }
 
-func (d Definition) GetBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase, error) {
+func (d Definition) GetBuildType() (buildtypes.BuildType, buildtypes.BuildTypeVersion, buildtypes.BuildBase, error) {
 	taskKind, err := d.taskKind()
 	if err != nil {
 		return "", "", "", err
@@ -660,7 +660,7 @@ func (d Definition) GetBuildType() (build.BuildType, build.BuildTypeVersion, bui
 
 // SetBuildVersionBase sets the version and base that this definition should be built with. Does not
 // override the version or base if it was already set.
-func (d Definition) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) error {
+func (d Definition) SetBuildVersionBase(v buildtypes.BuildTypeVersion, b buildtypes.BuildBase) error {
 	taskKind, err := d.taskKind()
 	if err != nil {
 		return err
@@ -673,7 +673,7 @@ func (d *Definition) SetDefnFilePath(filePath string) {
 	d.defnFilePath = filePath
 }
 
-func (d *Definition) GetKindAndOptions() (build.TaskKind, build.KindOptions, error) {
+func (d *Definition) GetKindAndOptions() (buildtypes.TaskKind, buildtypes.KindOptions, error) {
 	kind, err := d.Kind()
 	if err != nil {
 		return "", nil, err
@@ -752,7 +752,7 @@ func (d *Definition) GetName() string {
 	return d.Name
 }
 
-func (d *Definition) GetRuntime() build.TaskRuntime {
+func (d *Definition) GetRuntime() buildtypes.TaskRuntime {
 	return d.Runtime
 }
 
@@ -796,8 +796,8 @@ func (d *Definition) GetSchedules() map[string]api.Schedule {
 // GetBuildConfig gets the full build config, synthesized from KindOptions and explicitly set
 // BuildConfig. KindOptions are unioned with BuildConfig; non-nil values in BuildConfig take
 // precedence, and a nil BuildConfig value removes the key from the final build config.
-func (d *Definition) GetBuildConfig() (build.BuildConfig, error) {
-	config := build.BuildConfig{}
+func (d *Definition) GetBuildConfig() (buildtypes.BuildConfig, error) {
+	config := buildtypes.BuildConfig{}
 
 	_, options, err := d.GetKindAndOptions()
 	if err != nil {

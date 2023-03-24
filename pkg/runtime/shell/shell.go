@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils"
@@ -142,13 +143,13 @@ func (r Runtime) Root(path string) (string, error) {
 	return runtime.RootForNonBuiltRuntime(path)
 }
 
-func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, err error) {
+func (r Runtime) Version(rootPath string) (buildVersion buildtypes.BuildTypeVersion, err error) {
 	return "", nil
 }
 
 // Kind implementation.
-func (r Runtime) Kind() build.TaskKind {
-	return build.TaskKindShell
+func (r Runtime) Kind() buildtypes.TaskKind {
+	return buildtypes.TaskKindShell
 }
 
 // FormatComment implementation.

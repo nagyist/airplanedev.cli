@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,7 +16,7 @@ func TestYAMLComments(t *testing.T) {
 		name       string
 		slug       string
 		file       string
-		kind       build.TaskKind
+		kind       buildtypes.TaskKind
 		entrypoint string
 	}{
 		{
@@ -24,7 +24,7 @@ func TestYAMLComments(t *testing.T) {
 			name:       "My Task",
 			slug:       "my_task",
 			file:       fixturesPath + "/python.task.yaml",
-			kind:       build.TaskKindPython,
+			kind:       buildtypes.TaskKindPython,
 			entrypoint: "my_task.py",
 		},
 		{
@@ -32,7 +32,7 @@ func TestYAMLComments(t *testing.T) {
 			name:       "My Task",
 			slug:       "my_task",
 			file:       fixturesPath + "/node.task.yaml",
-			kind:       build.TaskKindNode,
+			kind:       buildtypes.TaskKindNode,
 			entrypoint: "my_task.ts",
 		},
 		{
@@ -40,7 +40,7 @@ func TestYAMLComments(t *testing.T) {
 			name:       "My Task",
 			slug:       "my_task",
 			file:       fixturesPath + "/shell.task.yaml",
-			kind:       build.TaskKindShell,
+			kind:       buildtypes.TaskKindShell,
 			entrypoint: "my_task.sh",
 		},
 		{
@@ -48,14 +48,14 @@ func TestYAMLComments(t *testing.T) {
 			name:       "My Task",
 			slug:       "my_task",
 			file:       fixturesPath + "/docker.task.yaml",
-			kind:       build.TaskKindImage,
+			kind:       buildtypes.TaskKindImage,
 		},
 		{
 			descriptor: "sql",
 			name:       "My Task",
 			slug:       "my_task",
 			file:       fixturesPath + "/sql.task.yaml",
-			kind:       build.TaskKindSQL,
+			kind:       buildtypes.TaskKindSQL,
 			entrypoint: "my_task.sql",
 		},
 		{
@@ -63,14 +63,14 @@ func TestYAMLComments(t *testing.T) {
 			name:       "My Task",
 			slug:       "my_task",
 			file:       fixturesPath + "/rest.task.yaml",
-			kind:       build.TaskKindREST,
+			kind:       buildtypes.TaskKindREST,
 		},
 		{
 			descriptor: "name with special characters",
 			name:       "[Test] My Task",
 			slug:       "test_my_task",
 			file:       fixturesPath + "/specialchars.task.yaml",
-			kind:       build.TaskKindREST,
+			kind:       buildtypes.TaskKindREST,
 		},
 	} {
 		t.Run(test.descriptor, func(t *testing.T) {

@@ -1,9 +1,10 @@
-package build
+package types
 
 import (
 	"fmt"
 
 	"github.com/MakeNowJust/heredoc/v2"
+	"github.com/airplanedev/lib/pkg/build/utils"
 	"golang.org/x/exp/slices"
 )
 
@@ -59,6 +60,11 @@ const (
 	BuildTypeVersionPython311 BuildTypeVersion = "3.11"
 
 	BuildTypeVersionUnspecified BuildTypeVersion = ""
+)
+
+const (
+	DefaultNodeVersion   = BuildTypeVersionNode18
+	DefaultPythonVersion = BuildTypeVersionPython310
 )
 
 var AllBuildTypeVersions = map[BuildType][]BuildTypeVersion{
@@ -158,7 +164,7 @@ type BuildInstructions struct {
 }
 
 func (i BuildInstructions) DockerfileString() (string, error) {
-	return applyTemplate(heredoc.Doc(`
+	return utils.ApplyTemplate(heredoc.Doc(`
 		{{range .BuildArgs}}
 		ARG {{.}}
 		{{end}}

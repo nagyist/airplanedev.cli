@@ -9,7 +9,7 @@ import (
 	"path"
 
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	deployutils "github.com/airplanedev/lib/pkg/deploy/utils"
 	"github.com/airplanedev/lib/pkg/utils/logger"
@@ -106,38 +106,38 @@ func (c *CodeTaskDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([
 	return taskConfigs, nil
 }
 
-func (c *CodeTaskDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, build.BuildContext, error) {
+func (c *CodeTaskDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, buildtypes.BuildContext, error) {
 	if !deployutils.IsInlineAirplaneEntity(file) {
-		return "", build.BuildContext{}, nil
+		return "", buildtypes.BuildContext{}, nil
 	}
 
-	var kind build.TaskKind
-	var buildType build.BuildType
+	var kind buildtypes.TaskKind
+	var buildType buildtypes.BuildType
 	if deployutils.IsNodeInlineAirplaneEntity(file) {
-		kind = build.TaskKindNode
-		buildType = build.NodeBuildType
+		kind = buildtypes.TaskKindNode
+		buildType = buildtypes.NodeBuildType
 	} else if deployutils.IsPythonInlineAirplaneEntity(file) {
-		kind = build.TaskKindPython
-		buildType = build.PythonBuildType
+		kind = buildtypes.TaskKindPython
+		buildType = buildtypes.PythonBuildType
 	}
 	if kind == "" {
-		return "", build.BuildContext{}, nil
+		return "", buildtypes.BuildContext{}, nil
 	}
 	pm, err := taskPathMetadata(file, kind)
 	if err != nil {
-		return "", build.BuildContext{}, errors.Wrap(err, "unable to interpret task path metadata")
+		return "", buildtypes.BuildContext{}, errors.Wrap(err, "unable to interpret task path metadata")
 	}
 	bc, err := TaskBuildContext(pm.RootDir, pm.Runtime)
 	if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 	base := bc.Base
-	if base == build.BuildBaseNone {
+	if base == buildtypes.BuildBaseNone {
 		// Default to the slim base if otherwise unspecified.
-		base = build.BuildBaseSlim
+		base = buildtypes.BuildBaseSlim
 	}
 
-	return pm.RootDir, build.BuildContext{
+	return pm.RootDir, buildtypes.BuildContext{
 		Type:    buildType,
 		Version: bc.Version,
 		Base:    base,
@@ -164,7 +164,7 @@ func (c *CodeTaskDiscoverer) parseDefinitions(ctx context.Context, file string) 
 }
 
 func (c *CodeTaskDiscoverer) parseNodeDefinitions(ctx context.Context, file string) ([]ParsedDefinition, error) {
-	pm, err := taskPathMetadata(file, build.TaskKindNode)
+	pm, err := taskPathMetadata(file, buildtypes.TaskKindNode)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to interpret task path metadata")
 	}
@@ -219,7 +219,7 @@ func (c *CodeTaskDiscoverer) parsePythonDefinitions(ctx context.Context, file st
 		c.Logger.Warning(`Unable to discover inline configured tasks: %s`, err.Error())
 	}
 
-	pathMetadata, err := taskPathMetadata(file, build.TaskKindPython)
+	pathMetadata, err := taskPathMetadata(file, buildtypes.TaskKindPython)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +249,7 @@ func (c *CodeTaskDiscoverer) parsePythonDefinitions(ctx context.Context, file st
 	return parsedDefinitions, nil
 }
 
-func ConstructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPathMetadata, buildContext build.BuildContext) (definitions.Definition, error) {
+func ConstructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPathMetadata, buildContext buildtypes.BuildContext) (definitions.Definition, error) {
 	entrypointFunc, ok := parsedTask["entrypointFunc"].(string)
 	if !ok {
 		return definitions.Definition{}, errors.New("expected 'entrypointFunc' key in parsed task")

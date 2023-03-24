@@ -3,7 +3,7 @@ package discover
 import (
 	"path/filepath"
 
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils/pathcase"
 	"github.com/pkg/errors"
@@ -17,7 +17,7 @@ type TaskPathMetadata struct {
 	Runtime       runtime.Interface
 }
 
-func taskPathMetadata(file string, kind build.TaskKind) (TaskPathMetadata, error) {
+func taskPathMetadata(file string, kind buildtypes.TaskKind) (TaskPathMetadata, error) {
 	r, err := runtime.Lookup(file, kind)
 	if err != nil {
 		return TaskPathMetadata{}, errors.Wrapf(err, "cannot determine how to deploy %q - check your CLI is up to date", file)

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/examples"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils/logger"
@@ -20,7 +20,7 @@ import (
 )
 
 type Test struct {
-	Kind build.TaskKind
+	Kind buildtypes.TaskKind
 	Opts runtime.PrepareRunOptions
 	// SearchString is a string to look for in the example's output
 	// to validate that the task completed successfully. If not set,

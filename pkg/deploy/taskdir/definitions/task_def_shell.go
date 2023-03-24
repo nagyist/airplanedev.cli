@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/pkg/errors"
 )
 
@@ -17,7 +17,7 @@ type ShellDefinition struct {
 	absoluteEntrypoint string `json:"-"`
 }
 
-func (d *ShellDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts GetTaskOpts) error {
+func (d *ShellDefinition) copyToTask(task *api.Task, bc buildtypes.BuildConfig, opts GetTaskOpts) error {
 	task.Env = d.EnvVars
 	if opts.Bundle {
 		task.Command = []string{"bash"}
@@ -64,8 +64,8 @@ func (d *ShellDefinition) getAbsoluteEntrypoint() (string, error) {
 	return d.absoluteEntrypoint, nil
 }
 
-func (d *ShellDefinition) getKindOptions() (build.KindOptions, error) {
-	return build.KindOptions{
+func (d *ShellDefinition) getKindOptions() (buildtypes.KindOptions, error) {
+	return buildtypes.KindOptions{
 		"entrypoint": d.Entrypoint,
 	}, nil
 }
@@ -91,9 +91,9 @@ func (d *ShellDefinition) getResourceAttachments() map[string]string {
 	return nil
 }
 
-func (d *ShellDefinition) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
-	return build.ShellBuildType, build.BuildTypeVersionUnspecified, build.BuildBaseNone
+func (d *ShellDefinition) getBuildType() (buildtypes.BuildType, buildtypes.BuildTypeVersion, buildtypes.BuildBase) {
+	return buildtypes.ShellBuildType, buildtypes.BuildTypeVersionUnspecified, buildtypes.BuildBaseNone
 }
 
-func (d *ShellDefinition) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
+func (d *ShellDefinition) SetBuildVersionBase(v buildtypes.BuildTypeVersion, b buildtypes.BuildBase) {
 }

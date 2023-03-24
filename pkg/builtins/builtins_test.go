@@ -3,19 +3,19 @@ package builtins
 import (
 	"testing"
 
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetFunctionSpecificationFromKindOptions(t *testing.T) {
 	for _, test := range []struct {
 		name                  string
-		kindOptions           build.KindOptions
+		kindOptions           buildtypes.KindOptions
 		functionSpecification *FunctionSpecification
 	}{
 		{
 			name: "well-formed",
-			kindOptions: build.KindOptions{
+			kindOptions: buildtypes.KindOptions{
 				"functionSpecification": map[string]interface{}{
 					"namespace": "sql",
 					"name":      "query",
@@ -28,11 +28,11 @@ func TestGetFunctionSpecificationFromKindOptions(t *testing.T) {
 		},
 		{
 			name:        "missing",
-			kindOptions: build.KindOptions{},
+			kindOptions: buildtypes.KindOptions{},
 		},
 		{
 			name: "missing name",
-			kindOptions: build.KindOptions{
+			kindOptions: buildtypes.KindOptions{
 				"functionSpecification": map[string]interface{}{
 					"namespace": "sql",
 				},
@@ -40,7 +40,7 @@ func TestGetFunctionSpecificationFromKindOptions(t *testing.T) {
 		},
 		{
 			name: "missing namespace",
-			kindOptions: build.KindOptions{
+			kindOptions: buildtypes.KindOptions{
 				"functionSpecification": map[string]interface{}{
 					"name": "query",
 				},
@@ -48,13 +48,13 @@ func TestGetFunctionSpecificationFromKindOptions(t *testing.T) {
 		},
 		{
 			name: "wrong type",
-			kindOptions: build.KindOptions{
+			kindOptions: buildtypes.KindOptions{
 				"functionSpecification": "sql.query",
 			},
 		},
 		{
 			name: "name wrong type",
-			kindOptions: build.KindOptions{
+			kindOptions: buildtypes.KindOptions{
 				"functionSpecification": map[string]interface{}{
 					"namespace": "sql",
 					"name":      8,
@@ -63,7 +63,7 @@ func TestGetFunctionSpecificationFromKindOptions(t *testing.T) {
 		},
 		{
 			name: "namespace wrong type",
-			kindOptions: build.KindOptions{
+			kindOptions: buildtypes.KindOptions{
 				"functionSpecification": map[string]interface{}{
 					"namespace": 100,
 					"name":      "query",

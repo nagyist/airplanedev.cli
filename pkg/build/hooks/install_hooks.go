@@ -1,4 +1,4 @@
-package build
+package hooks
 
 import (
 	"os"
@@ -13,7 +13,7 @@ const (
 	postInstallScriptName = "airplane_postinstall.sh"
 )
 
-type installHooks struct {
+type InstallHooks struct {
 	// Paths are relative to the task's root
 	PreInstallFilePath  string
 	PostInstallFilePath string
@@ -21,7 +21,7 @@ type installHooks struct {
 
 // GetInstallHooks look for install scripts in every directory from the entrypoint's
 // directory up to the root directory.
-func GetInstallHooks(entrypoint string, root string) (installHooks, error) {
+func GetInstallHooks(entrypoint string, root string) (InstallHooks, error) {
 	find := func(filename string) (string, error) {
 		dir, ok := fsx.FindUntil(
 			// Entrypoint path is relative to the root so we need to combine them.
@@ -44,13 +44,13 @@ func GetInstallHooks(entrypoint string, root string) (installHooks, error) {
 	}
 	preInstallFilePath, err := find(preInstallScriptName)
 	if err != nil {
-		return installHooks{}, err
+		return InstallHooks{}, err
 	}
 	postInstallFilePath, err := find(postInstallScriptName)
 	if err != nil {
-		return installHooks{}, err
+		return InstallHooks{}, err
 	}
-	return installHooks{
+	return InstallHooks{
 		PreInstallFilePath:  preInstallFilePath,
 		PostInstallFilePath: postInstallFilePath,
 	}, nil

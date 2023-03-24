@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/pkg/errors"
 )
 
@@ -51,7 +51,7 @@ func GetBuiltinFunctionSpecification(slug string) (FunctionSpecification, error)
 
 // Returns a FunctionSpecification from a set of KindOptions. Expects a `functionSpecification` key
 // at the top level to contain a function specification serialized as a map[string]interface{}.
-func GetFunctionSpecificationFromKindOptions(kindOptions build.KindOptions) (FunctionSpecification, error) {
+func GetFunctionSpecificationFromKindOptions(kindOptions buildtypes.KindOptions) (FunctionSpecification, error) {
 	var out FunctionSpecification
 	fs, ok := kindOptions["functionSpecification"]
 	if !ok {

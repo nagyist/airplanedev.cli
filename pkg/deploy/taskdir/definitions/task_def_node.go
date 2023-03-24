@@ -4,7 +4,7 @@ import (
 	"path"
 
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
 )
@@ -14,20 +14,20 @@ var _ taskKind = &NodeDefinition{}
 type NodeDefinition struct {
 	// Entrypoint is the relative path from the task definition file to the script. It does not
 	// apply for inline configured tasks.
-	Entrypoint  string          `json:"entrypoint"`
-	NodeVersion string          `json:"nodeVersion"`
-	EnvVars     api.TaskEnv     `json:"envVars,omitempty"`
-	Base        build.BuildBase `json:"base,omitempty"`
+	Entrypoint  string               `json:"entrypoint"`
+	NodeVersion string               `json:"nodeVersion"`
+	EnvVars     api.TaskEnv          `json:"envVars,omitempty"`
+	Base        buildtypes.BuildBase `json:"base,omitempty"`
 
 	absoluteEntrypoint string `json:"-"`
 }
 
-func (d *NodeDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts GetTaskOpts) error {
+func (d *NodeDefinition) copyToTask(task *api.Task, bc buildtypes.BuildConfig, opts GetTaskOpts) error {
 	task.Env = d.EnvVars
 	if opts.Bundle {
 		entrypointFunc, _ := bc["entrypointFunc"].(string)
 		entrypoint, _ := bc["entrypoint"].(string)
-		if task.Runtime == build.TaskRuntimeWorkflow {
+		if task.Runtime == buildtypes.TaskRuntimeWorkflow {
 			// command needs to be initialized to an empty array
 			// so that workflow commands get set correctly on the update path
 			task.Command = []string{}
@@ -68,10 +68,10 @@ func (d *NodeDefinition) update(t api.UpdateTaskRequest, availableResources []ap
 		}
 	}
 	if v, ok := t.KindOptions["base"]; ok {
-		if sv, ok := v.(build.BuildBase); ok {
+		if sv, ok := v.(buildtypes.BuildBase); ok {
 			d.Base = sv
 		} else if sv, ok := v.(string); ok {
-			d.Base = build.BuildBase(sv)
+			d.Base = buildtypes.BuildBase(sv)
 		} else {
 			return errors.Errorf("expected string base, got %T instead", v)
 		}
@@ -97,8 +97,8 @@ func (d *NodeDefinition) getAbsoluteEntrypoint() (string, error) {
 	return d.absoluteEntrypoint, nil
 }
 
-func (d *NodeDefinition) getKindOptions() (build.KindOptions, error) {
-	ko := build.KindOptions{}
+func (d *NodeDefinition) getKindOptions() (buildtypes.KindOptions, error) {
+	ko := buildtypes.KindOptions{}
 	if d.Entrypoint != "" {
 		ko["entrypoint"] = d.Entrypoint
 	}
@@ -132,11 +132,11 @@ func (d *NodeDefinition) getResourceAttachments() map[string]string {
 	return nil
 }
 
-func (d *NodeDefinition) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
-	return build.NodeBuildType, build.BuildTypeVersion(d.NodeVersion), d.Base
+func (d *NodeDefinition) getBuildType() (buildtypes.BuildType, buildtypes.BuildTypeVersion, buildtypes.BuildBase) {
+	return buildtypes.NodeBuildType, buildtypes.BuildTypeVersion(d.NodeVersion), d.Base
 }
 
-func (d *NodeDefinition) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
+func (d *NodeDefinition) SetBuildVersionBase(v buildtypes.BuildTypeVersion, b buildtypes.BuildBase) {
 	if d.NodeVersion == "" {
 		d.NodeVersion = string(v)
 	}

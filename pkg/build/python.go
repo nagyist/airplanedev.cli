@@ -11,30 +11,30 @@ import (
 	"text/template"
 
 	"github.com/MakeNowJust/heredoc/v2"
+	"github.com/airplanedev/lib/pkg/build/hooks"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
+	"github.com/airplanedev/lib/pkg/build/utils"
+	buildversions "github.com/airplanedev/lib/pkg/build/versions"
 	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/discover/parser"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
 )
 
-const (
-	DefaultPythonVersion = BuildTypeVersionPython310
-)
-
 func getPythonBuildInstructions(
 	root string,
-	opts KindOptions,
+	opts buildtypes.KindOptions,
 	shim string,
-) (BuildInstructions, error) {
+) (buildtypes.BuildInstructions, error) {
 	// Assert that the entrypoint file exists:
 	entrypoint, _ := opts["entrypoint"].(string)
 	if err := fsx.AssertExistsAll(filepath.Join(root, entrypoint)); err != nil {
-		return BuildInstructions{}, err
+		return buildtypes.BuildInstructions{}, err
 	}
 
-	installHooks, err := GetInstallHooks(entrypoint, root)
+	installHooks, err := hooks.GetInstallHooks(entrypoint, root)
 	if err != nil {
-		return BuildInstructions{}, err
+		return buildtypes.BuildInstructions{}, err
 	}
 
 	return getPythonBuildInstructionsInternal(root, opts, shim, installHooks)
@@ -42,62 +42,62 @@ func getPythonBuildInstructions(
 
 func getPythonBundleBuildInstructions(
 	root string,
-	opts KindOptions,
+	opts buildtypes.KindOptions,
 	shim string,
-) (BuildInstructions, error) {
+) (buildtypes.BuildInstructions, error) {
 	// Install hooks can only exist in the task root for bundle builds
-	installHooks, err := GetInstallHooks("", root)
+	installHooks, err := hooks.GetInstallHooks("", root)
 	if err != nil {
-		return BuildInstructions{}, err
+		return buildtypes.BuildInstructions{}, err
 	}
 
 	return getPythonBuildInstructionsInternal(root, opts, shim, installHooks)
 }
 func getPythonBuildInstructionsInternal(
 	root string,
-	opts KindOptions,
+	opts buildtypes.KindOptions,
 	shim string,
-	installHooks installHooks,
-) (BuildInstructions, error) {
+	installHooks hooks.InstallHooks,
+) (buildtypes.BuildInstructions, error) {
 	if opts["shim"] != "true" {
 		return pythonLegacyInstructions(root, opts)
 	}
 
-	instructions := []InstallInstruction{
+	instructions := []buildtypes.InstallInstruction{
 		{
 			Cmd: `pip install "airplanesdk>=0.3.0,<0.4.0"`,
 		},
 	}
 	if shim != "" {
-		instructions = append(instructions, InstallInstruction{
-			Cmd: fmt.Sprintf(`mkdir -p .airplane && %s > .airplane/shim.py`, inlineString(shim)),
+		instructions = append(instructions, buildtypes.InstallInstruction{
+			Cmd: fmt.Sprintf(`mkdir -p .airplane && %s > .airplane/shim.py`, utils.InlineString(shim)),
 		})
 	}
 
-	preinstall := []InstallInstruction{}
-	postinstall := []InstallInstruction{}
+	preinstall := []buildtypes.InstallInstruction{}
+	postinstall := []buildtypes.InstallInstruction{}
 	var airplaneConfig config.AirplaneConfig
 	hasAirplaneConfig := fsx.Exists(filepath.Join(root, config.FileName))
 	if hasAirplaneConfig {
 		var err error
 		airplaneConfig, err = config.NewAirplaneConfigFromFile(root)
 		if err != nil {
-			return BuildInstructions{}, err
+			return buildtypes.BuildInstructions{}, err
 		}
 		if airplaneConfig.Python.PreInstall != "" {
-			preinstall = append(preinstall, InstallInstruction{
+			preinstall = append(preinstall, buildtypes.InstallInstruction{
 				Cmd: airplaneConfig.Python.PreInstall,
 			})
 		}
 		if airplaneConfig.Python.PostInstall != "" {
-			postinstall = append(postinstall, InstallInstruction{
+			postinstall = append(postinstall, buildtypes.InstallInstruction{
 				Cmd: airplaneConfig.Python.PostInstall,
 			})
 		}
 	}
 
 	if len(preinstall) == 0 && installHooks.PreInstallFilePath != "" {
-		preinstall = append(preinstall, InstallInstruction{
+		preinstall = append(preinstall, buildtypes.InstallInstruction{
 			Cmd:        "./airplane_preinstall.sh",
 			SrcPath:    installHooks.PreInstallFilePath,
 			DstPath:    "airplane_preinstall.sh",
@@ -105,7 +105,7 @@ func getPythonBuildInstructionsInternal(
 		})
 	}
 	if len(postinstall) == 0 && installHooks.PostInstallFilePath != "" {
-		postinstall = append(postinstall, InstallInstruction{
+		postinstall = append(postinstall, buildtypes.InstallInstruction{
 			Cmd:        "./airplane_postinstall.sh",
 			SrcPath:    installHooks.PostInstallFilePath,
 			DstPath:    "airplane_postinstall.sh",
@@ -120,33 +120,33 @@ func getPythonBuildInstructionsInternal(
 	var embeddedRequirements []string
 	var err error
 	if hasRequirements {
-		instructions = append(instructions, InstallInstruction{
+		instructions = append(instructions, buildtypes.InstallInstruction{
 			SrcPath: "requirements.txt",
 		})
 		embeddedRequirements, err = collectEmbeddedRequirements(root, requirementsPath)
 		if err != nil {
-			return BuildInstructions{}, err
+			return buildtypes.BuildInstructions{}, err
 		}
 		for _, embeddedReq := range embeddedRequirements {
-			instructions = append(instructions, InstallInstruction{
+			instructions = append(instructions, buildtypes.InstallInstruction{
 				SrcPath: embeddedReq,
 			})
 		}
 
 		if fsx.Exists(filepath.Join(root, "pip.conf")) {
-			instructions = append(instructions, InstallInstruction{
+			instructions = append(instructions, buildtypes.InstallInstruction{
 				SrcPath: "pip.conf",
 			})
 		}
 
-		instructions = append(instructions, InstallInstruction{
+		instructions = append(instructions, buildtypes.InstallInstruction{
 			Cmd: `pip install -r requirements.txt`,
 		})
 	}
 
 	instructions = append(instructions, postinstall...)
 
-	return BuildInstructions{
+	return buildtypes.BuildInstructions{
 		InstallInstructions: instructions,
 	}, nil
 }
@@ -154,7 +154,7 @@ func getPythonBuildInstructionsInternal(
 // Python creates a dockerfile for Python.
 func python(
 	root string,
-	opts KindOptions,
+	opts buildtypes.KindOptions,
 	buildArgs []string,
 ) (string, error) {
 	if opts["shim"] != "true" {
@@ -167,9 +167,9 @@ func python(
 		return "", err
 	}
 
-	baseImageType, _ := opts["base"].(BuildBase)
-	useSlimImage := baseImageType == BuildBaseSlim
-	v, err := GetVersion(NamePython, "3", useSlimImage)
+	baseImageType, _ := opts["base"].(buildtypes.BuildBase)
+	useSlimImage := baseImageType == buildtypes.BuildBaseSlim
+	v, err := buildversions.GetVersion(buildtypes.NamePython, "3", useSlimImage)
 	if err != nil {
 		return "", err
 	}
@@ -221,7 +221,7 @@ func python(
 		ENTRYPOINT ["python", ".airplane/shim.py"]
 	`)
 
-	df, err := applyTemplate(dockerfile, struct {
+	df, err := utils.ApplyTemplate(dockerfile, struct {
 		Base         string
 		Args         string
 		Instructions string
@@ -273,8 +273,8 @@ func collectEmbeddedRequirements(root, requirementsPath string) ([]string, error
 // Python creates a dockerfile for all Python tasks within a task root.
 func pythonBundle(
 	root string,
-	buildContext BuildContext,
-	opts KindOptions,
+	buildContext buildtypes.BuildContext,
+	opts buildtypes.KindOptions,
 	buildArgs []string,
 	filesToDiscover []string,
 ) (string, error) {
@@ -282,8 +282,8 @@ func pythonBundle(
 		return pythonLegacy(root, opts)
 	}
 
-	useSlimImage := buildContext.Base == BuildBaseSlim
-	v, err := GetVersion(NamePython, string(buildContext.VersionOrDefault()), useSlimImage)
+	useSlimImage := buildContext.Base == buildtypes.BuildBaseSlim
+	v, err := buildversions.GetVersion(buildtypes.NamePython, string(buildContext.VersionOrDefault()), useSlimImage)
 	if err != nil {
 		return "", err
 	}
@@ -346,7 +346,7 @@ func pythonBundle(
 		{{end}}
 	`)
 
-	df, err := applyTemplate(dockerfile, struct {
+	df, err := utils.ApplyTemplate(dockerfile, struct {
 		Base            string
 		Args            string
 		Instructions    string
@@ -377,14 +377,14 @@ type PythonShimParams struct {
 
 // PythonShim generates a shim file for running Python tasks.
 func PythonShim(params PythonShimParams) (string, error) {
-	shim, err := applyTemplate(pythonShim, struct {
+	shim, err := utils.ApplyTemplate(pythonShim, struct {
 		TaskRoot       string
 		Entrypoint     string
 		EntrypointFunc string
 	}{
-		TaskRoot:       backslashEscape(params.TaskRoot, `"`),
-		Entrypoint:     backslashEscape(params.Entrypoint, `"`),
-		EntrypointFunc: backslashEscape(params.EntrypointFunc, `"`),
+		TaskRoot:       utils.BackslashEscape(params.TaskRoot, `"`),
+		Entrypoint:     utils.BackslashEscape(params.Entrypoint, `"`),
+		EntrypointFunc: utils.BackslashEscape(params.EntrypointFunc, `"`),
 	})
 	if err != nil {
 		return "", errors.Wrapf(err, "rendering shim")
@@ -395,10 +395,10 @@ func PythonShim(params PythonShimParams) (string, error) {
 
 // UniversalPythonShim generates a shim file for running bundled Python tasks.
 func UniversalPythonShim(taskRoot string) (string, error) {
-	shim, err := applyTemplate(universalPythonShim, struct {
+	shim, err := utils.ApplyTemplate(universalPythonShim, struct {
 		TaskRoot string
 	}{
-		TaskRoot: backslashEscape(taskRoot, `"`),
+		TaskRoot: utils.BackslashEscape(taskRoot, `"`),
 	})
 	if err != nil {
 		return "", errors.Wrapf(err, "rendering shim")
@@ -408,7 +408,7 @@ func UniversalPythonShim(taskRoot string) (string, error) {
 }
 
 // PythonLegacy generates a dockerfile for legacy python support.
-func pythonLegacy(root string, args KindOptions) (string, error) {
+func pythonLegacy(root string, args buildtypes.KindOptions) (string, error) {
 	instructions, err := pythonLegacyInstructions(root, args)
 	if err != nil {
 		return "", err
@@ -439,7 +439,7 @@ func pythonLegacy(root string, args KindOptions) (string, error) {
 		return "", err
 	}
 
-	v, err := GetVersion(NamePython, "3", false)
+	v, err := buildversions.GetVersion(buildtypes.NamePython, "3", false)
 	if err != nil {
 		return "", err
 	}
@@ -448,7 +448,7 @@ func pythonLegacy(root string, args KindOptions) (string, error) {
 	if err := t.Execute(&buf, struct {
 		Base                string
 		Entrypoint          string
-		InstallInstructions []InstallInstruction
+		InstallInstructions []buildtypes.InstallInstruction
 	}{
 		Base:                v.String(),
 		Entrypoint:          entrypoint,
@@ -460,27 +460,27 @@ func pythonLegacy(root string, args KindOptions) (string, error) {
 	return buf.String(), nil
 }
 
-func pythonLegacyInstructions(root string, args KindOptions) (BuildInstructions, error) {
-	instructions := []InstallInstruction{}
+func pythonLegacyInstructions(root string, args buildtypes.KindOptions) (buildtypes.BuildInstructions, error) {
+	instructions := []buildtypes.InstallInstruction{}
 	if fsx.AssertExistsAll(filepath.Join(root, "requirements.txt")) != nil {
 		instructions = append(instructions,
-			InstallInstruction{
+			buildtypes.InstallInstruction{
 				Cmd: "echo > requirements.txt",
 			},
 		)
 	}
 	instructions = append(instructions,
-		InstallInstruction{
+		buildtypes.InstallInstruction{
 			SrcPath: ".",
 		},
 	)
 	instructions = append(instructions,
-		InstallInstruction{
+		buildtypes.InstallInstruction{
 			Cmd: `pip install -r requirements.txt`,
 		},
 	)
 
-	return BuildInstructions{
+	return buildtypes.BuildInstructions{
 		InstallInstructions: instructions,
 	}, nil
 }

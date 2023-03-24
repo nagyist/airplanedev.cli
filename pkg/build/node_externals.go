@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 )
@@ -89,9 +90,9 @@ func GetPackageCopyCmds(baseDir string, pathPackageJSONs []string, dest string) 
 // to copy just the package json and yarn files needed for a workspace. This allows
 // us to do a yarn or npm install on top of just these, allowing us to cache
 // the dependencies across builds.
-func GetPackageCopyInstructions(baseDir string, pathPackageJSONs []string, dest string) ([]InstallInstruction, error) {
+func GetPackageCopyInstructions(baseDir string, pathPackageJSONs []string, dest string) ([]buildtypes.InstallInstruction, error) {
 	srcPaths := map[string]struct{}{}
-	copyInstructions := []InstallInstruction{}
+	copyInstructions := []buildtypes.InstallInstruction{}
 
 	for _, pathPackageJSON := range pathPackageJSONs {
 		packageDir := filepath.Dir(pathPackageJSON)
@@ -112,7 +113,7 @@ func GetPackageCopyInstructions(baseDir string, pathPackageJSONs []string, dest 
 
 		copyInstructions = append(
 			copyInstructions,
-			InstallInstruction{
+			buildtypes.InstallInstruction{
 				SrcPath: fmt.Sprintf("%s %s",
 					filepath.Join(srcPath, "package*.json"),
 					// As long as there's a match for the previous glob,

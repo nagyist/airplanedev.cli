@@ -7,7 +7,7 @@ import (
 	"io/fs"
 	"os"
 
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils/logger"
@@ -47,13 +47,13 @@ func (r Runtime) Root(path string) (string, error) {
 	return runtime.RootForNonBuiltRuntime(path)
 }
 
-func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, err error) {
+func (r Runtime) Version(rootPath string) (buildVersion buildtypes.BuildTypeVersion, err error) {
 	return "", nil
 }
 
 // Kind implementation.
-func (r Runtime) Kind() build.TaskKind {
-	return build.TaskKindImage
+func (r Runtime) Kind() buildtypes.TaskKind {
+	return buildtypes.TaskKindImage
 }
 
 // FormatComment implementation.

@@ -8,10 +8,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 	"unicode"
 
 	"github.com/airplanedev/lib/pkg/build/ignore"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
+	"github.com/airplanedev/lib/pkg/build/utils"
 	"github.com/airplanedev/lib/pkg/utils/bufiox"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -62,7 +63,7 @@ type LocalConfig struct {
 	// Options are the build arguments to use.
 	//
 	// When nil, it uses an empty map of options.
-	Options KindOptions
+	Options buildtypes.KindOptions
 
 	// Auth represents the registry auth to use.
 	//
@@ -76,7 +77,7 @@ type LocalConfig struct {
 type DockerfileConfig struct {
 	Builder      string
 	Root         string
-	Options      KindOptions
+	Options      buildtypes.KindOptions
 	BuildArgKeys []string
 }
 
@@ -84,7 +85,7 @@ type DockerfileConfig struct {
 type Builder struct {
 	root     string
 	name     string
-	options  KindOptions
+	options  buildtypes.KindOptions
 	auth     *RegistryAuth
 	buildEnv map[string]string
 	client   *client.Client
@@ -97,11 +98,11 @@ func New(c LocalConfig) (*Builder, *client.Client, error) {
 	}
 
 	if c.Builder == "" {
-		c.Builder = string(NameImage)
+		c.Builder = string(buildtypes.NameImage)
 	}
 
 	if c.Options == nil {
-		c.Options = KindOptions{}
+		c.Options = buildtypes.KindOptions{}
 	}
 
 	client, err := client.NewClientWithOpts(
@@ -145,7 +146,7 @@ func (b *Builder) Build(ctx context.Context, taskID, version string) (*Response,
 	if err != nil {
 		return nil, err
 	}
-	tree, err := NewTree(TreeOptions{
+	tree, err := utils.NewTree(utils.TreeOptions{
 		ExcludePatterns: patterns,
 	})
 	if err != nil {
@@ -299,26 +300,11 @@ func SanitizeID(s string) string {
 	return s
 }
 
-// TODO: this can merge with TaskKind
-type Name string
-
-const (
-	NameImage  Name = "image"
-	NamePython Name = "python"
-	NameNode   Name = "node"
-	NameShell  Name = "shell"
-	NameView   Name = "view"
-
-	NameSQL     Name = "sql"
-	NameREST    Name = "rest"
-	NameBuiltin Name = "builtin"
-)
-
-func NeedsBuilding(kind TaskKind) (bool, error) {
-	switch Name(kind) {
-	case NamePython, NameNode, NameShell:
+func NeedsBuilding(kind buildtypes.TaskKind) (bool, error) {
+	switch buildtypes.Name(kind) {
+	case buildtypes.NamePython, buildtypes.NameNode, buildtypes.NameShell:
 		return true, nil
-	case NameImage, NameSQL, NameREST, NameBuiltin:
+	case buildtypes.NameImage, buildtypes.NameSQL, buildtypes.NameREST, buildtypes.NameBuiltin:
 		return false, nil
 	default:
 		return false, errors.Errorf("NeedsBuilding got unexpected kind %s", kind)
@@ -326,51 +312,16 @@ func NeedsBuilding(kind TaskKind) (bool, error) {
 }
 
 func BuildDockerfile(c DockerfileConfig) (string, error) {
-	switch Name(c.Builder) {
-	case NamePython:
+	switch buildtypes.Name(c.Builder) {
+	case buildtypes.NamePython:
 		return python(c.Root, c.Options, c.BuildArgKeys)
-	case NameNode:
+	case buildtypes.NameNode:
 		return node(c.Root, c.Options, c.BuildArgKeys)
-	case NameShell:
+	case buildtypes.NameShell:
 		return shell(c.Root, c.Options)
-	case NameView:
+	case buildtypes.NameView:
 		return view(c.Root, c.Options)
 	default:
 		return "", errors.Errorf("build: unknown builder type %q", c.Builder)
 	}
-}
-
-func applyTemplate(t string, data interface{}) (string, error) {
-	tmpl, err := template.New("airplane").Parse(t)
-	if err != nil {
-		return "", errors.Wrap(err, "parsing template")
-	}
-
-	var buf strings.Builder
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", errors.Wrap(err, "executing template")
-	}
-
-	return buf.String(), nil
-}
-
-func inlineString(s string) string {
-	// To inline a multi-line string into a Dockerfile, insert `\n\` characters:
-	s = strings.Join(strings.Split(s, "\n"), "\\n\\\n")
-	// Since the string is wrapped in single-quotes, escape any single-quotes
-	// inside of the target string.
-	s = strings.ReplaceAll(s, "'", `'"'"'`)
-	s = strings.ReplaceAll(s, "%", `%%`)
-	return "printf '" + s + "'"
-}
-
-// backslashEscape escapes s by replacing `\` with `\\` and all runes in chars with `\{rune}`.
-// Typically should backslashEscape(s, `"`) to escape backslashes and double quotes.
-func backslashEscape(s string, chars string) string {
-	// Always escape backslash
-	s = strings.ReplaceAll(s, `\`, `\\`)
-	for _, char := range chars {
-		s = strings.ReplaceAll(s, string(char), `\`+string(char))
-	}
-	return s
 }

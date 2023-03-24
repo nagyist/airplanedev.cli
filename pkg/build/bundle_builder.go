@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/airplanedev/lib/pkg/build/ignore"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
+	"github.com/airplanedev/lib/pkg/build/utils"
 	"github.com/airplanedev/lib/pkg/utils/bufiox"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -27,12 +29,12 @@ type BundleLocalConfig struct {
 	Root string
 
 	// Build context describes the type of build. It must be valid.
-	BuildContext BuildContext
+	BuildContext buildtypes.BuildContext
 
 	// Options are the build arguments to use.
 	//
 	// When nil, it uses an empty map of options.
-	Options KindOptions
+	Options buildtypes.KindOptions
 
 	// FilesToBuild are the target files to be built (if applicable).
 	FilesToBuild []string
@@ -50,9 +52,9 @@ type BundleLocalConfig struct {
 }
 
 type BundleDockerfileConfig struct {
-	BuildContext    BuildContext
+	BuildContext    buildtypes.BuildContext
 	Root            string
-	Options         KindOptions
+	Options         buildtypes.KindOptions
 	BuildArgKeys    []string
 	FilesToBuild    []string
 	FilesToDiscover []string
@@ -61,8 +63,8 @@ type BundleDockerfileConfig struct {
 // Builder implements an image builder.
 type BundleBuilder struct {
 	root            string
-	buildContext    BuildContext
-	options         KindOptions
+	buildContext    buildtypes.BuildContext
+	options         buildtypes.KindOptions
 	filesToBuild    []string
 	filesToDiscover []string
 	auth            *RegistryAuth
@@ -81,7 +83,7 @@ func NewBundleBuilder(c BundleLocalConfig) (*BundleBuilder, *client.Client, erro
 	}
 
 	if c.Options == nil {
-		c.Options = KindOptions{}
+		c.Options = buildtypes.KindOptions{}
 	}
 
 	client, err := client.NewClientWithOpts(
@@ -127,7 +129,7 @@ func (b *BundleBuilder) Build(ctx context.Context, bundleBuildID, version string
 	if err != nil {
 		return nil, err
 	}
-	tree, err := NewTree(TreeOptions{
+	tree, err := utils.NewTree(utils.TreeOptions{
 		ExcludePatterns: patterns,
 	})
 	if err != nil {
@@ -284,27 +286,27 @@ func (b *BundleBuilder) authconfigs() map[string]types.AuthConfig {
 
 func BuildBundleDockerfile(c BundleDockerfileConfig) (string, error) {
 	switch c.BuildContext.Type {
-	case NodeBuildType:
+	case buildtypes.NodeBuildType:
 		return nodeBundle(c.Root, c.BuildContext, c.Options, c.BuildArgKeys, c.FilesToBuild, c.FilesToDiscover)
-	case ShellBuildType:
+	case buildtypes.ShellBuildType:
 		return shellBundle(c.Root)
-	case ViewBuildType:
+	case buildtypes.ViewBuildType:
 		return viewBundle(c.Root, c.BuildContext, c.Options, c.FilesToBuild, c.FilesToDiscover)
-	case PythonBuildType:
+	case buildtypes.PythonBuildType:
 		return pythonBundle(c.Root, c.BuildContext, c.Options, c.BuildArgKeys, c.FilesToDiscover)
 	default:
 		return "", errors.Errorf("build: unknown build type %v", c.BuildContext.Type)
 	}
 }
 
-func GetBundleBuildInstructions(c BundleDockerfileConfig) (BuildInstructions, error) {
+func GetBundleBuildInstructions(c BundleDockerfileConfig) (buildtypes.BuildInstructions, error) {
 	switch c.BuildContext.Type {
-	case PythonBuildType:
+	case buildtypes.PythonBuildType:
 		return getPythonBundleBuildInstructions(c.Root, c.Options, "")
-	case NodeBuildType:
+	case buildtypes.NodeBuildType:
 		return getNodeBundleBuildInstructions(c.Root, c.Options)
 	default:
-		return BuildInstructions{}, ErrUnsupportedBuilder{
+		return buildtypes.BuildInstructions{}, buildtypes.ErrUnsupportedBuilder{
 			Type: c.BuildContext.Type,
 		}
 	}

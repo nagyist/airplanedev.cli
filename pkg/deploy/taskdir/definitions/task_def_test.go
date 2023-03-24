@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/utils/pointers"
 	"github.com/stretchr/testify/require"
 )
@@ -367,8 +367,8 @@ func TestTaskToDefinition(t *testing.T) {
 				Slug:        "python_task",
 				Description: "A task for testing",
 				Arguments:   []string{"{{JSON.stringify(params)}}"},
-				Kind:        build.TaskKindPython,
-				KindOptions: build.KindOptions{
+				Kind:        buildtypes.TaskKindPython,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.py",
 				},
 				Env: api.TaskEnv{
@@ -410,8 +410,8 @@ func TestTaskToDefinition(t *testing.T) {
 				Name:      "Node Task",
 				Slug:      "node_task",
 				Arguments: []string{"{{JSON.stringify(params)}}"},
-				Kind:      build.TaskKindNode,
-				KindOptions: build.KindOptions{
+				Kind:      buildtypes.TaskKindNode,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint":  "main.ts",
 					"nodeVersion": "14",
 				},
@@ -454,8 +454,8 @@ func TestTaskToDefinition(t *testing.T) {
 				Name:      "Node Task",
 				Slug:      "node_task",
 				Arguments: []string{"{{JSON.stringify(params)}}"},
-				Kind:      build.TaskKindNode,
-				KindOptions: build.KindOptions{
+				Kind:      buildtypes.TaskKindNode,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.ts",
 				},
 			},
@@ -481,11 +481,11 @@ func TestTaskToDefinition(t *testing.T) {
 				Name:      "Node Task",
 				Slug:      "node_task",
 				Arguments: []string{"{{JSON.stringify(params)}}"},
-				Kind:      build.TaskKindNode,
-				KindOptions: build.KindOptions{
+				Kind:      buildtypes.TaskKindNode,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint":  "main.ts",
 					"nodeVersion": "14",
-					"base":        build.BuildBaseSlim,
+					"base":        buildtypes.BuildBaseSlim,
 				},
 				Env: api.TaskEnv{
 					"value": api.EnvVarValue{
@@ -511,7 +511,7 @@ func TestTaskToDefinition(t *testing.T) {
 							Config: pointers.String("config"),
 						},
 					},
-					Base: build.BuildBaseSlim,
+					Base: buildtypes.BuildBaseSlim,
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 				RestrictCallers:    []string{},
@@ -527,8 +527,8 @@ func TestTaskToDefinition(t *testing.T) {
 				Name:      "Shell Task",
 				Slug:      "shell_task",
 				Arguments: []string{},
-				Kind:      build.TaskKindShell,
-				KindOptions: build.KindOptions{
+				Kind:      buildtypes.TaskKindShell,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.sh",
 				},
 				Env: api.TaskEnv{
@@ -570,8 +570,8 @@ func TestTaskToDefinition(t *testing.T) {
 				Slug:        "image_task",
 				Command:     []string{"bash"},
 				Arguments:   []string{"-c", `echo "foobar"`},
-				Kind:        build.TaskKindImage,
-				KindOptions: build.KindOptions{},
+				Kind:        buildtypes.TaskKindImage,
+				KindOptions: buildtypes.KindOptions{},
 				Image:       pointers.String("ubuntu:latest"),
 				Env: api.TaskEnv{
 					"value": api.EnvVarValue{
@@ -622,8 +622,8 @@ func TestTaskToDefinition(t *testing.T) {
 				Name:      "REST Task",
 				Slug:      "rest_task",
 				Arguments: []string{"{{__stdAPIRequest}}"},
-				Kind:      build.TaskKindREST,
-				KindOptions: build.KindOptions{
+				Kind:      buildtypes.TaskKindREST,
+				KindOptions: buildtypes.KindOptions{
 					"method": "GET",
 					"path":   "/get",
 					"urlParams": map[string]interface{}{
@@ -757,8 +757,8 @@ func TestTaskToDefinition(t *testing.T) {
 					},
 				},
 				Arguments: []string{"{{JSON.stringify(params)}}"},
-				Kind:      build.TaskKindPython,
-				KindOptions: build.KindOptions{
+				Kind:      buildtypes.TaskKindPython,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.py",
 				},
 			},
@@ -855,8 +855,8 @@ func TestTaskToDefinition(t *testing.T) {
 				Name:      "Test Task",
 				Slug:      "test_task",
 				Arguments: []string{"{{JSON.stringify(params)}}"},
-				Kind:      build.TaskKindPython,
-				KindOptions: build.KindOptions{
+				Kind:      buildtypes.TaskKindPython,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.py",
 				},
 				ExecuteRules: api.ExecuteRules{
@@ -887,8 +887,8 @@ func TestTaskToDefinition(t *testing.T) {
 				Name:      "Test Task",
 				Slug:      "test_task",
 				Arguments: []string{"{{JSON.stringify(params)}}"},
-				Kind:      build.TaskKindPython,
-				KindOptions: build.KindOptions{
+				Kind:      buildtypes.TaskKindPython,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.py",
 				},
 				ExecuteRules: api.ExecuteRules{
@@ -936,8 +936,8 @@ func TestTaskToDefinition(t *testing.T) {
 						NameTag: "CONFIG_NAME_2",
 					},
 				},
-				Kind: build.TaskKindREST,
-				KindOptions: build.KindOptions{
+				Kind: buildtypes.TaskKindREST,
+				KindOptions: buildtypes.KindOptions{
 					"method": "GET",
 					"path":   "/get",
 					"urlParams": map[string]interface{}{
@@ -987,8 +987,8 @@ func TestTaskToDefinition(t *testing.T) {
 				Slug:        "python_task",
 				Description: "A task for testing",
 				Arguments:   []string{"{{JSON.stringify(params)}}"},
-				Kind:        build.TaskKindPython,
-				KindOptions: build.KindOptions{
+				Kind:        buildtypes.TaskKindPython,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.py",
 				},
 				Env: api.TaskEnv{
@@ -1098,10 +1098,10 @@ func TestTaskToDefinition(t *testing.T) {
 				Slug:        "python_task",
 				Description: "A task for testing",
 				Arguments:   []string{"{{JSON.stringify(params)}}"},
-				Kind:        build.TaskKindPython,
-				KindOptions: build.KindOptions{
+				Kind:        buildtypes.TaskKindPython,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.py",
-					"base":       build.BuildBaseSlim,
+					"base":       buildtypes.BuildBaseSlim,
 				},
 				Env: api.TaskEnv{
 					"value": api.EnvVarValue{
@@ -1127,7 +1127,7 @@ func TestTaskToDefinition(t *testing.T) {
 							Config: pointers.String("config"),
 						},
 					},
-					Base: build.BuildBaseSlim,
+					Base: buildtypes.BuildBaseSlim,
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 				RestrictCallers:    []string{},
@@ -1153,8 +1153,8 @@ func TestTaskToDefinition(t *testing.T) {
 				Slug:        "image_task",
 				Command:     []string{"bash"},
 				Arguments:   []string{"-c", `echo "foobar"`},
-				Kind:        build.TaskKindImage,
-				KindOptions: build.KindOptions{},
+				Kind:        buildtypes.TaskKindImage,
+				KindOptions: buildtypes.KindOptions{},
 				Image:       pointers.String("ubuntu:latest"),
 				Env: api.TaskEnv{
 					"value": api.EnvVarValue{
@@ -1230,8 +1230,8 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Configs:     &[]api.ConfigAttachment{},
 				Parameters:  []api.Parameter{},
 				Resources:   map[string]string{},
-				Kind:        build.TaskKindPython,
-				KindOptions: build.KindOptions{
+				Kind:        buildtypes.TaskKindPython,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.py",
 				},
 				ExecuteRules: api.UpdateExecuteRulesRequest{
@@ -1256,7 +1256,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Python: &PythonDefinition{
 					Entrypoint: "main.py",
 				},
-				buildConfig: build.BuildConfig{
+				buildConfig: buildtypes.BuildConfig{
 					"entrypointFunc": "my_func",
 					"entrypoint":     "main.py",
 				},
@@ -1275,8 +1275,8 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Configs:     &[]api.ConfigAttachment{},
 				Parameters:  []api.Parameter{},
 				Resources:   map[string]string{},
-				Kind:        build.TaskKindPython,
-				KindOptions: build.KindOptions{
+				Kind:        buildtypes.TaskKindPython,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.py",
 				},
 				ExecuteRules: api.UpdateExecuteRulesRequest{
@@ -1307,8 +1307,8 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Parameters: []api.Parameter{},
 				Resources:  map[string]string{},
 				Configs:    &[]api.ConfigAttachment{},
-				Kind:       build.TaskKindNode,
-				KindOptions: build.KindOptions{
+				Kind:       buildtypes.TaskKindNode,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint":  "main.ts",
 					"nodeVersion": "14",
 				},
@@ -1334,7 +1334,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 					Entrypoint:  "main.ts",
 					NodeVersion: "14",
 				},
-				buildConfig: build.BuildConfig{
+				buildConfig: buildtypes.BuildConfig{
 					"entrypointFunc": "default",
 					"entrypoint":     "main.ts",
 				},
@@ -1352,8 +1352,8 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Parameters: []api.Parameter{},
 				Resources:  map[string]string{},
 				Configs:    &[]api.ConfigAttachment{},
-				Kind:       build.TaskKindNode,
-				KindOptions: build.KindOptions{
+				Kind:       buildtypes.TaskKindNode,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint":  "main.ts",
 					"nodeVersion": "14",
 				},
@@ -1384,8 +1384,8 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Parameters: []api.Parameter{},
 				Resources:  map[string]string{},
 				Configs:    &[]api.ConfigAttachment{},
-				Kind:       build.TaskKindShell,
-				KindOptions: build.KindOptions{
+				Kind:       buildtypes.TaskKindShell,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.sh",
 				},
 				ExecuteRules: api.UpdateExecuteRulesRequest{
@@ -1413,7 +1413,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 					{Slug: "one", Name: "One", Type: "shorttext"},
 					{Slug: "two", Name: "Two", Type: "boolean"},
 				},
-				buildConfig: build.BuildConfig{
+				buildConfig: buildtypes.BuildConfig{
 					"entrypoint": "main.sh",
 				},
 			},
@@ -1433,8 +1433,8 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				},
 				Resources: map[string]string{},
 				Configs:   &[]api.ConfigAttachment{},
-				Kind:      build.TaskKindShell,
-				KindOptions: build.KindOptions{
+				Kind:      buildtypes.TaskKindShell,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.sh",
 				},
 				ExecuteRules: api.UpdateExecuteRulesRequest{
@@ -1469,7 +1469,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Configs:    &[]api.ConfigAttachment{},
 				Command:    []string{"bash"},
 				Arguments:  []string{"-c", `echo "foobar"`},
-				Kind:       build.TaskKindImage,
+				Kind:       buildtypes.TaskKindImage,
 				Image:      pointers.String("ubuntu:latest"),
 				ExecuteRules: api.UpdateExecuteRulesRequest{
 					DisallowSelfApprove: pointers.Bool(false),
@@ -1481,7 +1481,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				KindOptions: build.KindOptions{},
+				KindOptions: buildtypes.KindOptions{},
 			},
 		},
 		{
@@ -1502,8 +1502,8 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Slug:       "rest_task",
 				Parameters: []api.Parameter{},
 				Configs:    &[]api.ConfigAttachment{},
-				Kind:       build.TaskKindREST,
-				KindOptions: build.KindOptions{
+				Kind:       buildtypes.TaskKindREST,
+				KindOptions: buildtypes.KindOptions{
 					"method":        "POST",
 					"path":          "/post",
 					"urlParams":     map[string]interface{}{},
@@ -1555,8 +1555,8 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Resources:   map[string]string{},
 				Configs:     &[]api.ConfigAttachment{},
 				Description: "A task for testing",
-				Kind:        build.TaskKindPython,
-				KindOptions: build.KindOptions{
+				Kind:        buildtypes.TaskKindPython,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.py",
 				},
 				ExecuteRules: api.UpdateExecuteRulesRequest{
@@ -1590,8 +1590,8 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Resources:   map[string]string{},
 				Configs:     &[]api.ConfigAttachment{},
 				Description: "A task for testing",
-				Kind:        build.TaskKindPython,
-				KindOptions: build.KindOptions{
+				Kind:        buildtypes.TaskKindPython,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.py",
 				},
 				ExecuteRules: api.UpdateExecuteRulesRequest{
@@ -1828,8 +1828,8 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				},
 				Resources: map[string]string{},
 				Configs:   &[]api.ConfigAttachment{},
-				Kind:      build.TaskKindPython,
-				KindOptions: build.KindOptions{
+				Kind:      buildtypes.TaskKindPython,
+				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.py",
 				},
 				ExecuteRules: api.UpdateExecuteRulesRequest{
@@ -1870,8 +1870,8 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 						NameTag: "CONFIG_VARIABLE_2",
 					},
 				},
-				Kind: build.TaskKindREST,
-				KindOptions: build.KindOptions{
+				Kind: buildtypes.TaskKindREST,
+				KindOptions: buildtypes.KindOptions{
 					"method":        "POST",
 					"path":          "/post",
 					"urlParams":     map[string]interface{}{},
@@ -1934,7 +1934,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Configs:    &[]api.ConfigAttachment{},
 				Command:    []string{"bash"},
 				Arguments:  []string{"-c", `echo "foobar"`},
-				Kind:       build.TaskKindImage,
+				Kind:       buildtypes.TaskKindImage,
 				Image:      pointers.String("ubuntu:latest"),
 				Env: api.TaskEnv{
 					"value": api.EnvVarValue{
@@ -1955,7 +1955,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				KindOptions: build.KindOptions{},
+				KindOptions: buildtypes.KindOptions{},
 				Timeout:     0,
 			},
 			resources: []api.ResourceMetadata{

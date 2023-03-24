@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/examples"
 	"github.com/airplanedev/lib/pkg/runtime"
@@ -37,14 +37,14 @@ func TestDev(tt *testing.T) {
 
 	tests := []runtimetest.Test{
 		{
-			Kind: build.TaskKindNode,
+			Kind: buildtypes.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{
 				Path:     "javascript/simple/main.js",
 				TaskSlug: "simple",
 			},
 		},
 		{
-			Kind: build.TaskKindNode,
+			Kind: buildtypes.TaskKindNode,
 			Opts: runtime.PrepareRunOptions{
 				Path:     "javascript/customroot/main.js",
 				TaskSlug: "custom",
@@ -93,27 +93,27 @@ func TestVersion(t *testing.T) {
 	testCases := []struct {
 		desc         string
 		path         string
-		buildVersion build.BuildTypeVersion
+		buildVersion buildtypes.BuildTypeVersion
 	}{
 		{
 			desc:         "single node version",
 			path:         "./fixtures/version/18/file.js",
-			buildVersion: build.BuildTypeVersionNode18,
+			buildVersion: buildtypes.BuildTypeVersionNode18,
 		},
 		{
 			desc:         "greater than node version",
 			path:         "./fixtures/version/gt15/file.js",
-			buildVersion: build.BuildTypeVersionNode18,
+			buildVersion: buildtypes.BuildTypeVersionNode18,
 		},
 		{
 			desc:         "greater than and less than node version",
 			path:         "./fixtures/version/gt15lt18/file.js",
-			buildVersion: build.BuildTypeVersionNode16,
+			buildVersion: buildtypes.BuildTypeVersionNode16,
 		},
 		{
 			desc:         "version from config file",
 			path:         "./fixtures/version/fromConfig/file.js",
-			buildVersion: build.BuildTypeVersionNode14,
+			buildVersion: buildtypes.BuildTypeVersionNode14,
 		},
 		{
 			desc: "no version",
@@ -128,7 +128,7 @@ func TestVersion(t *testing.T) {
 		t.Run(tC.desc, func(t *testing.T) {
 			require := require.New(t)
 
-			r, err := runtime.Lookup(tC.path, build.TaskKindNode)
+			r, err := runtime.Lookup(tC.path, buildtypes.TaskKindNode)
 			require.NoError(err)
 
 			root, err := r.Root(tC.path)
@@ -235,7 +235,7 @@ func TestEdit(t *testing.T) {
 				AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 				RestrictCallers:    []string{},
 				Timeout:            3600,
-				Runtime:            build.TaskRuntimeStandard,
+				Runtime:            buildtypes.TaskRuntimeStandard,
 				Schedules:          map[string]definitions.ScheduleDefinition{},
 			},
 		},
@@ -437,7 +437,7 @@ func TestEdit(t *testing.T) {
 		t.Run(tC.name, func(t *testing.T) {
 			require := require.New(t)
 
-			r, err := runtime.Lookup(".js", build.TaskKindNode)
+			r, err := runtime.Lookup(".js", buildtypes.TaskKindNode)
 			require.NoError(err)
 
 			// Clone the input file into a temporary directory as it will be overwritten by `Edit()`.

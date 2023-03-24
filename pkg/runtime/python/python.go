@@ -17,6 +17,7 @@ import (
 
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
@@ -430,7 +431,7 @@ type inlineHelper struct {
 func (r Runtime) GenerateInline(def *definitions.Definition) ([]byte, fs.FileMode, error) {
 	var buf bytes.Buffer
 	method := "task"
-	if def.Runtime == build.TaskRuntimeWorkflow {
+	if def.Runtime == buildtypes.TaskRuntimeWorkflow {
 		method = "workflow"
 	}
 	paramSlugToType := map[string]string{}
@@ -469,13 +470,13 @@ func (r Runtime) Root(path string) (string, error) {
 	return runtime.RootForNonBuiltRuntime(path)
 }
 
-func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, err error) {
+func (r Runtime) Version(rootPath string) (buildVersion buildtypes.BuildTypeVersion, err error) {
 	// Look for version in airplane.config
 	hasAirplaneConfig := config.HasAirplaneConfig(rootPath)
 	if hasAirplaneConfig {
 		c, err := config.NewAirplaneConfigFromFile(rootPath)
 		if err == nil && c.Python.Version != "" {
-			return build.BuildTypeVersion(c.Python.Version), nil
+			return buildtypes.BuildTypeVersion(c.Python.Version), nil
 		}
 	}
 
@@ -483,8 +484,8 @@ func (r Runtime) Version(rootPath string) (buildVersion build.BuildTypeVersion, 
 }
 
 // Kind implementation.
-func (r Runtime) Kind() build.TaskKind {
-	return build.TaskKindPython
+func (r Runtime) Kind() buildtypes.TaskKind {
+	return buildtypes.TaskKindPython
 }
 
 // FormatComment implementation.

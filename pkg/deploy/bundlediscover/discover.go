@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/pkg/errors"
@@ -37,7 +37,7 @@ type Bundle struct {
 	// e.g. the root path may contain 5 individual tasks, but the user may only
 	// want to deploy one of those tasks, specified by a single target path.
 	TargetPaths  []string
-	BuildContext build.BuildContext
+	BuildContext buildtypes.BuildContext
 }
 
 // Discover recursively discovers Airplane bundles located within "paths".
@@ -62,7 +62,7 @@ func (d *Discoverer) Discover(ctx context.Context, paths ...string) ([]Bundle, e
 				}
 				for k, v := range b.BuildContext.EnvVars {
 					if addedBundle.BuildContext.EnvVars == nil {
-						addedBundle.BuildContext.EnvVars = make(map[string]build.EnvVarValue)
+						addedBundle.BuildContext.EnvVars = make(map[string]buildtypes.EnvVarValue)
 					}
 					addedBundle.BuildContext.EnvVars[k] = v
 				}

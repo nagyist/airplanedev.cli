@@ -2,7 +2,7 @@ package definitions
 
 import (
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/utils/pointers"
 	"github.com/pkg/errors"
 )
@@ -95,7 +95,7 @@ func (d *Definition) Update(req api.UpdateTaskRequest, opts UpdateOptions) error
 	return nil
 }
 
-func (d *Definition) updateResources(resources api.Resources, kind build.TaskKind, availableResources []api.ResourceMetadata) error {
+func (d *Definition) updateResources(resources api.Resources, kind buildtypes.TaskKind, availableResources []api.ResourceMetadata) error {
 	if len(resources) == 0 {
 		return nil
 	}
@@ -103,9 +103,9 @@ func (d *Definition) updateResources(resources api.Resources, kind build.TaskKin
 	d.Resources = map[string]string{}
 	for alias, id := range resources {
 		// Ignore SQL/REST resources; they get routed elsewhere.
-		if (kind == build.TaskKindSQL && alias == "db") ||
-			(kind == build.TaskKindREST && alias == "rest") ||
-			(kind == build.TaskKindBuiltin) {
+		if (kind == buildtypes.TaskKindSQL && alias == "db") ||
+			(kind == buildtypes.TaskKindREST && alias == "rest") ||
+			(kind == buildtypes.TaskKindBuiltin) {
 			continue
 		}
 		if resource := getResourceByID(availableResources, id); resource != nil {
@@ -118,25 +118,25 @@ func (d *Definition) updateResources(resources api.Resources, kind build.TaskKin
 
 func (d *Definition) updateKindSpecific(t api.UpdateTaskRequest, availableResources []api.ResourceMetadata) error {
 	switch t.Kind {
-	case build.TaskKindImage:
+	case buildtypes.TaskKindImage:
 		d.Image = &ImageDefinition{}
 		return d.Image.update(t, availableResources)
-	case build.TaskKindNode:
+	case buildtypes.TaskKindNode:
 		d.Node = &NodeDefinition{}
 		return d.Node.update(t, availableResources)
-	case build.TaskKindPython:
+	case buildtypes.TaskKindPython:
 		d.Python = &PythonDefinition{}
 		return d.Python.update(t, availableResources)
-	case build.TaskKindShell:
+	case buildtypes.TaskKindShell:
 		d.Shell = &ShellDefinition{}
 		return d.Shell.update(t, availableResources)
-	case build.TaskKindSQL:
+	case buildtypes.TaskKindSQL:
 		d.SQL = &SQLDefinition{}
 		return d.SQL.update(t, availableResources)
-	case build.TaskKindREST:
+	case buildtypes.TaskKindREST:
 		d.REST = &RESTDefinition{}
 		return d.REST.update(t, availableResources)
-	case build.TaskKindBuiltin:
+	case buildtypes.TaskKindBuiltin:
 		return updateBuiltin(d, t, availableResources)
 	default:
 		return errors.Errorf("unknown task kind: %s", t.Kind)

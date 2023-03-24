@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/utils/pointers"
 	"github.com/airplanedev/ojson"
@@ -26,31 +26,31 @@ type IAPIClient interface {
 
 // Task represents a task.
 type Task struct {
-	URL                        string             `json:"-" yaml:"-"`
-	ID                         string             `json:"taskID" yaml:"id"`
-	Name                       string             `json:"name" yaml:"name"`
-	Slug                       string             `json:"slug" yaml:"slug"`
-	Description                string             `json:"description" yaml:"description"`
-	Image                      *string            `json:"image" yaml:"image"`
-	Command                    []string           `json:"command" yaml:"command"`
-	Arguments                  []string           `json:"arguments" yaml:"arguments"`
-	Parameters                 Parameters         `json:"parameters" yaml:"parameters"`
-	Configs                    []ConfigAttachment `json:"configs" yaml:"configs"`
-	Constraints                RunConstraints     `json:"constraints" yaml:"constraints"`
-	Env                        TaskEnv            `json:"env" yaml:"env"`
-	ResourceRequests           ResourceRequests   `json:"resourceRequests" yaml:"resourceRequests"`
-	Resources                  Resources          `json:"resources" yaml:"resources"`
-	Kind                       build.TaskKind     `json:"kind" yaml:"kind"`
-	KindOptions                build.KindOptions  `json:"kindOptions" yaml:"kindOptions"`
-	Runtime                    build.TaskRuntime  `json:"runtime" yaml:"runtime"`
-	Repo                       string             `json:"repo" yaml:"repo"`
-	RequireExplicitPermissions bool               `json:"requireExplicitPermissions" yaml:"-"`
-	Permissions                Permissions        `json:"permissions" yaml:"-"`
-	ExecuteRules               ExecuteRules       `json:"executeRules" yaml:"-"`
-	Timeout                    int                `json:"timeout" yaml:"timeout"`
-	IsArchived                 bool               `json:"isArchived" yaml:"isArchived"`
-	InterpolationMode          string             `json:"interpolationMode" yaml:"-"`
-	Triggers                   []Trigger          `json:"triggers" yaml:"-"`
+	URL                        string                 `json:"-" yaml:"-"`
+	ID                         string                 `json:"taskID" yaml:"id"`
+	Name                       string                 `json:"name" yaml:"name"`
+	Slug                       string                 `json:"slug" yaml:"slug"`
+	Description                string                 `json:"description" yaml:"description"`
+	Image                      *string                `json:"image" yaml:"image"`
+	Command                    []string               `json:"command" yaml:"command"`
+	Arguments                  []string               `json:"arguments" yaml:"arguments"`
+	Parameters                 Parameters             `json:"parameters" yaml:"parameters"`
+	Configs                    []ConfigAttachment     `json:"configs" yaml:"configs"`
+	Constraints                RunConstraints         `json:"constraints" yaml:"constraints"`
+	Env                        TaskEnv                `json:"env" yaml:"env"`
+	ResourceRequests           ResourceRequests       `json:"resourceRequests" yaml:"resourceRequests"`
+	Resources                  Resources              `json:"resources" yaml:"resources"`
+	Kind                       buildtypes.TaskKind    `json:"kind" yaml:"kind"`
+	KindOptions                buildtypes.KindOptions `json:"kindOptions" yaml:"kindOptions"`
+	Runtime                    buildtypes.TaskRuntime `json:"runtime" yaml:"runtime"`
+	Repo                       string                 `json:"repo" yaml:"repo"`
+	RequireExplicitPermissions bool                   `json:"requireExplicitPermissions" yaml:"-"`
+	Permissions                Permissions            `json:"permissions" yaml:"-"`
+	ExecuteRules               ExecuteRules           `json:"executeRules" yaml:"-"`
+	Timeout                    int                    `json:"timeout" yaml:"timeout"`
+	IsArchived                 bool                   `json:"isArchived" yaml:"isArchived"`
+	InterpolationMode          string                 `json:"interpolationMode" yaml:"-"`
+	Triggers                   []Trigger              `json:"triggers" yaml:"-"`
 
 	CreatedAt time.Time `json:"createdAt" yaml:"-"`
 	// Computed based on the task's revision.
@@ -92,7 +92,7 @@ func (t Task) AsUpdateTaskRequest() UpdateTaskRequest {
 	}
 
 	// Ensure all nullable fields are initialized since UpdateTaskRequest uses patch semantics.
-	if req.Kind == build.TaskKindImage {
+	if req.Kind == buildtypes.TaskKindImage {
 		if req.Command == nil {
 			req.Command = []string{}
 		}
@@ -193,24 +193,24 @@ type GetUploadResponse struct {
 
 // CreateTaskRequest creates a new task.
 type CreateTaskRequest struct {
-	Slug             string             `json:"slug"`
-	Name             string             `json:"name"`
-	Description      string             `json:"description"`
-	Image            *string            `json:"image"`
-	Command          []string           `json:"command"`
-	Arguments        []string           `json:"arguments"`
-	Parameters       Parameters         `json:"parameters"`
-	Configs          []ConfigAttachment `json:"configs"`
-	Constraints      RunConstraints     `json:"constraints"`
-	EnvVars          TaskEnv            `json:"env"`
-	ResourceRequests map[string]string  `json:"resourceRequests"`
-	Resources        map[string]string  `json:"resources"`
-	Kind             build.TaskKind     `json:"kind"`
-	KindOptions      build.KindOptions  `json:"kindOptions"`
-	Runtime          build.TaskRuntime  `json:"runtime"`
-	Repo             string             `json:"repo"`
-	Timeout          int                `json:"timeout"`
-	EnvSlug          string             `json:"envSlug"`
+	Slug             string                 `json:"slug"`
+	Name             string                 `json:"name"`
+	Description      string                 `json:"description"`
+	Image            *string                `json:"image"`
+	Command          []string               `json:"command"`
+	Arguments        []string               `json:"arguments"`
+	Parameters       Parameters             `json:"parameters"`
+	Configs          []ConfigAttachment     `json:"configs"`
+	Constraints      RunConstraints         `json:"constraints"`
+	EnvVars          TaskEnv                `json:"env"`
+	ResourceRequests map[string]string      `json:"resourceRequests"`
+	Resources        map[string]string      `json:"resources"`
+	Kind             buildtypes.TaskKind    `json:"kind"`
+	KindOptions      buildtypes.KindOptions `json:"kindOptions"`
+	Runtime          buildtypes.TaskRuntime `json:"runtime"`
+	Repo             string                 `json:"repo"`
+	Timeout          int                    `json:"timeout"`
+	EnvSlug          string                 `json:"envSlug"`
 }
 
 // CreateTaskResponse represents a create task response.
@@ -234,9 +234,9 @@ type UpdateTaskRequest struct {
 	Env                        TaskEnv                   `json:"env"`
 	ResourceRequests           map[string]string         `json:"resourceRequests"`
 	Resources                  map[string]string         `json:"resources"`
-	Kind                       build.TaskKind            `json:"kind"`
-	KindOptions                build.KindOptions         `json:"kindOptions"`
-	Runtime                    build.TaskRuntime         `json:"runtime"`
+	Kind                       buildtypes.TaskKind       `json:"kind"`
+	KindOptions                buildtypes.KindOptions    `json:"kindOptions"`
+	Runtime                    buildtypes.TaskRuntime    `json:"runtime"`
 	Repo                       string                    `json:"repo"`
 	RequireExplicitPermissions *bool                     `json:"requireExplicitPermissions"`
 	Permissions                *Permissions              `json:"permissions"`

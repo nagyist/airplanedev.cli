@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
 	_ "github.com/airplanedev/lib/pkg/runtime/builtin"
@@ -89,10 +89,10 @@ func (sd *ScriptDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]
 	}, nil
 }
 
-func (sd *ScriptDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, build.BuildContext, error) {
+func (sd *ScriptDiscoverer) GetTaskRoot(ctx context.Context, file string) (string, buildtypes.BuildContext, error) {
 	slug := runtime.Slug(file)
 	if slug == "" {
-		return "", build.BuildContext{}, nil
+		return "", buildtypes.BuildContext{}, nil
 	}
 
 	task, err := sd.Client.GetTask(ctx, api.GetTaskRequest{
@@ -102,46 +102,46 @@ func (sd *ScriptDiscoverer) GetTaskRoot(ctx context.Context, file string) (strin
 	if err != nil {
 		var merr *api.TaskMissingError
 		if !errors.As(err, &merr) {
-			return "", build.BuildContext{}, nil
+			return "", buildtypes.BuildContext{}, nil
 		}
 
 		sd.Logger.Warning(`Task with slug %s does not exist, skipping deployment.`, slug)
-		return "", build.BuildContext{}, nil
+		return "", buildtypes.BuildContext{}, nil
 	}
 	if task.IsArchived {
 		sd.Logger.Warning(`Task with slug %s is archived, skipping deployment.`, slug)
-		return "", build.BuildContext{}, nil
+		return "", buildtypes.BuildContext{}, nil
 	}
 
 	resp, err := sd.Client.ListResourceMetadata(ctx)
 	if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 
 	def, err := definitions.NewDefinitionFromTask(task, resp.Resources)
 	if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 
 	pathMetadata, err := taskPathMetadata(file, task.Kind)
 	if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 
 	bc, err := TaskBuildContext(pathMetadata.RootDir, pathMetadata.Runtime)
 	if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 	if err := def.SetBuildVersionBase(bc.Version, bc.Base); err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 
 	buildType, buildTypeVersion, buildBase, err := def.GetBuildType()
 	if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 
-	return pathMetadata.RootDir, build.BuildContext{
+	return pathMetadata.RootDir, buildtypes.BuildContext{
 		Type:    buildType,
 		Version: buildTypeVersion,
 		Base:    buildBase,

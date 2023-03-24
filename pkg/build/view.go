@@ -10,13 +10,15 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc/v2"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
+	"github.com/airplanedev/lib/pkg/build/utils"
 	"github.com/airplanedev/lib/pkg/deploy/discover/parser"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
 )
 
 // view creates a dockerfile for a view.
-func view(root string, options KindOptions) (string, error) {
+func view(root string, options buildtypes.KindOptions) (string, error) {
 	// Assert that the entrypoint file exists:
 	entrypoint, _ := options["entrypoint"].(string)
 	if entrypoint == "" {
@@ -123,14 +125,14 @@ func view(root string, options KindOptions) (string, error) {
 		// directory for storing packages.
 		InstallCommand:    "yarn install --non-interactive && yarn cache clean",
 		OutDir:            "dist",
-		InlineMainTsx:     inlineString(mainTsxStr),
-		InlineIndexHtml:   inlineString(indexHtmlStr),
-		InlineViteConfig:  inlineString(viteConfigStr),
+		InlineMainTsx:     utils.InlineString(mainTsxStr),
+		InlineIndexHtml:   utils.InlineString(indexHtmlStr),
+		InlineViteConfig:  utils.InlineString(viteConfigStr),
 		APIHost:           apiHost,
-		InlinePackageJSON: inlineString(string(packageJSONByte)),
+		InlinePackageJSON: utils.InlineString(string(packageJSONByte)),
 	}
 
-	return applyTemplate(heredoc.Doc(`
+	return utils.ApplyTemplate(heredoc.Doc(`
 		FROM {{.Base}} as builder
 		WORKDIR /airplane
 
@@ -155,7 +157,7 @@ func view(root string, options KindOptions) (string, error) {
 }
 
 // viewBundle creates a dockerfile for all views within a root.
-func viewBundle(root string, buildContext BuildContext, options KindOptions, filesToBuild []string,
+func viewBundle(root string, buildContext buildtypes.BuildContext, options buildtypes.KindOptions, filesToBuild []string,
 	filesToDiscover []string) (string, error) {
 	// Assert that API host is set.
 	apiHost, _ := options["apiHost"].(string)
@@ -166,7 +168,7 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		apiHost = "https://" + apiHost
 	}
 
-	useSlimImage := buildContext.Base == BuildBaseSlim
+	useSlimImage := buildContext.Base == buildtypes.BuildBaseSlim
 	nodeVersion := GetNodeVersion(options)
 	base, err := getBaseNodeImage(nodeVersion, useSlimImage)
 	if err != nil {
@@ -211,7 +213,7 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 	if err != nil {
 		return "", err
 	}
-	bi := BuildInstructions{InstallInstructions: ii}
+	bi := buildtypes.BuildInstructions{InstallInstructions: ii}
 	installInstructions, err := bi.DockerfileString()
 	if err != nil {
 		return "", err
@@ -310,11 +312,11 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		// lean. This doesn't apply to Yarn v2 (specifically Plug'n'Play), which uses the cache
 		// directory for storing packages.
 		OutDir:                       "/airplane/dist",
-		InlineMainTsx:                inlineString(mainTsxStr),
-		InlineIndexHtml:              inlineString(indexHtmlStr),
-		InlineViteConfig:             inlineString(viteConfigStr),
+		InlineMainTsx:                utils.InlineString(mainTsxStr),
+		InlineIndexHtml:              utils.InlineString(indexHtmlStr),
+		InlineViteConfig:             utils.InlineString(viteConfigStr),
 		APIHost:                      apiHost,
-		InlineShimPackageJSON:        inlineString(string(shimPackageJSONBytes)),
+		InlineShimPackageJSON:        utils.InlineString(string(shimPackageJSONBytes)),
 		EsbuildFlags:                 esbuildFlags,
 		FilesToBuild:                 esbuildFilesToBuild,
 		FilesToBuildWithoutExtension: strings.Join(filesToBuildWithoutExtension, " "),
@@ -323,11 +325,11 @@ func viewBundle(root string, buildContext BuildContext, options KindOptions, fil
 		NodeVersion:                  nodeVersion,
 		UseSlimImage:                 useSlimImage,
 		HasTailwind:                  hasTailwind,
-		InlinePostcssConfig:          inlineString(postcssConfigStr),
+		InlinePostcssConfig:          utils.InlineString(postcssConfigStr),
 		InstallInstructions:          installInstructions,
 	}
 
-	return applyTemplate(heredoc.Doc(`
+	return utils.ApplyTemplate(heredoc.Doc(`
 		FROM {{.Base}} as builder
 		WORKDIR /airplane
 
@@ -456,7 +458,7 @@ func BasePath(port int, token *string) string {
 }
 
 func ViteConfigString(opts ViteConfigOpts) (string, error) {
-	return applyTemplate(viteConfigTemplateStr, struct {
+	return utils.ApplyTemplate(viteConfigTemplateStr, struct {
 		Base string
 		Root string
 	}{
@@ -466,7 +468,7 @@ func ViteConfigString(opts ViteConfigOpts) (string, error) {
 }
 
 func UniversalViteConfigString(entrypoints []string) (string, error) {
-	return applyTemplate(universalViteConfigTemplateStr, struct {
+	return utils.ApplyTemplate(universalViteConfigTemplateStr, struct {
 		Entrypoints []string
 	}{
 		Entrypoints: entrypoints,
@@ -480,7 +482,7 @@ var indexHtmlTemplateStr string
 var genViewStr string
 
 func IndexHtmlString(title string) (string, error) {
-	return applyTemplate(indexHtmlTemplateStr, struct {
+	return utils.ApplyTemplate(indexHtmlTemplateStr, struct {
 		Title string
 	}{
 		Title: title,
@@ -492,7 +494,7 @@ var mainTsxTemplateStr string
 
 func MainTsxString(entrypoint string, isInStudio bool) (string, error) {
 	entrypoint = strings.TrimSuffix(entrypoint, ".tsx")
-	return applyTemplate(mainTsxTemplateStr, struct {
+	return utils.ApplyTemplate(mainTsxTemplateStr, struct {
 		Entrypoint string
 		IsInStudio bool
 	}{
@@ -505,7 +507,7 @@ func MainTsxString(entrypoint string, isInStudio bool) (string, error) {
 var postcssConfigTemplateStr string
 
 func PostcssConfigString(tailwindLocation string) (string, error) {
-	return applyTemplate(postcssConfigTemplateStr, struct {
+	return utils.ApplyTemplate(postcssConfigTemplateStr, struct {
 		TailwindLocation string
 	}{
 		TailwindLocation: tailwindLocation,

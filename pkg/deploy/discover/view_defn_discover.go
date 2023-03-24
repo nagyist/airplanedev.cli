@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
@@ -97,35 +97,35 @@ func (dd *ViewDefnDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 	}, nil
 }
 
-func (dd *ViewDefnDiscoverer) GetViewRoot(ctx context.Context, file string) (string, build.BuildContext, error) {
+func (dd *ViewDefnDiscoverer) GetViewRoot(ctx context.Context, file string) (string, buildtypes.BuildContext, error) {
 	if !definitions.IsViewDef(file) {
-		return "", build.BuildContext{}, nil
+		return "", buildtypes.BuildContext{}, nil
 	}
 
 	d, err := getViewDefinitionFromFile(file)
 	if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 
 	root, err := filepath.Abs(filepath.Dir(file))
 	if err != nil {
-		return "", build.BuildContext{}, errors.Wrap(err, "getting absolute view definition root")
+		return "", buildtypes.BuildContext{}, errors.Wrap(err, "getting absolute view definition root")
 	}
 	if p, ok := fsx.Find(root, "package.json"); ok {
 		root = p
 	}
 
-	pm, err := taskPathMetadata(d.Entrypoint, build.TaskKindNode)
+	pm, err := taskPathMetadata(d.Entrypoint, buildtypes.TaskKindNode)
 	if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 	bc, err := ViewBuildContext(pm.RootDir)
 	if err != nil {
-		return "", build.BuildContext{}, err
+		return "", buildtypes.BuildContext{}, err
 	}
 
-	return root, build.BuildContext{
-		Type:    build.ViewBuildType,
+	return root, buildtypes.BuildContext{
+		Type:    buildtypes.ViewBuildType,
 		Version: bc.Version,
 		Base:    bc.Base,
 		EnvVars: bc.EnvVars,

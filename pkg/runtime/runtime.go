@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/builtins"
 	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
@@ -68,13 +68,13 @@ type Interface interface {
 	// an empty version if it cannot be determined.
 	//
 	// Typically runtimes will look for the version in a specific file such as `package.json`.
-	Version(rootPath string) (buildVersion build.BuildTypeVersion, err error)
+	Version(rootPath string) (buildVersion buildtypes.BuildTypeVersion, err error)
 
 	// Kind returns a task kind that matches the runtime.
 	//
 	// Generate and other methods should not be called
 	// for a task that doesn't match the returned kind.
-	Kind() build.TaskKind
+	Kind() buildtypes.TaskKind
 
 	// FormatComment formats a string into a comment using
 	// the relevant comment characters for this runtime.
@@ -117,7 +117,7 @@ type PrepareRunOptions struct {
 	ParamValues Values
 
 	// KindOptions specifies any runtime-specific task configuration.
-	KindOptions build.KindOptions
+	KindOptions buildtypes.KindOptions
 
 	TaskSlug string
 	RunID    string
@@ -141,7 +141,7 @@ func Register(ext string, r Interface) {
 
 // Lookup returns a runtime by kind and path.
 // If an extension match is found, use that runtime. Otherwise rely on the task kind.
-func Lookup(path string, kind build.TaskKind) (Interface, error) {
+func Lookup(path string, kind buildtypes.TaskKind) (Interface, error) {
 	ext := filepath.Ext(path)
 	if runtime, ok := runtimes[ext]; ok {
 		return runtime, nil
@@ -166,7 +166,7 @@ func Lookup(path string, kind build.TaskKind) (Interface, error) {
 }
 
 // SuggestExts returns a list of extensions for a given TaskKind. May be empty.
-func SuggestExts(kind build.TaskKind) []string {
+func SuggestExts(kind buildtypes.TaskKind) []string {
 	exts := []string{}
 	for ext, runtime := range runtimes {
 		if runtime.Kind() == kind {
@@ -178,7 +178,7 @@ func SuggestExts(kind build.TaskKind) []string {
 	return exts
 }
 
-func SuggestKind(ext string) (build.TaskKind, error) {
+func SuggestKind(ext string) (buildtypes.TaskKind, error) {
 	if runtime, ok := runtimes[ext]; ok {
 		return runtime.Kind(), nil
 	}

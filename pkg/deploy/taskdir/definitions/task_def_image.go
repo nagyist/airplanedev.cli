@@ -2,7 +2,7 @@ package definitions
 
 import (
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/alessio/shellescape"
 	"github.com/flynn/go-shlex"
 )
@@ -16,7 +16,7 @@ type ImageDefinition struct {
 	EnvVars    api.TaskEnv `json:"envVars,omitempty"`
 }
 
-func (d *ImageDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts GetTaskOpts) error {
+func (d *ImageDefinition) copyToTask(task *api.Task, bc buildtypes.BuildConfig, opts GetTaskOpts) error {
 	if d.Image != "" {
 		task.Image = &d.Image
 	}
@@ -56,7 +56,7 @@ func (d *ImageDefinition) getAbsoluteEntrypoint() (string, error) {
 	return "", ErrNoEntrypoint
 }
 
-func (d *ImageDefinition) getKindOptions() (build.KindOptions, error) {
+func (d *ImageDefinition) getKindOptions() (buildtypes.KindOptions, error) {
 	return nil, nil
 }
 
@@ -80,9 +80,9 @@ func (d *ImageDefinition) getResourceAttachments() map[string]string {
 	return nil
 }
 
-func (d *ImageDefinition) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
-	return build.NoneBuildType, build.BuildTypeVersionUnspecified, build.BuildBaseNone
+func (d *ImageDefinition) getBuildType() (buildtypes.BuildType, buildtypes.BuildTypeVersion, buildtypes.BuildBase) {
+	return buildtypes.NoneBuildType, buildtypes.BuildTypeVersionUnspecified, buildtypes.BuildBaseNone
 }
 
-func (d *ImageDefinition) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
+func (d *ImageDefinition) SetBuildVersionBase(v buildtypes.BuildTypeVersion, b buildtypes.BuildBase) {
 }

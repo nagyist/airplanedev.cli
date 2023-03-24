@@ -11,6 +11,10 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc/v2"
+	"github.com/airplanedev/lib/pkg/build/hooks"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
+	"github.com/airplanedev/lib/pkg/build/utils"
+	buildversions "github.com/airplanedev/lib/pkg/build/versions"
 	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/discover/parser"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
@@ -18,8 +22,6 @@ import (
 )
 
 const (
-	DefaultNodeVersion = BuildTypeVersionNode18
-
 	defaultSDKVersion     = "~0.2"
 	minWorkflowSDKVersion = "0.2.10"
 	workflowRuntimePkg    = "@airplane/workflow-runtime"
@@ -67,8 +69,8 @@ type templateParams struct {
 
 func getNodeBundleBuildInstructions(
 	root string,
-	options KindOptions,
-) (BuildInstructions, error) {
+	options buildtypes.KindOptions,
+) (buildtypes.BuildInstructions, error) {
 	var err error
 
 	// For backwards compatibility, continue to build old Node tasks
@@ -78,7 +80,7 @@ func getNodeBundleBuildInstructions(
 		return getNodeLegacyBuildInstructions(root, options)
 	}
 
-	instructions := []InstallInstruction{
+	instructions := []buildtypes.InstallInstruction{
 		// Support setting BUILD_NPM_RC or BUILD_NPM_TOKEN to configure private registry auth
 		{
 			Cmd: `[ -z "${BUILD_NPM_RC}" ] || echo "${BUILD_NPM_RC}" > .npmrc`,
@@ -90,16 +92,16 @@ func getNodeBundleBuildInstructions(
 
 	installInstructions, err := getNodeInstallInstructions(root, "/airplane")
 	if err != nil {
-		return BuildInstructions{}, err
+		return buildtypes.BuildInstructions{}, err
 	}
 	instructions = append(instructions, installInstructions...)
 
-	instructions = append(instructions, InstallInstruction{
+	instructions = append(instructions, buildtypes.InstallInstruction{
 		Cmd: fmt.Sprintf(`mkdir -p /airplane/.airplane && \
-			%s > /airplane/.airplane/esbuild.js`, inlineString(Esbuild)),
+			%s > /airplane/.airplane/esbuild.js`, utils.InlineString(Esbuild)),
 	})
 
-	return BuildInstructions{
+	return buildtypes.BuildInstructions{
 		InstallInstructions: instructions,
 		BuildArgs: []string{
 			"BUILD_NPM_RC",
@@ -111,9 +113,9 @@ func getNodeBundleBuildInstructions(
 func getNodeInstallInstructions(
 	root string,
 	sourceCodeDest string,
-) ([]InstallInstruction, error) {
+) ([]buildtypes.InstallInstruction, error) {
 	var err error
-	var instructions []InstallInstruction
+	var instructions []buildtypes.InstallInstruction
 
 	rootPackageJSON := filepath.Join(root, "package.json")
 	hasPackageJSON := fsx.AssertExistsAll(rootPackageJSON) == nil
@@ -135,18 +137,18 @@ func getNodeInstallInstructions(
 	// This case is solely for testing purposes. We are unable to test .yarn
 	// because of permissions errors with the Docker daemon.
 	if hasDotAirplaneDotYarn {
-		instructions = append(instructions, InstallInstruction{
+		instructions = append(instructions, buildtypes.InstallInstruction{
 			SrcPath: "./.airplane.yarn",
 			DstPath: filepath.Join(sourceCodeDest, ".airplane.yarn") + string(filepath.Separator),
 		})
 	} else if hasDotYarn {
-		instructions = append(instructions, InstallInstruction{
+		instructions = append(instructions, buildtypes.InstallInstruction{
 			SrcPath: "./.yarn",
 			DstPath: filepath.Join(sourceCodeDest, ".yarn") + string(filepath.Separator),
 		})
 	}
 	if hasYarnRC {
-		instructions = append(instructions, InstallInstruction{
+		instructions = append(instructions, buildtypes.InstallInstruction{
 			SrcPath: ".yarnrc.yml",
 			DstPath: sourceCodeDest,
 		})
@@ -161,7 +163,7 @@ func getNodeInstallInstructions(
 	}
 
 	// Install hooks can only exist in the task root for bundle builds
-	installHooks, err := GetInstallHooks("", root)
+	installHooks, err := hooks.GetInstallHooks("", root)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +196,7 @@ func getNodeInstallInstructions(
 		}
 	} else {
 		// Just create an empty package.json in the root
-		instructions = append(instructions, InstallInstruction{
+		instructions = append(instructions, buildtypes.InstallInstruction{
 			Cmd: fmt.Sprintf("echo '{}' > %s", filepath.Join(sourceCodeDest, "package.json")),
 		})
 	}
@@ -208,19 +210,19 @@ func getNodeInstallInstructions(
 		}
 	}
 
-	preinstall := []InstallInstruction{}
+	preinstall := []buildtypes.InstallInstruction{}
 	install := ""
-	postinstall := []InstallInstruction{}
+	postinstall := []buildtypes.InstallInstruction{}
 	if pkg.Settings.PreInstallCommand != "" {
-		preinstall = append(preinstall, InstallInstruction{
+		preinstall = append(preinstall, buildtypes.InstallInstruction{
 			Cmd: pkg.Settings.PreInstallCommand,
 		})
 	} else if airplaneConfig.Javascript.PreInstall != "" {
-		preinstall = append(preinstall, InstallInstruction{
+		preinstall = append(preinstall, buildtypes.InstallInstruction{
 			Cmd: airplaneConfig.Javascript.PreInstall,
 		})
 	} else if installHooks.PreInstallFilePath != "" {
-		preinstall = append(preinstall, InstallInstruction{
+		preinstall = append(preinstall, buildtypes.InstallInstruction{
 			Cmd:        "./airplane_preinstall.sh",
 			SrcPath:    installHooks.PreInstallFilePath,
 			DstPath:    "airplane_preinstall.sh",
@@ -235,15 +237,15 @@ func getNodeInstallInstructions(
 	}
 
 	if pkg.Settings.PostInstallCommand != "" {
-		postinstall = append(postinstall, InstallInstruction{
+		postinstall = append(postinstall, buildtypes.InstallInstruction{
 			Cmd: pkg.Settings.PostInstallCommand,
 		})
 	} else if airplaneConfig.Javascript.PostInstall != "" {
-		postinstall = append(postinstall, InstallInstruction{
+		postinstall = append(postinstall, buildtypes.InstallInstruction{
 			Cmd: airplaneConfig.Javascript.PostInstall,
 		})
 	} else if installHooks.PostInstallFilePath != "" {
-		postinstall = append(postinstall, InstallInstruction{
+		postinstall = append(postinstall, buildtypes.InstallInstruction{
 			Cmd:        "./airplane_postinstall.sh",
 			SrcPath:    installHooks.PostInstallFilePath,
 			DstPath:    "airplane_postinstall.sh",
@@ -261,7 +263,7 @@ func getNodeInstallInstructions(
 	installRequiresCode := hasPackageInstallHooks || len(preinstall) > 0
 
 	if installRequiresCode {
-		instructions = append(instructions, InstallInstruction{
+		instructions = append(instructions, buildtypes.InstallInstruction{
 			SrcPath: ".",
 			DstPath: sourceCodeDest,
 		})
@@ -275,12 +277,12 @@ func getNodeInstallInstructions(
 		IsYarn:            isYarn,
 		HasPackageLock:    hasPackageLock,
 	})
-	instructions = append(instructions, InstallInstruction{
+	instructions = append(instructions, buildtypes.InstallInstruction{
 		Cmd: installCmd,
 	})
 
 	if !installRequiresCode {
-		instructions = append(instructions, InstallInstruction{
+		instructions = append(instructions, buildtypes.InstallInstruction{
 			SrcPath: ".",
 			DstPath: sourceCodeDest,
 		})
@@ -291,7 +293,7 @@ func getNodeInstallInstructions(
 	return instructions, nil
 }
 
-func getNodeLegacyBuildInstructions(root string, options KindOptions) (BuildInstructions, error) {
+func getNodeLegacyBuildInstructions(root string, options buildtypes.KindOptions) (buildtypes.BuildInstructions, error) {
 	entrypoint, _ := options["entrypoint"].(string)
 	main := filepath.Join(root, entrypoint)
 	deps := filepath.Join(root, "package.json")
@@ -306,10 +308,10 @@ func getNodeLegacyBuildInstructions(root string, options KindOptions) (BuildInst
 
 	// Make sure that entrypoint and `package.json` exist.
 	if err := fsx.AssertExistsAll(main, deps); err != nil {
-		return BuildInstructions{}, err
+		return buildtypes.BuildInstructions{}, err
 	}
 
-	instructions := []InstallInstruction{
+	instructions := []buildtypes.InstallInstruction{
 		// Support setting BUILD_NPM_RC or BUILD_NPM_TOKEN to configure private registry auth
 		{
 			Cmd: `[ -z "${BUILD_NPM_RC}" ] || echo "${BUILD_NPM_RC}" > .npmrc`,
@@ -326,11 +328,11 @@ func getNodeLegacyBuildInstructions(root string, options KindOptions) (BuildInst
 
 	// Determine the install command to use.
 	if err := fsx.AssertExistsAll(pkglock); err == nil {
-		instructions = append(instructions, InstallInstruction{
+		instructions = append(instructions, buildtypes.InstallInstruction{
 			Cmd: `npm install package-lock.json`,
 		})
 	} else if err := fsx.AssertExistsAll(yarnlock); err == nil {
-		instructions = append(instructions, InstallInstruction{
+		instructions = append(instructions, buildtypes.InstallInstruction{
 			Cmd: `yarn install`,
 		})
 	}
@@ -341,32 +343,32 @@ func getNodeLegacyBuildInstructions(root string, options KindOptions) (BuildInst
 		if buildDir == "" {
 			buildDir = ".airplane"
 		}
-		instructions = append(instructions, InstallInstruction{
+		instructions = append(instructions, buildtypes.InstallInstruction{
 			Cmd: `npm install -g typescript@4.1`,
 		})
-		instructions = append(instructions, InstallInstruction{
+		instructions = append(instructions, buildtypes.InstallInstruction{
 			Cmd: `[ -f tsconfig.json ] || echo '{"include": ["*", "**/*"], "exclude": ["node_modules"]}' >tsconfig.json`,
 		})
-		instructions = append(instructions, InstallInstruction{
+		instructions = append(instructions, buildtypes.InstallInstruction{
 			Cmd: fmt.Sprintf(`rm -rf %s && tsc --outDir %s --rootDir .`, buildDir, buildDir),
 		})
 		if buildCommand != "" {
 			// It's not totally expected, but if you do set buildCommand we'll run it after tsc
-			instructions = append(instructions, InstallInstruction{
+			instructions = append(instructions, buildtypes.InstallInstruction{
 				Cmd: buildCommand,
 			})
 		}
 	case "javascript":
 		if buildCommand != "" {
-			instructions = append(instructions, InstallInstruction{
+			instructions = append(instructions, buildtypes.InstallInstruction{
 				Cmd: buildCommand,
 			})
 		}
 	default:
-		return BuildInstructions{}, errors.Errorf("build: unknown language %q, expected \"javascript\" or \"typescript\"", lang)
+		return buildtypes.BuildInstructions{}, errors.Errorf("build: unknown language %q, expected \"javascript\" or \"typescript\"", lang)
 	}
 
-	return BuildInstructions{
+	return buildtypes.BuildInstructions{
 		InstallInstructions: instructions,
 		BuildArgs: []string{
 			"BUILD_NPM_RC",
@@ -378,7 +380,7 @@ func getNodeLegacyBuildInstructions(root string, options KindOptions) (BuildInst
 // node creates a dockerfile for Node (typescript/javascript).
 func node(
 	root string,
-	options KindOptions,
+	options buildtypes.KindOptions,
 	buildArgs []string,
 ) (string, error) {
 	var err error
@@ -429,7 +431,7 @@ func node(
 	}
 
 	// Install hooks can only exist in the task root for bundle builds
-	installHooks, err := GetInstallHooks(entrypoint, root)
+	installHooks, err := hooks.GetInstallHooks(entrypoint, root)
 	if err != nil {
 		return "", err
 	}
@@ -517,8 +519,8 @@ func node(
 		cfg.Workdir = "/" + cfg.Workdir
 	}
 
-	baseImageType, _ := options["base"].(BuildBase)
-	cfg.UseSlimImage = baseImageType == BuildBaseSlim
+	baseImageType, _ := options["base"].(buildtypes.BuildBase)
+	cfg.UseSlimImage = baseImageType == buildtypes.BuildBaseSlim
 	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion, cfg.UseSlimImage)
 	if err != nil {
 		return "", err
@@ -533,13 +535,13 @@ func node(
 	if err != nil {
 		return "", err
 	}
-	cfg.InlineShimPackageJSON = inlineString(string(pjson))
+	cfg.InlineShimPackageJSON = utils.InlineString(string(pjson))
 
 	entrypointFunc, _ := options["entrypointFunc"].(string)
 	if isWorkflow {
-		cfg.InlineTaskShim = inlineString(workerShim)
-		cfg.InlineWorkflowBundlerScript = inlineString(workflowBundlerScript)
-		cfg.InlineWorkflowInterceptorsScript = inlineString(workflowInterceptorsScript)
+		cfg.InlineTaskShim = utils.InlineString(workerShim)
+		cfg.InlineWorkflowBundlerScript = utils.InlineString(workflowBundlerScript)
+		cfg.InlineWorkflowInterceptorsScript = utils.InlineString(workflowInterceptorsScript)
 
 		workflowShimTemplated, err := TemplateEntrypoint(workflowShim, NodeShimParams{
 			Entrypoint:     entrypoint,
@@ -548,7 +550,7 @@ func node(
 		if err != nil {
 			return "", err
 		}
-		cfg.InlineWorkflowShim = inlineString(workflowShimTemplated)
+		cfg.InlineWorkflowShim = utils.InlineString(workflowShimTemplated)
 	} else {
 		shim, err := TemplatedNodeShim(NodeShimParams{
 			Entrypoint:     entrypoint,
@@ -557,7 +559,7 @@ func node(
 		if err != nil {
 			return "", err
 		}
-		cfg.InlineTaskShim = inlineString(shim)
+		cfg.InlineTaskShim = utils.InlineString(shim)
 	}
 
 	cfg.InstallCommand = makeInstallCommand(makeInstallCommandReq{
@@ -591,7 +593,7 @@ func node(
 	//
 	// Down the road, we may want to give customers more control over this build process
 	// in which case we could introduce an extra step for performing build commands.
-	return applyTemplate(heredoc.Doc(`
+	return utils.ApplyTemplate(heredoc.Doc(`
 		FROM {{.Base}}
 
 		{{if .UseSlimImage}}
@@ -739,16 +741,16 @@ func GenShimPackageJSON(opts GenShimPackageJSONOpts) ([]byte, error) {
 	return b, errors.Wrap(err, "marshalling shim dependencies")
 }
 
-func GetNodeVersion(opts KindOptions) string {
+func GetNodeVersion(opts buildtypes.KindOptions) string {
 	if opts == nil || opts["nodeVersion"] == nil {
-		return string(DefaultNodeVersion)
+		return string(buildtypes.DefaultNodeVersion)
 	}
 	nv, ok := opts["nodeVersion"].(string)
 	if !ok {
-		return string(DefaultNodeVersion)
+		return string(buildtypes.DefaultNodeVersion)
 	}
 	if nv == "" {
-		return string(DefaultNodeVersion)
+		return string(buildtypes.DefaultNodeVersion)
 	}
 
 	return nv
@@ -797,9 +799,9 @@ func TemplateEntrypoint(script string, params NodeShimParams) (string, error) {
 	// The shim is stored under the .airplane directory.
 	entrypoint = filepath.Join("../", entrypoint)
 	// Escape for embedding into a string
-	entrypoint = backslashEscape(entrypoint, `"`)
+	entrypoint = utils.BackslashEscape(entrypoint, `"`)
 
-	shim, err := applyTemplate(script, struct {
+	shim, err := utils.ApplyTemplate(script, struct {
 		Entrypoint     string
 		EntrypointFunc string
 	}{
@@ -817,7 +819,7 @@ func TemplateEntrypoint(script string, params NodeShimParams) (string, error) {
 //
 // TODO(amir): possibly just run `npm start` instead of exposing lots
 // of options to users?
-func nodeLegacyBuilder(root string, options KindOptions) (string, error) {
+func nodeLegacyBuilder(root string, options buildtypes.KindOptions) (string, error) {
 	instructions, err := getNodeLegacyBuildInstructions(root, options)
 	if err != nil {
 		return "", err
@@ -858,7 +860,7 @@ func nodeLegacyBuilder(root string, options KindOptions) (string, error) {
 		return "", err
 	}
 
-	return applyTemplate(heredoc.Doc(`
+	return utils.ApplyTemplate(heredoc.Doc(`
 		FROM {{ .Base }}
 		WORKDIR {{ .Workdir }}
 		{{ .Instructions }}
@@ -881,9 +883,9 @@ func nodeLegacyBuilder(root string, options KindOptions) (string, error) {
 
 func getBaseNodeImage(version string, slim bool) (string, error) {
 	if version == "" {
-		version = string(DefaultNodeVersion)
+		version = string(buildtypes.DefaultNodeVersion)
 	}
-	v, err := GetVersion(NameNode, version, slim)
+	v, err := buildversions.GetVersion(buildtypes.NameNode, version, slim)
 	if err != nil {
 		return "", err
 	}
@@ -980,8 +982,8 @@ func ReadPackageJSON(path string) (PackageJSON, error) {
 // nodeBundle creates a dockerfile for all Node tasks/workflows within a task root (typescript/javascript).
 func nodeBundle(
 	root string,
-	buildContext BuildContext,
-	options KindOptions,
+	buildContext buildtypes.BuildContext,
+	options buildtypes.KindOptions,
 	buildArgs []string,
 	filesToBuild []string,
 	filesToDiscover []string,
@@ -1027,7 +1029,7 @@ func nodeBundle(
 		})
 	}
 
-	universalWorkflowShimTemplated, err := applyTemplate(universalWorkflowShim, struct {
+	universalWorkflowShimTemplated, err := utils.ApplyTemplate(universalWorkflowShim, struct {
 		Entrypoints []string
 		TaskImports []TaskImport
 	}{
@@ -1052,11 +1054,11 @@ func nodeBundle(
 		NodeVersion:                      string(buildContext.VersionOrDefault()),
 		Args:                             makeArgsCommand(buildArgs),
 		Instructions:                     dockerfileInstructions,
-		InlineTaskShim:                   inlineString(UniversalNodeShim),
-		InlineWorkerShim:                 inlineString(workerShim),
-		InlineWorkflowShim:               inlineString(universalWorkflowShimTemplated),
-		InlineWorkflowBundlerScript:      inlineString(workflowBundlerScript),
-		InlineWorkflowInterceptorsScript: inlineString(workflowInterceptorsScript),
+		InlineTaskShim:                   utils.InlineString(UniversalNodeShim),
+		InlineWorkerShim:                 utils.InlineString(workerShim),
+		InlineWorkflowShim:               utils.InlineString(universalWorkflowShimTemplated),
+		InlineWorkflowBundlerScript:      utils.InlineString(workflowBundlerScript),
+		InlineWorkflowInterceptorsScript: utils.InlineString(workflowInterceptorsScript),
 	}
 
 	// Generate a list of all of the files to build
@@ -1108,7 +1110,7 @@ func nodeBundle(
 		cfg.Workdir = "/" + cfg.Workdir
 	}
 
-	cfg.UseSlimImage = buildContext.Base == BuildBaseSlim
+	cfg.UseSlimImage = buildContext.Base == buildtypes.BuildBaseSlim
 	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion, cfg.UseSlimImage)
 	if err != nil {
 		return "", err
@@ -1123,7 +1125,7 @@ func nodeBundle(
 	if err != nil {
 		return "", err
 	}
-	cfg.InlineShimPackageJSON = inlineString(string(pjson))
+	cfg.InlineShimPackageJSON = utils.InlineString(string(pjson))
 
 	workflowpjson, err := GenShimPackageJSON(GenShimPackageJSONOpts{
 		RootDir:      root,
@@ -1134,7 +1136,7 @@ func nodeBundle(
 	if err != nil {
 		return "", err
 	}
-	cfg.InlineWorkflowShimPackageJSON = inlineString(string(workflowpjson))
+	cfg.InlineWorkflowShimPackageJSON = utils.InlineString(string(workflowpjson))
 
 	if len(filesToDiscover) > 0 {
 		// Generate parser and store on context
@@ -1160,7 +1162,7 @@ func nodeBundle(
 	//
 	// Down the road, we may want to give customers more control over this build process
 	// in which case we could introduce an extra step for performing build commands.
-	return applyTemplate(heredoc.Doc(`
+	return utils.ApplyTemplate(heredoc.Doc(`
 		FROM {{.Base}} as base
 		ENV NODE_ENV=production
 		WORKDIR /airplane{{.Workdir}}
@@ -1235,7 +1237,7 @@ func nodeBundle(
 	`), cfg)
 }
 
-func isWorkflowRuntime(options KindOptions) bool {
+func isWorkflowRuntime(options buildtypes.KindOptions) bool {
 	runtime, ok := options["runtime"]
 	if !ok {
 		return false
@@ -1245,9 +1247,9 @@ func isWorkflowRuntime(options KindOptions) bool {
 	// either a string or TaskRuntime; handle both.
 	switch v := runtime.(type) {
 	case string:
-		return v == string(TaskRuntimeWorkflow)
-	case TaskRuntime:
-		return v == TaskRuntimeWorkflow
+		return v == string(buildtypes.TaskRuntimeWorkflow)
+	case buildtypes.TaskRuntime:
+		return v == buildtypes.TaskRuntimeWorkflow
 	default:
 		return false
 	}

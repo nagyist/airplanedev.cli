@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/builtins"
 	"github.com/pkg/errors"
 )
@@ -48,7 +48,7 @@ func (d GraphQLDefinition) getFunctionSpecification() (builtins.FunctionSpecific
 	}, nil
 }
 
-func (d GraphQLDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts GetTaskOpts) error {
+func (d GraphQLDefinition) copyToTask(task *api.Task, bc buildtypes.BuildConfig, opts GetTaskOpts) error {
 	if resource := getResourceBySlug(opts.AvailableResources, d.Resource); resource != nil {
 		task.Resources["api"] = resource.ID
 	} else if !opts.IgnoreInvalid {
@@ -117,7 +117,7 @@ func (d GraphQLDefinition) getAbsoluteEntrypoint() (string, error) {
 	return "", ErrNoEntrypoint
 }
 
-func (d GraphQLDefinition) getKindOptions() (build.KindOptions, error) {
+func (d GraphQLDefinition) getKindOptions() (buildtypes.KindOptions, error) {
 	variables := d.Variables
 	if variables == nil {
 		variables = map[string]interface{}{}
@@ -130,7 +130,7 @@ func (d GraphQLDefinition) getKindOptions() (build.KindOptions, error) {
 	if headers == nil {
 		headers = map[string]interface{}{}
 	}
-	return build.KindOptions{
+	return buildtypes.KindOptions{
 		"functionSpecification": map[string]interface{}{
 			"namespace": "graphql",
 			"name":      "request",
@@ -164,9 +164,9 @@ func (d GraphQLDefinition) getResourceAttachments() map[string]string {
 	return map[string]string{"api": d.Resource}
 }
 
-func (d GraphQLDefinition) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
-	return build.NoneBuildType, build.BuildTypeVersionUnspecified, build.BuildBaseNone
+func (d GraphQLDefinition) getBuildType() (buildtypes.BuildType, buildtypes.BuildTypeVersion, buildtypes.BuildBase) {
+	return buildtypes.NoneBuildType, buildtypes.BuildTypeVersionUnspecified, buildtypes.BuildBaseNone
 }
 
-func (d GraphQLDefinition) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
+func (d GraphQLDefinition) SetBuildVersionBase(v buildtypes.BuildTypeVersion, b buildtypes.BuildBase) {
 }

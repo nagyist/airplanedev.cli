@@ -8,7 +8,7 @@ import (
 	"sort"
 
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/pkg/errors"
@@ -83,7 +83,7 @@ type TaskDiscoverer interface {
 	ConfigSource() ConfigSource
 	// GetTaskRoot inspects a file and returns the root directory of the task.
 	// If that file does not have any tasks, it will return an empty string.
-	GetTaskRoot(ctx context.Context, file string) (string, build.BuildContext, error)
+	GetTaskRoot(ctx context.Context, file string) (string, buildtypes.BuildContext, error)
 }
 
 type ViewDiscoverer interface {
@@ -94,7 +94,7 @@ type ViewDiscoverer interface {
 	ConfigSource() ConfigSource
 	// GetViewRoot inspects a file and returns the root directory of the view.
 	// If that file does not have a view, it will return an empty string.
-	GetViewRoot(ctx context.Context, file string) (string, build.BuildContext, error)
+	GetViewRoot(ctx context.Context, file string) (string, buildtypes.BuildContext, error)
 }
 
 type Discoverer struct {

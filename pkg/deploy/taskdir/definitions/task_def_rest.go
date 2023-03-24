@@ -2,7 +2,7 @@ package definitions
 
 import (
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/pkg/errors"
 )
 
@@ -21,7 +21,7 @@ type RESTDefinition struct {
 	Configs       []string               `json:"configs,omitempty"`
 }
 
-func (d *RESTDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts GetTaskOpts) error {
+func (d *RESTDefinition) copyToTask(task *api.Task, bc buildtypes.BuildConfig, opts GetTaskOpts) error {
 	// Check slugs first.
 	if resource := getResourceBySlug(opts.AvailableResources, d.Resource); resource != nil {
 		task.Resources["rest"] = resource.ID
@@ -103,7 +103,7 @@ func (d *RESTDefinition) getAbsoluteEntrypoint() (string, error) {
 	return "", ErrNoEntrypoint
 }
 
-func (d *RESTDefinition) getKindOptions() (build.KindOptions, error) {
+func (d *RESTDefinition) getKindOptions() (buildtypes.KindOptions, error) {
 	if d.URLParams == nil {
 		d.URLParams = map[string]interface{}{}
 	}
@@ -113,7 +113,7 @@ func (d *RESTDefinition) getKindOptions() (build.KindOptions, error) {
 	if d.FormData == nil {
 		d.FormData = map[string]interface{}{}
 	}
-	return build.KindOptions{
+	return buildtypes.KindOptions{
 		"method":        d.Method,
 		"path":          d.Path,
 		"urlParams":     d.URLParams,
@@ -162,8 +162,8 @@ func (d *RESTDefinition) getResourceAttachments() map[string]string {
 	return map[string]string{"rest": d.Resource}
 }
 
-func (d *RESTDefinition) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
-	return build.NoneBuildType, build.BuildTypeVersionUnspecified, build.BuildBaseNone
+func (d *RESTDefinition) getBuildType() (buildtypes.BuildType, buildtypes.BuildTypeVersion, buildtypes.BuildBase) {
+	return buildtypes.NoneBuildType, buildtypes.BuildTypeVersionUnspecified, buildtypes.BuildBaseNone
 }
-func (d *RESTDefinition) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
+func (d *RESTDefinition) SetBuildVersionBase(v buildtypes.BuildTypeVersion, b buildtypes.BuildBase) {
 }

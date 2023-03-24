@@ -3,6 +3,8 @@ package build
 import (
 	"context"
 	"testing"
+
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 )
 
 func TestPythonBuilder(t *testing.T) {
@@ -11,25 +13,25 @@ func TestPythonBuilder(t *testing.T) {
 	tests := []Test{
 		{
 			Root: "python/simple",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.py",
 			},
 		},
 		{
 			Root: "python/simple",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.py",
-				"base":       BuildBaseSlim,
+				"base":       buildtypes.BuildBaseSlim,
 			},
 		},
 		{
 			Root: "python/requirements",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.py",
 			},
@@ -37,8 +39,8 @@ func TestPythonBuilder(t *testing.T) {
 		},
 		{
 			Root: "python/embeddedrequirements",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.py",
 			},
@@ -46,8 +48,8 @@ func TestPythonBuilder(t *testing.T) {
 		},
 		{
 			Root: "python/requirementswithbuildargs",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.py",
 			},
@@ -58,8 +60,8 @@ func TestPythonBuilder(t *testing.T) {
 		},
 		{
 			Root: "python/installhooksviashell",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.py",
 			},
@@ -67,8 +69,8 @@ func TestPythonBuilder(t *testing.T) {
 		},
 		{
 			Root: "python/installhooksviashellsubdirectory",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "foo/bar/main.py",
 			},
@@ -76,8 +78,8 @@ func TestPythonBuilder(t *testing.T) {
 		},
 		{
 			Root: "python/installhooksviaairplaneconfig",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.py",
 			},
@@ -94,17 +96,17 @@ func TestPythonBundleBuilder(t *testing.T) {
 	tests := []Test{
 		{
 			Root: "python/simple",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
 			ParamValues: map[string]interface{}{
 				"hello": "world",
 			},
-			BuildContext: BuildContext{
-				Type:    PythonBuildType,
-				Version: BuildTypeVersionPython310,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.PythonBuildType,
+				Version: buildtypes.BuildTypeVersionPython310,
 			},
 			BundleRuns: []BundleTestRun{
 				{
@@ -115,18 +117,18 @@ func TestPythonBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "python/simple",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
 			ParamValues: map[string]interface{}{
 				"hello": "world",
 			},
-			BuildContext: BuildContext{
-				Type:    PythonBuildType,
-				Version: BuildTypeVersionPython310,
-				Base:    BuildBaseSlim,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.PythonBuildType,
+				Version: buildtypes.BuildTypeVersionPython310,
+				Base:    buildtypes.BuildBaseSlim,
 			},
 			BundleRuns: []BundleTestRun{
 				{
@@ -137,15 +139,15 @@ func TestPythonBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "python/requirements",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    PythonBuildType,
-				Version: BuildTypeVersionPython310,
-				Base:    BuildBaseSlim,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.PythonBuildType,
+				Version: buildtypes.BuildTypeVersionPython310,
+				Base:    buildtypes.BuildBaseSlim,
 			},
 			BundleRuns: []BundleTestRun{
 				{
@@ -156,15 +158,15 @@ func TestPythonBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "python/embeddedrequirements",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    PythonBuildType,
-				Version: BuildTypeVersionPython310,
-				Base:    BuildBaseSlim,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.PythonBuildType,
+				Version: buildtypes.BuildTypeVersionPython310,
+				Base:    buildtypes.BuildBaseSlim,
 			},
 			BundleRuns: []BundleTestRun{
 				{
@@ -175,15 +177,15 @@ func TestPythonBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "python/installhooksviashell",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    PythonBuildType,
-				Version: BuildTypeVersionPython310,
-				Base:    BuildBaseSlim,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.PythonBuildType,
+				Version: buildtypes.BuildTypeVersionPython310,
+				Base:    buildtypes.BuildBaseSlim,
 			},
 			BundleRuns: []BundleTestRun{
 				{
@@ -194,15 +196,15 @@ func TestPythonBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "python/installhooksviashellsubdirectory",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    PythonBuildType,
-				Version: BuildTypeVersionPython310,
-				Base:    BuildBaseSlim,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.PythonBuildType,
+				Version: buildtypes.BuildTypeVersionPython310,
+				Base:    buildtypes.BuildBaseSlim,
 			},
 			BundleRuns: []BundleTestRun{
 				{
@@ -213,8 +215,8 @@ func TestPythonBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "python/installhooksviaairplaneconfig",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.py",
 			},
@@ -222,17 +224,17 @@ func TestPythonBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "python/bundle",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
 			ParamValues: map[string]interface{}{
 				"name": "pikachu",
 			},
-			BuildContext: BuildContext{
-				Type:    PythonBuildType,
-				Version: BuildTypeVersionPython310,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.PythonBuildType,
+				Version: buildtypes.BuildTypeVersionPython310,
 			},
 			FilesToDiscover: []string{
 				"rootInlineTask_airplane.py",
@@ -262,14 +264,14 @@ func TestPythonBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "python/bundleimport",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    PythonBuildType,
-				Version: BuildTypeVersionPython310,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.PythonBuildType,
+				Version: buildtypes.BuildTypeVersionPython310,
 			},
 			FilesToDiscover: []string{
 				"taskmod/task/my_task_airplane.py",
@@ -284,14 +286,14 @@ func TestPythonBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "python/moduleerror",
-			Kind: TaskKindPython,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindPython,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    PythonBuildType,
-				Version: BuildTypeVersionPython310,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.PythonBuildType,
+				Version: buildtypes.BuildTypeVersionPython310,
 			},
 			FilesToDiscover: []string{
 				"main_airplane.py",

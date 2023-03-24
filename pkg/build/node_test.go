@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/examples"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -19,65 +20,65 @@ func TestNodeBuilder(t *testing.T) {
 	tests := []Test{
 		{
 			Root: "javascript/simple",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.js",
 			},
 		},
 		{
 			Root: "typescript/simple",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
 		},
 		{
 			Root: "typescript/slim",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
-				"base":       BuildBaseSlim,
+				"base":       buildtypes.BuildBaseSlim,
 			},
 		},
 		{
 			Root: "typescript/airplaneoverride",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
 		},
 		{
 			Root: "typescript/npm",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
 		},
 		{
 			Root: "typescript/yarn",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
 		},
 		{
 			Root: "typescript/imports",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "task/main.ts",
 			},
 		},
 		{
 			Root: "typescript/noparams",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
@@ -86,16 +87,16 @@ func TestNodeBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/esnext",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
 		},
 		{
 			Root: "typescript/esnext",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":        "true",
 				"entrypoint":  "main.ts",
 				"nodeVersion": "14",
@@ -103,32 +104,32 @@ func TestNodeBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/esm",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
 		},
 		{
 			Root: "typescript/aliases",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
 		},
 		{
 			Root: "typescript/externals",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
 		},
 		{
 			Root: "typescript/yarnworkspaces",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "pkg2/src/index.ts",
 				"workdir":    examples.Path(t, "typescript/yarnworkspaces/pkg2"),
@@ -136,8 +137,8 @@ func TestNodeBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/yarnworkspacesobject",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "pkg2/src/index.ts",
 				"workdir":    examples.Path(t, "typescript/yarnworkspacesobject/pkg2"),
@@ -145,8 +146,8 @@ func TestNodeBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/yarnworkspaceswithglob",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "nested/pkg2/src/index.ts",
 				"workdir":    examples.Path(t, "typescript/yarnworkspaceswithglob/nested/pkg2"),
@@ -154,8 +155,8 @@ func TestNodeBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/yarnworkspacespostinstall",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "pkg2/src/index.ts",
 				"workdir":    examples.Path(t, "typescript/yarnworkspaces/pkg2"),
@@ -164,8 +165,8 @@ func TestNodeBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/npmworkspaces",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "pkg2/src/index.ts",
 				"workdir":    examples.Path(t, "typescript/npmworkspaces/pkg2"),
@@ -173,16 +174,16 @@ func TestNodeBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/nopackagejson",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
 		},
 		{
 			Root: "typescript/custominstall",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
@@ -192,8 +193,8 @@ func TestNodeBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/installhooksviapackagejson",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
@@ -201,8 +202,8 @@ func TestNodeBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/installhooksviaairplaneconfig",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
@@ -210,8 +211,8 @@ func TestNodeBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/installhooksviashell",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
@@ -219,8 +220,8 @@ func TestNodeBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/installhooksviashellsubdirectory",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "foo/bar/main.ts",
 			},
@@ -228,8 +229,8 @@ func TestNodeBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/installhooksviapackagejsonoverride",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
@@ -237,8 +238,8 @@ func TestNodeBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/prisma",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
@@ -254,14 +255,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 	tests := []Test{
 		{
 			Root: "javascript/simple",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.js",
@@ -275,14 +276,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/simple",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -296,15 +297,15 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/slim",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
-				Base:    BuildBaseSlim,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
+				Base:    buildtypes.BuildBaseSlim,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -318,14 +319,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/airplaneoverride",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -339,14 +340,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/npm",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -360,14 +361,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/yarn",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -381,14 +382,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/yarn2",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -403,14 +404,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/imports",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"task/main.ts",
@@ -424,14 +425,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/noparams",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -447,15 +448,15 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/esnext",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -469,14 +470,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/esnext",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode14,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode14,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -490,14 +491,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/esm",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -511,14 +512,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/aliases",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -532,14 +533,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/externals",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -553,15 +554,15 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/yarnworkspaces",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":    "true",
 				"workdir": examples.Path(t, "typescript/yarnworkspaces/pkg2"),
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"pkg2/src/index.ts",
@@ -575,15 +576,15 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/yarnworkspacesobject",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":    "true",
 				"workdir": examples.Path(t, "typescript/yarnworkspacesobject/pkg2"),
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"pkg2/src/index.ts",
@@ -597,15 +598,15 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/yarnworkspaceswithglob",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":    "true",
 				"workdir": examples.Path(t, "typescript/yarnworkspaceswithglob/nested/pkg2"),
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"nested/pkg2/src/index.ts",
@@ -619,15 +620,15 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/yarnworkspacespostinstall",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":    "true",
 				"workdir": examples.Path(t, "typescript/yarnworkspaces/pkg2"),
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"pkg2/src/index.ts",
@@ -642,15 +643,15 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/npmworkspaces",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":    "true",
 				"workdir": examples.Path(t, "typescript/npmworkspaces/pkg2"),
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"pkg2/src/index.ts",
@@ -664,15 +665,15 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/nopackagejson",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.ts",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -686,17 +687,17 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/custominstall",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			BuildArgs: map[string]string{
 				"IS_PRODUCTION": "false",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -710,14 +711,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/installhooksviapackagejson",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -732,14 +733,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/installhooksviaairplaneconfig",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -754,14 +755,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/installhooksviashell",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -776,14 +777,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/installhooksviashellsubdirectory",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"foo/bar/main.ts",
@@ -798,14 +799,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/installhooksviapackagejsonoverride",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -820,14 +821,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/prisma",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.ts",
@@ -841,14 +842,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/decorator",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.airplane.ts",
@@ -863,14 +864,14 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/emitDecoratorMetadata",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"main.airplane.ts",
@@ -885,13 +886,13 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/bundle",
-			Options: KindOptions{
+			Options: buildtypes.KindOptions{
 				"shim": "true",
 			},
 			Bundle: true,
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToBuild: []string{
 				"rootInlineTask.airplane.ts",
@@ -933,15 +934,15 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "typescript/workflowbundle",
-			Options: KindOptions{
+			Options: buildtypes.KindOptions{
 				"shim":    "true",
-				"runtime": TaskRuntimeWorkflow,
+				"runtime": buildtypes.TaskRuntimeWorkflow,
 			},
 			Bundle: true,
 			Target: "workflow-build",
-			BuildContext: BuildContext{
-				Type:    NodeBuildType,
-				Version: BuildTypeVersionNode18,
+			BuildContext: buildtypes.BuildContext{
+				Type:    buildtypes.NodeBuildType,
+				Version: buildtypes.BuildTypeVersionNode18,
 			},
 			FilesToDiscover: []string{
 				"workflow.airplane.ts",
@@ -963,30 +964,30 @@ func TestNodeWorkflowBuilder(t *testing.T) {
 	tests := []Test{
 		{
 			Root: "javascript/workflow",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.js",
-				"runtime":    TaskRuntimeWorkflow,
+				"runtime":    buildtypes.TaskRuntimeWorkflow,
 			},
 			SkipRun: true,
 		},
 		{
 			Root: "javascript/workflowslim",
-			Kind: TaskKindNode,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindNode,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.js",
-				"runtime":    TaskRuntimeWorkflow,
-				"base":       BuildBaseSlim,
+				"runtime":    buildtypes.TaskRuntimeWorkflow,
+				"base":       buildtypes.BuildBaseSlim,
 			},
 			SkipRun: true,
 		},
 		// Test is failing in CI. We should fix this.
 		// {
 		// 	Root: "javascript/workflowbadimport",
-		// 	Kind: TaskKindNode,
-		// 	Options: KindOptions{
+		// 	Kind:  buildtypes.TaskKindNode,
+		// 	Options:  buildtypes.KindOptions{
 		// 		"shim":       "true",
 		// 		"entrypoint": "main.js",
 		// 		"runtime":    TaskRuntimeWorkflow,

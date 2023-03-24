@@ -1,9 +1,10 @@
-package build
+package versions
 
 import (
 	_ "embed"
 	"encoding/json"
 
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/pkg/errors"
 )
 
@@ -57,7 +58,7 @@ func GetVersions() (Versions, error) {
 	return versions, nil
 }
 
-func GetVersion(builder Name, version string, slim bool) (Version, error) {
+func GetVersion(builder buildtypes.Name, version string, slim bool) (Version, error) {
 	versions, err := GetVersions()
 	if err != nil {
 		return Version{}, err

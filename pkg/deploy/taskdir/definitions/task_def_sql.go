@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/goccy/go-yaml"
 	"github.com/pkg/errors"
 )
@@ -52,7 +52,7 @@ func (d *SQLDefinition) GetQuery() (string, error) {
 	return d.entrypointContents, nil
 }
 
-func (d *SQLDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts GetTaskOpts) error {
+func (d *SQLDefinition) copyToTask(task *api.Task, bc buildtypes.BuildConfig, opts GetTaskOpts) error {
 	// Check slugs first.
 	if resource := getResourceBySlug(opts.AvailableResources, d.Resource); resource != nil {
 		task.Resources["db"] = resource.ID
@@ -119,7 +119,7 @@ func (d *SQLDefinition) getAbsoluteEntrypoint() (string, error) {
 	return d.absoluteEntrypoint, nil
 }
 
-func (d *SQLDefinition) getKindOptions() (build.KindOptions, error) {
+func (d *SQLDefinition) getKindOptions() (buildtypes.KindOptions, error) {
 	query, err := d.GetQuery()
 	if err != nil {
 		return nil, err
@@ -127,7 +127,7 @@ func (d *SQLDefinition) getKindOptions() (build.KindOptions, error) {
 	if d.QueryArgs == nil {
 		d.QueryArgs = map[string]interface{}{}
 	}
-	return build.KindOptions{
+	return buildtypes.KindOptions{
 		"entrypoint":      d.Entrypoint,
 		"query":           query,
 		"queryArgs":       d.QueryArgs,
@@ -173,8 +173,8 @@ func (d *SQLDefinition) getResourceAttachments() map[string]string {
 	return map[string]string{"db": d.Resource}
 }
 
-func (d *SQLDefinition) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
-	return build.NoneBuildType, build.BuildTypeVersionUnspecified, build.BuildBaseNone
+func (d *SQLDefinition) getBuildType() (buildtypes.BuildType, buildtypes.BuildTypeVersion, buildtypes.BuildBase) {
+	return buildtypes.NoneBuildType, buildtypes.BuildTypeVersionUnspecified, buildtypes.BuildBaseNone
 }
-func (d *SQLDefinition) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
+func (d *SQLDefinition) SetBuildVersionBase(v buildtypes.BuildTypeVersion, b buildtypes.BuildBase) {
 }

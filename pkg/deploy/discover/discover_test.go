@@ -8,7 +8,7 @@ import (
 
 	"github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/api/mock"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 	"github.com/airplanedev/lib/pkg/utils/pointers"
@@ -25,7 +25,7 @@ func TestDiscover(t *testing.T) {
 		expectedErr         bool
 		expectedTaskConfigs []TaskConfig
 		expectedViewConfigs []ViewConfig
-		buildConfigs        []build.BuildConfig
+		buildConfigs        []buildtypes.BuildConfig
 		defnFilePaths       []string
 		absEntrypoints      []string
 	}{
@@ -33,7 +33,7 @@ func TestDiscover(t *testing.T) {
 			name:  "single script",
 			paths: []string{"./fixtures/single_task.js"},
 			existingTasks: map[string]api.Task{
-				"my_task": {ID: "tsk123", Slug: "my_task", Kind: build.TaskKindNode, InterpolationMode: "handlebars"},
+				"my_task": {ID: "tsk123", Slug: "my_task", Kind: buildtypes.TaskKindNode, InterpolationMode: "handlebars"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -56,7 +56,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceScript,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"workdir":    "",
 					"entrypoint": "single_task.js",
@@ -67,8 +67,8 @@ func TestDiscover(t *testing.T) {
 			name:  "multiple scripts",
 			paths: []string{"./fixtures/single_task.js", "./fixtures/single_task2.js"},
 			existingTasks: map[string]api.Task{
-				"my_task":  {ID: "tsk123", Slug: "my_task", Kind: build.TaskKindNode, InterpolationMode: "jst"},
-				"my_task2": {ID: "tsk456", Slug: "my_task2", Kind: build.TaskKindNode, InterpolationMode: "handlebars"},
+				"my_task":  {ID: "tsk123", Slug: "my_task", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
+				"my_task2": {ID: "tsk456", Slug: "my_task2", Kind: buildtypes.TaskKindNode, InterpolationMode: "handlebars"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -110,7 +110,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceScript,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"workdir":    "",
 					"entrypoint": "single_task.js",
@@ -125,8 +125,8 @@ func TestDiscover(t *testing.T) {
 			name:  "nested scripts",
 			paths: []string{"./fixtures/nestedScripts"},
 			existingTasks: map[string]api.Task{
-				"my_task":  {ID: "tsk123", Slug: "my_task", Kind: build.TaskKindNode, InterpolationMode: "jst"},
-				"my_task2": {ID: "tsk456", Slug: "my_task2", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+				"my_task":  {ID: "tsk123", Slug: "my_task", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
+				"my_task2": {ID: "tsk456", Slug: "my_task2", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -168,7 +168,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceScript,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"workdir":    "",
 					"entrypoint": "single_task.js",
@@ -183,7 +183,7 @@ func TestDiscover(t *testing.T) {
 			name:  "single defn",
 			paths: []string{"./fixtures/defn.task.yaml"},
 			existingTasks: map[string]api.Task{
-				"my_task": {ID: "tsk123", Slug: "my_task", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+				"my_task": {ID: "tsk123", Slug: "my_task", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -201,7 +201,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceDefn,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"workdir": "",
 				},
@@ -215,9 +215,9 @@ func TestDiscover(t *testing.T) {
 			name:  "task definitions with version in bundle",
 			paths: []string{"./fixtures/tasksWithVersion"},
 			existingTasks: map[string]api.Task{
-				"my_task":  {ID: "tsk121", Slug: "my_task", Kind: build.TaskKindNode, InterpolationMode: "jst"},
-				"my_task2": {ID: "tsk122", Slug: "my_task2", Kind: build.TaskKindNode, InterpolationMode: "jst"},
-				"my_task3": {ID: "tsk123", Slug: "my_task3", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+				"my_task":  {ID: "tsk121", Slug: "my_task", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
+				"my_task2": {ID: "tsk122", Slug: "my_task2", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
+				"my_task3": {ID: "tsk123", Slug: "my_task3", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -263,7 +263,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceDefn,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{"workdir": ""},
 				{"workdir": ""},
 				{"workdir": ""},
@@ -289,21 +289,21 @@ func TestDiscover(t *testing.T) {
 			name:  "defn task archived - deploy skipped",
 			paths: []string{"./fixtures/defn.task.yaml"},
 			existingTasks: map[string]api.Task{
-				"my_task": {ID: "tsk123", Slug: "my_task", Kind: build.TaskKindNode, InterpolationMode: "jst", IsArchived: true},
+				"my_task": {ID: "tsk123", Slug: "my_task", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst", IsArchived: true},
 			},
 		},
 		{
 			name:  "script task archived - deploy skipped",
 			paths: []string{"./fixtures/single_task.js"},
 			existingTasks: map[string]api.Task{
-				"my_task": {ID: "tsk123", Slug: "my_task", Kind: build.TaskKindNode, InterpolationMode: "jst", IsArchived: true},
+				"my_task": {ID: "tsk123", Slug: "my_task", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst", IsArchived: true},
 			},
 		},
 		{
 			name:  "same task, multiple discoverers",
 			paths: []string{"./fixtures/defn.task.yaml", "./fixtures/single_task.js"},
 			existingTasks: map[string]api.Task{
-				"my_task": {ID: "tsk123", Slug: "my_task", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+				"my_task": {ID: "tsk123", Slug: "my_task", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -321,7 +321,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceDefn,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"workdir": "",
 				},
@@ -335,7 +335,7 @@ func TestDiscover(t *testing.T) {
 			name:  "different working directory",
 			paths: []string{"./fixtures/subdir/single_task.js"},
 			existingTasks: map[string]api.Task{
-				"my_task": {ID: "tsk123", Slug: "my_task", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+				"my_task": {ID: "tsk123", Slug: "my_task", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -358,7 +358,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceScript,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"workdir":    "/subdir",
 					"entrypoint": "subdir/single_task.js",
@@ -369,7 +369,7 @@ func TestDiscover(t *testing.T) {
 			name:  "non linked script with def in same directory",
 			paths: []string{"./fixtures/nonlinkedscript/single_task.js"},
 			existingTasks: map[string]api.Task{
-				"my_task": {ID: "tsk123", Slug: "my_task", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+				"my_task": {ID: "tsk123", Slug: "my_task", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -388,7 +388,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceDefn,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"workdir":    "/nonlinkedscript",
 					"entrypoint": "nonlinkedscript/single_task.js",
@@ -403,7 +403,7 @@ func TestDiscover(t *testing.T) {
 			name:  "non linked script with def in same directory - entire directory deployed",
 			paths: []string{"./fixtures/nonlinkedscript"},
 			existingTasks: map[string]api.Task{
-				"my_task": {ID: "tsk123", Slug: "my_task", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+				"my_task": {ID: "tsk123", Slug: "my_task", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -422,7 +422,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceDefn,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"workdir":    "/nonlinkedscript",
 					"entrypoint": "nonlinkedscript/single_task.js",
@@ -437,7 +437,7 @@ func TestDiscover(t *testing.T) {
 			name:  "discovers definition when script is deployed",
 			paths: []string{"./fixtures/subdir/defn.task.yaml"},
 			existingTasks: map[string]api.Task{
-				"my_task": {ID: "tsk123", Slug: "my_task", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+				"my_task": {ID: "tsk123", Slug: "my_task", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -456,7 +456,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceDefn,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"workdir":    "/subdir",
 					"entrypoint": "subdir/single_task.js",
@@ -471,7 +471,7 @@ func TestDiscover(t *testing.T) {
 			name:  "defn - entrypoint does not exist",
 			paths: []string{"./fixtures/defn_incorrect_entrypoint.task.yaml"},
 			existingTasks: map[string]api.Task{
-				"incorrect_entrypoint": {ID: "tsk123", Slug: "incorrect_entrypoint", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+				"incorrect_entrypoint": {ID: "tsk123", Slug: "incorrect_entrypoint", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
 			},
 			expectedErr: true,
 		},
@@ -490,7 +490,7 @@ func TestDiscover(t *testing.T) {
 						Description:  "Test view yaml file",
 						Entrypoint:   fixturesPath + "/view/foo.js",
 						DefnFilePath: fixturesPath + "/view/defn.view.yaml",
-						Base:         build.BuildBaseSlim,
+						Base:         buildtypes.BuildBaseSlim,
 					},
 					Root:   fixturesPath,
 					Source: ConfigSourceDefn,
@@ -501,10 +501,10 @@ func TestDiscover(t *testing.T) {
 			name:  "python code definition",
 			paths: []string{"./fixtures/taskInline/python/task_a_airplane.py"},
 			existingTasks: map[string]api.Task{
-				"task_a": {ID: "tsk123", Slug: "task_a", Kind: build.TaskKindPython, InterpolationMode: "jst"},
-				"task_b": {ID: "tsk123", Slug: "task_b", Kind: build.TaskKindPython, InterpolationMode: "jst"},
-				"task_c": {ID: "tsk123", Slug: "task_c", Kind: build.TaskKindPython, InterpolationMode: "jst"},
-				"task_d": {ID: "tsk123", Slug: "task_d", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+				"task_a": {ID: "tsk123", Slug: "task_a", Kind: buildtypes.TaskKindPython, InterpolationMode: "jst"},
+				"task_b": {ID: "tsk123", Slug: "task_b", Kind: buildtypes.TaskKindPython, InterpolationMode: "jst"},
+				"task_c": {ID: "tsk123", Slug: "task_c", Kind: buildtypes.TaskKindPython, InterpolationMode: "jst"},
+				"task_d": {ID: "tsk123", Slug: "task_d", Kind: buildtypes.TaskKindPython, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -534,7 +534,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceCode,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"entrypoint":     "task_a_airplane.py",
 					"entrypointFunc": "task_a",
@@ -549,10 +549,10 @@ func TestDiscover(t *testing.T) {
 			name:  "python code definition import",
 			paths: []string{"./fixtures/taskInline/python/task_b_airplane.py"},
 			existingTasks: map[string]api.Task{
-				"task_a": {ID: "tsk123", Slug: "task_a", Kind: build.TaskKindPython, InterpolationMode: "jst"},
-				"task_b": {ID: "tsk123", Slug: "task_b", Kind: build.TaskKindPython, InterpolationMode: "jst"},
-				"task_c": {ID: "tsk123", Slug: "task_c", Kind: build.TaskKindPython, InterpolationMode: "jst"},
-				"task_d": {ID: "tsk123", Slug: "task_d", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+				"task_a": {ID: "tsk123", Slug: "task_a", Kind: buildtypes.TaskKindPython, InterpolationMode: "jst"},
+				"task_b": {ID: "tsk123", Slug: "task_b", Kind: buildtypes.TaskKindPython, InterpolationMode: "jst"},
+				"task_c": {ID: "tsk123", Slug: "task_c", Kind: buildtypes.TaskKindPython, InterpolationMode: "jst"},
+				"task_d": {ID: "tsk123", Slug: "task_d", Kind: buildtypes.TaskKindPython, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -582,7 +582,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceCode,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"entrypoint":     "task_b_airplane.py",
 					"entrypointFunc": "task_b",
@@ -597,10 +597,10 @@ func TestDiscover(t *testing.T) {
 			name:  "python code definition multiple import",
 			paths: []string{"./fixtures/taskInline/python/task_c_airplane.py"},
 			existingTasks: map[string]api.Task{
-				"task_a": {ID: "tsk123", Slug: "task_a", Kind: build.TaskKindPython, InterpolationMode: "jst"},
-				"task_b": {ID: "tsk123", Slug: "task_b", Kind: build.TaskKindPython, InterpolationMode: "jst"},
-				"task_c": {ID: "tsk123", Slug: "task_c", Kind: build.TaskKindPython, InterpolationMode: "jst"},
-				"task_d": {ID: "tsk123", Slug: "task_d", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+				"task_a": {ID: "tsk123", Slug: "task_a", Kind: buildtypes.TaskKindPython, InterpolationMode: "jst"},
+				"task_b": {ID: "tsk123", Slug: "task_b", Kind: buildtypes.TaskKindPython, InterpolationMode: "jst"},
+				"task_c": {ID: "tsk123", Slug: "task_c", Kind: buildtypes.TaskKindPython, InterpolationMode: "jst"},
+				"task_d": {ID: "tsk123", Slug: "task_d", Kind: buildtypes.TaskKindPython, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -656,7 +656,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceCode,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"entrypoint":     "task_c_airplane.py",
 					"entrypointFunc": "task_c",
@@ -679,7 +679,7 @@ func TestDiscover(t *testing.T) {
 			name:  "node code definition",
 			paths: []string{"./fixtures/taskInline/codeOnlyTask.airplane.ts"},
 			existingTasks: map[string]api.Task{
-				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+				"collatz": {ID: "tsk123", Slug: "collatz", Kind: buildtypes.TaskKindPython, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -701,7 +701,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceCode,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"entrypoint":     "taskInline/codeOnlyTask.airplane.ts",
 					"entrypointFunc": "collatz",
@@ -717,7 +717,7 @@ func TestDiscover(t *testing.T) {
 			name:  "node code definition with schedule",
 			paths: []string{"./fixtures/taskInlineSchedule/codeOnlyTask.airplane.ts"},
 			existingTasks: map[string]api.Task{
-				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+				"collatz": {ID: "tsk123", Slug: "collatz", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -742,7 +742,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceCode,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"entrypoint":     "taskInlineSchedule/codeOnlyTask.airplane.ts",
 					"entrypointFunc": "collatz",
@@ -758,7 +758,7 @@ func TestDiscover(t *testing.T) {
 			name:  "node code definition with schedule with error",
 			paths: []string{"./fixtures/taskInlineScheduleError/codeOnlyTask.airplane.ts"},
 			existingTasks: map[string]api.Task{
-				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+				"collatz": {ID: "tsk123", Slug: "collatz", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
 			},
 			expectedErr: true,
 		},
@@ -766,7 +766,7 @@ func TestDiscover(t *testing.T) {
 			name:  "node code definition with an esm dep",
 			paths: []string{"./fixtures/taskInlineEsm/codeOnlyTask.airplane.ts"},
 			existingTasks: map[string]api.Task{
-				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+				"collatz": {ID: "tsk123", Slug: "collatz", Kind: buildtypes.TaskKindPython, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -788,7 +788,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceCode,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"entrypoint":     "taskInlineEsm/codeOnlyTask.airplane.ts",
 					"entrypointFunc": "collatz",
@@ -804,7 +804,7 @@ func TestDiscover(t *testing.T) {
 			name:  "node code definition with env vars in code and in config file",
 			paths: []string{"./fixtures/envvars/codeOnlyTask.airplane.ts"},
 			existingTasks: map[string]api.Task{
-				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindPython, InterpolationMode: "jst"},
+				"collatz": {ID: "tsk123", Slug: "collatz", Kind: buildtypes.TaskKindPython, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -826,7 +826,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceCode,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"entrypoint":     "codeOnlyTask.airplane.ts",
 					"entrypointFunc": "collatz",
@@ -842,7 +842,7 @@ func TestDiscover(t *testing.T) {
 			name:  "node with bad import in unrelated file",
 			paths: []string{"./fixtures/badimport/main.airplane.ts"},
 			existingTasks: map[string]api.Task{
-				"collatz": {ID: "tsk123", Slug: "collatz", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+				"collatz": {ID: "tsk123", Slug: "collatz", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -858,7 +858,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceCode,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"entrypoint":     filepath.Join("badimport", "main.airplane.ts"),
 					"entrypointFunc": "default",
@@ -874,7 +874,7 @@ func TestDiscover(t *testing.T) {
 			name:  "single defn with env vars in defn and in config file",
 			paths: []string{"./fixtures/envvars/defn.task.yaml"},
 			existingTasks: map[string]api.Task{
-				"my_task": {ID: "tsk123", Slug: "my_task", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+				"my_task": {ID: "tsk123", Slug: "my_task", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
 			},
 			expectedTaskConfigs: []TaskConfig{
 				{
@@ -897,7 +897,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceDefn,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"workdir": "",
 				},
@@ -935,7 +935,7 @@ func TestDiscover(t *testing.T) {
 				"my_view": {ID: "view123", Slug: "my_view", Name: "My View"},
 			},
 			existingTasks: map[string]api.Task{
-				"my_task": {ID: "tsk123", Slug: "my_task", Kind: build.TaskKindNode, InterpolationMode: "jst"},
+				"my_task": {ID: "tsk123", Slug: "my_task", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
 			},
 			expectedViewConfigs: []ViewConfig{
 				{
@@ -966,7 +966,7 @@ func TestDiscover(t *testing.T) {
 					Source: ConfigSourceCode,
 				},
 			},
-			buildConfigs: []build.BuildConfig{
+			buildConfigs: []buildtypes.BuildConfig{
 				{
 					"entrypoint":     "viewInline-with-tasks/myView/myView.view.tsx",
 					"entrypointFunc": "myTask",

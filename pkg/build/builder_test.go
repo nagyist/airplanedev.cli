@@ -11,6 +11,8 @@ import (
 	"testing"
 
 	"github.com/airplanedev/dlog"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
+	"github.com/airplanedev/lib/pkg/build/utils"
 	"github.com/airplanedev/lib/pkg/examples"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -30,9 +32,9 @@ type BundleTestRun struct {
 type Test struct {
 	// Root is the task root to perform a build inside of.
 	Root        string
-	Kind        TaskKind
-	Options     KindOptions
-	ParamValues Values
+	Kind        buildtypes.TaskKind
+	Options     buildtypes.KindOptions
+	ParamValues buildtypes.Values
 	BuildArgs   map[string]string
 	SkipRun     bool
 	// SearchString is a string to look for in the example's output
@@ -44,7 +46,7 @@ type Test struct {
 
 	// Bundle-specific test config
 	Bundle          bool
-	BuildContext    BuildContext
+	BuildContext    buildtypes.BuildContext
 	FilesToBuild    []string
 	FilesToDiscover []string
 	BundleRuns      []BundleTestRun
@@ -115,7 +117,7 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 			}()
 
 			if test.ParamValues == nil {
-				test.ParamValues = Values{}
+				test.ParamValues = buildtypes.Values{}
 			}
 			if test.SearchString == "" {
 				test.SearchString = ksuid.New().String()
@@ -125,7 +127,7 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 			if !test.SkipRun {
 				if test.Bundle {
 					switch test.BuildContext.Type {
-					case NodeBuildType:
+					case buildtypes.NodeBuildType:
 						for _, testRun := range test.BundleRuns {
 							out := runTask(t, ctx, client, runTaskConfig{
 								Image:              resp.ImageURL,
@@ -140,7 +142,7 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 							}
 							require.True(strings.Contains(string(out), ss), "unable to find %q in output:\n%s", ss, string(out))
 						}
-					case PythonBuildType:
+					case buildtypes.PythonBuildType:
 						for _, testRun := range test.BundleRuns {
 							out := runTask(t, ctx, client, runTaskConfig{
 								Image:              resp.ImageURL,
@@ -155,7 +157,7 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 							}
 							require.True(strings.Contains(string(out), ss), "unable to find %q in output:\n%s", ss, string(out))
 						}
-					case ShellBuildType:
+					case buildtypes.ShellBuildType:
 						for _, testRun := range test.BundleRuns {
 							out := runTask(t, ctx, client, runTaskConfig{
 								Image:              resp.ImageURL,
@@ -186,10 +188,10 @@ func RunTests(tt *testing.T, ctx context.Context, tests []Test) {
 
 type runTaskConfig struct {
 	Image              string
-	ParamValues        Values
+	ParamValues        buildtypes.Values
 	Entrypoint         strslice.StrSlice
 	Cmd                strslice.StrSlice
-	Kind               TaskKind
+	Kind               buildtypes.TaskKind
 	ExpectedStatusCode int
 }
 
@@ -197,7 +199,7 @@ func runTask(t *testing.T, ctx context.Context, dclient *client.Client, c runTas
 	require := require.New(t)
 
 	cmd := c.Cmd
-	if c.Kind == TaskKindShell {
+	if c.Kind == buildtypes.TaskKindShell {
 		var params []string
 		for k, v := range c.ParamValues {
 			params = append(params, fmt.Sprintf("%s=%s", k, v))
@@ -299,7 +301,7 @@ func TestInlineString(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
 			assert := assert.New(t)
-			assert.Equal(tC.expected, inlineString(tC.input))
+			assert.Equal(tC.expected, utils.InlineString(tC.input))
 		})
 	}
 }

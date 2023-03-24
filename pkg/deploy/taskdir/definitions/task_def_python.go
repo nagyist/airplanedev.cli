@@ -4,7 +4,7 @@ import (
 	"path"
 
 	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/pkg/errors"
 )
 
@@ -13,15 +13,15 @@ var _ taskKind = &PythonDefinition{}
 type PythonDefinition struct {
 	// Entrypoint is the relative path from the task definition file to the script. It does not
 	// apply for inline configured tasks.
-	Entrypoint string          `json:"entrypoint"`
-	EnvVars    api.TaskEnv     `json:"envVars,omitempty"`
-	Base       build.BuildBase `json:"base,omitempty"`
-	Version    string          `json:"-"`
+	Entrypoint string               `json:"entrypoint"`
+	EnvVars    api.TaskEnv          `json:"envVars,omitempty"`
+	Base       buildtypes.BuildBase `json:"base,omitempty"`
+	Version    string               `json:"-"`
 
 	absoluteEntrypoint string `json:"-"`
 }
 
-func (d *PythonDefinition) copyToTask(task *api.Task, bc build.BuildConfig, opts GetTaskOpts) error {
+func (d *PythonDefinition) copyToTask(task *api.Task, bc buildtypes.BuildConfig, opts GetTaskOpts) error {
 	task.Env = d.EnvVars
 	if opts.Bundle {
 		entrypointFunc, _ := bc["entrypointFunc"].(string)
@@ -52,10 +52,10 @@ func (d *PythonDefinition) update(t api.UpdateTaskRequest, availableResources []
 		}
 	}
 	if v, ok := t.KindOptions["base"]; ok {
-		if sv, ok := v.(build.BuildBase); ok {
+		if sv, ok := v.(buildtypes.BuildBase); ok {
 			d.Base = sv
 		} else if sv, ok := v.(string); ok {
-			d.Base = build.BuildBase(sv)
+			d.Base = buildtypes.BuildBase(sv)
 		} else {
 			return errors.Errorf("expected string base, got %T instead", v)
 		}
@@ -81,8 +81,8 @@ func (d *PythonDefinition) getAbsoluteEntrypoint() (string, error) {
 	return d.absoluteEntrypoint, nil
 }
 
-func (d *PythonDefinition) getKindOptions() (build.KindOptions, error) {
-	ko := build.KindOptions{}
+func (d *PythonDefinition) getKindOptions() (buildtypes.KindOptions, error) {
+	ko := buildtypes.KindOptions{}
 	if d.Entrypoint != "" {
 		ko["entrypoint"] = d.Entrypoint
 	}
@@ -116,11 +116,11 @@ func (d *PythonDefinition) getResourceAttachments() map[string]string {
 	return nil
 }
 
-func (d *PythonDefinition) getBuildType() (build.BuildType, build.BuildTypeVersion, build.BuildBase) {
-	return build.PythonBuildType, build.BuildTypeVersion(d.Version), d.Base
+func (d *PythonDefinition) getBuildType() (buildtypes.BuildType, buildtypes.BuildTypeVersion, buildtypes.BuildBase) {
+	return buildtypes.PythonBuildType, buildtypes.BuildTypeVersion(d.Version), d.Base
 }
 
-func (d *PythonDefinition) SetBuildVersionBase(v build.BuildTypeVersion, b build.BuildBase) {
+func (d *PythonDefinition) SetBuildVersionBase(v buildtypes.BuildTypeVersion, b buildtypes.BuildBase) {
 	if d.Version == "" {
 		d.Version = string(v)
 	}

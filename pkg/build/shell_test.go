@@ -3,6 +3,8 @@ package build
 import (
 	"context"
 	"testing"
+
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 )
 
 func TestShellBuilder(t *testing.T) {
@@ -11,16 +13,16 @@ func TestShellBuilder(t *testing.T) {
 	tests := []Test{
 		{
 			Root: "shell/simple",
-			Kind: TaskKindShell,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindShell,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.sh",
 			},
 		},
 		{
 			Root: "shell/simple",
-			Kind: TaskKindShell,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindShell,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.sh",
 			},
@@ -31,8 +33,8 @@ func TestShellBuilder(t *testing.T) {
 		},
 		{
 			Root: "shell/simple",
-			Kind: TaskKindShell,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindShell,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.sh",
 			},
@@ -43,8 +45,8 @@ func TestShellBuilder(t *testing.T) {
 		},
 		{
 			Root: "shell/ubuntu",
-			Kind: TaskKindShell,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindShell,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.sh",
 			},
@@ -52,8 +54,8 @@ func TestShellBuilder(t *testing.T) {
 		},
 		{
 			Root: "shell/zcli",
-			Kind: TaskKindShell,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindShell,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.sh",
 			},
@@ -61,8 +63,8 @@ func TestShellBuilder(t *testing.T) {
 		},
 		{
 			Root: "shell/diff-workdir",
-			Kind: TaskKindShell,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindShell,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.sh",
 			},
@@ -70,8 +72,8 @@ func TestShellBuilder(t *testing.T) {
 		},
 		{
 			Root: "shell/ubuntu-no-newline",
-			Kind: TaskKindShell,
-			Options: KindOptions{
+			Kind: buildtypes.TaskKindShell,
+			Options: buildtypes.KindOptions{
 				"shim":       "true",
 				"entrypoint": "main.sh",
 			},
@@ -86,9 +88,9 @@ func TestShellBundleBuilder(t *testing.T) {
 	tests := []Test{
 		{
 			Root: "shell/simple",
-			Kind: TaskKindShell,
-			BuildContext: BuildContext{
-				Type: ShellBuildType,
+			Kind: buildtypes.TaskKindShell,
+			BuildContext: buildtypes.BuildContext{
+				Type: buildtypes.ShellBuildType,
 			},
 			Bundle: true,
 			BundleRuns: []BundleTestRun{
@@ -100,9 +102,9 @@ func TestShellBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "shell/simple",
-			Kind: TaskKindShell,
-			BuildContext: BuildContext{
-				Type: ShellBuildType,
+			Kind: buildtypes.TaskKindShell,
+			BuildContext: buildtypes.BuildContext{
+				Type: buildtypes.ShellBuildType,
 			},
 			ParamValues: map[string]interface{}{
 				"param_one": "testtest",
@@ -117,9 +119,9 @@ func TestShellBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "shell/simple",
-			Kind: TaskKindShell,
-			BuildContext: BuildContext{
-				Type: ShellBuildType,
+			Kind: buildtypes.TaskKindShell,
+			BuildContext: buildtypes.BuildContext{
+				Type: buildtypes.ShellBuildType,
 			},
 			ParamValues: map[string]interface{}{
 				"param_one": "firstline\nsecondline",
@@ -134,9 +136,9 @@ func TestShellBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "shell/ubuntu",
-			Kind: TaskKindShell,
-			BuildContext: BuildContext{
-				Type: ShellBuildType,
+			Kind: buildtypes.TaskKindShell,
+			BuildContext: buildtypes.BuildContext{
+				Type: buildtypes.ShellBuildType,
 			},
 			Bundle: true,
 			BundleRuns: []BundleTestRun{
@@ -148,9 +150,9 @@ func TestShellBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "shell/zcli",
-			Kind: TaskKindShell,
-			BuildContext: BuildContext{
-				Type: ShellBuildType,
+			Kind: buildtypes.TaskKindShell,
+			BuildContext: buildtypes.BuildContext{
+				Type: buildtypes.ShellBuildType,
 			},
 			Bundle: true,
 			BundleRuns: []BundleTestRun{
@@ -162,9 +164,9 @@ func TestShellBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "shell/diff-workdir",
-			Kind: TaskKindShell,
-			BuildContext: BuildContext{
-				Type: ShellBuildType,
+			Kind: buildtypes.TaskKindShell,
+			BuildContext: buildtypes.BuildContext{
+				Type: buildtypes.ShellBuildType,
 			},
 			Bundle: true,
 			BundleRuns: []BundleTestRun{
@@ -176,9 +178,9 @@ func TestShellBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "shell/ubuntu-no-newline",
-			Kind: TaskKindShell,
-			BuildContext: BuildContext{
-				Type: ShellBuildType,
+			Kind: buildtypes.TaskKindShell,
+			BuildContext: buildtypes.BuildContext{
+				Type: buildtypes.ShellBuildType,
 			},
 			Bundle: true,
 			BundleRuns: []BundleTestRun{
@@ -190,9 +192,9 @@ func TestShellBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "shell/multiplescripts",
-			Kind: TaskKindShell,
-			BuildContext: BuildContext{
-				Type: ShellBuildType,
+			Kind: buildtypes.TaskKindShell,
+			BuildContext: buildtypes.BuildContext{
+				Type: buildtypes.ShellBuildType,
 			},
 			Bundle: true,
 			BundleRuns: []BundleTestRun{
@@ -212,9 +214,9 @@ func TestShellBundleBuilder(t *testing.T) {
 		},
 		{
 			Root: "shell/dockerfilewithentrypoint",
-			Kind: TaskKindShell,
-			BuildContext: BuildContext{
-				Type: ShellBuildType,
+			Kind: buildtypes.TaskKindShell,
+			BuildContext: buildtypes.BuildContext{
+				Type: buildtypes.ShellBuildType,
 			},
 			Bundle: true,
 			BundleRuns: []BundleTestRun{
