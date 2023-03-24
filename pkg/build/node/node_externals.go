@@ -1,4 +1,4 @@
-package build
+package node
 
 import (
 	"encoding/json"

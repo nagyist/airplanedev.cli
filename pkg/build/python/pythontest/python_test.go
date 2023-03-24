@@ -1,16 +1,17 @@
-package build
+package pythontest
 
 import (
 	"context"
 	"testing"
 
+	"github.com/airplanedev/lib/pkg/build"
 	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 )
 
 func TestPythonBuilder(t *testing.T) {
 	ctx := context.Background()
 
-	tests := []Test{
+	tests := []build.Test{
 		{
 			Root: "python/simple",
 			Kind: buildtypes.TaskKindPython,
@@ -87,13 +88,13 @@ func TestPythonBuilder(t *testing.T) {
 		},
 	}
 
-	RunTests(t, ctx, tests)
+	build.RunTests(t, ctx, tests)
 }
 
 func TestPythonBundleBuilder(t *testing.T) {
 	ctx := context.Background()
 
-	tests := []Test{
+	tests := []build.Test{
 		{
 			Root: "python/simple",
 			Kind: buildtypes.TaskKindPython,
@@ -108,7 +109,7 @@ func TestPythonBundleBuilder(t *testing.T) {
 				Type:    buildtypes.PythonBuildType,
 				Version: buildtypes.BuildTypeVersionPython310,
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.py",
 					SearchString:  "'hello': 'world'",
@@ -130,7 +131,7 @@ func TestPythonBundleBuilder(t *testing.T) {
 				Version: buildtypes.BuildTypeVersionPython310,
 				Base:    buildtypes.BuildBaseSlim,
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.py",
 					SearchString:  "'hello': 'world'",
@@ -149,7 +150,7 @@ func TestPythonBundleBuilder(t *testing.T) {
 				Version: buildtypes.BuildTypeVersionPython310,
 				Base:    buildtypes.BuildBaseSlim,
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.py",
 					SearchString:  "[1]",
@@ -168,7 +169,7 @@ func TestPythonBundleBuilder(t *testing.T) {
 				Version: buildtypes.BuildTypeVersionPython310,
 				Base:    buildtypes.BuildBaseSlim,
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.py",
 					SearchString:  "[1]",
@@ -187,7 +188,7 @@ func TestPythonBundleBuilder(t *testing.T) {
 				Version: buildtypes.BuildTypeVersionPython310,
 				Base:    buildtypes.BuildBaseSlim,
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.py",
 					SearchString:  "preinstall='hello from preinstall' postinstall='hello from postinstall'",
@@ -206,7 +207,7 @@ func TestPythonBundleBuilder(t *testing.T) {
 				Version: buildtypes.BuildTypeVersionPython310,
 				Base:    buildtypes.BuildBaseSlim,
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "foo/bar/main.py",
 					SearchString:  "preinstall='hello from preinstall' postinstall='hello from postinstall'",
@@ -240,7 +241,7 @@ func TestPythonBundleBuilder(t *testing.T) {
 				"rootInlineTask_airplane.py",
 				"subfolder/subfolderInlineTask_airplane.py",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "rootInlineTask_airplane.py",
 					ExportName:    "my_task",
@@ -276,7 +277,7 @@ func TestPythonBundleBuilder(t *testing.T) {
 			FilesToDiscover: []string{
 				"taskmod/task/my_task_airplane.py",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "taskmod/task/my_task_airplane.py",
 					ExportName:    "import_task",
@@ -298,7 +299,7 @@ func TestPythonBundleBuilder(t *testing.T) {
 			FilesToDiscover: []string{
 				"main_airplane.py",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main_airplane.py",
 					ExportName:    "my_task",
@@ -309,5 +310,5 @@ func TestPythonBundleBuilder(t *testing.T) {
 		},
 	}
 
-	RunTests(t, ctx, tests)
+	build.RunTests(t, ctx, tests)
 }

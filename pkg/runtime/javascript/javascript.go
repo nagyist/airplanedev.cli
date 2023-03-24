@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/build/node"
 	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	buildversions "github.com/airplanedev/lib/pkg/build/versions"
 	"github.com/airplanedev/lib/pkg/deploy/config"
@@ -311,7 +311,7 @@ func (r Runtime) Root(path string) (string, error) {
 
 	// Unless the root is overridden with an `airplane.root` field
 	// in a `package.json`.
-	pkg, err := build.ReadPackageJSON(root)
+	pkg, err := node.ReadPackageJSON(root)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			// No package.json, use workdir as root.
@@ -328,7 +328,7 @@ func (r Runtime) Root(path string) (string, error) {
 }
 
 func (r Runtime) Version(rootPath string) (buildVersion buildtypes.BuildTypeVersion, err error) {
-	pkg, err := build.ReadPackageJSON(rootPath)
+	pkg, err := node.ReadPackageJSON(rootPath)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return "", err
 	}
@@ -407,7 +407,7 @@ func (r Runtime) PrepareRun(
 		return nil, nil, err
 	}
 
-	shim := build.UniversalNodeShim
+	shim := node.UniversalNodeShim
 	shimPath := filepath.Join(taskDir, "shim.js")
 	if err := os.WriteFile(shimPath, []byte(shim), 0644); err != nil {
 		return nil, nil, errors.Wrap(err, "writing shim file")
@@ -415,12 +415,12 @@ func (r Runtime) PrepareRun(
 
 	// Install the dependencies we need for our shim file:
 	rootPackageJSON := filepath.Join(root, "package.json")
-	packageJSONs, usesWorkspaces, err := build.GetPackageJSONs(rootPackageJSON)
+	packageJSONs, usesWorkspaces, err := node.GetPackageJSONs(rootPackageJSON)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "getting package JSONs")
 	}
 
-	pjson, err := build.GenShimPackageJSON(build.GenShimPackageJSONOpts{
+	pjson, err := node.GenShimPackageJSON(node.GenShimPackageJSONOpts{
 		RootDir:      root,
 		PackageJSONs: packageJSONs,
 		IsWorkflow:   false,
@@ -464,7 +464,7 @@ func (r Runtime) PrepareRun(
 
 	// Workaround to get esbuild to not bundle dependencies.
 	// See build.ExternalPackages for details.
-	externalDeps, err := build.ExternalPackages(packageJSONs, usesWorkspaces)
+	externalDeps, err := node.ExternalPackages(packageJSONs, usesWorkspaces)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -476,7 +476,7 @@ func (r Runtime) PrepareRun(
 
 	// Save esbuild.js which we will use to run the build.
 	esBuildPath := filepath.Join(airplaneDir, "esbuild.js")
-	if err := os.WriteFile(esBuildPath, []byte(build.Esbuild), 0644); err != nil {
+	if err := os.WriteFile(esBuildPath, []byte(node.Esbuild), 0644); err != nil {
 		return nil, nil, errors.Wrap(err, "writing esbuild file")
 	}
 
@@ -495,7 +495,7 @@ func (r Runtime) PrepareRun(
 			"node",
 			esBuildPath,
 			string(shimEntrypointsData),
-			"node"+build.GetNodeVersion(opts.KindOptions),
+			"node"+node.GetNodeVersion(opts.KindOptions),
 			string(externalDepsData),
 			builtShimPath,
 		)
@@ -541,7 +541,7 @@ func (r Runtime) PrepareRun(
 		"node",
 		esBuildPath,
 		string(entrypointsData),
-		"node"+build.GetNodeVersion(opts.KindOptions),
+		"node"+node.GetNodeVersion(opts.KindOptions),
 		string(externalDepsData),
 		"",
 		filepath.Join(runDir, "dist"),

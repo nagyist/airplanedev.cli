@@ -1,4 +1,4 @@
-package build
+package node
 
 import (
 	_ "embed"
@@ -67,7 +67,7 @@ type templateParams struct {
 	FilesToDiscover string
 }
 
-func getNodeBundleBuildInstructions(
+func GetNodeBundleBuildInstructions(
 	root string,
 	options buildtypes.KindOptions,
 ) (buildtypes.BuildInstructions, error) {
@@ -90,7 +90,7 @@ func getNodeBundleBuildInstructions(
 		},
 	}
 
-	installInstructions, err := getNodeInstallInstructions(root, "/airplane")
+	installInstructions, err := GetNodeInstallInstructions(root, "/airplane")
 	if err != nil {
 		return buildtypes.BuildInstructions{}, err
 	}
@@ -110,7 +110,7 @@ func getNodeBundleBuildInstructions(
 	}, nil
 }
 
-func getNodeInstallInstructions(
+func GetNodeInstallInstructions(
 	root string,
 	sourceCodeDest string,
 ) ([]buildtypes.InstallInstruction, error) {
@@ -377,8 +377,8 @@ func getNodeLegacyBuildInstructions(root string, options buildtypes.KindOptions)
 	}, nil
 }
 
-// node creates a dockerfile for Node (typescript/javascript).
-func node(
+// Node creates a dockerfile for Node (typescript/javascript).
+func Node(
 	root string,
 	options buildtypes.KindOptions,
 	buildArgs []string,
@@ -521,7 +521,7 @@ func node(
 
 	baseImageType, _ := options["base"].(buildtypes.BuildBase)
 	cfg.UseSlimImage = baseImageType == buildtypes.BuildBaseSlim
-	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion, cfg.UseSlimImage)
+	cfg.Base, err = GetBaseNodeImage(cfg.NodeVersion, cfg.UseSlimImage)
 	if err != nil {
 		return "", err
 	}
@@ -673,7 +673,7 @@ func node(
 	`), cfg)
 }
 
-type shimPackageJSON struct {
+type ShimPackageJSON struct {
 	Dependencies map[string]string `json:"dependencies"`
 	Type         string            `json:"type,omitempty"`
 }
@@ -734,7 +734,7 @@ func GenShimPackageJSON(opts GenShimPackageJSONOpts) ([]byte, error) {
 		requiredDepsMap[de] = buildToolsPackageJSON.Dependencies[de]
 	}
 
-	pjson := shimPackageJSON{
+	pjson := ShimPackageJSON{
 		Dependencies: requiredDepsMap,
 	}
 	b, err := json.Marshal(pjson)
@@ -850,7 +850,7 @@ func nodeLegacyBuilder(root string, options buildtypes.KindOptions) (string, err
 	}
 	entrypoint = path.Join(buildWorkdir, entrypoint)
 
-	baseImage, err := getBaseNodeImage(GetNodeVersion(options), false)
+	baseImage, err := GetBaseNodeImage(GetNodeVersion(options), false)
 	if err != nil {
 		return "", err
 	}
@@ -881,7 +881,7 @@ func nodeLegacyBuilder(root string, options buildtypes.KindOptions) (string, err
 	})
 }
 
-func getBaseNodeImage(version string, slim bool) (string, error) {
+func GetBaseNodeImage(version string, slim bool) (string, error) {
 	if version == "" {
 		version = string(buildtypes.DefaultNodeVersion)
 	}
@@ -979,8 +979,8 @@ func ReadPackageJSON(path string) (PackageJSON, error) {
 	return p, nil
 }
 
-// nodeBundle creates a dockerfile for all Node tasks/workflows within a task root (typescript/javascript).
-func nodeBundle(
+// NodeBundle creates a dockerfile for all Node tasks/workflows within a task root (typescript/javascript).
+func NodeBundle(
 	root string,
 	buildContext buildtypes.BuildContext,
 	options buildtypes.KindOptions,
@@ -997,7 +997,7 @@ func nodeBundle(
 		return nodeLegacyBuilder(root, options)
 	}
 
-	instructions, err := getNodeBundleBuildInstructions(root, options)
+	instructions, err := GetNodeBundleBuildInstructions(root, options)
 	if err != nil {
 		return "", err
 	}
@@ -1111,7 +1111,7 @@ func nodeBundle(
 	}
 
 	cfg.UseSlimImage = buildContext.Base == buildtypes.BuildBaseSlim
-	cfg.Base, err = getBaseNodeImage(cfg.NodeVersion, cfg.UseSlimImage)
+	cfg.Base, err = GetBaseNodeImage(cfg.NodeVersion, cfg.UseSlimImage)
 	if err != nil {
 		return "", err
 	}

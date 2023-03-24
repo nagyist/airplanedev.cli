@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/build/node"
 	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
@@ -21,7 +21,7 @@ import (
 func esbuildUserFiles(log logger.Logger, rootDir, file string) error {
 	rootPackageJSON := filepath.Join(rootDir, "package.json")
 	hasPackageJSON := fsx.AssertExistsAll(rootPackageJSON) == nil
-	packageJSONs, usesWorkspaces, err := build.GetPackageJSONs(rootPackageJSON)
+	packageJSONs, usesWorkspaces, err := node.GetPackageJSONs(rootPackageJSON)
 	if err != nil {
 		return err
 	}
@@ -29,7 +29,7 @@ func esbuildUserFiles(log logger.Logger, rootDir, file string) error {
 	if hasPackageJSON {
 		// Workaround to get esbuild to not bundle dependencies.
 		// See build.ExternalPackages for details.
-		externals, err = build.ExternalPackages(packageJSONs, usesWorkspaces)
+		externals, err = node.ExternalPackages(packageJSONs, usesWorkspaces)
 		if err != nil {
 			return err
 		}

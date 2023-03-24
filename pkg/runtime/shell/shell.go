@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/build/shell"
 	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
@@ -63,7 +63,7 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		return nil, nil, err
 	}
 
-	if dockerfilePath := build.FindDockerfile(root); dockerfilePath != "" {
+	if dockerfilePath := shell.FindDockerfile(root); dockerfilePath != "" {
 		logger.Warning("Found Dockerfile at %s.", dockerfilePath)
 		logger.Warning("`airplane dev` does not currently support running inside a Docker image.")
 		logger.Warning("The script will run inside your local machine environment.")
@@ -82,7 +82,7 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		}
 	}()
 
-	shim := build.ShellShim()
+	shim := shell.ShellShim()
 	if err := os.WriteFile(filepath.Join(taskDir, "shim.sh"), []byte(shim), 0644); err != nil {
 		return nil, nil, errors.Wrap(err, "writing shim file")
 	}
@@ -136,7 +136,7 @@ func (r Runtime) Workdir(path string) (string, error) {
 
 // Root implementation.
 func (r Runtime) Root(path string) (string, error) {
-	for _, filePath := range build.DockerfilePaths() {
+	for _, filePath := range shell.DockerfilePaths() {
 		if root, ok := fsx.Find(path, filePath); ok {
 			return root, nil
 		}

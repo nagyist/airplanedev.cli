@@ -10,8 +10,12 @@ import (
 	"strings"
 
 	"github.com/airplanedev/lib/pkg/build/ignore"
+	"github.com/airplanedev/lib/pkg/build/node"
+	"github.com/airplanedev/lib/pkg/build/python"
+	"github.com/airplanedev/lib/pkg/build/shell"
 	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/build/utils"
+	"github.com/airplanedev/lib/pkg/build/views"
 	"github.com/airplanedev/lib/pkg/utils/bufiox"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -287,13 +291,13 @@ func (b *BundleBuilder) authconfigs() map[string]types.AuthConfig {
 func BuildBundleDockerfile(c BundleDockerfileConfig) (string, error) {
 	switch c.BuildContext.Type {
 	case buildtypes.NodeBuildType:
-		return nodeBundle(c.Root, c.BuildContext, c.Options, c.BuildArgKeys, c.FilesToBuild, c.FilesToDiscover)
+		return node.NodeBundle(c.Root, c.BuildContext, c.Options, c.BuildArgKeys, c.FilesToBuild, c.FilesToDiscover)
 	case buildtypes.ShellBuildType:
-		return shellBundle(c.Root)
+		return shell.ShellBundle(c.Root)
 	case buildtypes.ViewBuildType:
-		return viewBundle(c.Root, c.BuildContext, c.Options, c.FilesToBuild, c.FilesToDiscover)
+		return views.ViewBundle(c.Root, c.BuildContext, c.Options, c.FilesToBuild, c.FilesToDiscover)
 	case buildtypes.PythonBuildType:
-		return pythonBundle(c.Root, c.BuildContext, c.Options, c.BuildArgKeys, c.FilesToDiscover)
+		return python.PythonBundle(c.Root, c.BuildContext, c.Options, c.BuildArgKeys, c.FilesToDiscover)
 	default:
 		return "", errors.Errorf("build: unknown build type %v", c.BuildContext.Type)
 	}
@@ -302,9 +306,9 @@ func BuildBundleDockerfile(c BundleDockerfileConfig) (string, error) {
 func GetBundleBuildInstructions(c BundleDockerfileConfig) (buildtypes.BuildInstructions, error) {
 	switch c.BuildContext.Type {
 	case buildtypes.PythonBuildType:
-		return getPythonBundleBuildInstructions(c.Root, c.Options, "")
+		return python.GetPythonBundleBuildInstructions(c.Root, c.Options, "")
 	case buildtypes.NodeBuildType:
-		return getNodeBundleBuildInstructions(c.Root, c.Options)
+		return node.GetNodeBundleBuildInstructions(c.Root, c.Options)
 	default:
 		return buildtypes.BuildInstructions{}, buildtypes.ErrUnsupportedBuilder{
 			Type: c.BuildContext.Type,

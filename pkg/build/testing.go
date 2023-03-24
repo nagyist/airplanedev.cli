@@ -12,14 +12,12 @@ import (
 
 	"github.com/airplanedev/dlog"
 	buildtypes "github.com/airplanedev/lib/pkg/build/types"
-	"github.com/airplanedev/lib/pkg/build/utils"
 	"github.com/airplanedev/lib/pkg/examples"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/strslice"
 	"github.com/docker/docker/client"
 	"github.com/segmentio/ksuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -269,39 +267,4 @@ func runTask(t *testing.T, ctx context.Context, dclient *client.Client, c runTas
 	}
 
 	return logs
-}
-
-func TestInlineString(t *testing.T) {
-	testCases := []struct {
-		desc     string
-		input    string
-		expected string
-	}{
-		{
-			desc:     "escapes single quotes",
-			input:    `The sheep couldn't sleep, no matter how many humans he counted.`,
-			expected: `printf 'The sheep couldn'"'"'t sleep, no matter how many humans he counted.'`,
-		},
-		{
-			desc:     "escapes multiple single quotes",
-			input:    `'''`,
-			expected: `printf ''"'"''"'"''"'"''`,
-		},
-		{
-			desc:     "escapes percent signs",
-			input:    `I am 30% better than you!`,
-			expected: `printf 'I am 30%% better than you!'`,
-		},
-		{
-			desc:     "newlines are preserved",
-			input:    `hi\nline`,
-			expected: `printf 'hi\nline'`,
-		},
-	}
-	for _, tC := range testCases {
-		t.Run(tC.desc, func(t *testing.T) {
-			assert := assert.New(t)
-			assert.Equal(tC.expected, utils.InlineString(tC.input))
-		})
-	}
 }

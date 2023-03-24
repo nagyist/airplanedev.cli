@@ -1,4 +1,4 @@
-package build
+package views
 
 import (
 	_ "embed"
@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc/v2"
+	"github.com/airplanedev/lib/pkg/build/node"
 	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/build/utils"
 	"github.com/airplanedev/lib/pkg/deploy/discover/parser"
@@ -17,8 +18,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// view creates a dockerfile for a view.
-func view(root string, options buildtypes.KindOptions) (string, error) {
+// View creates a dockerfile for a view.
+func View(root string, options buildtypes.KindOptions) (string, error) {
 	// Assert that the entrypoint file exists:
 	entrypoint, _ := options["entrypoint"].(string)
 	if entrypoint == "" {
@@ -38,7 +39,7 @@ func view(root string, options buildtypes.KindOptions) (string, error) {
 	}
 
 	// TODO: possibly support multiple build tools.
-	base, err := getBaseNodeImage("", false)
+	base, err := node.GetBaseNodeImage("", false)
 	if err != nil {
 		return "", err
 	}
@@ -156,8 +157,8 @@ func view(root string, options buildtypes.KindOptions) (string, error) {
 	`), cfg)
 }
 
-// viewBundle creates a dockerfile for all views within a root.
-func viewBundle(root string, buildContext buildtypes.BuildContext, options buildtypes.KindOptions, filesToBuild []string,
+// ViewBundle creates a dockerfile for all views within a root.
+func ViewBundle(root string, buildContext buildtypes.BuildContext, options buildtypes.KindOptions, filesToBuild []string,
 	filesToDiscover []string) (string, error) {
 	// Assert that API host is set.
 	apiHost, _ := options["apiHost"].(string)
@@ -169,8 +170,8 @@ func viewBundle(root string, buildContext buildtypes.BuildContext, options build
 	}
 
 	useSlimImage := buildContext.Base == buildtypes.BuildBaseSlim
-	nodeVersion := GetNodeVersion(options)
-	base, err := getBaseNodeImage(nodeVersion, useSlimImage)
+	nodeVersion := node.GetNodeVersion(options)
+	base, err := node.GetBaseNodeImage(nodeVersion, useSlimImage)
 	if err != nil {
 		return "", err
 	}
@@ -204,12 +205,12 @@ func viewBundle(root string, buildContext buildtypes.BuildContext, options build
 	hasTailwind := fsx.Exists(tailwindPath)
 
 	rootPackageJSONPath := filepath.Join(root, "package.json")
-	packageJSONs, usesWorkspaces, err := GetPackageJSONs(rootPackageJSONPath)
+	packageJSONs, usesWorkspaces, err := node.GetPackageJSONs(rootPackageJSONPath)
 	if err != nil {
 		return "", err
 	}
 
-	ii, err := getNodeInstallInstructions(root, "/airplane/src")
+	ii, err := node.GetNodeInstallInstructions(root, "/airplane/src")
 	if err != nil {
 		return "", err
 	}
@@ -230,7 +231,7 @@ func viewBundle(root string, buildContext buildtypes.BuildContext, options build
 
 	// Workaround to get esbuild to not bundle dependencies.
 	// See build.ExternalPackages for details.
-	externalPackages, err := ExternalPackages(packageJSONs, usesWorkspaces)
+	externalPackages, err := node.ExternalPackages(packageJSONs, usesWorkspaces)
 	if err != nil {
 		return "", err
 	}
@@ -269,12 +270,12 @@ func viewBundle(root string, buildContext buildtypes.BuildContext, options build
 	if err := os.WriteFile(path.Join(buildToolsPath, "gen_view.sh"), []byte(genViewStr), 0755); err != nil {
 		return "", errors.Wrap(err, "writing gen view script")
 	}
-	if err := os.WriteFile(path.Join(buildToolsPath, "esbuild.js"), []byte(Esbuild), 0755); err != nil {
+	if err := os.WriteFile(path.Join(buildToolsPath, "esbuild.js"), []byte(node.Esbuild), 0755); err != nil {
 		return "", errors.Wrap(err, "writing esbuild script")
 	}
 
-	var buildToolsPackageJSON PackageJSON
-	if err := json.Unmarshal([]byte(BuildToolsPackageJSON), &buildToolsPackageJSON); err != nil {
+	var buildToolsPackageJSON node.PackageJSON
+	if err := json.Unmarshal([]byte(node.BuildToolsPackageJSON), &buildToolsPackageJSON); err != nil {
 		return "", errors.Wrap(err, "unmarshaling build tools package.json")
 	}
 
@@ -389,15 +390,15 @@ func viewBundle(root string, buildContext buildtypes.BuildContext, options build
 	`), cfg)
 }
 
-func GenViewsShimPackageJSON(packageJSONs []string) (shimPackageJSON, error) {
-	existingDeps, err := ListDependenciesFromPackageJSONs(packageJSONs)
+func GenViewsShimPackageJSON(packageJSONs []string) (node.ShimPackageJSON, error) {
+	existingDeps, err := node.ListDependenciesFromPackageJSONs(packageJSONs)
 	if err != nil {
-		return shimPackageJSON{}, err
+		return node.ShimPackageJSON{}, err
 	}
 
-	var buildToolsPackageJSON PackageJSON
-	if err := json.Unmarshal([]byte(BuildToolsPackageJSON), &buildToolsPackageJSON); err != nil {
-		return shimPackageJSON{}, errors.Wrap(err, "unmarshaling build tools package.json")
+	var buildToolsPackageJSON node.PackageJSON
+	if err := json.Unmarshal([]byte(node.BuildToolsPackageJSON), &buildToolsPackageJSON); err != nil {
+		return node.ShimPackageJSON{}, errors.Wrap(err, "unmarshaling build tools package.json")
 	}
 
 	shimDeps := []string{"@airplane/views", "react", "react-dom", "object-hash"}
@@ -417,15 +418,15 @@ func GenViewsShimPackageJSON(packageJSONs []string) (shimPackageJSON, error) {
 		requiredDepsMap[de] = buildToolsPackageJSON.Dependencies[de]
 	}
 
-	return shimPackageJSON{
+	return node.ShimPackageJSON{
 		Dependencies: requiredDepsMap,
 	}, nil
 }
 
-//go:embed views/vite.config.ts
+//go:embed static/vite.config.ts
 var viteConfigTemplateStr string
 
-//go:embed views/universal-vite.config.ts
+//go:embed static/universal-vite.config.ts
 var universalViteConfigTemplateStr string
 
 type ViteConfigOpts struct {
@@ -475,10 +476,10 @@ func UniversalViteConfigString(entrypoints []string) (string, error) {
 	})
 }
 
-//go:embed views/index.html
+//go:embed static/index.html
 var indexHtmlTemplateStr string
 
-//go:embed views/gen_view.sh
+//go:embed static/gen_view.sh
 var genViewStr string
 
 func IndexHtmlString(title string) (string, error) {
@@ -489,7 +490,7 @@ func IndexHtmlString(title string) (string, error) {
 	})
 }
 
-//go:embed views/main.tsx
+//go:embed static/main.tsx
 var mainTsxTemplateStr string
 
 func MainTsxString(entrypoint string, isInStudio bool) (string, error) {
@@ -503,7 +504,7 @@ func MainTsxString(entrypoint string, isInStudio bool) (string, error) {
 	})
 }
 
-//go:embed views/postcss.config.js
+//go:embed static/postcss.config.js
 var postcssConfigTemplateStr string
 
 func PostcssConfigString(tailwindLocation string) (string, error) {

@@ -1,4 +1,4 @@
-package build
+package shell
 
 import (
 	_ "embed"
@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func shell(root string, options buildtypes.KindOptions) (string, error) {
+func Shell(root string, options buildtypes.KindOptions) (string, error) {
 	// Note that we don't require the entrypoint to exist - it might be existing
 	// inside the image already.
 	entrypoint, _ := options["entrypoint"].(string)
@@ -47,7 +47,7 @@ func shell(root string, options buildtypes.KindOptions) (string, error) {
 	})
 }
 
-func shellBundle(root string) (string, error) {
+func ShellBundle(root string) (string, error) {
 	dockerfileTemplate, workDir, err := getBaseDockerfileTemplate(root)
 	if err != nil {
 		return "", err

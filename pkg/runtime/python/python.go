@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/MakeNowJust/heredoc/v2"
-	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/build/python"
 	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
@@ -96,7 +96,7 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		return nil, nil, errors.Wrap(err, "entrypoint is not within the task root")
 	}
 	entrypointFunc, _ := opts.KindOptions["entrypointFunc"].(string)
-	shim, err := build.PythonShim(build.PythonShimParams{
+	shim, err := python.PythonShim(python.PythonShimParams{
 		TaskRoot:       root,
 		Entrypoint:     entrypoint,
 		EntrypointFunc: entrypointFunc,

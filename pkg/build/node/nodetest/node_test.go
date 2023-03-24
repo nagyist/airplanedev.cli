@@ -1,4 +1,4 @@
-package build
+package nodetest
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/build/node"
 	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/examples"
 	"github.com/pkg/errors"
@@ -17,7 +19,7 @@ import (
 func TestNodeBuilder(t *testing.T) {
 	ctx := context.Background()
 
-	tests := []Test{
+	tests := []build.Test{
 		{
 			Root: "javascript/simple",
 			Kind: buildtypes.TaskKindNode,
@@ -246,13 +248,13 @@ func TestNodeBuilder(t *testing.T) {
 		},
 	}
 
-	RunTests(t, ctx, tests)
+	build.RunTests(t, ctx, tests)
 }
 
 func TestNodeBundleBuilder(t *testing.T) {
 	ctx := context.Background()
 
-	tests := []Test{
+	tests := []build.Test{
 		{
 			Root: "javascript/simple",
 			Kind: buildtypes.TaskKindNode,
@@ -267,7 +269,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.js",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -288,7 +290,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -310,7 +312,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -331,7 +333,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -352,7 +354,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -373,7 +375,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -394,7 +396,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -416,7 +418,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"task/main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "task/main.js",
 					ExportName:    "default",
@@ -437,7 +439,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -461,7 +463,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -482,7 +484,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -503,7 +505,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -524,7 +526,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -545,7 +547,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -567,7 +569,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"pkg2/src/index.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "pkg2/src/index.js",
 					ExportName:    "default",
@@ -589,7 +591,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"pkg2/src/index.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "pkg2/src/index.js",
 					ExportName:    "default",
@@ -611,7 +613,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"nested/pkg2/src/index.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "nested/pkg2/src/index.js",
 					ExportName:    "default",
@@ -633,7 +635,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"pkg2/src/index.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "pkg2/src/index.js",
 					ExportName:    "default",
@@ -656,7 +658,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"pkg2/src/index.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "pkg2/src/index.js",
 					ExportName:    "default",
@@ -678,7 +680,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -702,7 +704,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -723,7 +725,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -745,7 +747,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -767,7 +769,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -789,7 +791,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"foo/bar/main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "foo/bar/main.js",
 					ExportName:    "default",
@@ -811,7 +813,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -833,7 +835,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.js",
 					ExportName:    "default",
@@ -854,7 +856,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.airplane.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.airplane.js",
 					ExportName:    "default",
@@ -876,7 +878,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 			FilesToBuild: []string{
 				"main.airplane.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.airplane.js",
 					ExportName:    "default",
@@ -905,7 +907,7 @@ func TestNodeBundleBuilder(t *testing.T) {
 				"taskInView.airplane.tsx",
 				"subfolder/subfolderInlineTask.airplane.ts",
 			},
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "rootInlineTask.airplane.js",
 					ExportName:    "default",
@@ -955,13 +957,13 @@ func TestNodeBundleBuilder(t *testing.T) {
 		},
 	}
 
-	RunTests(t, ctx, tests)
+	build.RunTests(t, ctx, tests)
 }
 
 func TestNodeWorkflowBuilder(t *testing.T) {
 	ctx := context.Background()
 
-	tests := []Test{
+	tests := []build.Test{
 		{
 			Root: "javascript/workflow",
 			Kind: buildtypes.TaskKindNode,
@@ -997,12 +999,12 @@ func TestNodeWorkflowBuilder(t *testing.T) {
 		// },
 	}
 
-	RunTests(t, ctx, tests)
+	build.RunTests(t, ctx, tests)
 }
 
 func TestGenShimPackageJSON(t *testing.T) {
-	var buildToolsPackageJSON PackageJSON
-	err := json.Unmarshal([]byte(BuildToolsPackageJSON), &buildToolsPackageJSON)
+	var buildToolsPackageJSON node.PackageJSON
+	err := json.Unmarshal([]byte(node.BuildToolsPackageJSON), &buildToolsPackageJSON)
 	require.NoError(t, err)
 
 	testCases := []struct {
@@ -1010,13 +1012,13 @@ func TestGenShimPackageJSON(t *testing.T) {
 		packageJSON             string
 		isWorkflow              bool
 		isBundle                bool
-		expectedShimPackageJSON shimPackageJSON
+		expectedShimPackageJSON node.ShimPackageJSON
 	}{
 		{
 			desc:        "Yarn workspace with no shim dependencies",
 			packageJSON: "typescript/yarnworkspacesnoairplane/package.json",
 			isWorkflow:  true,
-			expectedShimPackageJSON: shimPackageJSON{
+			expectedShimPackageJSON: node.ShimPackageJSON{
 				Dependencies: map[string]string{
 					"airplane":                   buildToolsPackageJSON.Dependencies["airplane"],
 					"@airplane/workflow-runtime": buildToolsPackageJSON.Dependencies["@airplane/workflow-runtime"],
@@ -1028,7 +1030,7 @@ func TestGenShimPackageJSON(t *testing.T) {
 			packageJSON: "typescript/yarnworkspacesnoairplane/package.json",
 			isWorkflow:  true,
 			isBundle:    true,
-			expectedShimPackageJSON: shimPackageJSON{
+			expectedShimPackageJSON: node.ShimPackageJSON{
 				Dependencies: map[string]string{
 					"airplane":                   buildToolsPackageJSON.Dependencies["airplane"],
 					"@airplane/workflow-runtime": buildToolsPackageJSON.Dependencies["@airplane/workflow-runtime"],
@@ -1044,7 +1046,7 @@ func TestGenShimPackageJSON(t *testing.T) {
 			packageJSON: "typescript/yarnworkspacesbundleshimdeps/package.json",
 			isWorkflow:  true,
 			isBundle:    true,
-			expectedShimPackageJSON: shimPackageJSON{
+			expectedShimPackageJSON: node.ShimPackageJSON{
 				Dependencies: map[string]string{
 					"airplane":                   buildToolsPackageJSON.Dependencies["airplane"],
 					"@airplane/workflow-runtime": buildToolsPackageJSON.Dependencies["@airplane/workflow-runtime"],
@@ -1060,7 +1062,7 @@ func TestGenShimPackageJSON(t *testing.T) {
 			packageJSON: "typescript/yarnworkspaces/package.json",
 			isWorkflow:  true,
 			isBundle:    true,
-			expectedShimPackageJSON: shimPackageJSON{
+			expectedShimPackageJSON: node.ShimPackageJSON{
 				Dependencies: map[string]string{
 					"@airplane/workflow-runtime": buildToolsPackageJSON.Dependencies["@airplane/workflow-runtime"],
 					"esbuild":                    buildToolsPackageJSON.Dependencies["esbuild"],
@@ -1077,10 +1079,10 @@ func TestGenShimPackageJSON(t *testing.T) {
 			require := require.New(t)
 			assert := assert.New(t)
 
-			packageJSONs, _, err := GetPackageJSONs(examples.Path(t, tc.packageJSON))
+			packageJSONs, _, err := node.GetPackageJSONs(examples.Path(t, tc.packageJSON))
 			require.NoError(err)
 
-			shimPackageJSONSerialized, err := GenShimPackageJSON(GenShimPackageJSONOpts{
+			shimPackageJSONSerialized, err := node.GenShimPackageJSON(node.GenShimPackageJSONOpts{
 				RootDir:      filepath.Dir(examples.Path(t, tc.packageJSON)),
 				PackageJSONs: packageJSONs,
 				IsWorkflow:   tc.isWorkflow,
@@ -1088,7 +1090,7 @@ func TestGenShimPackageJSON(t *testing.T) {
 			})
 			require.NoError(err)
 
-			shimJSON := shimPackageJSON{}
+			shimJSON := node.ShimPackageJSON{}
 
 			err = json.Unmarshal(shimPackageJSONSerialized, &shimJSON)
 			require.NoError(err)
@@ -1100,17 +1102,17 @@ func TestGenShimPackageJSON(t *testing.T) {
 }
 
 func TestReadPackageJSON(t *testing.T) {
-	fixturesPath, _ := filepath.Abs("./fixtures")
+	fixturesPath, _ := filepath.Abs("../../fixtures")
 	testCases := []struct {
 		desc                string
 		fixture             string
-		packageJSON         PackageJSON
+		packageJSON         node.PackageJSON
 		expectNotExistError bool
 	}{
 		{
 			desc:    "reads package.json from file",
 			fixture: "node_externals/dependencies/package.json",
-			packageJSON: PackageJSON{
+			packageJSON: node.PackageJSON{
 				Dependencies:         map[string]string{"react": "18.2.0"},
 				DevDependencies:      map[string]string{"@types/react": "18.0.28"},
 				OptionalDependencies: map[string]string{"react-table": "7.8.0"},
@@ -1119,10 +1121,10 @@ func TestReadPackageJSON(t *testing.T) {
 		{
 			desc:    "reads package.json from directory",
 			fixture: "node_externals/yarnworkspace",
-			packageJSON: PackageJSON{
+			packageJSON: node.PackageJSON{
 				Name:            "airplane",
 				DevDependencies: map[string]string{"react": "18.2.0"},
-				Workspaces: PackageJSONWorkspaces{
+				Workspaces: node.PackageJSONWorkspaces{
 					Workspaces: []string{"lib", "examples/*"},
 				},
 			},
@@ -1145,7 +1147,7 @@ func TestReadPackageJSON(t *testing.T) {
 
 			path := filepath.Join(fixturesPath, tC.fixture)
 
-			p, err := ReadPackageJSON(path)
+			p, err := node.ReadPackageJSON(path)
 			if tC.expectNotExistError {
 				assert.True(errors.Is(err, os.ErrNotExist))
 				return

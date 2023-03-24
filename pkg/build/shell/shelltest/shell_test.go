@@ -1,16 +1,17 @@
-package build
+package shelltest
 
 import (
 	"context"
 	"testing"
 
+	"github.com/airplanedev/lib/pkg/build"
 	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 )
 
 func TestShellBuilder(t *testing.T) {
 	ctx := context.Background()
 
-	tests := []Test{
+	tests := []build.Test{
 		{
 			Root: "shell/simple",
 			Kind: buildtypes.TaskKindShell,
@@ -80,12 +81,12 @@ func TestShellBuilder(t *testing.T) {
 		},
 	}
 
-	RunTests(t, ctx, tests)
+	build.RunTests(t, ctx, tests)
 }
 
 func TestShellBundleBuilder(t *testing.T) {
 	ctx := context.Background()
-	tests := []Test{
+	tests := []build.Test{
 		{
 			Root: "shell/simple",
 			Kind: buildtypes.TaskKindShell,
@@ -93,7 +94,7 @@ func TestShellBundleBuilder(t *testing.T) {
 				Type: buildtypes.ShellBuildType,
 			},
 			Bundle: true,
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.sh",
 					SearchString:  "Hello World!",
@@ -110,7 +111,7 @@ func TestShellBundleBuilder(t *testing.T) {
 				"param_one": "testtest",
 			},
 			Bundle: true,
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.sh",
 					SearchString:  "PARAM_PARAM_ONE=testtest",
@@ -127,7 +128,7 @@ func TestShellBundleBuilder(t *testing.T) {
 				"param_one": "firstline\nsecondline",
 			},
 			Bundle: true,
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.sh",
 					SearchString:  "PARAM_PARAM_ONE=firstline",
@@ -141,7 +142,7 @@ func TestShellBundleBuilder(t *testing.T) {
 				Type: buildtypes.ShellBuildType,
 			},
 			Bundle: true,
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.sh",
 					SearchString:  "bar",
@@ -155,7 +156,7 @@ func TestShellBundleBuilder(t *testing.T) {
 				Type: buildtypes.ShellBuildType,
 			},
 			Bundle: true,
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.sh",
 					SearchString:  "bar",
@@ -169,7 +170,7 @@ func TestShellBundleBuilder(t *testing.T) {
 				Type: buildtypes.ShellBuildType,
 			},
 			Bundle: true,
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.sh",
 					SearchString:  "bar",
@@ -183,7 +184,7 @@ func TestShellBundleBuilder(t *testing.T) {
 				Type: buildtypes.ShellBuildType,
 			},
 			Bundle: true,
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.sh",
 					SearchString:  "Echoing env variable",
@@ -197,7 +198,7 @@ func TestShellBundleBuilder(t *testing.T) {
 				Type: buildtypes.ShellBuildType,
 			},
 			Bundle: true,
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "one.sh",
 					SearchString:  "script 1",
@@ -219,7 +220,7 @@ func TestShellBundleBuilder(t *testing.T) {
 				Type: buildtypes.ShellBuildType,
 			},
 			Bundle: true,
-			BundleRuns: []BundleTestRun{
+			BundleRuns: []build.BundleTestRun{
 				{
 					RelEntrypoint: "main.sh",
 					SearchString:  "bar",
@@ -228,5 +229,5 @@ func TestShellBundleBuilder(t *testing.T) {
 		},
 	}
 
-	RunTests(t, ctx, tests)
+	build.RunTests(t, ctx, tests)
 }

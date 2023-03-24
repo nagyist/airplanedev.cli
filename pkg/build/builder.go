@@ -11,8 +11,12 @@ import (
 	"unicode"
 
 	"github.com/airplanedev/lib/pkg/build/ignore"
+	"github.com/airplanedev/lib/pkg/build/node"
+	"github.com/airplanedev/lib/pkg/build/python"
+	"github.com/airplanedev/lib/pkg/build/shell"
 	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/build/utils"
+	"github.com/airplanedev/lib/pkg/build/views"
 	"github.com/airplanedev/lib/pkg/utils/bufiox"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -314,13 +318,13 @@ func NeedsBuilding(kind buildtypes.TaskKind) (bool, error) {
 func BuildDockerfile(c DockerfileConfig) (string, error) {
 	switch buildtypes.Name(c.Builder) {
 	case buildtypes.NamePython:
-		return python(c.Root, c.Options, c.BuildArgKeys)
+		return python.Python(c.Root, c.Options, c.BuildArgKeys)
 	case buildtypes.NameNode:
-		return node(c.Root, c.Options, c.BuildArgKeys)
+		return node.Node(c.Root, c.Options, c.BuildArgKeys)
 	case buildtypes.NameShell:
-		return shell(c.Root, c.Options)
+		return shell.Shell(c.Root, c.Options)
 	case buildtypes.NameView:
-		return view(c.Root, c.Options)
+		return views.View(c.Root, c.Options)
 	default:
 		return "", errors.Errorf("build: unknown builder type %q", c.Builder)
 	}

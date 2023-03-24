@@ -1,9 +1,10 @@
-package build
+package viewstest
 
 import (
 	"context"
 	"testing"
 
+	"github.com/airplanedev/lib/pkg/build"
 	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 )
 
@@ -13,7 +14,7 @@ import (
 func TestViewBuilder(t *testing.T) {
 	ctx := context.Background()
 
-	tests := []Test{
+	tests := []build.Test{
 		{
 			Root: "view/simple",
 			Kind: "view",
@@ -25,13 +26,13 @@ func TestViewBuilder(t *testing.T) {
 		},
 	}
 
-	RunTests(t, ctx, tests)
+	build.RunTests(t, ctx, tests)
 }
 
 func TestViewBundleBuilder(t *testing.T) {
 	ctx := context.Background()
 
-	tests := []Test{
+	tests := []build.Test{
 		{
 			Root: "view/simple",
 			Kind: "view",
@@ -130,5 +131,5 @@ func TestViewBundleBuilder(t *testing.T) {
 		},
 	}
 
-	RunTests(t, ctx, tests)
+	build.RunTests(t, ctx, tests)
 }

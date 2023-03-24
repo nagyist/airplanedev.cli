@@ -1,4 +1,4 @@
-package build
+package python
 
 import (
 	"bufio"
@@ -21,7 +21,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func getPythonBuildInstructions(
+func GetPythonBuildInstructions(
 	root string,
 	opts buildtypes.KindOptions,
 	shim string,
@@ -40,7 +40,7 @@ func getPythonBuildInstructions(
 	return getPythonBuildInstructionsInternal(root, opts, shim, installHooks)
 }
 
-func getPythonBundleBuildInstructions(
+func GetPythonBundleBuildInstructions(
 	root string,
 	opts buildtypes.KindOptions,
 	shim string,
@@ -53,6 +53,7 @@ func getPythonBundleBuildInstructions(
 
 	return getPythonBuildInstructionsInternal(root, opts, shim, installHooks)
 }
+
 func getPythonBuildInstructionsInternal(
 	root string,
 	opts buildtypes.KindOptions,
@@ -152,7 +153,7 @@ func getPythonBuildInstructionsInternal(
 }
 
 // Python creates a dockerfile for Python.
-func python(
+func Python(
 	root string,
 	opts buildtypes.KindOptions,
 	buildArgs []string,
@@ -184,7 +185,7 @@ func python(
 		return "", err
 	}
 
-	instructions, err := getPythonBuildInstructions(root, opts, shim)
+	instructions, err := GetPythonBuildInstructions(root, opts, shim)
 	if err != nil {
 		return "", err
 	}
@@ -271,7 +272,7 @@ func collectEmbeddedRequirements(root, requirementsPath string) ([]string, error
 }
 
 // Python creates a dockerfile for all Python tasks within a task root.
-func pythonBundle(
+func PythonBundle(
 	root string,
 	buildContext buildtypes.BuildContext,
 	opts buildtypes.KindOptions,
@@ -293,7 +294,7 @@ func pythonBundle(
 		return "", err
 	}
 
-	instructions, err := getPythonBundleBuildInstructions(root, opts, shim)
+	instructions, err := GetPythonBundleBuildInstructions(root, opts, shim)
 	if err != nil {
 		return "", err
 	}
