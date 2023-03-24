@@ -1,4 +1,4 @@
-// This file includes a few intentional "bugs" to ensure the transformer gracefully
+// This file includes a few intentional "bugs" to ensure the update gracefully
 // handles them.
 
 // Bug: `airplane` is not imported.

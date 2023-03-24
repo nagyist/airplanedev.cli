@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         dir:
-          - pkg/runtime/javascript/transformer
+          - pkg/runtime/javascript/updater
           - pkg/deploy/discover/parser/node
     runs-on: ubuntu-latest
     steps:

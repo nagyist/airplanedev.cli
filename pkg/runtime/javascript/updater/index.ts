@@ -1,5 +1,5 @@
 import { exit } from "node:process";
-import { transform } from "./transformer";
+import { update } from "./update";
 
 /**
  * After changing this file, run `yarn build` to bundle into a JS file. Or
@@ -35,23 +35,23 @@ const run = async () => {
       throw new Error("a slug arg is not set");
     }
 
-    if (command === "can_transform") {
+    if (command === "can_update") {
       let ok = true;
       try {
-        await transform(file, slug, {}, { dryRun: true });
+        await update(file, slug, {}, { dryRun: true });
       } catch (err) {
         console.error(String(err));
         ok = false;
       }
       console.log(`__airplane_output ${ok}`);
-    } else if (command === "transform") {
+    } else if (command === "update") {
       const defSerialized = process.argv[5];
       if (!defSerialized) {
         throw new Error("a definition arg is not set");
       }
       const def = JSON.parse(defSerialized);
 
-      await transform(file, slug, def, { dryRun: false });
+      await update(file, slug, def, { dryRun: false });
     } else {
       throw new Error(`Unknown command: ${command}`);
     }

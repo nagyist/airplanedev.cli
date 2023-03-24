@@ -22,7 +22,7 @@ import (
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/deploy/utils"
 	"github.com/airplanedev/lib/pkg/runtime"
-	"github.com/airplanedev/lib/pkg/runtime/transformers"
+	"github.com/airplanedev/lib/pkg/runtime/updaters"
 	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
@@ -506,20 +506,20 @@ func (r Runtime) SupportsLocalExecution() bool {
 	return true
 }
 
-func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
+func (r Runtime) Update(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
 	if deployutils.IsPythonInlineAirplaneEntity(path) {
-		// TODO(colin, 04012023): support editing inline python
-		return errors.New("Support for editing .py files is coming soon.")
+		// TODO(colin, 04012023): support updating inline python
+		return errors.New("Support for updating .py files is coming soon.")
 	}
 
-	return transformers.EditYAML(ctx, logger, path, slug, def)
+	return updaters.UpdateYAML(ctx, logger, path, slug, def)
 }
 
-func (r Runtime) CanEdit(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error) {
+func (r Runtime) CanUpdate(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error) {
 	if deployutils.IsPythonInlineAirplaneEntity(path) {
-		// TODO(colin, 04012023): support editing inline python
-		return false, errors.New("Support for editing .py files is coming soon.")
+		// TODO(colin, 04012023): support updating inline python
+		return false, errors.New("Support for updating .py files is coming soon.")
 	}
 
-	return transformers.CanEditYAML(path)
+	return updaters.CanUpdateYAML(path)
 }

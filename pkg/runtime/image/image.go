@@ -10,7 +10,7 @@ import (
 	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
-	"github.com/airplanedev/lib/pkg/runtime/transformers"
+	"github.com/airplanedev/lib/pkg/runtime/updaters"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 )
 
@@ -68,10 +68,10 @@ func (r Runtime) SupportsLocalExecution() bool {
 	return false
 }
 
-func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
-	return transformers.EditYAML(ctx, logger, path, slug, def)
+func (r Runtime) Update(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
+	return updaters.UpdateYAML(ctx, logger, path, slug, def)
 }
 
-func (r Runtime) CanEdit(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error) {
-	return transformers.CanEditYAML(path)
+func (r Runtime) CanUpdate(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error) {
+	return updaters.CanUpdateYAML(path)
 }

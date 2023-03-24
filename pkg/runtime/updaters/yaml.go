@@ -1,4 +1,4 @@
-package transformers
+package updaters
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func EditYAML(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
+func UpdateYAML(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
 	format := definitions.GetTaskDefFormat(path)
 	if format == definitions.DefFormatUnknown {
 		return errors.Errorf("updating tasks within %q files is not supported", filepath.Base(path))
@@ -32,19 +32,19 @@ func EditYAML(ctx context.Context, logger logger.Logger, path string, slug strin
 	}
 
 	if err := os.WriteFile(path, content, 0655); err != nil {
-		return errors.Wrap(err, "editing task")
+		return errors.Wrap(err, "updating task")
 	}
 
 	return nil
 }
 
-func CanEditYAML(path string) (bool, error) {
+func CanUpdateYAML(path string) (bool, error) {
 	if !definitions.IsTaskDef(path) {
 		return false, errors.Errorf("updating tasks within %q files is not supported", filepath.Base(path))
 	}
 
 	if _, err := os.Stat(path); err != nil {
-		return true, errors.Wrap(err, "opening file")
+		return false, errors.Wrap(err, "opening file")
 	}
 
 	return true, nil

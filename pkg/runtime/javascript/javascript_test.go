@@ -143,7 +143,7 @@ func TestVersion(t *testing.T) {
 	}
 }
 
-func TestEdit(t *testing.T) {
+func TestUpdate(t *testing.T) {
 	testCases := []struct {
 		name string
 		slug string
@@ -243,11 +243,11 @@ func TestEdit(t *testing.T) {
 		{
 			// Tests edge cases for object keys and (string) values:
 			// 1. The slug's key is a string literal ("slug") instead of an identifier (slug).
-			// 2. A field is edited that is a valid identifier (it should not be wrapped in quotes).
-			// 3. A field is edited that is not a valid identifier (it should be wrapped in quotes).
-			// 4. A field is edited that includes single quotes.
-			// 5. A field is edited that includes double quotes.
-			// 6. A field is edited that includes both quotes.
+			// 2. A field is updated that is a valid identifier (it should not be wrapped in quotes).
+			// 3. A field is updated that is not a valid identifier (it should be wrapped in quotes).
+			// 4. A field is updated that includes single quotes.
+			// 5. A field is updated that includes double quotes.
+			// 6. A field is updated that includes both quotes.
 			name: "keys",
 			slug: "my_task",
 			def: definitions.Definition{
@@ -432,7 +432,7 @@ func TestEdit(t *testing.T) {
 		// TODO: audit all possible errors + confirm return user-friendly errors
 		// TODO: audit unexpected config format error
 		// TODO: check error when there is no matching airplane.task call
-		// TODO: test case where we can't edit the task for some reason (e.g. parsing), and that we get a sensible error back
+		// TODO: test case where we can't update the task for some reason (e.g. parsing), and that we get a sensible error back
 	}
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
@@ -441,10 +441,10 @@ func TestEdit(t *testing.T) {
 			r, err := runtime.Lookup(".js", buildtypes.TaskKindNode)
 			require.NoError(err)
 
-			// Clone the input file into a temporary directory as it will be overwritten by `Edit()`.
-			in, err := os.Open(fmt.Sprintf("./fixtures/transformer/%s.airplane.js", tC.name))
+			// Clone the input file into a temporary directory as it will be overwritten by `Update()`.
+			in, err := os.Open(fmt.Sprintf("./fixtures/update/%s.airplane.js", tC.name))
 			require.NoError(err)
-			f, err := os.CreateTemp("", "runtime-edit-javascript-*.airplane.js")
+			f, err := os.CreateTemp("", "runtime-update-javascript-*.airplane.js")
 			require.NoError(err)
 			t.Cleanup(func() {
 				require.NoError(os.Remove(f.Name()))
@@ -455,57 +455,57 @@ func TestEdit(t *testing.T) {
 
 			l := &logger.MockLogger{}
 
-			ok, err := r.CanEdit(context.Background(), l, f.Name(), tC.slug)
+			ok, err := r.CanUpdate(context.Background(), l, f.Name(), tC.slug)
 			require.NoError(err)
 			require.True(ok)
 
-			// Perform the edit on the temporary file.
-			err = r.Edit(context.Background(), l, f.Name(), tC.slug, tC.def)
+			// Perform the update on the temporary file.
+			err = r.Update(context.Background(), l, f.Name(), tC.slug, tC.def)
 			require.NoError(err)
 
 			// Compare
 			actual, err := os.ReadFile(f.Name())
 			require.NoError(err)
-			expected, err := os.ReadFile(fmt.Sprintf("./fixtures/transformer/%s.out.airplane.js", tC.name))
+			expected, err := os.ReadFile(fmt.Sprintf("./fixtures/update/%s.out.airplane.js", tC.name))
 			require.NoError(err)
 			require.Equal(string(expected), string(actual))
 		})
 	}
 }
 
-func TestCanEdit(t *testing.T) {
+func TestCanUpdate(t *testing.T) {
 	testCases := []struct {
-		slug    string
-		canEdit bool
+		slug      string
+		canUpdate bool
 	}{
 		{
-			slug:    "spread",
-			canEdit: false,
+			slug:      "spread",
+			canUpdate: false,
 		},
 		{
-			slug:    "computed",
-			canEdit: false,
+			slug:      "computed",
+			canUpdate: false,
 		},
 		{
-			slug:    "key",
-			canEdit: false,
+			slug:      "key",
+			canUpdate: false,
 		},
 		{
-			slug:    "template",
-			canEdit: false,
+			slug:      "template",
+			canUpdate: false,
 		},
 		{
-			slug:    "tagged_template",
-			canEdit: false,
+			slug:      "tagged_template",
+			canUpdate: false,
 		},
 		{
 			// There is no task that matches this slug.
-			slug:    "slug_not_found",
-			canEdit: false,
+			slug:      "slug_not_found",
+			canUpdate: false,
 		},
 		{
-			slug:    "good",
-			canEdit: true,
+			slug:      "good",
+			canUpdate: true,
 		},
 	}
 	for _, tC := range testCases {
@@ -517,9 +517,9 @@ func TestCanEdit(t *testing.T) {
 
 			l := &logger.MockLogger{}
 
-			canEdit, err := r.CanEdit(context.Background(), l, "./fixtures/transformer/can_edit.airplane.js", tC.slug)
+			canUpdate, err := r.CanUpdate(context.Background(), l, "./fixtures/update/can_update.airplane.js", tC.slug)
 			require.NoError(err)
-			require.Equal(tC.canEdit, canEdit)
+			require.Equal(tC.canUpdate, canUpdate)
 		})
 	}
 }
@@ -529,7 +529,7 @@ func TestFixtures(t *testing.T) {
 
 	// Assert that the "tabs" fixtures contains tab indentation. This guards against
 	// an IDE reverting the indentation in that file.
-	for _, file := range []string{"./fixtures/transformer/tabs.airplane.js", "./fixtures/transformer/tabs.out.airplane.js"} {
+	for _, file := range []string{"./fixtures/update/tabs.airplane.js", "./fixtures/update/tabs.out.airplane.js"} {
 		contents, err := os.ReadFile(file)
 		require.NoError(err)
 		require.Contains(string(contents), "\t")

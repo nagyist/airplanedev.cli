@@ -24,7 +24,7 @@ import (
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	deployutils "github.com/airplanedev/lib/pkg/deploy/utils"
 	"github.com/airplanedev/lib/pkg/runtime"
-	"github.com/airplanedev/lib/pkg/runtime/transformers"
+	"github.com/airplanedev/lib/pkg/runtime/updaters"
 	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
 	"github.com/airplanedev/lib/pkg/utils/cryptox"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
@@ -43,8 +43,8 @@ const (
 	depHashFile = "dep-hash"
 )
 
-//go:embed transformer/index.js
-var transformerScript []byte
+//go:embed updater/index.js
+var updaterScript []byte
 
 // Code template.
 var code = template.Must(template.New("js").Parse(`{{with .Comment -}}
@@ -579,7 +579,7 @@ func (r Runtime) SupportsLocalExecution() bool {
 var airplaneErrorRegex = regexp.MustCompile("__airplane_error (.*)\n")
 var airplaneOutputRegex = regexp.MustCompile("__airplane_output (.*)\n")
 
-func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
+func (r Runtime) Update(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
 	if deployutils.IsNodeInlineAirplaneEntity(path) {
 		if _, err := os.Stat(path); err != nil {
 			return errors.Wrap(err, "opening file")
@@ -590,7 +590,7 @@ func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, sl
 			return errors.Wrap(err, "creating temporary file")
 		}
 		defer os.Remove(tempFile.Name())
-		_, err = tempFile.Write(transformerScript)
+		_, err = tempFile.Write(updaterScript)
 		if err != nil {
 			return errors.Wrap(err, "writing script")
 		}
@@ -600,37 +600,37 @@ func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, sl
 			return errors.Wrap(err, "marshalling definition as JSON")
 		}
 
-		_, err = runNodeCommand(ctx, logger, transformerScript, "transform", path, slug, string(defJSON))
+		_, err = runNodeCommand(ctx, logger, updaterScript, "update", path, slug, string(defJSON))
 		if err != nil {
-			return errors.WithMessagef(err, "editing task at %q (re-run with --debug for more context)", path)
+			return errors.WithMessagef(err, "updating task at %q (re-run with --debug for more context)", path)
 		}
 
 		return nil
 	}
 
-	return transformers.EditYAML(ctx, logger, path, slug, def)
+	return updaters.UpdateYAML(ctx, logger, path, slug, def)
 }
 
-func (r Runtime) CanEdit(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error) {
+func (r Runtime) CanUpdate(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error) {
 	if deployutils.IsNodeInlineAirplaneEntity(path) {
 		if _, err := os.Stat(path); err != nil {
 			return false, errors.Wrap(err, "opening file")
 		}
 
-		out, err := runNodeCommand(ctx, logger, transformerScript, "can_transform", path, slug)
+		out, err := runNodeCommand(ctx, logger, updaterScript, "can_update", path, slug)
 		if err != nil {
-			return false, errors.WithMessagef(err, "checking if task can be edited at %q (re-run with --debug for more context)", path)
+			return false, errors.WithMessagef(err, "checking if task can be updated at %q (re-run with --debug for more context)", path)
 		}
 
 		var canEdit bool
 		if err := json.Unmarshal([]byte(out), &canEdit); err != nil {
-			return false, errors.Wrap(err, "checking if task can be edited")
+			return false, errors.Wrap(err, "checking if task can be updated")
 		}
 
 		return canEdit, nil
 	}
 
-	return transformers.CanEditYAML(path)
+	return updaters.CanUpdateYAML(path)
 }
 
 func runNodeCommand(ctx context.Context, logger logger.Logger, script []byte, args ...string) (string, error) {

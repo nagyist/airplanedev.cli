@@ -4,7 +4,7 @@ import { ASTNode, builders, namedTypes, visit } from "ast-types";
 import type { ExpressionKind, PatternKind } from "ast-types/gen/kinds";
 import { readFile, writeFile } from "node:fs/promises";
 
-export const transform = async (
+export const update = async (
   file: string,
   existingSlug: string,
   def: any,
@@ -39,7 +39,7 @@ export const transform = async (
       }
 
       // There may be multiple tasks in this file. Confirm this task's slug matches
-      // the one we're editing.
+      // the one we're updating.
       const slug = getStringValue(arg1, "slug");
       if (slug !== existingSlug) {
         return this.traverse(path);
@@ -48,7 +48,7 @@ export const transform = async (
 
       const cf = hasComputedFields(arg1);
       if (cf) {
-        throw new Error("Tasks that use computed fields must be edited manually.");
+        throw new Error("Tasks that use computed fields must be updated manually.");
       }
 
       const newNode = buildTaskConfig(def);
@@ -305,7 +305,7 @@ const getPropertyValue = (
     }
 
     if (keyName !== fieldName) {
-      // This is not the property we want to edit.
+      // This is not the property we want to update.
       continue;
     }
 

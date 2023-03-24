@@ -13,7 +13,7 @@ export const t1 = airplane.task(
 );
 
 // This task does not have a slug, so we can't add a test for it. However, its
-// existence helps test whether the `good` task below can be edited when it exists
+// existence helps test whether the `good` task below can be updated when it exists
 // in a file with a task like this.
 export const t2 = airplane.task(
   obj,
@@ -65,8 +65,8 @@ export const t6 = airplane.task(
   },
 );
 
-// An example task that can be edited that is contained within a file
-// with tasks that cannot be edited.
+// An example task that can be updated that is contained within a file
+// with tasks that cannot be updated.
 export const good = airplane.task(
   {
     slug: "good",

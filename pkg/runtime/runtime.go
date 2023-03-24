@@ -100,18 +100,18 @@ type Interface interface {
 	// This is expected to match whether PrepareRun returns `ErrNotImplemented`.
 	SupportsLocalExecution() bool
 
-	// Edit edits the task configuration contained in the specified file to match the
+	// Update updates the task configuration contained in the specified file to match the
 	// provided definition.
 	//
-	// Certain task definitions cannot be edited (see `CanEdit()` below), in which case an error
+	// Certain task definitions cannot be updated (see `CanUpdate()` below), in which case an error
 	// will be returned.
-	Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error
+	Update(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error
 
-	// CanEdit checks if the task configuration contained in the specified file can be automatically edited.
+	// CanUpdate checks if the task configuration contained in the specified file can be automatically updated.
 	//
-	// If this method returns `false`, calling `Edit()` on this file will return an error.
+	// If this method returns `false`, calling `Update()` on this file will return an error.
 	//
-	// For example, the following JavaScript task definition cannot be automatically edited because it
+	// For example, the following JavaScript task definition cannot be automatically updated because it
 	// includes programmatic logic:
 	//
 	//   export default airplane.task({
@@ -119,9 +119,9 @@ type Interface interface {
 	//     // ...
 	//   }, /*...*/)
 	//
-	// If this task definition was edited, the logic would be overwritten with a computed
-	// value for `allowSelfApprovals`. Therefore, we don't allow automatic edits of this task definition.
-	CanEdit(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error)
+	// If this task definition was updated, the logic would be overwritten with a computed
+	// value for `allowSelfApprovals`. Therefore, we don't allow automatic updates of this task definition.
+	CanUpdate(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error)
 }
 
 type PrepareRunOptions struct {
