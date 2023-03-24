@@ -443,7 +443,7 @@ func TestEdit(t *testing.T) {
 			// Clone the input file into a temporary directory as it will be overwritten by `Edit()`.
 			in, err := os.Open(fmt.Sprintf("./fixtures/transformer/%s.airplane.js", tC.name))
 			require.NoError(err)
-			f, err := os.CreateTemp("", "runtime-edit-javascript-*.js")
+			f, err := os.CreateTemp("", "runtime-edit-javascript-*.airplane.js")
 			require.NoError(err)
 			t.Cleanup(func() {
 				require.NoError(os.Remove(f.Name()))

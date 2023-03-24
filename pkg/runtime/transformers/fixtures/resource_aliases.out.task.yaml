@@ -1,0 +1,4 @@
+slug: my_task
+resources:
+  my_alias: alias
+  no_alias: no_alias

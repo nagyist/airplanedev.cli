@@ -20,7 +20,9 @@ import (
 	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
+	"github.com/airplanedev/lib/pkg/deploy/utils"
 	"github.com/airplanedev/lib/pkg/runtime"
+	"github.com/airplanedev/lib/pkg/runtime/transformers"
 	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/lib/pkg/utils/logger"
@@ -505,6 +507,10 @@ func (r Runtime) SupportsLocalExecution() bool {
 }
 
 func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
-	// TODO: support editing Python inline config definitions (and YAML)
-	return runtime.ErrNotImplemented
+	if deployutils.IsPythonInlineAirplaneEntity(path) {
+		// TODO(colin, 04012023): support editing inline python
+		return errors.New("Support for editing .py files is coming soon.")
+	}
+
+	return transformers.EditYAML(ctx, logger, path, slug, def)
 }

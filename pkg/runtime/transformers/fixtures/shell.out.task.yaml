@@ -1,0 +1,8 @@
+slug: my_task
+shell:
+  entrypoint: ./entrypoint.sh
+  envVars:
+    CONFIG:
+      config: aws_access_key
+    VALUE:
+      value: Hello World!

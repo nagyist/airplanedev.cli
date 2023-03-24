@@ -11,6 +11,7 @@ import (
 	"github.com/airplanedev/lib/pkg/builtins"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
+	"github.com/airplanedev/lib/pkg/runtime/transformers"
 	"github.com/airplanedev/lib/pkg/utils/logger"
 )
 
@@ -80,6 +81,5 @@ func (r Runtime) SupportsLocalExecution() bool {
 }
 
 func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
-	// TODO: support editing YAML definitions
-	return runtime.ErrNotImplemented
+	return transformers.EditYAML(ctx, logger, path, slug, def)
 }

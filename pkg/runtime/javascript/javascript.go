@@ -22,7 +22,9 @@ import (
 	buildversions "github.com/airplanedev/lib/pkg/build/versions"
 	"github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
+	"github.com/airplanedev/lib/pkg/deploy/utils"
 	"github.com/airplanedev/lib/pkg/runtime"
+	"github.com/airplanedev/lib/pkg/runtime/transformers"
 	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
 	"github.com/airplanedev/lib/pkg/utils/cryptox"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
@@ -577,9 +579,7 @@ func (r Runtime) SupportsLocalExecution() bool {
 var airplaneErrorRegex = regexp.MustCompile("__airplane_error (.*)\n")
 
 func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
-	ext := filepath.Ext(path)
-	switch ext {
-	case ".js", ".jsx", ".ts", ".tsx":
+	if deployutils.IsNodeInlineAirplaneEntity(path) {
 		tempFile, err := os.CreateTemp("", "airplane.transformer-js-*")
 		if err != nil {
 			return errors.Wrap(err, "creating temporary file")
@@ -612,12 +612,10 @@ func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, sl
 			}
 			return errors.Wrapf(err, "editing task at %q (re-run with --debug for more context)", path)
 		}
-	case ".yaml", ".yml", ".json":
-		return errors.New("unimplemented")
-	default:
-		return errors.Errorf("editing JS tasks within %q files is not supported", ext)
+		return nil
 	}
-	return nil
+
+	return transformers.EditYAML(ctx, logger, path, slug, def)
 }
 
 // checkNodeVersion compares the major version of the currently installed

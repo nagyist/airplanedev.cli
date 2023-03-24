@@ -1,0 +1,6 @@
+slug: my_task
+rest:
+  resource: api
+  method: GET
+  path: /
+  retryFailures: false

@@ -1,0 +1,10 @@
+slug: my_task
+docker:
+  image: alpine:3
+  entrypoint: ./entrypoint.sh
+  command: cat
+  envVars:
+    CONFIG:
+      config: aws_access_key
+    VALUE:
+      value: Hello World!

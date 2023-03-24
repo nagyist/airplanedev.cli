@@ -15,6 +15,7 @@ import (
 	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
+	"github.com/airplanedev/lib/pkg/runtime/transformers"
 	"github.com/airplanedev/lib/pkg/utils"
 	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
@@ -169,8 +170,7 @@ func (r Runtime) SupportsLocalExecution() bool {
 }
 
 func (r Runtime) Edit(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
-	// TODO: support editing YAML definitions
-	return runtime.ErrNotImplemented
+	return transformers.EditYAML(ctx, logger, path, slug, def)
 }
 
 // checkAndPromptFileExecutable checks that a file is executable. If it isn't, it prompts the user to make it

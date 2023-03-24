@@ -7,9 +7,12 @@ import (
 )
 
 func IsAirplaneEntity(filepath string) bool {
+	return IsDefinitionFileAirplaneEntity(filepath) || IsInlineAirplaneEntity(filepath)
+}
+
+func IsDefinitionFileAirplaneEntity(filepath string) bool {
 	return definitions.IsTaskDef(filepath) ||
-		definitions.IsViewDef(filepath) ||
-		IsInlineAirplaneEntity(filepath)
+		definitions.IsViewDef(filepath)
 }
 
 func IsInlineAirplaneEntity(filepath string) bool {

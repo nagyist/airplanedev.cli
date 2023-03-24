@@ -1,0 +1,31 @@
+slug: my_task_2
+name: Task name
+description: Task description
+parameters:
+- slug: dry
+  name: Dry run?
+  description: Whether or not to run in dry-run mode.
+  type: boolean
+  required: false
+  default: true
+- slug: datetime
+  type: datetime
+  required: false
+runtime: workflow
+resources:
+- db
+timeout: 60
+constraints:
+  cluster: k8s
+  vpc: tasks
+requireRequests: true
+allowSelfApprovals: false
+schedules:
+  all:
+    name: All fields
+    description: A description
+    cron: 0 12 * * *
+    paramValues:
+      datetime: 2006-01-02T15:04:05Z07:00
+  min:
+    cron: "* * * * *"

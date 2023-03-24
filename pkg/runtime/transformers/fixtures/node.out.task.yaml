@@ -1,0 +1,9 @@
+slug: my_task
+node:
+  entrypoint: ./entrypoint.js
+  nodeVersion: "18"
+  envVars:
+    CONFIG:
+      config: aws_access_key
+    VALUE:
+      value: Hello World!

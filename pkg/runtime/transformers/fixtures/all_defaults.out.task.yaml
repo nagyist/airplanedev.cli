@@ -1,0 +1,4 @@
+slug: my_task
+node:
+  entrypoint: ./entrypoint.js
+  nodeVersion: "18"

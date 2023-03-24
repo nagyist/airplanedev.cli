@@ -1,0 +1,9 @@
+slug: my_task
+sql:
+  resource: db
+  entrypoint: ./entrypoint.sql
+  queryArgs:
+    test: "{{params.foo}}"
+  transactionMode: none
+  configs:
+  - DEFAULT_SQL_PAGE_SIZE

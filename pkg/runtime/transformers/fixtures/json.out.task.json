@@ -1,0 +1,20 @@
+{
+	"slug": "my_task_2",
+	"name": "Task name",
+	"description": "Task description",
+	"parameters": [
+		{
+			"slug": "dry",
+			"name": "Dry run?",
+			"description": "Whether or not to run in dry-run mode.",
+			"type": "boolean",
+			"required": false,
+			"default": true
+		},
+		{
+			"slug": "datetime",
+			"type": "datetime",
+			"required": false
+		}
+	]
+}

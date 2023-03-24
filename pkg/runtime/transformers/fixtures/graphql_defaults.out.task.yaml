@@ -1,0 +1,11 @@
+slug: my_task
+graphql:
+  resource: api
+  operation: |
+    query GetPets {
+      pets {
+        name
+        petType
+      }
+    }
+  retryFailures: false

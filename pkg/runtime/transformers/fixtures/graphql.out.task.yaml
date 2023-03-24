@@ -1,0 +1,17 @@
+slug: my_task
+graphql:
+  resource: api
+  operation: |
+    query GetPets {
+      pets {
+        name
+        petType
+      }
+    }
+  variables:
+    id: id123
+  urlParams:
+    page: 10
+  headers:
+    X-Foo: bar
+  retryFailures: true

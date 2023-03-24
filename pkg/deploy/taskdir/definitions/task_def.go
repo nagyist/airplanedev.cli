@@ -189,12 +189,12 @@ func NewDefinition(name string, slug string, kind buildtypes.TaskKind, entrypoin
 	return def, nil
 }
 
-func NewBuiltinDefinition(name string, slug string, builtin BuiltinTaskDef) (Definition, error) {
+func NewBuiltinDefinition(name string, slug string, builtin BuiltinTaskDef) Definition {
 	return Definition{
 		Name:    name,
 		Slug:    slug,
 		Builtin: &BuiltinTaskContainer{def: builtin},
-	}, nil
+	}
 }
 
 func NewDefinitionFromTask(t api.Task, availableResources []api.ResourceMetadata) (Definition, error) {
