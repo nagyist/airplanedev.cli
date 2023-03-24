@@ -16,25 +16,35 @@ import (
 	"github.com/airplanedev/lib/pkg/runtime"
 )
 
+type GetTaskResponse struct {
+	libapi.Task
+
+	// File is the (absolute) path to the file where this task is defined.
+	File string `json:"file"`
+}
+
 // GetTaskHandler handles requests to the /i/tasks/get?slug=<task_slug> endpoint.
-func GetTaskHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.Task, error) {
+func GetTaskHandler(ctx context.Context, state *state.State, r *http.Request) (GetTaskResponse, error) {
 	taskSlug := r.URL.Query().Get("slug")
 	if taskSlug == "" {
-		return libapi.Task{}, libhttp.NewErrBadRequest("task slug was not supplied")
+		return GetTaskResponse{}, libhttp.NewErrBadRequest("task slug was not supplied")
 	}
 
 	taskConfig, ok := state.TaskConfigs.Get(taskSlug)
 	if !ok {
-		return libapi.Task{}, libhttp.NewErrNotFound("task with slug %q not found", taskSlug)
+		return GetTaskResponse{}, libhttp.NewErrNotFound("task with slug %q not found", taskSlug)
 	}
 
 	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
 	task, err := taskConfigToAPITask(ctx, state, taskConfig, envSlug)
 	if err != nil {
-		return libapi.Task{}, err
+		return GetTaskResponse{}, err
 	}
 
-	return task, nil
+	return GetTaskResponse{
+		Task: task,
+		File: taskConfig.Def.GetDefnFilePath(),
+	}, nil
 }
 
 func UpdateTaskHandler(ctx context.Context, state *state.State, r *http.Request, req libapi.UpdateTaskRequest) (struct{}, error) {
