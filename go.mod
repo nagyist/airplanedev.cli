@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/airplanedev/lib v0.5.186
+	github.com/airplanedev/lib v0.5.190
 	github.com/airplanedev/ojson v0.1.0
 	github.com/airplanedev/trap v0.1.0
 	github.com/aws/aws-sdk-go-v2 v1.17.5
@@ -69,6 +69,7 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
 	github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021 // indirect
+	github.com/airplanedev/dlog v0.0.0-20210615011719-ca8d3becde5e // indirect
 	github.com/airplanedev/path v0.0.1 // indirect
 	github.com/ajg/form v1.5.1 // indirect
 	github.com/alessio/shellescape v1.4.1 // indirect
@@ -175,6 +176,7 @@ require (
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 // indirect
 	github.com/sanity-io/litter v1.5.5 // indirect
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
+	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/skeema/knownhosts v1.1.0 // indirect

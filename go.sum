@@ -43,11 +43,14 @@ github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 h1:wPbRQzjjwF
 github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8/go.mod h1:I0gYDMZ6Z5GRU7l58bNFSkPTFN6Yl12dsUlAZ8xy98g=
 github.com/acomagu/bufpipe v1.0.4 h1:e3H4WUzM3npvo5uv95QuJM3cQspFNtFBzvJ2oNjKIDQ=
 github.com/acomagu/bufpipe v1.0.4/go.mod h1:mxdxdup/WdsKVreO5GpW4+M/1CE2sMG4jeGJ2sYmHc4=
+github.com/ahmetalpbalkan/dlog v0.0.0-20170105205344-4fb5f8204f26 h1:pzStYMLAXM7CNQjS/Wn+zK9MUxDhSUNfVvnHsyQyjs0=
+github.com/ahmetalpbalkan/dlog v0.0.0-20170105205344-4fb5f8204f26/go.mod h1:ilK+u7u1HoqaDk0mjhh27QJB7PyWMreGffEvOCoEKiY=
 github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021 h1:epOU0k9ymss5SvqH10GOBzH57m5AJbiWLx62TZwk748=
 github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021/go.mod h1:Dsagf3j6EvFajY16ZIuDnVL64yFCWtvfXE0tfG33w/U=
 github.com/airplanedev/dlog v0.0.0-20210615011719-ca8d3becde5e h1:MeoR75I33g2XHKnTfRE67THlKm6fCoKQ3KcxsElHL4w=
-github.com/airplanedev/lib v0.5.186 h1:ifTzHDEnvVDHnePK3AvGEMGFtsveZ9ZkuCbkbNwLBbw=
-github.com/airplanedev/lib v0.5.186/go.mod h1:Yi5+S//BawarYrDVs18fvx6rtG+k2Lo1T8dE2k1OCn0=
+github.com/airplanedev/dlog v0.0.0-20210615011719-ca8d3becde5e/go.mod h1:jTwpOa6MfHZELuUd5UGfKDxZOqBi6fAbI3aFRnLvcA4=
+github.com/airplanedev/lib v0.5.190 h1:DPaKEIJfzM+u6RyFGxdVAlIxDRJR8tgJRIep+VjWgTA=
+github.com/airplanedev/lib v0.5.190/go.mod h1:Yi5+S//BawarYrDVs18fvx6rtG+k2Lo1T8dE2k1OCn0=
 github.com/airplanedev/ojson v0.1.0 h1:KpEO5zr/9S2xj38Vijky5MWZQ5l2mtDLUoxkxBPVCoI=
 github.com/airplanedev/ojson v0.1.0/go.mod h1:OinOlkiLgGwp+/RkH/9vVAIs78tP+oku4bt5v+jshoA=
 github.com/airplanedev/path v0.0.1 h1:3xW/3y6gaKmIeBcHqzieMl5RcUubcazzoHblMqvk6W4=
@@ -482,6 +485,7 @@ github.com/segmentio/events/v2 v2.5.1 h1:zZ2LkjuuldTTJP6+hIWdAhPdxdUcjabv+cJfgUX
 github.com/segmentio/events/v2 v2.5.1/go.mod h1:ZmXLPAcyjDxK/tsi1/TQOUX4667IKyhNupO7AfdsnQQ=
 github.com/segmentio/go-snakecase v1.1.0/go.mod h1:jk1miR5MS7Na32PZUykG89Arm+1BUSYhuGR6b7+hJto=
 github.com/segmentio/ksuid v1.0.4 h1:sBo2BdShXjmcugAMwjugoGUdUV0pcxY5mW4xKRn3v4c=
+github.com/segmentio/ksuid v1.0.4/go.mod h1:/XUiZBD3kVx5SmUOl55voK5yeAbBNNIed+2O73XgrPE=
 github.com/segmentio/objconv v1.0.1/go.mod h1:auayaH5k3137Cl4SoXTgrzQcuQDmvuVtZgS0fb1Ahys=
 github.com/sergi/go-diff v1.0.0/go.mod h1:0CfEIISq7TuYL3j771MWULgwwjU+GofnZX9QAmXWZgo=
 github.com/sergi/go-diff v1.1.0/go.mod h1:STckp+ISIX8hZLjrqAeVduY0gWCT9IjLuqbuNXdaHfM=
