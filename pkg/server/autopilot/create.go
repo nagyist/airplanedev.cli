@@ -1,9 +1,8 @@
-package apidev
+package autopilot
 
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
 
@@ -14,55 +13,6 @@ import (
 	"github.com/airplanedev/lib/pkg/build"
 	"github.com/pkg/errors"
 )
-
-type AutopilotAction string
-
-const (
-	Create AutopilotAction = "create"
-	Insert AutopilotAction = "insert"
-)
-
-type AutopilotSubject string
-
-const (
-	Task AutopilotSubject = "task"
-	View AutopilotSubject = "view"
-)
-
-type AutopilotSubjectKind string
-
-const (
-	SQL       AutopilotSubjectKind = "sql"
-	Component AutopilotSubjectKind = "component"
-)
-
-type AutopilotGenerateRequest struct {
-	Prompt  string          `json:"prompt,omitempty"`
-	Context GenerateContext `json:"context,omitempty"`
-}
-
-type GenerateContext struct {
-	Action             AutopilotAction      `json:"action"`
-	Subject            AutopilotSubject     `json:"subject"`
-	SubjectKind        AutopilotSubjectKind `json:"subjectKind"`
-	GenerateSQLContext *GenerateSQLContext  `json:"sql"`
-}
-
-type GenerateSQLContext struct {
-	ResourceID   string `json:"resourceID"`
-	ResourceSlug string `json:"resourceSlug"`
-}
-
-func AutopilotGenerateHandler(ctx context.Context, s *state.State, r *http.Request, req AutopilotGenerateRequest) (struct{}, error) {
-	autopilotContext := req.Context
-	// TODO: Add support for other autopilot contexts.
-	switch autopilotContext.Action {
-	case Create:
-		return struct{}{}, create(ctx, s, req.Prompt, autopilotContext)
-	default:
-		return struct{}{}, libhttp.NewErrBadRequest("unsupported action")
-	}
-}
 
 func create(ctx context.Context, s *state.State, prompt string, generateContext GenerateContext) error {
 	switch generateContext.Subject {

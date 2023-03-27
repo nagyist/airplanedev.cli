@@ -12,7 +12,6 @@ import (
 )
 
 type MockClient struct {
-	token                 string
 	Configs               []Config
 	Deploys               []CreateDeploymentRequest
 	Envs                  map[string]libapi.Env
@@ -24,10 +23,14 @@ type MockClient struct {
 	Users                 map[string]User
 	Views                 map[string]libapi.View
 	Uploads               map[string]libapi.Upload
-	apiKey                string
-	source                string
-	teamID                string
-	tunnelToken           *string
+
+	AutopilotResponses map[string]string
+
+	apiKey      string
+	source      string
+	teamID      string
+	token       string
+	tunnelToken *string
 }
 
 var _ APIClient = &MockClient{}
@@ -463,5 +466,7 @@ func (mc *MockClient) RunURL(id string, envSlug string) string {
 }
 
 func (mc *MockClient) AutopilotComplete(ctx context.Context, req AutopilotCompleteRequest) (AutopilotCompleteResponse, error) {
-	panic("not implemented")
+	return AutopilotCompleteResponse{
+		Content: mc.AutopilotResponses[req.Prompt],
+	}, nil
 }

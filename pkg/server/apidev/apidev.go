@@ -16,6 +16,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/server/autopilot"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/state"
@@ -64,7 +65,7 @@ func AttachDevRoutes(r *mux.Router, s *state.State) {
 	r.PathPrefix("/views").HandlerFunc(ProxyViewHandler(s.PortProxy)).Methods("GET", "POST", "OPTIONS")
 	r.Handle("/dependencies/reinstall", handlers.New(s, ReinstallDependenciesHandler)).Methods("POST", "OPTIONS")
 
-	r.Handle("/autopilot/generate", handlers.WithBody(s, AutopilotGenerateHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/autopilot/generate", handlers.WithBody(s, autopilot.GenerateHandler)).Methods("POST", "OPTIONS")
 }
 
 func GetVersionHandler(ctx context.Context, s *state.State, r *http.Request) (version.Metadata, error) {

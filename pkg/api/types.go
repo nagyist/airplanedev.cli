@@ -519,8 +519,10 @@ type ListEnvsResponse struct {
 type CompletionType string
 
 const (
-	SQLCompletionType      CompletionType = "sql"
-	TaskYAMLCompletionType CompletionType = "task-yaml"
+	SQLCompletionType           CompletionType = "sql"
+	TaskYAMLCompletionType      CompletionType = "task-yaml"
+	TaskInlineCompletionType    CompletionType = "task-inline"
+	ViewComponentCompletionType CompletionType = "view-component"
 )
 
 type AutopilotCompleteRequest struct {
@@ -534,8 +536,10 @@ type AutopilotCompleteResponse struct {
 }
 
 type CompleteContext struct {
-	CompleteSQLContext      *CompleteSQLContext      `json:"sql"`
-	CompleteTaskYAMLContext *CompleteTaskYAMLContext `json:"taskYAML"`
+	CompleteSQLContext           *CompleteSQLContext           `json:"sql"`
+	CompleteTaskYAMLContext      *CompleteTaskYAMLContext      `json:"taskYAML"`
+	CompleteTaskInlineContext    *CompleteTaskInlineContext    `json:"taskInline"`
+	CompleteViewComponentContext *CompleteViewComponentContext `json:"viewComponent"`
 }
 
 type CompleteSQLContext struct {
@@ -544,4 +548,20 @@ type CompleteSQLContext struct {
 
 type CompleteTaskYAMLContext struct {
 	Kind build.TaskKind `json:"kind"`
+}
+
+type CompleteTaskInlineContext struct {
+	Kind build.TaskKind `json:"kind"`
+}
+
+type ViewComponentKind string
+
+const (
+	ViewComponentKindChart ViewComponentKind = "chart"
+	ViewComponentKindForm  ViewComponentKind = "form"
+	ViewComponentKindTable ViewComponentKind = "table"
+)
+
+type CompleteViewComponentContext struct {
+	Kind ViewComponentKind `json:"kind"`
 }
