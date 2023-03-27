@@ -1,5 +1,5 @@
-name: My GraphQL task
 slug: my_graphql_task
+name: My GraphQL task
 graphql:
   resource: ""
   operation: |-

@@ -44,6 +44,16 @@ func (s *Store[K, V]) Items() map[K]V {
 	return m
 }
 
+func (s *Store[K, V]) Values() []V {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	m := make([]V, 0, len(s.items))
+	for _, v := range s.items {
+		m = append(m, v)
+	}
+	return m
+}
+
 func (s *Store[K, V]) Len() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

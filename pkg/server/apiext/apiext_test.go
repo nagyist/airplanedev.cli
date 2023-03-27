@@ -246,7 +246,7 @@ func TestExecuteBuiltin(t *testing.T) {
 			Entrypoint:  "my_task.ts",
 			NodeVersion: "18",
 		},
-		Resources: definitions.ResourceDefinition{Attachments: map[string]string{"my_db": "database"}},
+		Resources: map[string]string{"my_db": "database"},
 	}
 	taskDefinition.SetDefnFilePath("my_task.task.yaml")
 
