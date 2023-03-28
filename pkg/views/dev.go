@@ -22,7 +22,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/network"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/views/viewdir"
-	libbuild "github.com/airplanedev/lib/pkg/build"
+	libviews "github.com/airplanedev/lib/pkg/build/views"
 	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
@@ -127,7 +127,7 @@ func Dev(ctx context.Context, v viewdir.ViewDirectoryInterface, viteOpts ViteOpt
 	// Add postcss config if tailwind config is detected.
 	tailwindConfig := filepath.Join(root, "tailwind.config.js")
 	if _, err := os.Stat(tailwindConfig); err == nil {
-		postcssConfigStr, err := libbuild.PostcssConfigString("../tailwind.config.js")
+		postcssConfigStr, err := libviews.PostcssConfigString("../tailwind.config.js")
 		if err != nil {
 			return nil, "", nil, errors.Wrap(err, "loading postcss.config.js value")
 		}
@@ -175,7 +175,7 @@ func createWrapperTemplates(airplaneViewDir string, viewSubdir string, entrypoin
 
 	indexHtmlPath := filepath.Join(viewSubdir, "index.html")
 	title := strings.Split(filepath.Base(entrypointFile), ".")[0]
-	indexHtmlStr, err := libbuild.IndexHtmlString(title)
+	indexHtmlStr, err := libviews.IndexHtmlString(title)
 	if err != nil {
 		return errors.Wrap(err, "loading index.html value")
 	}
@@ -190,7 +190,7 @@ func createWrapperTemplates(airplaneViewDir string, viewSubdir string, entrypoin
 		logger.Warning("unable to remove deprecated .airplane-view/index.html file: %v", err)
 	}
 
-	mainTsxStr, err := libbuild.MainTsxString(entrypointModule, true)
+	mainTsxStr, err := libviews.MainTsxString(entrypointModule, true)
 	if err != nil {
 		return errors.Wrap(err, "loading main.tsx value")
 	}
@@ -272,7 +272,7 @@ func ensureAirplaneViewDir(airplaneViewDir string, l logger.Logger) error {
 }
 
 func createViteConfig(root string, airplaneViewDir string, port int, token *string) error {
-	viteConfigStr, err := libbuild.ViteConfigString(libbuild.ViteConfigOpts{
+	viteConfigStr, err := libviews.ViteConfigString(libviews.ViteConfigOpts{
 		Root:  root,
 		Port:  port,
 		Token: token,

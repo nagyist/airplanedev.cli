@@ -24,7 +24,7 @@ import (
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	libresources "github.com/airplanedev/lib/pkg/resources"
@@ -89,8 +89,8 @@ func TestExecute(t *testing.T) {
 
 	runConfig := dev.LocalRunConfig{
 		Name: "My Task",
-		Kind: build.TaskKindNode,
-		KindOptions: build.KindOptions{
+		Kind: buildtypes.TaskKindNode,
+		KindOptions: buildtypes.KindOptions{
 			"entrypoint":  "my_task.ts",
 			"nodeVersion": "18",
 		},
@@ -421,8 +421,8 @@ func TestRefresh(t *testing.T) {
 
 	runConfig := dev.LocalRunConfig{
 		Name: "My Task",
-		Kind: build.TaskKindNode,
-		KindOptions: build.KindOptions{
+		Kind: buildtypes.TaskKindNode,
+		KindOptions: buildtypes.KindOptions{
 			"entrypoint":  "my_task.ts",
 			"nodeVersion": "18",
 		},

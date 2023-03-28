@@ -13,7 +13,7 @@ import (
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	libhttp "github.com/airplanedev/lib/pkg/api/http"
-	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/build/node"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
@@ -79,7 +79,7 @@ func GetViewHandler(ctx context.Context, state *state.State, r *http.Request) (V
 	rootPackageJSON := filepath.Join(viewConfig.Root, "package.json")
 	hasPackageJSON := fsx.AssertExistsAll(rootPackageJSON) == nil
 	if hasPackageJSON {
-		pkg, err := build.ReadPackageJSON(rootPackageJSON)
+		pkg, err := node.ReadPackageJSON(rootPackageJSON)
 		if err != nil {
 			return ViewInfo{}, errors.Wrap(err, "reading package.json")
 		}

@@ -21,7 +21,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/server/status"
 	"github.com/airplanedev/cli/pkg/utils"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/gorilla/handlers"
@@ -221,7 +221,7 @@ func (s *Server) RegisterState(newState *state.State) {
 	s.state.ServerHost = newState.ServerHost
 }
 
-func supportsLocalExecution(name string, entrypoint string, kind build.TaskKind) bool {
+func supportsLocalExecution(name string, entrypoint string, kind buildtypes.TaskKind) bool {
 	r, err := runtime.Lookup(entrypoint, kind)
 	if err != nil {
 		logger.Debug("%s does not support local execution: %v", name, err)

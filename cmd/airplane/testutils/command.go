@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/build/ignore"
+	"github.com/airplanedev/lib/pkg/build/node"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
@@ -143,8 +143,8 @@ func equalWithPackageJSONMajorPinned(require *require.Assertions, path1, path2 s
 }
 
 func comparePackageJSONs(require *require.Assertions, buf1, buf2 []byte) {
-	pkg1 := build.PackageJSON{}
-	pkg2 := build.PackageJSON{}
+	pkg1 := node.PackageJSON{}
+	pkg2 := node.PackageJSON{}
 
 	err := json.Unmarshal(buf1, &pkg1)
 	require.NoError(err)

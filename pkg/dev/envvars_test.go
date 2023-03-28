@@ -11,7 +11,7 @@ import (
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	libapi "github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,7 +30,7 @@ func TestSetEnvVars(t *testing.T) {
 	runConfig := LocalRunConfig{
 		LocalClient:  &api.Client{},
 		RemoteClient: &api.MockClient{},
-		Kind:         build.TaskKindNode,
+		Kind:         buildtypes.TaskKindNode,
 		TaskEnvVars: map[string]libapi.EnvVarValue{
 			"ENV_VAR_FROM_VALUE": {
 				Value: &envVarValue,
@@ -74,7 +74,7 @@ func TestSetSystemEnvVars(t *testing.T) {
 	runConfig := LocalRunConfig{
 		LocalClient:  &api.Client{},
 		RemoteClient: &api.MockClient{},
-		Kind:         build.TaskKindNode,
+		Kind:         buildtypes.TaskKindNode,
 	}
 
 	r, err := runtime.Lookup(entrypoint, runConfig.Kind)
@@ -98,7 +98,7 @@ func TestSetEnvVarsOverride(t *testing.T) {
 	runConfig := LocalRunConfig{
 		LocalClient:  &api.Client{},
 		RemoteClient: &api.MockClient{},
-		Kind:         build.TaskKindNode,
+		Kind:         buildtypes.TaskKindNode,
 		TaskEnvVars: map[string]libapi.EnvVarValue{
 			"ENV_VAR_FROM_VALUE": {
 				Value: &envVarValue,

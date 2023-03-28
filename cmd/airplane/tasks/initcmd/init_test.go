@@ -9,7 +9,7 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/prompts"
 	libapi "github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	deployconfig "github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/stretchr/testify/require"
 )
@@ -30,14 +30,14 @@ func TestGetNewAirplaneConfig(t *testing.T) {
 			desc: "Creates new config with node version and base",
 			cfg: deployconfig.AirplaneConfig{
 				Javascript: deployconfig.JavaScriptConfig{
-					NodeVersion: string(build.BuildTypeVersionNode18),
-					Base:        string(build.BuildBaseSlim),
+					NodeVersion: string(buildtypes.BuildTypeVersionNode18),
+					Base:        string(buildtypes.BuildBaseSlim),
 				},
 			},
 			newConfig: &deployconfig.AirplaneConfig{
 				Javascript: deployconfig.JavaScriptConfig{
-					NodeVersion: string(build.BuildTypeVersionNode18),
-					Base:        string(build.BuildBaseSlim),
+					NodeVersion: string(buildtypes.BuildTypeVersionNode18),
+					Base:        string(buildtypes.BuildBaseSlim),
 				},
 			},
 		},
@@ -45,15 +45,15 @@ func TestGetNewAirplaneConfig(t *testing.T) {
 			desc: "Does not update a non-empty config",
 			cfg: deployconfig.AirplaneConfig{
 				Javascript: deployconfig.JavaScriptConfig{
-					NodeVersion: string(build.BuildTypeVersionNode18),
-					Base:        string(build.BuildBaseSlim),
+					NodeVersion: string(buildtypes.BuildTypeVersionNode18),
+					Base:        string(buildtypes.BuildBaseSlim),
 				},
 			},
 			hasExistingConfig: true,
 			existingConfig: deployconfig.AirplaneConfig{
 				Javascript: deployconfig.JavaScriptConfig{
-					NodeVersion: string(build.BuildTypeVersionNode18),
-					Base:        string(build.BuildBaseSlim),
+					NodeVersion: string(buildtypes.BuildTypeVersionNode18),
+					Base:        string(buildtypes.BuildBaseSlim),
 				},
 			},
 		},
@@ -61,13 +61,13 @@ func TestGetNewAirplaneConfig(t *testing.T) {
 			desc: "Updates existing, empty config",
 			cfg: deployconfig.AirplaneConfig{
 				Javascript: deployconfig.JavaScriptConfig{
-					NodeVersion: string(build.BuildTypeVersionNode18),
+					NodeVersion: string(buildtypes.BuildTypeVersionNode18),
 				},
 			},
 			hasExistingConfig: true,
 			newConfig: &deployconfig.AirplaneConfig{
 				Javascript: deployconfig.JavaScriptConfig{
-					NodeVersion: string(build.BuildTypeVersionNode18),
+					NodeVersion: string(buildtypes.BuildTypeVersionNode18),
 				},
 			},
 		},
@@ -179,7 +179,7 @@ func TestInit(t *testing.T) {
 		"sql_task": {
 			Name: "SQL task",
 			Slug: "sql_task",
-			Kind: build.TaskKindSQL,
+			Kind: buildtypes.TaskKindSQL,
 			KindOptions: map[string]interface{}{
 				"query":       "SELECT 1",
 				"entrypoints": "sql_task.sql",

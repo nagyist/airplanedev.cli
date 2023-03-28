@@ -30,8 +30,9 @@ import (
 	"github.com/airplanedev/cli/pkg/views/viewdir"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	libhttp "github.com/airplanedev/lib/pkg/api/http"
-	"github.com/airplanedev/lib/pkg/build"
 	"github.com/airplanedev/lib/pkg/build/ignore"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
+	libviews "github.com/airplanedev/lib/pkg/build/views"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -141,10 +142,10 @@ const (
 
 // EntityMetadata represents metadata for a task or view.
 type EntityMetadata struct {
-	Name    string            `json:"name"`
-	Slug    string            `json:"slug"`
-	Kind    EntityKind        `json:"kind"`
-	Runtime build.TaskRuntime `json:"runtime"`
+	Name    string                 `json:"name"`
+	Slug    string                 `json:"slug"`
+	Kind    EntityKind             `json:"kind"`
+	Runtime buildtypes.TaskRuntime `json:"runtime"`
 }
 
 type ListEntrypointsHandlerResponse struct {
@@ -454,7 +455,7 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 			return StartViewResponse{}, err
 		}
 
-		serverURL = fmt.Sprintf("%s%s", s.ServerHost, build.BasePath(port, s.DevToken))
+		serverURL = fmt.Sprintf("%s%s", s.ServerHost, libviews.BasePath(port, s.DevToken))
 
 		// If a server host is specified, we send (Airplane) API requests to that host.
 		client = api.NewClient(api.ClientOpts{

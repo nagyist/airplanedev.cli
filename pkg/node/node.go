@@ -14,7 +14,7 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/cli/pkg/utils"
-	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/lib/pkg/build/node"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
@@ -88,7 +88,7 @@ func addAllPackages(packageJSONDirPath string, useYarn bool, dependencies NodeDe
 	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{WithLoader: true})
 	defer l.StopLoader()
 	packageJSONPath := filepath.Join(packageJSONDirPath, "package.json")
-	existingDeps, err := build.ListDependencies(packageJSONPath)
+	existingDeps, err := node.ListDependencies(packageJSONPath)
 	if err != nil {
 		return err
 	}

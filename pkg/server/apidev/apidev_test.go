@@ -17,7 +17,7 @@ import (
 	"github.com/airplanedev/cli/pkg/version"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	libhttp "github.com/airplanedev/lib/pkg/api/http"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/stretchr/testify/require"
@@ -90,7 +90,7 @@ func TestListEntrypoints(t *testing.T) {
 					"fooslug": {
 						Name:    "Foo",
 						Slug:    "fooslug",
-						Runtime: build.TaskRuntimeStandard,
+						Runtime: buildtypes.TaskRuntimeStandard,
 					},
 				},
 			},
@@ -127,7 +127,7 @@ func TestListEntrypoints(t *testing.T) {
 			Name:    "Foo",
 			Slug:    "fooslug",
 			Kind:    apidev.EntityKindTask,
-			Runtime: build.TaskRuntimeStandard,
+			Runtime: buildtypes.TaskRuntimeStandard,
 		},
 	}, resp.RemoteEntrypoints)
 }

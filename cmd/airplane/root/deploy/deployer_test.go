@@ -11,7 +11,7 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/prompts"
 	libapi "github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/archive"
 	"github.com/airplanedev/lib/pkg/deploy/bundlediscover"
 	"github.com/go-git/go-billy/v5/memfs"
@@ -54,10 +54,10 @@ func TestDeploy(t *testing.T) {
 				{
 					RootPath:    "path/to/myRoot",
 					TargetPaths: []string{"myPath"},
-					BuildContext: build.BuildContext{
-						Type:    build.NodeBuildType,
-						Version: build.BuildTypeVersionNode16,
-						Base:    build.BuildBaseSlim,
+					BuildContext: buildtypes.BuildContext{
+						Type:    buildtypes.NodeBuildType,
+						Version: buildtypes.BuildTypeVersionNode16,
+						Base:    buildtypes.BuildBaseSlim,
 					},
 				},
 			},
@@ -69,9 +69,9 @@ func TestDeploy(t *testing.T) {
 							Name:        "myRoot",
 							TargetFiles: []string{"myPath"},
 							BuildContext: api.BuildContext{
-								Type:    build.NodeBuildType,
-								Version: build.BuildTypeVersionNode16,
-								Base:    build.BuildBaseSlim,
+								Type:    buildtypes.NodeBuildType,
+								Version: buildtypes.BuildTypeVersionNode16,
+								Base:    buildtypes.BuildBaseSlim,
 							},
 						},
 					},
@@ -84,9 +84,9 @@ func TestDeploy(t *testing.T) {
 				{
 					RootPath:    "myRoot",
 					TargetPaths: []string{"myPath"},
-					BuildContext: build.BuildContext{
-						Type:    build.NodeBuildType,
-						Version: build.BuildTypeVersionNode16,
+					BuildContext: buildtypes.BuildContext{
+						Type:    buildtypes.NodeBuildType,
+						Version: buildtypes.BuildTypeVersionNode16,
 					},
 				},
 				{
@@ -102,8 +102,8 @@ func TestDeploy(t *testing.T) {
 							Name:        "myRoot",
 							TargetFiles: []string{"myPath"},
 							BuildContext: api.BuildContext{
-								Type:    build.NodeBuildType,
-								Version: build.BuildTypeVersionNode16,
+								Type:    buildtypes.NodeBuildType,
+								Version: buildtypes.BuildTypeVersionNode16,
 							},
 						},
 						{

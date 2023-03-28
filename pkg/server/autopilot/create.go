@@ -10,7 +10,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
 	libhttp "github.com/airplanedev/lib/pkg/api/http"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/pkg/errors"
 )
 
@@ -71,7 +71,7 @@ func createSQLTask(ctx context.Context, s *state.State, prompt string, context *
 		),
 		Context: &api.CompleteContext{
 			CompleteTaskYAMLContext: &api.CompleteTaskYAMLContext{
-				Kind: build.TaskKindSQL,
+				Kind: buildtypes.TaskKindSQL,
 			},
 		},
 	})

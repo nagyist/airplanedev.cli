@@ -19,7 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/print"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	libhttp "github.com/airplanedev/lib/pkg/api/http"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/builtins"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
@@ -62,8 +62,8 @@ func NewLocalExecutor(workingDir string) Executor {
 type LocalRunConfig struct {
 	ID          string
 	Name        string
-	Kind        build.TaskKind
-	KindOptions build.KindOptions
+	Kind        buildtypes.TaskKind
+	KindOptions buildtypes.KindOptions
 	ParamValues api.Values
 	File        string
 	Slug        string
@@ -276,15 +276,15 @@ func (l *LocalExecutor) Refresh() error {
 	return nil
 }
 
-func GetKindAndOptions(taskConfig discover.TaskConfig) (build.TaskKind, build.KindOptions, error) {
+func GetKindAndOptions(taskConfig discover.TaskConfig) (buildtypes.TaskKind, buildtypes.KindOptions, error) {
 	kind, kindOptions, err := taskConfig.Def.GetKindAndOptions()
 	if err != nil {
-		return "", build.KindOptions{}, errors.Wrap(err, "getting kind and kind options")
+		return "", buildtypes.KindOptions{}, errors.Wrap(err, "getting kind and kind options")
 	}
 
 	buildConfig, err := taskConfig.Def.GetBuildConfig()
 	if err != nil {
-		return "", build.KindOptions{}, errors.Wrap(err, "getting build config")
+		return "", buildtypes.KindOptions{}, errors.Wrap(err, "getting build config")
 	}
 	if entrypointFunc, ok := buildConfig["entrypointFunc"]; ok {
 		// Config as code depends on using the correct import name

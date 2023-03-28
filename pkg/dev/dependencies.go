@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/bundlediscover"
 	"github.com/flynn/go-shlex"
 	"github.com/pkg/errors"
@@ -33,13 +34,13 @@ func InstallAllBundleDependencies(ctx context.Context, discoverer *bundlediscove
 func InstallBundleDependencies(bundle bundlediscover.Bundle) error {
 	instructions, err := build.GetBundleBuildInstructions(build.BundleDockerfileConfig{
 		Root: bundle.RootPath,
-		Options: build.KindOptions{
+		Options: buildtypes.KindOptions{
 			"shim": "true",
 		},
 		BuildContext: bundle.BuildContext,
 	})
 	if err != nil {
-		if _, ok := errors.Cause(err).(build.ErrUnsupportedBuilder); ok {
+		if _, ok := errors.Cause(err).(buildtypes.ErrUnsupportedBuilder); ok {
 			return nil
 		}
 		return err

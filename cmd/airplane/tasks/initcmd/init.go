@@ -23,7 +23,7 @@ import (
 	"github.com/airplanedev/cli/pkg/rb2wf"
 	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	deployconfig "github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/runtime"
@@ -75,7 +75,7 @@ func GetConfig(opts ConfigOpts) config {
 
 type newTaskInfo struct {
 	name       string
-	kind       build.TaskKind
+	kind       buildtypes.TaskKind
 	kindName   string
 	entrypoint string
 }
@@ -165,7 +165,7 @@ func initTask(ctx context.Context, cfg config) error {
 			return err
 		}
 
-		if task.Runtime == build.TaskRuntimeWorkflow {
+		if task.Runtime == buildtypes.TaskRuntimeWorkflow {
 			cfg.workflow = true
 			cfg.inline = true
 		}
@@ -189,10 +189,10 @@ func initTask(ctx context.Context, cfg config) error {
 
 		var err error
 		slug := utils.MakeSlug(cfg.newTaskInfo.name)
-		if cfg.newTaskInfo.kind == build.TaskKindBuiltin {
+		if cfg.newTaskInfo.kind == buildtypes.TaskKindBuiltin {
 			switch cfg.newTaskInfo.kindName {
 			case "GraphQL":
-				def, err = definitions.NewBuiltinDefinition(
+				def = definitions.NewBuiltinDefinition(
 					cfg.newTaskInfo.name,
 					slug,
 					&definitions.GraphQLDefinition{
@@ -233,7 +233,7 @@ func initTask(ctx context.Context, cfg config) error {
 		cfg.inline = false
 	}
 	if cfg.workflow {
-		def.Runtime = build.TaskRuntimeWorkflow
+		def.Runtime = buildtypes.TaskRuntimeWorkflow
 	}
 
 	localExecutionSupported := false
@@ -298,7 +298,7 @@ func initTask(ctx context.Context, cfg config) error {
 		}
 		localExecutionSupported = r.SupportsLocalExecution()
 
-		if kind == build.TaskKindSQL {
+		if kind == buildtypes.TaskKindSQL {
 			query, err := def.SQL.GetQuery()
 			if err != nil {
 				// Create a generic entrypoint.
@@ -363,7 +363,7 @@ func initTask(ctx context.Context, cfg config) error {
 	return nil
 }
 
-func shouldOverwriteEntrypoint(cfg config, entrypoint string, kind build.TaskKind) (shouldOverwrite, shouldPrintToStdOut bool, err error) {
+func shouldOverwriteEntrypoint(cfg config, entrypoint string, kind buildtypes.TaskKind) (shouldOverwrite, shouldPrintToStdOut bool, err error) {
 	if cfg.inline {
 		overwriteOption := fmt.Sprintf("Overwrite %s.", entrypoint)
 		if cfg.from != "" {
@@ -399,7 +399,7 @@ func shouldOverwriteEntrypoint(cfg config, entrypoint string, kind build.TaskKin
 		}
 	} else {
 		question := fmt.Sprintf("Are you sure you want to link %s? You should only link existing Airplane scripts.", entrypoint)
-		if kind == build.TaskKindSQL {
+		if kind == buildtypes.TaskKindSQL {
 			question = fmt.Sprintf("Would you like to overwrite %s?", entrypoint)
 		}
 		if ok, err := cfg.root.Prompter.ConfirmWithAssumptions(question, cfg.assumeYes, cfg.assumeNo); err != nil {
@@ -418,7 +418,7 @@ func initWorkflowFromRunbook(ctx context.Context, cfg config) error {
 	if cfg.assumeYes && cfg.file != "" {
 		entrypoint = cfg.file
 	} else {
-		entrypoint, err = promptForEntrypoint(cfg.fromRunbook, build.TaskKindNode, entrypoint, cfg)
+		entrypoint, err = promptForEntrypoint(cfg.fromRunbook, buildtypes.TaskKindNode, entrypoint, cfg)
 		if err != nil {
 			return err
 		}
@@ -433,7 +433,7 @@ func initWorkflowFromRunbook(ctx context.Context, cfg config) error {
 	def := definitions.Definition{
 		Node: &definitions.NodeDefinition{
 			NodeVersion: "18",
-			Base:        build.BuildBaseSlim,
+			Base:        buildtypes.BuildBaseSlim,
 		},
 	}
 	absEntrypoint, err := filepath.Abs(entrypoint)
@@ -444,7 +444,7 @@ func initWorkflowFromRunbook(ctx context.Context, cfg config) error {
 		return err
 	}
 
-	if err := runKindSpecificInstallation(ctx, cfg, build.TaskKindNode, def); err != nil {
+	if err := runKindSpecificInstallation(ctx, cfg, buildtypes.TaskKindNode, def); err != nil {
 		return err
 	}
 
@@ -460,7 +460,7 @@ func initWorkflowFromRunbook(ctx context.Context, cfg config) error {
 
 	suggestNextSteps(suggestNextStepsRequest{
 		entrypoint: entrypoint,
-		kind:       build.TaskKindNode,
+		kind:       buildtypes.TaskKindNode,
 		isNew:      true,
 	})
 
@@ -541,7 +541,7 @@ type suggestNextStepsRequest struct {
 	defnFile           string
 	entrypoint         string
 	showLocalExecution bool
-	kind               build.TaskKind
+	kind               buildtypes.TaskKind
 	isNew              bool
 }
 
@@ -550,16 +550,16 @@ func suggestNextSteps(req suggestNextStepsRequest) {
 	if req.isNew {
 		steps := []string{}
 		switch req.kind {
-		case build.TaskKindSQL:
+		case buildtypes.TaskKindSQL:
 			steps = append(steps, fmt.Sprintf("Add the name of a database resource to %s", req.defnFile))
 			steps = append(steps, fmt.Sprintf("Write your query in %s", req.entrypoint))
-		case build.TaskKindREST:
+		case buildtypes.TaskKindREST:
 			steps = append(steps, fmt.Sprintf("Add the name of a REST resource to %s", req.defnFile))
 			steps = append(steps, fmt.Sprintf("Specify the details of your REST request in %s", req.defnFile))
-		case build.TaskKindBuiltin:
+		case buildtypes.TaskKindBuiltin:
 			steps = append(steps, fmt.Sprintf("Add the name of a resource to %s", req.defnFile))
 			steps = append(steps, fmt.Sprintf("Specify the details of your request in %s", req.defnFile))
-		case build.TaskKindImage:
+		case buildtypes.TaskKindImage:
 			steps = append(steps, fmt.Sprintf("Add the name of a Docker image to %s", req.defnFile))
 		default:
 			steps = append(steps, fmt.Sprintf("Write your task logic in %s", req.entrypoint))
@@ -588,7 +588,7 @@ func suggestNextSteps(req suggestNextStepsRequest) {
 	)
 }
 
-func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint string, cfg config) (string, error) {
+func promptForEntrypoint(slug string, kind buildtypes.TaskKind, defaultEntrypoint string, cfg config) (string, error) {
 	entrypoint := defaultEntrypoint
 	if entrypoint == "" {
 		var err error
@@ -655,10 +655,10 @@ func promptForEntrypoint(slug string, kind build.TaskKind, defaultEntrypoint str
 	return entrypoint, nil
 }
 
-func getEntrypointFile(slug string, kind build.TaskKind, cfg config) (string, error) {
+func getEntrypointFile(slug string, kind buildtypes.TaskKind, cfg config) (string, error) {
 	exts := runtime.SuggestExts(kind)
 	entrypoint := slug
-	if kind == build.TaskKindNode && len(exts) > 1 {
+	if kind == buildtypes.TaskKindNode && len(exts) > 1 {
 		// Special case JavaScript tasks and make their extensions '.ts'
 		entrypoint += ".ts"
 	} else {
@@ -725,14 +725,14 @@ func createFolder(directory string) error {
 	return nil
 }
 
-var allKindsByName = map[string]build.TaskKind{
-	"Docker":     build.TaskKindImage,
-	"JavaScript": build.TaskKindNode,
-	"Python":     build.TaskKindPython,
-	"Shell":      build.TaskKindShell,
-	"SQL":        build.TaskKindSQL,
-	"REST":       build.TaskKindREST,
-	"GraphQL":    build.TaskKindBuiltin,
+var allKindsByName = map[string]buildtypes.TaskKind{
+	"Docker":     buildtypes.TaskKindImage,
+	"JavaScript": buildtypes.TaskKindNode,
+	"Python":     buildtypes.TaskKindPython,
+	"Shell":      buildtypes.TaskKindShell,
+	"SQL":        buildtypes.TaskKindSQL,
+	"REST":       buildtypes.TaskKindREST,
+	"GraphQL":    buildtypes.TaskKindBuiltin,
 }
 
 // Determines the set of kind names that are eligible for use as tasks.
@@ -809,9 +809,9 @@ func promptForNewTask(file string, info *newTaskInfo, workflow bool, p prompts.P
 	return nil
 }
 
-var inlineSupportedKinds = []build.TaskKind{build.TaskKindNode, build.TaskKindPython}
+var inlineSupportedKinds = []buildtypes.TaskKind{buildtypes.TaskKindNode, buildtypes.TaskKindPython}
 
-func isInlineSupportedKind(kind build.TaskKind) bool {
+func isInlineSupportedKind(kind buildtypes.TaskKind) bool {
 	return slices.Contains(inlineSupportedKinds, kind)
 }
 
@@ -848,7 +848,7 @@ func createInlineEntrypoint(r runtime.Interface, entrypoint string, def *definit
 	return writeEntrypoint(entrypoint, code, fileMode)
 }
 
-func modifyEntrypointForInline(kind build.TaskKind, entrypoint string) string {
+func modifyEntrypointForInline(kind buildtypes.TaskKind, entrypoint string) string {
 	if !isInlineSupportedKind(kind) {
 		return entrypoint
 	}
@@ -856,10 +856,10 @@ func modifyEntrypointForInline(kind build.TaskKind, entrypoint string) string {
 	ext := filepath.Ext(entrypoint)
 	entrypointWithoutExt := strings.TrimSuffix(entrypoint, ext)
 
-	if kind == build.TaskKindNode && !strings.HasSuffix(entrypointWithoutExt, ".airplane") {
+	if kind == buildtypes.TaskKindNode && !strings.HasSuffix(entrypointWithoutExt, ".airplane") {
 		return fmt.Sprintf("%s.airplane%s", entrypointWithoutExt, ext)
 	}
-	if kind == build.TaskKindPython && !strings.HasSuffix(entrypointWithoutExt, "_airplane") {
+	if kind == buildtypes.TaskKindPython && !strings.HasSuffix(entrypointWithoutExt, "_airplane") {
 		return fmt.Sprintf("%s_airplane%s", entrypointWithoutExt, ext)
 	}
 	return entrypoint
@@ -899,9 +899,9 @@ func apiTaskToRuntimeTask(task *libapi.Task) *runtime.Task {
 	return t
 }
 
-func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.TaskKind, def definitions.Definition) error {
+func runKindSpecificInstallation(ctx context.Context, cfg config, kind buildtypes.TaskKind, def definitions.Definition) error {
 	switch kind {
-	case build.TaskKindNode:
+	case buildtypes.TaskKindNode:
 		entrypoint, err := def.GetAbsoluteEntrypoint()
 		if err != nil {
 			return err
@@ -921,7 +921,7 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 			return err
 		}
 		if nodeVersion == "" {
-			nodeVersion = build.DefaultNodeVersion
+			nodeVersion = buildtypes.DefaultNodeVersion
 		}
 
 		if err := createOrUpdateAirplaneConfig(packageJSONDir, deployconfig.AirplaneConfig{
@@ -939,7 +939,7 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 			}
 		}
 		return nil
-	case build.TaskKindPython:
+	case buildtypes.TaskKindPython:
 		entrypoint, err := def.GetAbsoluteEntrypoint()
 		if err != nil {
 			return err
@@ -962,7 +962,7 @@ func runKindSpecificInstallation(ctx context.Context, cfg config, kind build.Tas
 			return err
 		}
 		if pythonVersion == "" {
-			pythonVersion = build.DefaultPythonVersion
+			pythonVersion = buildtypes.DefaultPythonVersion
 		}
 		if err := createOrUpdateAirplaneConfig(requirementsTxtDir, deployconfig.AirplaneConfig{
 			Python: deployconfig.PythonConfig{

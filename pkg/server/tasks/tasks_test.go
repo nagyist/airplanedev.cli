@@ -8,7 +8,7 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/server/state"
 	libapi "github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/stretchr/testify/require"
@@ -138,6 +138,6 @@ func TestTaskConfigToAPITask(t *testing.T) {
 			Type: "string",
 		},
 	}, task.Parameters)
-	require.Equal(build.TaskKindNode, task.Kind)
-	require.Equal(build.KindOptions{"entrypoint": "my_task.ts", "nodeVersion": "18"}, task.KindOptions)
+	require.Equal(buildtypes.TaskKindNode, task.Kind)
+	require.Equal(buildtypes.KindOptions{"entrypoint": "my_task.ts", "nodeVersion": "18"}, task.KindOptions)
 }

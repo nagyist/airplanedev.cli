@@ -9,6 +9,7 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/pkg/errors"
 )
 
@@ -52,7 +53,7 @@ func (d *localBuildCreator) CreateBuild(ctx context.Context, req Request) (*buil
 		Root:    req.Root,
 		Builder: string(kind),
 		// TODO(fleung): should be build.BuildConfig, not build.KindOptions
-		Options: build.KindOptions(buildConfig),
+		Options: buildtypes.KindOptions(buildConfig),
 		Auth: &build.RegistryAuth{
 			Token: registry.Token,
 			Repo:  registry.Repo,

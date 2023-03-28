@@ -13,7 +13,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/lib/pkg/deploy/archive"
 	"github.com/airplanedev/lib/pkg/deploy/bundlediscover"
 	"github.com/dustin/go-humanize"
@@ -252,15 +252,15 @@ func (d *deployer) printPreDeploySummary(ctx context.Context, bundles []bundledi
 		var typeName string
 		if b.BuildContext.Type != "" {
 			buildType := string(b.BuildContext.Type)
-			if b.BuildContext.Type == build.NoneBuildType {
+			if b.BuildContext.Type == buildtypes.NoneBuildType {
 				buildType = "non code"
 			}
 			typeName += cases.Title(language.English, cases.Compact).String(buildType)
-			if b.BuildContext.Version != "" && b.BuildContext.Type != build.ViewBuildType {
+			if b.BuildContext.Version != "" && b.BuildContext.Type != buildtypes.ViewBuildType {
 				typeName += " " + string(b.BuildContext.Version)
 			}
 		}
-		if b.BuildContext.Base != build.BuildBaseNone {
+		if b.BuildContext.Base != buildtypes.BuildBaseNone {
 			typeName += " " + string(b.BuildContext.Base)
 		}
 		projects[b.RootPath] = append(projects[b.RootPath], typeName)

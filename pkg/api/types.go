@@ -7,7 +7,7 @@ import (
 	// Some types are imported from lib. Eventually we might want all of these types to live in lib. For now,
 	// we can move tasks from here -> lib on an as-needed basis.
 	libapi "github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
+	buildtypes "github.com/airplanedev/lib/pkg/build/types"
 	"github.com/airplanedev/ojson"
 )
 
@@ -40,9 +40,9 @@ type CreateTaskRequest struct {
 	EnvVars          libapi.TaskEnv            `json:"env"`
 	ResourceRequests map[string]string         `json:"resourceRequests"`
 	Resources        map[string]string         `json:"resources"`
-	Kind             build.TaskKind            `json:"kind"`
-	KindOptions      build.KindOptions         `json:"kindOptions"`
-	Runtime          build.TaskRuntime         `json:"runtime"`
+	Kind             buildtypes.TaskKind       `json:"kind"`
+	KindOptions      buildtypes.KindOptions    `json:"kindOptions"`
+	Runtime          buildtypes.TaskRuntime    `json:"runtime"`
 	Repo             string                    `json:"repo"`
 	Timeout          int                       `json:"timeout"`
 	EnvSlug          string                    `json:"envSlug"`
@@ -370,8 +370,8 @@ type GetUniqueSlugResponse struct {
 
 type DeployTask struct {
 	TaskID            string                     `json:"taskID"`
-	Kind              build.TaskKind             `json:"kind"`
-	BuildConfig       build.BuildConfig          `json:"buildConfig"`
+	Kind              buildtypes.TaskKind        `json:"kind"`
+	BuildConfig       buildtypes.BuildConfig     `json:"buildConfig"`
 	UploadID          string                     `json:"uploadID"`
 	UpdateTaskRequest libapi.UpdateTaskRequest   `json:"updateTaskRequest"`
 	EnvVars           libapi.TaskEnv             `json:"envVars"`
@@ -383,13 +383,13 @@ type DeployView struct {
 	ID                string                   `json:"id"`
 	UploadID          string                   `json:"uploadID"`
 	UpdateViewRequest libapi.UpdateViewRequest `json:"updateViewRequest"`
-	BuildConfig       build.BuildConfig        `json:"buildConfig"`
+	BuildConfig       buildtypes.BuildConfig   `json:"buildConfig"`
 	// Path from the git root to the entrypoint of the app if the app was deployed
 	// from a git repository.
 	GitFilePath string `json:"gitFilePath"`
 }
 
-type BuildContext = build.BuildContext
+type BuildContext = buildtypes.BuildContext
 
 type DeployBundle struct {
 	UploadID     string       `json:"uploadID"`
@@ -547,11 +547,11 @@ type CompleteSQLContext struct {
 }
 
 type CompleteTaskYAMLContext struct {
-	Kind build.TaskKind `json:"kind"`
+	Kind buildtypes.TaskKind `json:"kind"`
 }
 
 type CompleteTaskInlineContext struct {
-	Kind build.TaskKind `json:"kind"`
+	Kind buildtypes.TaskKind `json:"kind"`
 }
 
 type ViewComponentKind string
