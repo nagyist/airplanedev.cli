@@ -17,6 +17,7 @@ import (
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/lib/pkg/utils/fsx"
+	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -196,18 +197,29 @@ func createEntrypoint(cfg config) (string, error) {
 	if cfg.inline {
 		tmpl, err := template.New("entrypoint").Parse(string(defaultEntrypointInline))
 		if err != nil {
-			return "", errors.Wrap(err, "parsing entrypoint template")
+			return "", errors.Wrap(err, "parsing inline entrypoint template")
 		}
 		buf := new(bytes.Buffer)
 		if err := tmpl.Execute(buf, map[string]interface{}{
-			"Slug": cfg.slug,
-			"Name": cfg.name,
+			"ViewName": strcase.ToCamel(cfg.slug),
+			"Slug":     cfg.slug,
+			"Name":     cfg.name,
 		}); err != nil {
-			return "", errors.Wrap(err, "executing entrypoint template")
+			return "", errors.Wrap(err, "executing inline entrypoint template")
 		}
 		entrypointContents = buf.Bytes()
 	} else {
-		entrypointContents = defaultEntrypoint
+		tmpl, err := template.New("entrypoint").Parse(string(defaultEntrypoint))
+		if err != nil {
+			return "", errors.Wrap(err, "parsing inline entrypoint template")
+		}
+		buf := new(bytes.Buffer)
+		if err := tmpl.Execute(buf, map[string]interface{}{
+			"ViewName": strcase.ToCamel(cfg.name),
+		}); err != nil {
+			return "", errors.Wrap(err, "executing inline entrypoint template")
+		}
+		entrypointContents = buf.Bytes()
 	}
 	if err := os.WriteFile(entrypointPath, entrypointContents, 0644); err != nil {
 		return "", errors.Wrap(err, "creating view entrypoint")
