@@ -94,6 +94,45 @@ func UpdateTaskHandler(ctx context.Context, state *state.State, r *http.Request,
 	return struct{}{}, nil
 }
 
+type CanUpdateTaskRequest struct {
+	Slug string `json:"slug"`
+}
+
+type CanUpdateTaskResponse struct {
+	CanUpdate bool `json:"canUpdate"`
+}
+
+func CanUpdateTaskHandler(ctx context.Context, state *state.State, r *http.Request) (CanUpdateTaskResponse, error) {
+	slug := r.URL.Query().Get("slug")
+	if slug == "" {
+		return CanUpdateTaskResponse{}, libhttp.NewErrBadRequest("task slug was not supplied")
+	}
+
+	taskConfig, ok := state.TaskConfigs.Get(slug)
+	if !ok {
+		return CanUpdateTaskResponse{}, libhttp.NewErrNotFound("task with slug %q not found", slug)
+	}
+
+	kind, err := taskConfig.Def.Kind()
+	if err != nil {
+		return CanUpdateTaskResponse{}, err
+	}
+
+	rt, err := runtime.Lookup(taskConfig.TaskEntrypoint, kind)
+	if err != nil {
+		return CanUpdateTaskResponse{}, err
+	}
+
+	canUpdate, err := rt.CanUpdate(ctx, state.Logger, taskConfig.Def.GetDefnFilePath(), slug)
+	if err != nil {
+		return CanUpdateTaskResponse{}, err
+	}
+
+	return CanUpdateTaskResponse{
+		CanUpdate: canUpdate,
+	}, nil
+}
+
 func ListTasksHandler(ctx context.Context, state *state.State, r *http.Request) (api.ListTasksResponse, error) {
 	tasks, err := ListTasks(ctx, state)
 	if err != nil {
