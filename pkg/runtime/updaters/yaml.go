@@ -27,11 +27,13 @@ func UpdateYAML(ctx context.Context, logger logger.Logger, path string, slug str
 		return err
 	}
 
-	if _, err := os.Stat(path); err != nil {
-		return errors.Wrap(err, "opening file")
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, 0)
+	if err != nil {
+		return errors.Wrap(err, "opening definition file")
 	}
+	defer f.Close()
 
-	if err := os.WriteFile(path, content, 0655); err != nil {
+	if _, err := f.Write(content); err != nil {
 		return errors.Wrap(err, "updating task")
 	}
 

@@ -2,10 +2,10 @@ package sql
 
 import (
 	"context"
-	"errors"
 	"io"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 
 	buildtypes "github.com/airplanedev/lib/pkg/build/types"
@@ -14,6 +14,7 @@ import (
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/runtime/updaters"
 	"github.com/airplanedev/lib/pkg/utils/logger"
+	"github.com/pkg/errors"
 )
 
 // Init register the runtime.
@@ -27,10 +28,8 @@ var code = []byte(`-- Add your SQL queries here.
 SELECT 1;
 `)
 
-// Runtime implementation.
 type Runtime struct{}
 
-// PrepareRun implementation.
 func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runtime.PrepareRunOptions) (rexprs []string, rcloser io.Closer, rerr error) {
 	if opts.BuiltinsClient == nil {
 		return nil, nil, errors.New("builtins are not supported on this machine")
@@ -46,22 +45,18 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 	return cmd, opts.BuiltinsClient.Closer, nil
 }
 
-// Generate implementation.
 func (r Runtime) Generate(t *runtime.Task) ([]byte, os.FileMode, error) {
 	return code, 0644, nil
 }
 
-// GenerateInline implementation.
 func (r Runtime) GenerateInline(def *definitions.Definition) ([]byte, fs.FileMode, error) {
 	return nil, 0, errors.New("cannot generate inline sql task configuration")
 }
 
-// Workdir implementation.
 func (r Runtime) Workdir(path string) (string, error) {
 	return r.Root(path)
 }
 
-// Root implementation.
 func (r Runtime) Root(path string) (string, error) {
 	return runtime.RootForNonBuiltRuntime(path)
 }
@@ -70,12 +65,10 @@ func (r Runtime) Version(rootPath string) (buildVersion buildtypes.BuildTypeVers
 	return "", nil
 }
 
-// Kind implementation.
 func (r Runtime) Kind() buildtypes.TaskKind {
 	return buildtypes.TaskKindSQL
 }
 
-// FormatComment implementation.
 func (r Runtime) FormatComment(s string) string {
 	var lines []string
 
@@ -86,15 +79,54 @@ func (r Runtime) FormatComment(s string) string {
 	return strings.Join(lines, "\n")
 }
 
-// SupportsLocalExecution implementation.
 func (r Runtime) SupportsLocalExecution() bool {
 	return true
 }
 
 func (r Runtime) Update(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
-	return updaters.UpdateYAML(ctx, logger, path, slug, def)
+	if err := updaters.UpdateYAML(ctx, logger, path, slug, def); err != nil {
+		return err
+	}
+
+	// Update the SQL query within the entrypoint file.
+	root, err := r.Root(path)
+	if err != nil {
+		return err
+	}
+
+	if def.SQL == nil {
+		return errors.New("SQL configuration missing on definition")
+	}
+
+	query, err := def.SQL.GetQuery()
+	if err != nil {
+		return err
+	}
+
+	entrypoint := filepath.Join(root, def.SQL.Entrypoint)
+	f, err := os.OpenFile(entrypoint, os.O_WRONLY|os.O_TRUNC, 0)
+	if err != nil {
+		return errors.Wrap(err, "opening entrypoint")
+	}
+	defer f.Close()
+
+	if _, err := f.Write([]byte(query)); err != nil {
+		return errors.Wrap(err, "updating entrypoint")
+	}
+
+	return nil
 }
 
 func (r Runtime) CanUpdate(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error) {
-	return updaters.CanUpdateYAML(path)
+	if canUpdate, err := updaters.CanUpdateYAML(path); err != nil {
+		return false, err
+	} else if !canUpdate {
+		return false, nil
+	}
+
+	if _, err := os.Stat(path); err != nil {
+		return false, errors.Wrap(err, "opening file")
+	}
+
+	return true, nil
 }

@@ -52,6 +52,10 @@ func (d *SQLDefinition) GetQuery() (string, error) {
 	return d.entrypointContents, nil
 }
 
+func (d *SQLDefinition) TestingOnlySetQuery(query string) {
+	d.entrypointContents = query
+}
+
 func (d *SQLDefinition) copyToTask(task *api.Task, bc buildtypes.BuildConfig, opts GetTaskOpts) error {
 	// Check slugs first.
 	if resource := getResourceBySlug(opts.AvailableResources, d.Resource); resource != nil {
