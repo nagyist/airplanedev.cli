@@ -1,11 +1,43 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories
+vendor/
 node_modules/
+yarn-error.log
+__pycache__/
+*.pyc
+.yarn/*
+!.yarn/cache
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# IntelliJ editors
+.idea/
+
+# Airplane generated outputs
+.airplane-build-tools/
+.airplane/
+.airplane-view/
+
+# CLI build artifacts
 dist/
 bin/
+
 .DS_Store
 .buildinfo
 .google_credentials
-.idea/
-coverage.out
 gha-creds-*.json
-.airplane/
-.airplane-view/

@@ -1,34 +1,25 @@
 name: golang
-on: push
+
+on:
+  push:
+    branches: ["main"]
+  pull_request: {}
+
+concurrency:
+  # If this was triggered from a pull request, only run one at a time and cancel any older,
+  # in-progress runs.
+  group: golang-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores-airplane
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
-          go-version: "1.20"
-
-      # Note: If this fails in CI and it's not obvious why, you can run locally via:
-      # docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.50.1 golangci-lint run --fix -v --timeout 5m
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: v1.51.2
-          args: --timeout=5m
-
-      # https://github.com/pre-commit/action
-      - uses: pre-commit/action@v3.0.0
-
-      - run: scripts/check_gotidy.sh
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
-        with:
-          go-version: "1.20"
-
+          go-version-file: go.mod
+          cache: false
       - uses: actions/cache@v3
         # https://github.com/actions/cache/issues/720#issuecomment-1030412967
         timeout-minutes: 5
@@ -38,9 +29,41 @@ jobs:
             ~/go/pkg/mod
             ~/.cache/go-build
             ~/.cache/pre-commit
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-go-
+          key: ${{ runner.os }}-gha-go-lint-${{ hashFiles('./go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gha-go-
+      # https://github.com/golangci/golangci-lint-action
+      - uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.51.2
+          args: --timeout=5m
+          skip-go-installation: true
+          skip-pkg-cache: true
+          skip-build-cache: true
+      # https://github.com/pre-commit/action
+      - uses: pre-commit/action@v3.0.0
+      - run: scripts/check_gotidy.sh
 
+  test:
+    runs-on: buildjet-8vcpu-ubuntu-2004
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/cache@v3
+        # https://github.com/actions/cache/issues/720#issuecomment-1030412967
+        timeout-minutes: 5
+        continue-on-error: true
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+            ~/.cache/pre-commit
+          key: ${{ runner.os }}-gha-go-test-${{ hashFiles('./go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gha-go-
       - name: go test
         run: |
-          go test -race -timeout=10m ./...
+          go test -race -timeout=30m -p 4 ./...

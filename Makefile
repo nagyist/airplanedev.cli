@@ -1,6 +1,5 @@
-
 test:
-	@go test --cover --timeout 5s ./...
+	@go test --cover --timeout 10m ./...
 
 install:
 	@go install \

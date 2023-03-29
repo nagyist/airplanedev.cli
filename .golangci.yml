@@ -4,18 +4,21 @@ linters:
   # The following linters require at least version 1.44 of golangci-lint.
   # https://golangci-lint.run/usage/linters/
   enable:
+    - bidichk
     - bodyclose
+    - contextcheck
     - durationcheck
+    - errchkjson
     - exportloopref
+    # Disabled since we use print functions for the CLI itself.
+    # - forbidigo
     - gci
     - gofmt
     - makezero
     - nakedret
     - noctx
     - predeclared
+    - promlinter
     - rowserrcheck
     - sqlclosecheck
-    - promlinter
     - tenv
-    - bidichk
-    - contextcheck

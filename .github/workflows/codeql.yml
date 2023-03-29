@@ -15,6 +15,12 @@ on:
   schedule:
     - cron: "12 4 * * 2"
 
+concurrency:
+  # If this was triggered from a pull request, only run one at a time and cancel any older,
+  # in-progress runs.
+  group: codeql-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   analyze:
     runs-on: ubuntu-latest
