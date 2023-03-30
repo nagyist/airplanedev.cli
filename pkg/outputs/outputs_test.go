@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestParseOutput(tt *testing.T) {
+func TestCLIParseOutput(tt *testing.T) {
 	for _, test := range []struct {
 		name          string
 		log           string

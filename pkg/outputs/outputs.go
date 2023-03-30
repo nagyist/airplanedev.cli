@@ -2,14 +2,8 @@ package outputs
 
 import (
 	"encoding/json"
-	"regexp"
 	"strings"
 )
-
-const outputPrefix = "airplane_output"
-const defaultOutputName = "output"
-
-var outputRegexp = regexp.MustCompile((`^airplane_output(?::(?:("[^"]*")|('[^']*')|([^ ]+))?)? (.*)$`))
 
 func IsOutput(s string) bool {
 	return strings.HasPrefix(s, outputPrefix)
