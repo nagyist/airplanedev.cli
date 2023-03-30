@@ -1,0 +1,14 @@
+{
+  "name": "simple-view",
+  "private": true,
+  "version": "0.0.0",
+  "dependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "typescript": "^4.6.3"
+  }
+}

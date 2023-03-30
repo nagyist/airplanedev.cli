@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Airplane Config",
+  "properties": {
+    "javascript": {
+      "type": "object",
+      "properties": {
+        "envVars": { "$ref": "#/$defs/envVars" },
+        "nodeVersion": {
+          "description": "The version of Node to use.",
+          "enum": ["14", "16", "18"]
+        },
+        "base": {
+          "description": "The type of base image to use; if not specified, defaults to full.",
+          "enum": ["", "full", "slim"],
+          "default": ""
+        },
+        "install": {
+          "description": "A custom install command to run",
+          "examples": ["npm ci --include=dev"],
+          "type": "string"
+        },
+        "preinstall": {
+          "description": "A command to run before dependencies are installed",
+          "type": "string"
+        },
+        "postinstall": {
+          "description": "A command to run after dependencies are installed",
+          "type": "string"
+        },
+        "buildPlatforms": {
+          "type": "array",
+          "items": {
+            "enum": ["linux/amd64", "linux/arm64"]
+          },
+          "minItems": 0,
+          "maxItems": 2,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "python": {
+      "type": "object",
+      "properties": {
+        "envVars": { "$ref": "#/$defs/envVars" },
+        "base": {
+          "description": "The type of base image to use; if not specified, defaults to full.",
+          "enum": ["", "full", "slim"],
+          "default": ""
+        },
+        "version": {
+          "description": "The version of Python to use.",
+          "enum": ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        },
+        "preinstall": {
+          "description": "A command to run before dependencies are installed",
+          "type": "string"
+        },
+        "postinstall": {
+          "description": "A command to run after dependencies are installed",
+          "type": "string"
+        },
+        "buildPlatforms": {
+          "type": "array",
+          "items": {
+            "enum": ["linux/amd64", "linux/arm64"]
+          },
+          "minItems": 0,
+          "maxItems": 2,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "view": {
+      "type": "object",
+      "properties": {
+        "envVars": { "$ref": "#/$defs/envVars" },
+        "base": {
+          "description": "The type of base image to use; if not specified, defaults to full.",
+          "enum": ["", "full", "slim"],
+          "default": ""
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+
+  "$defs": {
+    "envVars": {
+      "description": "A map of environment variables to use when building and running. If specifying raw values, the value may be a string; if using config variables, the value must be an object with config mapped to the name of the config variable.",
+      "examples": ["env_var_value", { "config": "db_from_config" }],
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "object",
+              "properties": {
+                "config": { "type": "string" }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    }
+  }
+}

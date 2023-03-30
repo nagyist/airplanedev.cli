@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "airplane": "0.2.44",
+    "reflect-metadata": "^0.1.13"
+  }
+}

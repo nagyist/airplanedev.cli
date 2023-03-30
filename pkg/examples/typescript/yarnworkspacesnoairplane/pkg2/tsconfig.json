@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "composite": true
+  },
+  "include": ["src"],
+  "references": [
+    {"path": "../pkg1"}
+  ]
+}

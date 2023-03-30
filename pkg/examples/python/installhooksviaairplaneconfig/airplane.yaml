@@ -1,0 +1,3 @@
+python:
+  preinstall: "echo 'hello from preinstall' > preinstall.txt"
+  postinstall: "echo 'hello from postinstall' > postinstall.txt"

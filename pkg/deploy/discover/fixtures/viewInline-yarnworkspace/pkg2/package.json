@@ -1,0 +1,21 @@
+{
+  "name": "pkg2",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@airplane/views": "2.0.2",
+    "airplane": "0.2.44",
+    "pkg1": "1.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "airplane": {
+    "root": ".."
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.28",
+    "@types/react-dom": "^18.0.11",
+    "typescript": "^4.9.5"
+  }
+}

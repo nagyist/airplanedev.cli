@@ -1,0 +1,6 @@
+name: sunt in tempor eu
+slug: my_task2
+node:
+  entrypoint: ./defn2.js
+  nodeVersion: "16"
+description: ut dolor sit officia ea

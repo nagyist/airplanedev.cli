@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "airplane": "0.2.44"
+  },
+  "airplane": {
+    "preinstall": "echo 'hello from preinstall' > preinstall.txt",
+    "postinstall": "yarn add prettier"
+  }
+}

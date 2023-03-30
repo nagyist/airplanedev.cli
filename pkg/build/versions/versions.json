@@ -1,0 +1,111 @@
+{
+  "node": {
+    "18": {
+      "image": "registry.hub.docker.com/library/node",
+      "tag": "18.12.0-bullseye",
+      "digest": "sha256:cef9966b19672effeafcf1a67b8add742c3e46ca7dd5532efff60820526c2e95"
+    },
+    "18-slim": {
+      "image": "registry.hub.docker.com/library/node",
+      "tag": "18.12.0-bullseye-slim",
+      "digest": "sha256:0a621cdd7d66ad8976f4246ab0661e3b1dd0d397c1dd784ea01bf740bd1c2522"
+    },
+    "16": {
+      "image": "registry.hub.docker.com/library/node",
+      "tag": "16.18.0-bullseye",
+      "digest": "sha256:08382f80c9e5ea5dfcc4760f9937ed6e42e9a07cd61f63035ac31d5aa39f367c"
+    },
+    "16-slim": {
+      "image": "registry.hub.docker.com/library/node",
+      "tag": "16.18.0-bullseye-slim",
+      "digest": "sha256:5c9f79e11b4f867582241b5e7db96bbe1893fad8c1f523261690c743d0950667"
+    },
+    "15": {
+      "image": "registry.hub.docker.com/library/node",
+      "tag": "15.14.0-buster",
+      "digest": "sha256:4b404e61722776024d9c40d0e4af7655ef6832be5612c76da6feec1e68b93b90"
+    },
+    "15-slim": {
+      "image": "registry.hub.docker.com/library/node",
+      "tag": "15.14.0-buster-slim",
+      "digest": "sha256:1bb9e34d261452f2a2142d420f863353aa1ab54138158aff61e97d6b01402006"
+    },
+    "14": {
+      "image": "registry.hub.docker.com/library/node",
+      "tag": "14.20.1-bullseye",
+      "digest": "sha256:9f11746751197a17799f35c571457c98b3ca32f45c400f7ab2f7d77706c4d7cd"
+    },
+    "14-slim": {
+      "image": "registry.hub.docker.com/library/node",
+      "tag": "14.20.1-bullseye-slim",
+      "digest": "sha256:885c16d7d6a4c94fd16f46b4d059c0421df1e6c5ac913adeacc7d3db47d03d86"
+    },
+    "12": {
+      "image": "registry.hub.docker.com/library/node",
+      "tag": "12.22.12-bullseye",
+      "digest": "sha256:39a3111124caad4e785552f3dcb387caa1cd6749510530f289f107475be96b67"
+    }
+  },
+  "python": {
+    "3": {
+      "image": "registry.hub.docker.com/library/python",
+      "tag": "3.10.9-bullseye",
+      "digest": "sha256:60d76c989e429c4af605ebc17806b319a0f265d833564f3e2a61fc7a23e810e8"
+    },
+    "3-slim": {
+      "image": "registry.hub.docker.com/library/python",
+      "tag": "3.10.9-slim-bullseye",
+      "digest": "sha256:76dd18d90a3d8710e091734bf2c9dd686d68747a51908db1e1f41e9a5ed4e2c5"
+    },
+    "3.7": {
+      "image": "registry.hub.docker.com/library/python",
+      "tag": "3.7.16-bullseye",
+      "digest": "sha256:0ae3d3d6b4b94e8373fe640b243da7e10414a0f30ffd5eb6aaefde7dd6bc6c43"
+    },
+    "3.7-slim": {
+      "image": "registry.hub.docker.com/library/python",
+      "tag": "3.7.16-slim-bullseye",
+      "digest": "sha256:b8fe28e25c7bfb23301302d372462cfa6eb1ec011db192cae2dfc72c75dea575"
+    },
+    "3.8": {
+      "image": "registry.hub.docker.com/library/python",
+      "tag": "3.8.16-bullseye",
+      "digest": "sha256:3e6443f94e3c82d4cce045f777042c67cff0fa3cdaa55b3ac7c36101e9b0405c"
+    },
+    "3.8-slim": {
+      "image": "registry.hub.docker.com/library/python",
+      "tag": "3.8.16-slim-bullseye",
+      "digest": "sha256:35088ed5bf998c73c89d25ce0d223439f7a274c7691707e68d3a1af908a050d2"
+    },
+    "3.9": {
+      "image": "registry.hub.docker.com/library/python",
+      "tag": "3.9.16-bullseye",
+      "digest": "sha256:8aa1a86e57d11268005344d03296cf2f73310bad9edb900884494b5974421d43"
+    },
+    "3.9-slim": {
+      "image": "registry.hub.docker.com/library/python",
+      "tag": "3.9.16-slim-bullseye",
+      "digest": "sha256:735308b8e33380ebf1c1f35485117a06d5f21af29e8ccfb2f04e7c2294310fda"
+    },
+    "3.10": {
+      "image": "registry.hub.docker.com/library/python",
+      "tag": "3.10.9-bullseye",
+      "digest": "sha256:60d76c989e429c4af605ebc17806b319a0f265d833564f3e2a61fc7a23e810e8"
+    },
+    "3.10-slim": {
+      "image": "registry.hub.docker.com/library/python",
+      "tag": "3.10.9-slim-bullseye",
+      "digest": "sha256:76dd18d90a3d8710e091734bf2c9dd686d68747a51908db1e1f41e9a5ed4e2c5"
+    },
+    "3.11": {
+      "image": "registry.hub.docker.com/library/python",
+      "tag": "3.11.1-bullseye",
+      "digest": "sha256:74a8835006156e02e617ca175415e6445cfe7eaf598321a8c163a6ca617085d0"
+    },
+    "3.11-slim": {
+      "image": "registry.hub.docker.com/library/python",
+      "tag": "3.11.1-slim-bullseye",
+      "digest": "sha256:33a1008485e1a2dc565be79ece483b240cbc4d6266d6144a57a5a9965ede9bbf"
+    }
+  }
+}

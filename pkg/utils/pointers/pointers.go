@@ -2,7 +2,7 @@ package pointers
 
 import "time"
 
-// String returns a pointer to a string - nil if string is empty
+// String returns a pointer to a string - nil if string is empty.
 func String(s string) *string {
 	if s == "" {
 		return nil

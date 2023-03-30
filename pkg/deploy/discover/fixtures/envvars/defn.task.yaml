@@ -1,0 +1,8 @@
+name: sunt in tempor eu
+slug: my_task
+node:
+  entrypoint: ./single_task.js
+  envVars:
+    ENV3: "3a"
+    ENV5: "5"
+description: ut dolor sit officia ea

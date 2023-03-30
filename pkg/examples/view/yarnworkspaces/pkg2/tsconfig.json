@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "composite": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ESNext"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "noEmit": true,
+    "noImplicitAny": false,
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "target": "ESNext"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../pkg1"
+    }
+  ]
+}

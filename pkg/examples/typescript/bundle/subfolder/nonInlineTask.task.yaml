@@ -1,0 +1,5 @@
+name: Non-inline Task
+slug: non_inline_task
+
+node:
+  entrypoint: nonInlineTask.ts

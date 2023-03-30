@@ -1,0 +1,4 @@
+slug: my_task
+sql:
+  resource: db
+  entrypoint: ./entrypoint.sql

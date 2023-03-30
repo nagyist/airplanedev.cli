@@ -1,0 +1,10 @@
+{
+  "name": "pkg1",
+  "version": "1.0.0",
+  "scripts": {
+    "postinstall": "cat src/index.ts"
+  },
+  "airplane": {
+    "root": ".."
+  }
+}

@@ -1,0 +1,59 @@
+slug: my_task
+parameters:
+- slug: simple
+  type: shorttext
+- slug: all
+  name: All fields
+  description: My description
+  type: shorttext
+  required: false
+  default: My default
+  regex: ^.*$
+  options:
+  - Thing 1
+  - Thing 2
+  - label: Thing 3
+    value: Secret gremlin
+- slug: shorttext
+  type: shorttext
+  default: Text
+- slug: longtext
+  type: longtext
+  default: Longer text
+- slug: sql
+  type: sql
+  default: SELECT 1
+- slug: boolean_true
+  type: boolean
+  default: true
+- slug: boolean_false
+  type: boolean
+  default: false
+- slug: upload
+  type: upload
+  default: upl123
+- slug: integer
+  type: integer
+  default: 10
+- slug: integer_zero
+  type: integer
+  default: 0
+- slug: float
+  type: float
+  default: 3.14
+- slug: float_zero
+  type: float
+  default: 0
+- slug: date
+  type: date
+  default: 2006-01-02
+- slug: datetime
+  type: datetime
+  default: 2006-01-02T15:04:05Z07:00
+- slug: configvar
+  type: configvar
+  default: MY_CONFIG
+- slug: configvar_legacy
+  type: configvar
+  default:
+    config: MY_CONFIG

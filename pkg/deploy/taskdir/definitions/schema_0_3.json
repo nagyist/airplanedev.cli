@@ -1,0 +1,582 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Task",
+  "oneOf": [
+    {
+      "allOf": [
+        { "$ref": "#/$defs/baseDefinition" },
+        {
+          "type": "object",
+          "properties": {
+            "node": {
+              "description": "Configuration for a Node task.",
+              "type": "object",
+              "properties": {
+                "entrypoint": {
+                  "description": "The path to the .ts or .js file containing the logic for this task. This can be absolute or relative to the location of the definition file.",
+                  "type": "string"
+                },
+                "nodeVersion": {
+                  "description": "The version of Node to use.",
+                  "enum": ["14", "16", "18"]
+                },
+                "envVars": { "$ref": "#/$defs/envVars" },
+                "base": {
+                  "description": "The type of base image to use; if not specified, defaults to full.",
+                  "enum": ["", "full", "slim"],
+                  "default": ""
+                }
+              },
+              "additionalProperties": false,
+              "required": ["entrypoint"]
+            }
+          },
+          "required": ["node"]
+        }
+      ]
+    },
+    {
+      "allOf": [
+        { "$ref": "#/$defs/baseDefinition" },
+        {
+          "type": "object",
+          "properties": {
+            "python": {
+              "description": "Configuration for a Python task.",
+              "type": "object",
+              "properties": {
+                "entrypoint": {
+                  "description": "The path to the .py file containing the logic for this task. This can be absolute or relative to the location of the definition file.",
+                  "type": "string"
+                },
+                "envVars": { "$ref": "#/$defs/envVars" },
+                "base": {
+                  "description": "The type of base image to use; if not specified, defaults to full.",
+                  "enum": ["", "full", "slim"],
+                  "default": ""
+                }
+              },
+              "additionalProperties": false,
+              "required": ["entrypoint"]
+            }
+          },
+          "required": ["python"]
+        }
+      ]
+    },
+    {
+      "allOf": [
+        { "$ref": "#/$defs/baseDefinition" },
+        {
+          "type": "object",
+          "properties": {
+            "shell": {
+              "description": "Configuration for a shell task.",
+              "type": "object",
+              "properties": {
+                "entrypoint": {
+                  "description": "The path to the .sh file containing the logic for this task. This can be absolute or relative to the location of the definition file.",
+                  "type": "string"
+                },
+                "envVars": { "$ref": "#/$defs/envVars" }
+              },
+              "additionalProperties": false,
+              "required": ["entrypoint"]
+            }
+          },
+          "required": ["shell"]
+        }
+      ]
+    },
+    {
+      "allOf": [
+        { "$ref": "#/$defs/baseDefinition" },
+        {
+          "type": "object",
+          "properties": {
+            "docker": {
+              "description": "Configuration for a Docker task.",
+              "type": "object",
+              "properties": {
+                "image": {
+                  "description": "The name of the image to use.",
+                  "examples": ["alpine:3"],
+                  "type": "string"
+                },
+                "command": {
+                  "description": "The Docker command to run. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "examples": [
+                    "echo \"hello world\"",
+                    "echo \"{{params.input}}\""
+                  ],
+                  "type": "string"
+                },
+                "entrypoint": {
+                  "description": "Specify a Docker entrypoint to override the default image entrypoint.",
+                  "examples": ["bash"],
+                  "type": "string"
+                },
+                "envVars": { "$ref": "#/$defs/envVars" }
+              },
+              "additionalProperties": false,
+              "required": ["image"]
+            }
+          },
+          "required": ["docker"]
+        }
+      ]
+    },
+    {
+      "allOf": [
+        { "$ref": "#/$defs/baseDefinition" },
+        {
+          "type": "object",
+          "properties": {
+            "sql": {
+              "description": "Configuration for a SQL task.",
+              "type": "object",
+              "properties": {
+                "resource": {
+                  "description": "The slug of a database resource. (Deprecated: This can also be the name of the resource.)",
+                  "type": "string"
+                },
+                "entrypoint": {
+                  "description": "The path to the .sql file containing the logic for this task. This can be absolute or relative to the location of the definition file. The contents of the .sql file support JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "type": "string"
+                },
+                "queryArgs": {
+                  "description": "A map of query arguments that can be used to safely pass parameter inputs to your query. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "type": "object",
+                  "patternProperties": {
+                    ".*": { "type": ["string", "boolean", "number"] }
+                  }
+                },
+                "transactionMode": {
+                  "description": "The transaction mode to use.",
+                  "default": "auto",
+                  "enum": ["auto", "readOnly", "readWrite", "none"]
+                },
+                "configs": {
+                  "$ref": "#/$defs/configs",
+                  "description": "(Deprecated) A list of config variables that this task can access. Use top-level `configs` instead."
+                }
+              },
+              "additionalProperties": false,
+              "required": ["resource", "entrypoint"]
+            }
+          },
+          "required": ["sql"]
+        }
+      ]
+    },
+    {
+      "allOf": [
+        { "$ref": "#/$defs/baseDefinition" },
+        {
+          "type": "object",
+          "properties": {
+            "rest": {
+              "description": "Configuration for a REST task.",
+              "type": "object",
+              "properties": {
+                "resource": {
+                  "description": "The slug of a REST resource. (Deprecated: This can also be the name of the resource.)",
+                  "type": "string"
+                },
+                "method": {
+                  "description": "The HTTP method to use.",
+                  "enum": ["GET", "POST", "PATCH", "PUT", "DELETE"]
+                },
+                "path": {
+                  "description": "The path to request. Your REST resource may specify a path prefix as part of its base URL, in which case this path is joined to it. Airplane recommends that this start with a leading slash. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "type": "string"
+                },
+                "urlParams": {
+                  "description": "A map of URL parameters. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "type": "object",
+                  "patternProperties": {
+                    ".*": { "type": ["string", "boolean", "number"] }
+                  }
+                },
+                "headers": {
+                  "description": "A map of request headers. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "type": "object",
+                  "patternProperties": {
+                    ".*": { "type": ["string", "boolean", "number"] }
+                  }
+                },
+                "bodyType": {
+                  "description": "The type of body that this request should send.",
+                  "enum": ["json", "raw", "form-data", "x-www-form-urlencoded"]
+                },
+                "body": {
+                  "description": "The body of the request. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "type": ["string", "object"]
+                },
+                "formData": {
+                  "description": "A map of form values. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "type": "object",
+                  "patternProperties": {
+                    ".*": { "type": ["string", "boolean", "number"] }
+                  }
+                },
+                "retryFailures": {
+                  "description": "Retry the request if the server returns a 500, 502, 503, or 504 status code. Requests are always retried on 408 and 429 status codes. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "type": ["boolean", "string"]
+                },
+                "configs": {
+                  "$ref": "#/$defs/configs",
+                  "description": "(Deprecated) A list of config variables that this task can access. Use top-level `configs` instead."
+                }
+              },
+              "additionalProperties": false,
+              "required": ["resource", "method", "path"]
+            }
+          },
+          "required": ["rest"]
+        }
+      ]
+    },
+    {
+      "allOf": [
+        { "$ref": "#/$defs/baseDefinition" },
+        {
+          "type": "object",
+          "properties": {
+            "graphql": {
+              "description": "Configuration for a GraphQL task.",
+              "type": "object",
+              "properties": {
+                "resource": {
+                  "description": "The slug of a GraphQL resource.",
+                  "type": "string"
+                },
+                "operation": {
+                  "description": "The query or mutation to execute.",
+                  "type": "string"
+                },
+                "variables": {
+                  "description": "A map of GraphQL variables. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "type": "object"
+                },
+                "urlParams": {
+                  "description": "A map of URL parameters. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "type": "object",
+                  "patternProperties": {
+                    ".*": { "type": ["string", "boolean", "number"] }
+                  }
+                },
+                "headers": {
+                  "description": "A map of request headers. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "type": "object",
+                  "patternProperties": {
+                    ".*": { "type": ["string", "boolean", "number"] }
+                  }
+                },
+                "retryFailures": {
+                  "description": "Retry the request if the server returns a 500, 502, 503, or 504 status code. Requests are always retried on 408 and 429 status codes. Supports JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "type": ["boolean", "string"]
+                }
+              },
+              "additionalProperties": false,
+              "required": ["resource", "operation"]
+            }
+          },
+          "required": ["graphql"]
+        }
+      ]
+    }
+  ],
+  "properties": {
+    "name": true,
+    "slug": true,
+    "description": true,
+    "parameters": true,
+    "resources": true,
+    "configs": true,
+    "constraints": true,
+    "requireRequests": true,
+    "allowSelfApprovals": true,
+    "timeout": true,
+    "runtime": true,
+    "schedules": true,
+    "restrictCallers": true,
+    "node": true,
+    "python": true,
+    "shell": true,
+    "docker": true,
+    "sql": true,
+    "rest": true,
+    "graphql": true
+  },
+  "additionalProperties": false,
+
+  "$defs": {
+    "parameter": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "A human-readable name for the parameter.",
+          "type": "string"
+        },
+        "slug": {
+          "description": "An identifier for the parameter, which can be used in JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$",
+          "maxLength": 50
+        },
+        "type": {
+          "description": "The type of parameter.",
+          "enum": [
+            "shorttext",
+            "longtext",
+            "sql",
+            "boolean",
+            "upload",
+            "integer",
+            "float",
+            "date",
+            "datetime",
+            "configvar"
+          ]
+        },
+        "description": {
+          "description": "A human-readable description of the parameter.",
+          "type": "string"
+        },
+        "default": {
+          "description": "The default value of the parameter.",
+          "oneOf": [
+            { "type": "string" },
+            { "type": "number" },
+            { "type": "boolean" },
+            {
+              "type": "object",
+              "properties": {
+                "config": { "type": "string" }
+              },
+              "required": ["config"]
+            }
+          ]
+        },
+        "required": {
+          "description": "Set to false to indicate that this parameter is optional.",
+          "default": true,
+          "type": "boolean"
+        },
+        "options": {
+          "description": "A list of options to constrain the parameter values. For configvar types, each option needs to be an object with a label (value to show to user) and a config (name of the config var). For all other types, each option can be a single value or an object with a label and a value.",
+          "examples": [
+            "Alfred Pennyworth",
+            { "label": "Batman", "value": "Bruce Wayne" }
+          ],
+          "type": "array",
+          "items": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" },
+              {
+                "type": "object",
+                "properties": {
+                  "label": { "type": "string" },
+                  "value": {
+                    "anyOf": [
+                      { "type": "string" },
+                      { "type": "number" },
+                      { "type": "boolean" }
+                    ]
+                  }
+                },
+                "required": ["label", "value"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "label": { "type": "string" },
+                  "config": { "type": "string" }
+                },
+                "required": ["label", "config"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "regex": {
+          "description": "A regular expression with which to validate parameter values.",
+          "type": "string",
+          "format": "regex"
+        }
+      },
+      "additionalProperties": false,
+      "required": ["slug", "type"]
+    },
+    "envVars": {
+      "description": "A map of environment variables to use when running the task. If specifying raw values, the value may be a string; if using config variables, the value must be an object with config mapped to the name of the config variable.",
+      "examples": ["env_var_value", { "config": "db_from_config" }],
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "object",
+              "properties": {
+                "config": { "type": "string" }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+    "configs": {
+      "description": "A list of config variables that this task can access.",
+      "examples": ["API_KEY", "DB_PASSWORD"],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "baseDefinition": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "A human-readable name for your task.",
+          "type": "string"
+        },
+        "slug": {
+          "description": "Used by Airplane to identify your task. Do not change.",
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$",
+          "maxLength": 50
+        },
+        "description": {
+          "description": "A human-readable description for your task.",
+          "type": "string"
+        },
+        "parameters": {
+          "description": "A list of inputs to your task.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parameter"
+          }
+        },
+        "resources": {
+          "description": "A list of resources to make available to your task. Resources are identified by slug, but can be mapped to an alias to configure how the task references the resource. If using aliases, resources are expressed as a map of alias to slug.",
+          "oneOf": [
+            {
+              "type": "object",
+              "patternProperties": {
+                "^[a-z0-9_]{1,50}$": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_]{1,50}$"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z0-9_]{1,50}$"
+              }
+            }
+          ]
+        },
+        "configs": { "$ref": "#/$defs/configs" },
+        "constraints": {
+          "description": "Set label constraints to restrict this task to run only on agents with matching labels.",
+          "examples": [{ "aws-region": "us-west-2" }],
+          "type": "object",
+          "patternProperties": {
+            ".*": { "type": "string" }
+          }
+        },
+        "requireRequests": {
+          "description": "Set to true to disable direct execution of this task.",
+          "default": false,
+          "type": "boolean"
+        },
+        "allowSelfApprovals": {
+          "description": "Set to false to disallow requesters from approving their own requests for this task.",
+          "default": true,
+          "type": "boolean"
+        },
+        "restrictCallers": {
+          "description": "Hide this task in the UI and disable direct execution. This task may only be executed by the specified callers.",
+          "type": "array",
+          "examples": ["task", "view"],
+          "items": {
+            "type": "string",
+            "enum": ["task", "view"]
+          },
+          "default": []
+        },
+        "timeout": {
+          "description": "The maximum number of seconds the task should take before being timed out.",
+          "default": 3600,
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "runtime": {
+          "description": "Set the runtime used for this task.",
+          "enum": ["", "workflow"],
+          "default": ""
+        },
+        "schedules": {
+          "description": "A map of schedules that are to be deployed with this task. The key corresponds to a unique schedule across deploys.",
+          "type": "object",
+          "patternProperties": {
+            "^[a-z0-9_]{1,50}$": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The name of the schedule"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "The description of the schedule"
+                },
+                "cron": {
+                  "type": "string",
+                  "description": "The cron string in crontab format"
+                },
+                "paramValues": {
+                  "type": "object",
+                  "description": "A map of parameter slugs to values to be passed to the task each run"
+                }
+              },
+              "additionalProperties": false,
+              "required": ["cron"]
+            }
+          },
+          "additionalProperties": false,
+          "examples": [
+            {
+              "run_at_midnight": {
+                "name": "Daily Midnight Batch",
+                "description": "Runs this task daily at midnight.",
+                "cron": "0 0 * * *",
+                "paramValues": {
+                  "param_one": 5,
+                  "param_two": "hello"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "required": ["slug"]
+    }
+  }
+}

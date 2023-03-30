@@ -1,0 +1,39 @@
+name: javascript
+
+on:
+  push:
+    branches: ["main"]
+  pull_request: {}
+
+concurrency:
+  # If this was triggered from a pull request, only run one at a time and cancel any older,
+  # in-progress runs.
+  group: javascript-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  run:
+    name: test (${{ matrix.dir }})
+    strategy:
+      fail-fast: false
+      matrix:
+        dir:
+          - pkg/runtime/javascript/updater
+          - pkg/deploy/discover/parser/node
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: "yarn"
+          cache-dependency-path: "${{matrix.dir}}/yarn.lock"
+      - run: cd ${{matrix.dir}} && yarn install --frozen-lockfile
+      - name: lint
+        run: cd ${{matrix.dir}} && yarn lint
+      - name: build
+        run: cd ${{matrix.dir}} && yarn build
+      # If this check fails, it likely means that the JS files checked in are out-of-date.
+      # Run `yarn build` and commit the changes.
+      - name: check for modified files
+        run: git diff-index --name-status HEAD

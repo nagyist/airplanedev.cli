@@ -1,0 +1,1 @@
+-r embedded_requirements.txt

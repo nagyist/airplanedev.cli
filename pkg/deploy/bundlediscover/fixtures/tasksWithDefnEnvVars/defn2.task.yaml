@@ -1,0 +1,9 @@
+name: sunt in tempor eu
+slug: my_task
+node:
+  entrypoint: ./defn2.js
+  nodeVersion: "14"
+  envVars:
+    # Same env var, different value.
+    foo: another
+description: ut dolor sit officia ea

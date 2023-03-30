@@ -1,0 +1,8 @@
+slug: my_task
+python:
+  entrypoint: ./entrypoint.py
+  envVars:
+    CONFIG:
+      config: aws_access_key
+    VALUE:
+      value: Hello World!
