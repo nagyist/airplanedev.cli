@@ -13,8 +13,8 @@ import (
 	"github.com/airplanedev/cli/pkg/analytics"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/utils/fsx"
 	"github.com/airplanedev/cli/pkg/version"
-	"github.com/airplanedev/lib/pkg/utils/fsx"
 )
 
 const releaseURL = "https://api.github.com/repos/airplanedev/cli/releases?per_page=1"

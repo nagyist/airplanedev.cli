@@ -1,9 +1,9 @@
 package env
 
 import (
-	"github.com/airplanedev/cli/pkg/api"
-	libapi "github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/resources"
+	libapi "github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
+	"github.com/airplanedev/cli/pkg/resources"
 )
 
 const StudioEnvID = "studio"

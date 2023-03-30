@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/airplanedev/lib/pkg/resources"
+	"github.com/airplanedev/cli/pkg/resources"
 	"github.com/pkg/errors"
 )
 

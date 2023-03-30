@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/airplanedev/lib/pkg/runtime"
+	"github.com/airplanedev/cli/pkg/runtime"
 	"github.com/stretchr/testify/require"
 )
 

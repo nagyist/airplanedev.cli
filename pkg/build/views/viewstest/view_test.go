@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/airplanedev/lib/pkg/build"
-	buildtypes "github.com/airplanedev/lib/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/build"
+	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 )
 
 // These tests ensure that a View image can be built without error.

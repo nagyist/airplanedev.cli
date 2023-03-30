@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/airplanedev/lib/pkg/utils/fsx"
+	"github.com/airplanedev/cli/pkg/utils/fsx"
 	"github.com/goccy/go-yaml"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"

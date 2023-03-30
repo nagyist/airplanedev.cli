@@ -6,8 +6,8 @@ import (
 
 	// Some types are imported from lib. Eventually we might want all of these types to live in lib. For now,
 	// we can move tasks from here -> lib on an as-needed basis.
-	libapi "github.com/airplanedev/lib/pkg/api"
-	buildtypes "github.com/airplanedev/lib/pkg/build/types"
+	libapi "github.com/airplanedev/cli/pkg/api"
+	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/ojson"
 )
 

@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/airplanedev/lib/pkg/api/mock"
-	"github.com/airplanedev/lib/pkg/utils/logger"
+	"github.com/airplanedev/cli/pkg/api/mock"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

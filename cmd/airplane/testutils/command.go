@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/airplanedev/lib/pkg/build/ignore"
-	"github.com/airplanedev/lib/pkg/build/node"
+	"github.com/airplanedev/cli/pkg/build/ignore"
+	"github.com/airplanedev/cli/pkg/build/node"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"

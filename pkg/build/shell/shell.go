@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc/v2"
-	buildtypes "github.com/airplanedev/lib/pkg/build/types"
-	"github.com/airplanedev/lib/pkg/build/utils"
-	"github.com/airplanedev/lib/pkg/utils/fsx"
+	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/build/utils"
+	"github.com/airplanedev/cli/pkg/utils/fsx"
 	"github.com/pkg/errors"
 )
 

@@ -1,9 +1,9 @@
 package conversion
 
 import (
-	"github.com/airplanedev/lib/pkg/resources"
-	"github.com/airplanedev/lib/pkg/resources/kind_configs"
-	"github.com/airplanedev/lib/pkg/resources/kinds"
+	"github.com/airplanedev/cli/pkg/resources"
+	"github.com/airplanedev/cli/pkg/resources/kind_configs"
+	"github.com/airplanedev/cli/pkg/resources/kinds"
 	"github.com/pkg/errors"
 )
 

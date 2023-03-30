@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
+	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/examples"
 	"github.com/airplanedev/dlog"
-	buildtypes "github.com/airplanedev/lib/pkg/build/types"
-	"github.com/airplanedev/lib/pkg/examples"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/strslice"

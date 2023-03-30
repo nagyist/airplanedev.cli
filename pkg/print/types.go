@@ -3,9 +3,9 @@ package print //nolint: predeclared
 import (
 	"time"
 
-	"github.com/airplanedev/cli/pkg/api"
-	libapi "github.com/airplanedev/lib/pkg/api"
-	buildtypes "github.com/airplanedev/lib/pkg/build/types"
+	libapi "github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
+	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 )
 
 // This struct mirrors api.Task, but with different json/yaml tags.

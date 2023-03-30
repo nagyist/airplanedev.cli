@@ -5,17 +5,17 @@ import (
 	"net/http"
 	"path/filepath"
 
+	libapi "github.com/airplanedev/cli/pkg/api"
+	libhttp "github.com/airplanedev/cli/pkg/api/http"
+	"github.com/airplanedev/cli/pkg/build/node"
 	"github.com/airplanedev/cli/pkg/configs"
+	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/server/state"
 	serverutils "github.com/airplanedev/cli/pkg/server/utils"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/fsx"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
-	libapi "github.com/airplanedev/lib/pkg/api"
-	libhttp "github.com/airplanedev/lib/pkg/api/http"
-	"github.com/airplanedev/lib/pkg/build/node"
-	"github.com/airplanedev/lib/pkg/deploy/discover"
-	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
 )
 

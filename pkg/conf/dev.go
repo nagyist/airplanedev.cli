@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
+	libresources "github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/utils"
-	libresources "github.com/airplanedev/lib/pkg/resources"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )

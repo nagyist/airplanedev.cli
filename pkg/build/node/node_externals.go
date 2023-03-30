@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	buildtypes "github.com/airplanedev/lib/pkg/build/types"
+	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 )

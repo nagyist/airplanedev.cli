@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	buildtypes "github.com/airplanedev/lib/pkg/build/types"
-	"github.com/airplanedev/lib/pkg/examples"
-	"github.com/airplanedev/lib/pkg/runtime"
-	"github.com/airplanedev/lib/pkg/runtime/runtimetest"
-	"github.com/airplanedev/lib/pkg/utils/fsx"
+	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/examples"
+	"github.com/airplanedev/cli/pkg/runtime"
+	"github.com/airplanedev/cli/pkg/runtime/runtimetest"
+	"github.com/airplanedev/cli/pkg/utils/fsx"
 	"github.com/stretchr/testify/require"
 )
 

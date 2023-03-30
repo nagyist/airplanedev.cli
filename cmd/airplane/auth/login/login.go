@@ -4,13 +4,13 @@ import (
 	"context"
 
 	"github.com/airplanedev/cli/pkg/analytics"
+	libhttp "github.com/airplanedev/cli/pkg/api/http"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/cli/pkg/token"
 	"github.com/airplanedev/cli/pkg/utils"
-	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

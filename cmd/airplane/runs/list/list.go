@@ -5,11 +5,11 @@ import (
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/airplanedev/cli/pkg/api"
+	libapi "github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/utils"
-	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

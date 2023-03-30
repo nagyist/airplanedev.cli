@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"github.com/airplanedev/cli/cmd/airplane/testutils"
-	"github.com/airplanedev/cli/pkg/api"
+	libapi "github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
+	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/cli"
+	deployconfig "github.com/airplanedev/cli/pkg/deploy/config"
 	"github.com/airplanedev/cli/pkg/prompts"
-	libapi "github.com/airplanedev/lib/pkg/api"
-	buildtypes "github.com/airplanedev/lib/pkg/build/types"
-	deployconfig "github.com/airplanedev/lib/pkg/deploy/config"
 	"github.com/stretchr/testify/require"
 )
 

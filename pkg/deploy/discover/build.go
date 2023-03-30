@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/airplanedev/lib/pkg/build/node"
-	buildtypes "github.com/airplanedev/lib/pkg/build/types"
-	"github.com/airplanedev/lib/pkg/utils/fsx"
-	"github.com/airplanedev/lib/pkg/utils/logger"
-	"github.com/airplanedev/lib/pkg/utils/pointers"
+	"github.com/airplanedev/cli/pkg/build/node"
+	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/utils/fsx"
+	"github.com/airplanedev/cli/pkg/utils/logger"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
 )

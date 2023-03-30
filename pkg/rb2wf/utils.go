@@ -6,7 +6,7 @@ import (
 	"strings"
 	"text/template"
 
-	libapi "github.com/airplanedev/lib/pkg/api"
+	libapi "github.com/airplanedev/cli/pkg/api"
 	"github.com/pkg/errors"
 )
 

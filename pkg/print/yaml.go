@@ -3,8 +3,8 @@ package print //nolint: predeclared
 import (
 	"os"
 
-	"github.com/airplanedev/cli/pkg/api"
-	libapi "github.com/airplanedev/lib/pkg/api"
+	libapi "github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"gopkg.in/yaml.v3"
 )
 

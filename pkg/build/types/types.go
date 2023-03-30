@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/MakeNowJust/heredoc/v2"
-	"github.com/airplanedev/lib/pkg/build/utils"
+	"github.com/airplanedev/cli/pkg/build/utils"
 	"golang.org/x/exp/slices"
 )
 

@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	libhttp "github.com/airplanedev/cli/pkg/api/http"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/apidev"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/server/test_utils"
-	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/stretchr/testify/require"
 )
 

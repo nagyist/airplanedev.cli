@@ -4,13 +4,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/airplanedev/cli/pkg/api"
+	libapi "github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
+	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/conf"
+	"github.com/airplanedev/cli/pkg/deploy/discover"
+	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/cli/pkg/server/state"
-	libapi "github.com/airplanedev/lib/pkg/api"
-	buildtypes "github.com/airplanedev/lib/pkg/build/types"
-	"github.com/airplanedev/lib/pkg/deploy/discover"
-	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/stretchr/testify/require"
 )
 

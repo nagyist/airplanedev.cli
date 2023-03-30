@@ -3,7 +3,7 @@ package kind_configs
 import (
 	"encoding/json"
 
-	"github.com/airplanedev/lib/pkg/resources"
+	"github.com/airplanedev/cli/pkg/resources"
 )
 
 type InternalResource struct {

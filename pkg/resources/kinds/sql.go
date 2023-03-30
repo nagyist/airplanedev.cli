@@ -1,6 +1,6 @@
 package kinds
 
-import "github.com/airplanedev/lib/pkg/resources"
+import "github.com/airplanedev/cli/pkg/resources"
 
 type SSHConfig struct {
 	Host       string

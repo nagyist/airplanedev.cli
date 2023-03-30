@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/airplanedev/cli/pkg/api"
+	libapi "github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/dev/env"
-	libapi "github.com/airplanedev/lib/pkg/api"
-	libresources "github.com/airplanedev/lib/pkg/resources"
-	"github.com/airplanedev/lib/pkg/resources/kinds"
+	libresources "github.com/airplanedev/cli/pkg/resources"
+	"github.com/airplanedev/cli/pkg/resources/kinds"
 	"github.com/stretchr/testify/require"
 )
 

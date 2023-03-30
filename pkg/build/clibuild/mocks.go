@@ -3,7 +3,7 @@ package build
 import (
 	"context"
 
-	"github.com/airplanedev/lib/pkg/build"
+	"github.com/airplanedev/cli/pkg/build"
 )
 
 type MockBuildCreator struct{}

@@ -15,12 +15,12 @@ import (
 	"path/filepath"
 	"sort"
 
-	buildtypes "github.com/airplanedev/lib/pkg/build/types"
-	"github.com/airplanedev/lib/pkg/builtins"
-	"github.com/airplanedev/lib/pkg/deploy/config"
-	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
-	"github.com/airplanedev/lib/pkg/utils/fsx"
-	"github.com/airplanedev/lib/pkg/utils/logger"
+	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/builtins"
+	"github.com/airplanedev/cli/pkg/deploy/config"
+	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
+	"github.com/airplanedev/cli/pkg/utils/fsx"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/pkg/errors"
 )
 

@@ -3,10 +3,10 @@ package delete //nolint: predeclared
 import (
 	"context"
 
-	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
+	libhttp "github.com/airplanedev/cli/pkg/api/http"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
-	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

@@ -13,8 +13,8 @@ import (
 	"sync"
 
 	"cloud.google.com/go/storage"
-	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
-	"github.com/airplanedev/lib/pkg/utils/logger"
+	"github.com/airplanedev/cli/pkg/utils/airplane_directory"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/pkg/errors"
 	"google.golang.org/api/option"
 )

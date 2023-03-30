@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/pkg/errors"
 )

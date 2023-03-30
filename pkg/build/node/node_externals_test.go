@@ -3,7 +3,7 @@ package node
 import (
 	"testing"
 
-	"github.com/airplanedev/lib/pkg/build/fixtures"
+	"github.com/airplanedev/cli/pkg/build/fixtures"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

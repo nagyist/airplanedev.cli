@@ -6,7 +6,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/pkg/errors"
 	"golang.ngrok.com/ngrok"

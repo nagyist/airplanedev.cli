@@ -10,9 +10,9 @@ import (
 	"unicode"
 
 	"github.com/airplanedev/cli/pkg/analytics"
+	libhttp "github.com/airplanedev/cli/pkg/api/http"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/state"
-	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
 )

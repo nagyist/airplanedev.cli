@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
+	libapi "github.com/airplanedev/cli/pkg/api"
+	libhttp "github.com/airplanedev/cli/pkg/api/http"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/server/state"
-	libapi "github.com/airplanedev/lib/pkg/api"
-	libhttp "github.com/airplanedev/lib/pkg/api/http"
 )
 
 type ListSleepsResponse struct {

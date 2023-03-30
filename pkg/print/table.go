@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/airplanedev/cli/pkg/api"
+	libapi "github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/params"
-	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/ojson"
 	"github.com/olekukonko/tablewriter"
 )

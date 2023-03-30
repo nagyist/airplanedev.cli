@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/airplanedev/lib/pkg/utils/github"
+	"github.com/airplanedev/cli/pkg/utils/github"
 	"github.com/pkg/errors"
 )
 

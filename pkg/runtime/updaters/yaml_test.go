@@ -7,11 +7,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build/types"
-	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
-	"github.com/airplanedev/lib/pkg/utils/logger"
-	"github.com/airplanedev/lib/pkg/utils/pointers"
+	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
+	"github.com/airplanedev/cli/pkg/utils/logger"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/stretchr/testify/require"
 )
 

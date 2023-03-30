@@ -17,14 +17,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
+	libviews "github.com/airplanedev/cli/pkg/build/views"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/network"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/airplane_directory"
+	"github.com/airplanedev/cli/pkg/utils/fsx"
 	"github.com/airplanedev/cli/pkg/views/viewdir"
-	libviews "github.com/airplanedev/lib/pkg/build/views"
-	"github.com/airplanedev/lib/pkg/utils/airplane_directory"
-	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
 )
 

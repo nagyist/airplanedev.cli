@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/lib/pkg/deploy/discover"
 	"github.com/radovskyb/watcher"
 )
 

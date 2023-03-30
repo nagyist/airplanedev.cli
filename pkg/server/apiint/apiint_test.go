@@ -11,11 +11,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/airplanedev/cli/pkg/api"
+	libapi "github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/conf"
+	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
-	"github.com/airplanedev/cli/pkg/resources"
+	libresources "github.com/airplanedev/cli/pkg/resources"
+	"github.com/airplanedev/cli/pkg/resources/cliresources"
+	"github.com/airplanedev/cli/pkg/resources/kinds"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/apiext"
 	"github.com/airplanedev/cli/pkg/server/apiint"
@@ -24,10 +28,6 @@ import (
 	"github.com/airplanedev/cli/pkg/server/test_utils"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
-	libapi "github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/deploy/discover"
-	libresources "github.com/airplanedev/lib/pkg/resources"
-	"github.com/airplanedev/lib/pkg/resources/kinds"
 	"github.com/stretchr/testify/require"
 )
 

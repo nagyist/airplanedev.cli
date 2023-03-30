@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
+	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
 	"github.com/pkg/errors"
 )
 

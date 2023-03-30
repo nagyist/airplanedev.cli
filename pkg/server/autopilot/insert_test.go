@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/stretchr/testify/require"
 )
@@ -17,7 +17,7 @@ func TestInsertIntoView(t *testing.T) {
 		CursorPosition: 17,
 		Kind:           api.ViewComponentKindTable,
 		Code: `    let x = 4;
-  
+
 let y = 5;`}
 
 	prompt := generateViewInsertionPrompt(userPrompt, viewCtx)

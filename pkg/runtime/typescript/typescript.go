@@ -6,8 +6,8 @@ import (
 	"io/fs"
 	"text/template"
 
-	"github.com/airplanedev/lib/pkg/runtime"
-	"github.com/airplanedev/lib/pkg/runtime/javascript"
+	"github.com/airplanedev/cli/pkg/runtime"
+	"github.com/airplanedev/cli/pkg/runtime/javascript"
 )
 
 // Init register the runtime.

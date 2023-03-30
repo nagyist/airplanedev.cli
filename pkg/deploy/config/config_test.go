@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/airplanedev/lib/pkg/utils/pointers"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/stretchr/testify/require"
 )
 

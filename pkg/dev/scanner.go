@@ -2,9 +2,9 @@ package dev
 
 import (
 	"github.com/airplanedev/cli/pkg/analytics"
-	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/logger"
-	liblogs "github.com/airplanedev/lib/pkg/logs"
+	liblogs "github.com/airplanedev/cli/pkg/logs"
 )
 
 // scanForErrors scans a batch of logs for common errors that we monitor for.

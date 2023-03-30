@@ -1,8 +1,8 @@
 package definitions
 
 import (
-	"github.com/airplanedev/lib/pkg/api"
-	buildtypes "github.com/airplanedev/lib/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/api"
+	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/pkg/errors"
 )
 

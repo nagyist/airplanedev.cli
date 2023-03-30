@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"time"
 
+	libapi "github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/utils"
-	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/pkg/errors"
 )
 

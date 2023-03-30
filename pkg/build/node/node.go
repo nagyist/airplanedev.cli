@@ -11,13 +11,13 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc/v2"
-	"github.com/airplanedev/lib/pkg/build/hooks"
-	buildtypes "github.com/airplanedev/lib/pkg/build/types"
-	"github.com/airplanedev/lib/pkg/build/utils"
-	buildversions "github.com/airplanedev/lib/pkg/build/versions"
-	"github.com/airplanedev/lib/pkg/deploy/config"
-	"github.com/airplanedev/lib/pkg/deploy/discover/parser"
-	"github.com/airplanedev/lib/pkg/utils/fsx"
+	"github.com/airplanedev/cli/pkg/build/hooks"
+	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/build/utils"
+	buildversions "github.com/airplanedev/cli/pkg/build/versions"
+	"github.com/airplanedev/cli/pkg/deploy/config"
+	"github.com/airplanedev/cli/pkg/deploy/discover/parser"
+	"github.com/airplanedev/cli/pkg/utils/fsx"
 	"github.com/pkg/errors"
 )
 

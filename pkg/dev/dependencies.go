@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/airplanedev/lib/pkg/build"
-	buildtypes "github.com/airplanedev/lib/pkg/build/types"
-	"github.com/airplanedev/lib/pkg/deploy/bundlediscover"
+	"github.com/airplanedev/cli/pkg/build"
+	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/deploy/bundlediscover"
 	"github.com/flynn/go-shlex"
 	"github.com/pkg/errors"
 )

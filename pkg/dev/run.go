@@ -3,13 +3,13 @@ package dev
 import (
 	"time"
 
-	"github.com/airplanedev/cli/pkg/api"
+	libapi "github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
+	"github.com/airplanedev/cli/pkg/builtins"
+	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/dev/logs"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
-	libapi "github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/builtins"
-	"github.com/airplanedev/lib/pkg/deploy/discover"
 )
 
 type LocalRun struct {

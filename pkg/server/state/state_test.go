@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/stretchr/testify/require"
 )

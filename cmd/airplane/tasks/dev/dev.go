@@ -12,18 +12,18 @@ import (
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config"
 	"github.com/airplanedev/cli/pkg/analytics"
-	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
+	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/params"
-	"github.com/airplanedev/cli/pkg/resources"
+	"github.com/airplanedev/cli/pkg/resources/cliresources"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
-	"github.com/airplanedev/lib/pkg/deploy/discover"
-	"github.com/airplanedev/lib/pkg/utils/fsx"
+	"github.com/airplanedev/cli/pkg/utils/fsx"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -204,6 +204,8 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		}
 	}()
 
+	// TODO: can we pass ctx here? This was left as-is during the lib/cli merge.
+	//nolint:contextcheck
 	localExecutor := dev.NewLocalExecutor(filepath.Dir(cfg.fileOrDir))
 	localClient := api.NewClient(api.ClientOpts{
 		Host:   fmt.Sprintf("127.0.0.1:%d", port),

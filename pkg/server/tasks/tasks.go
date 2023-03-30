@@ -4,16 +4,16 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/resources"
+	libapi "github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
+	libhttp "github.com/airplanedev/cli/pkg/api/http"
+	"github.com/airplanedev/cli/pkg/deploy/discover"
+	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
+	"github.com/airplanedev/cli/pkg/resources/cliresources"
+	"github.com/airplanedev/cli/pkg/runtime"
 	"github.com/airplanedev/cli/pkg/server/state"
 	serverutils "github.com/airplanedev/cli/pkg/server/utils"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
-	libapi "github.com/airplanedev/lib/pkg/api"
-	libhttp "github.com/airplanedev/lib/pkg/api/http"
-	"github.com/airplanedev/lib/pkg/deploy/discover"
-	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
-	"github.com/airplanedev/lib/pkg/runtime"
 )
 
 type GetTaskResponse struct {

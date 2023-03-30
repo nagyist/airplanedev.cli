@@ -3,8 +3,8 @@ package kinds
 import (
 	"testing"
 
-	"github.com/airplanedev/lib/pkg/resources"
-	"github.com/airplanedev/lib/pkg/utils/pointers"
+	"github.com/airplanedev/cli/pkg/resources"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/stretchr/testify/require"
 )
 

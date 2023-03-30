@@ -11,8 +11,8 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/prompts"
-	"github.com/airplanedev/lib/pkg/resources"
-	"github.com/airplanedev/lib/pkg/resources/kinds"
+	"github.com/airplanedev/cli/pkg/resources"
+	"github.com/airplanedev/cli/pkg/resources/kinds"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

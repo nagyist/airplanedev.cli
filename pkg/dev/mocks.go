@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/stretchr/testify/mock"
 )
 

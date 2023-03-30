@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"time"
 
+	libapi "github.com/airplanedev/cli/pkg/api"
+	libhttp "github.com/airplanedev/cli/pkg/api/http"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
-	libapi "github.com/airplanedev/lib/pkg/api"
-	libhttp "github.com/airplanedev/lib/pkg/api/http"
 	"github.com/pkg/errors"
 )
 

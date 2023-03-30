@@ -3,11 +3,11 @@ package discover
 import (
 	"path/filepath"
 
-	buildtypes "github.com/airplanedev/lib/pkg/build/types"
-	"github.com/airplanedev/lib/pkg/deploy/config"
-	"github.com/airplanedev/lib/pkg/runtime"
-	"github.com/airplanedev/lib/pkg/runtime/javascript"
-	"github.com/airplanedev/lib/pkg/utils/fsx"
+	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/deploy/config"
+	"github.com/airplanedev/cli/pkg/runtime"
+	"github.com/airplanedev/cli/pkg/runtime/javascript"
+	"github.com/airplanedev/cli/pkg/utils/fsx"
 )
 
 // TaskBuildContext gets the build context for a task.

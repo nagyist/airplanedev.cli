@@ -4,7 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 
-	buildtypes "github.com/airplanedev/lib/pkg/build/types"
+	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/pkg/errors"
 )
 

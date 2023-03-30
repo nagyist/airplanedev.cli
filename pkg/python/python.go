@@ -11,7 +11,7 @@ import (
 
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/prompts"
-	"github.com/airplanedev/lib/pkg/utils/fsx"
+	"github.com/airplanedev/cli/pkg/utils/fsx"
 	"github.com/pkg/errors"
 )
 

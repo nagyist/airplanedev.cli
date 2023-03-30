@@ -21,7 +21,7 @@ import (
 	"github.com/airplanedev/cli/cmd/airplane/version"
 	"github.com/airplanedev/cli/cmd/airplane/views"
 	"github.com/airplanedev/cli/pkg/analytics"
-	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/flags"

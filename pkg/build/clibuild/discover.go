@@ -1,10 +1,10 @@
 package build
 
 import (
-	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
+	"github.com/airplanedev/cli/pkg/deploy/bundlediscover"
+	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/lib/pkg/deploy/bundlediscover"
-	"github.com/airplanedev/lib/pkg/deploy/discover"
 )
 
 func BundleDiscoverer(client api.APIClient, l logger.Logger, envSlug string) *bundlediscover.Discoverer {

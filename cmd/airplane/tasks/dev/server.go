@@ -12,17 +12,17 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/analytics"
-	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/build"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
+	"github.com/airplanedev/cli/pkg/build/clibuild"
+	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/filewatcher"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/fsx"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
-	"github.com/airplanedev/lib/pkg/deploy/discover"
-	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/pkg/errors"
 )
 
@@ -157,14 +157,16 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		RemoteClient:         cfg.root.Client,
 		InitialRemoteEnvSlug: envSlug,
 		DevConfig:            cfg.devConfig,
-		Executor:             dev.NewLocalExecutor(absoluteDir),
-		Dir:                  absoluteDir,
-		AuthInfo:             authInfo,
-		Discoverer:           d,
-		BundleDiscoverer:     bd,
-		StudioURL:            *appURL,
-		SandboxState:         sandboxState,
-		ServerHost:           serverHost,
+		// TODO: can we pass ctx here? This was left as-is during the lib/cli merge.
+		//nolint:contextcheck
+		Executor:         dev.NewLocalExecutor(absoluteDir),
+		Dir:              absoluteDir,
+		AuthInfo:         authInfo,
+		Discoverer:       d,
+		BundleDiscoverer: bd,
+		StudioURL:        *appURL,
+		SandboxState:     sandboxState,
+		ServerHost:       serverHost,
 	})
 
 	stop := make(chan os.Signal, 1)

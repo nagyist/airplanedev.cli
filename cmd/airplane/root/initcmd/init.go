@@ -15,7 +15,7 @@ import (
 	taskinit "github.com/airplanedev/cli/cmd/airplane/tasks/initcmd"
 	viewinit "github.com/airplanedev/cli/cmd/airplane/views/initcmd"
 	"github.com/airplanedev/cli/pkg/analytics"
-	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/prompts"

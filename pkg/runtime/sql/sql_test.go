@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/airplanedev/lib/pkg/deploy/taskdir"
-	"github.com/airplanedev/lib/pkg/utils/logger"
+	"github.com/airplanedev/cli/pkg/deploy/taskdir"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/stretchr/testify/require"
 )
 

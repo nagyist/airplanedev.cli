@@ -3,10 +3,10 @@ package build
 import (
 	"context"
 
-	"github.com/airplanedev/cli/pkg/api"
-	libapi "github.com/airplanedev/lib/pkg/api"
-	"github.com/airplanedev/lib/pkg/build"
-	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
+	libapi "github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
+	"github.com/airplanedev/cli/pkg/build"
+	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
 )
 
 type BuildCreator interface {

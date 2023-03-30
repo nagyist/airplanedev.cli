@@ -3,7 +3,7 @@ package builtins
 import (
 	"testing"
 
-	buildtypes "github.com/airplanedev/lib/pkg/build/types"
+	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/stretchr/testify/require"
 )
 

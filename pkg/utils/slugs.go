@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/airplanedev/lib/pkg/deploy/taskdir"
-	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
-	"github.com/airplanedev/lib/pkg/runtime"
+	"github.com/airplanedev/cli/pkg/deploy/taskdir"
+	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
+	"github.com/airplanedev/cli/pkg/runtime"
 	"github.com/gosimple/slug"
 	"github.com/pkg/errors"
 )

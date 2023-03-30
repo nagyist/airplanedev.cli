@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/airplanedev/cli/pkg/analytics"
-	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/go-git/go-git/v5"
 	"github.com/pkg/errors"
 )

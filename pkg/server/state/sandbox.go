@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/airplanedev/cli/pkg/deploy/bundlediscover"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
-	"github.com/airplanedev/lib/pkg/deploy/bundlediscover"
 )
 
 type SandboxState struct {
