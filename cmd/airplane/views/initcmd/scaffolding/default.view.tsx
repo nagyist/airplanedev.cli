@@ -1,6 +1,5 @@
 import { Callout, Heading, Link, Stack, Text } from "@airplane/views";
 
-
 const {{.ViewName}} = () => {
   return (
     <Stack spacing="lg">
