@@ -1,17 +1,36 @@
-import { Heading, Stack, Table } from "@airplane/views";
+import { Callout, Heading, Link, Stack, Text } from "@airplane/views";
+
 
 const {{.ViewName}} = () => {
   return (
-    <Stack>
-      <Heading>Users</Heading>
-      <Table
-        title="Users"
-        data={[
-          { name: "Frances Hernandez", role: "Engineer" },
-          { name: "Charlotte Morris", role: "Sales" },
-          { name: "Ju Hsiao", role: "Support" },
-        ]}
-      />
+    <Stack spacing="lg">
+      <Stack spacing={0}>
+        <Heading>👋 Hello, world!</Heading>
+        <Text>Views make it easy to build UIs in Airplane.</Text>
+      </Stack>
+      <Stack spacing={0}>
+        <Heading level={3}>Learn more</Heading>
+        <Stack direction="row">
+          <Callout variant="neutral" title="Overview" width="1/3">
+            {"Check out what you can build with views. "}
+            <Link href="https://docs.airplane.dev/views/overview" size="sm">
+              Read the docs.
+            </Link>
+          </Callout>
+          <Callout variant="neutral" title="Build your first view" width="1/3">
+            {"Walk through building a simple view in 15 minutes. "}
+            <Link href="https://docs.airplane.dev/getting-started/views" size="sm">
+              Read the docs.
+            </Link>
+          </Callout>
+          <Callout variant="neutral" title="Component library" width="1/3">
+            {"Browse the Views component library. "}
+            <Link href="https://docs.airplane.dev/views/components" size="sm">
+              Read the docs.
+            </Link>
+          </Callout>
+        </Stack>
+      </Stack>
     </Stack>
   );
 };
