@@ -67,7 +67,10 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
         "__airplane" in item
       ) {
         const config = item.__airplane.config;
-        if (item.__airplane.type === "view") {
+        if ("convertToDef" in item.__airplane) {
+          const def = item.__airplane.convertToDef({ relEntrypoint: file, exportName });
+          item.__airplane.type === "view" ? viewConfigs.push(def) : taskConfigs.push(def);
+        } else if (item.__airplane.type === "view") {
           viewConfigs.push({
             slug: config.slug,
             // Default to slug if name is not provided.

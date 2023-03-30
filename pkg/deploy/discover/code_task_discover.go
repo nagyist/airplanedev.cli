@@ -196,8 +196,11 @@ func (c *CodeTaskDiscoverer) parseNodeDefinitions(ctx context.Context, file stri
 	for _, parsedTask := range parsedConfigs.TaskConfigs {
 		// Add the entrypoint to the json definition before validation
 		// since it is unknown to the parser.
-		nodeConfig := parsedTask["node"].(map[string]interface{})
-		nodeConfig["entrypoint"] = pm.RelEntrypoint
+		if _, ok := parsedTask["node"]; ok {
+			// Set the entrypoint if we aren't constructing a builtin.
+			nodeConfig := parsedTask["node"].(map[string]interface{})
+			nodeConfig["entrypoint"] = pm.RelEntrypoint
+		}
 
 		def, err := ConstructDefinition(parsedTask, pm, bc)
 		if err != nil {

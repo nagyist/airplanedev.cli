@@ -14,12 +14,12 @@ var _ taskKind = &SQLDefinition{}
 type SQLDefinition struct {
 	Resource        string                 `json:"resource"`
 	Entrypoint      string                 `json:"entrypoint"`
+	Query           string                 `json:"query,omitempty"`
 	QueryArgs       map[string]interface{} `json:"queryArgs,omitempty"`
 	TransactionMode SQLTransactionMode     `json:"transactionMode,omitempty"`
 	Configs         []string               `json:"configs,omitempty"`
 
-	// Contents of Entrypoint, cached
-	entrypointContents string `json:"-"`
+	// Absolute entrypoint, cached
 	absoluteEntrypoint string `json:"-"`
 }
 
@@ -39,7 +39,7 @@ func (tm SQLTransactionMode) Value() string {
 }
 
 func (d *SQLDefinition) GetQuery() (string, error) {
-	if d.entrypointContents == "" {
+	if d.Query == "" {
 		if d.absoluteEntrypoint == "" {
 			return "", ErrNoAbsoluteEntrypoint
 		}
@@ -47,13 +47,13 @@ func (d *SQLDefinition) GetQuery() (string, error) {
 		if err != nil {
 			return "", errors.Wrapf(err, "reading SQL entrypoint %s", d.Entrypoint)
 		}
-		d.entrypointContents = string(queryBytes)
+		d.Query = string(queryBytes)
 	}
-	return d.entrypointContents, nil
+	return d.Query, nil
 }
 
 func (d *SQLDefinition) TestingOnlySetQuery(query string) {
-	d.entrypointContents = query
+	d.Query = query
 }
 
 func (d *SQLDefinition) copyToTask(task *api.Task, bc buildtypes.BuildConfig, opts GetTaskOpts) error {
@@ -83,7 +83,7 @@ func (d *SQLDefinition) update(t api.UpdateTaskRequest, availableResources []api
 	}
 	if v, ok := t.KindOptions["query"]; ok {
 		if sv, ok := v.(string); ok {
-			d.entrypointContents = sv
+			d.Query = sv
 		} else {
 			return errors.Errorf("expected string query, got %T instead", v)
 		}

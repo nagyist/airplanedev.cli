@@ -141,7 +141,11 @@
                   "type": "string"
                 },
                 "entrypoint": {
-                  "description": "The path to the .sql file containing the logic for this task. This can be absolute or relative to the location of the definition file. The contents of the .sql file support JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates).",
+                  "description": "The path to the .sql file containing the logic for this task. This can be absolute or relative to the location of the definition file. The contents of the .sql file support JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates). Alternatively, you can provide a query string directly in the `query` field.",
+                  "type": "string"
+                },
+                "query": {
+                  "description": "The query string to run. The contents of the query support JavaScript templates (https://docs.airplane.dev/runbooks/javascript-templates). Alternatively, you can provide a sql entrypoint in the `entrypoint` field.",
                   "type": "string"
                 },
                 "queryArgs": {
@@ -162,7 +166,10 @@
                 }
               },
               "additionalProperties": false,
-              "required": ["resource", "entrypoint"]
+              "anyOf": [
+                {"required": ["resource", "entrypoint"]},
+                {"required": ["resource", "query"]}
+              ]
             }
           },
           "required": ["sql"]

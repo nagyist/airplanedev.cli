@@ -13,7 +13,7 @@ import (
 	"time"
 
 	libapi "github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
+	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	libhttp "github.com/airplanedev/cli/pkg/api/http"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/builtins"
@@ -123,7 +123,18 @@ func (l *LocalExecutor) Cmd(ctx context.Context, runConfig LocalRunConfig) (CmdC
 		// REST tasks don't have an entrypoint, and it's not needed
 		return CmdConfig{}, err
 	}
-	r, err := runtime.Lookup(entrypoint, runConfig.Kind)
+
+	var r runtime.Interface
+	switch runConfig.Kind {
+	case buildtypes.TaskKindSQL:
+		r, err = runtime.Lookup("foo.sql", runConfig.Kind)
+	case buildtypes.TaskKindREST:
+		r, err = runtime.Lookup("foo.rest", runConfig.Kind)
+	case buildtypes.TaskKindBuiltin:
+		r, err = runtime.Lookup("foo.builtin", runConfig.Kind)
+	default:
+		r, err = runtime.Lookup(entrypoint, runConfig.Kind)
+	}
 	if err != nil {
 		return CmdConfig{}, errors.Wrapf(err, "unsupported file type: %s", filepath.Base(entrypoint))
 	}
