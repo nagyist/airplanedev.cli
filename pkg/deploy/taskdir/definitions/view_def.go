@@ -26,6 +26,10 @@ type ViewDefinition struct {
 //go:embed view_schema.json
 var viewSchemaStr string
 
+func GetViewSchema() string {
+	return viewSchemaStr
+}
+
 func (d *ViewDefinition) Unmarshal(format DefFormat, buf []byte) error {
 	var err error
 	switch format {
