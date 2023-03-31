@@ -28,6 +28,8 @@ jobs:
           node-version: 18
           cache: "yarn"
           cache-dependency-path: "${{matrix.dir}}/yarn.lock"
+      - name: before
+        run: cat ${{matrix.dir}}/parser.js
       - run: cd ${{matrix.dir}} && yarn install --frozen-lockfile
       - name: lint
         run: cd ${{matrix.dir}} && yarn lint
@@ -35,5 +37,7 @@ jobs:
         run: cd ${{matrix.dir}} && yarn build
       # If this check fails, it likely means that the JS files checked in are out-of-date.
       # Run `yarn build` and commit the changes.
+      - name: after
+        run: cat ${{matrix.dir}}/parser.js
       - name: check for modified files
         run: git diff HEAD --exit-code --text
