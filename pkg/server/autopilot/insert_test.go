@@ -16,9 +16,7 @@ func TestInsertIntoView(t *testing.T) {
 	viewCtx := &GenerateViewContext{
 		CursorPosition: 17,
 		Kind:           api.ViewComponentKindTable,
-		Code: `    let x = 4;
-
-let y = 5;`}
+		Code:           "    let x = 4;\n  \nlet y = 5;"}
 
 	prompt := generateViewInsertionPrompt(userPrompt, viewCtx)
 

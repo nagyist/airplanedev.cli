@@ -64,6 +64,12 @@ jobs:
           key: ${{ runner.os }}-gha-go-test-${{ hashFiles('./go.sum') }}
           restore-keys: |
             ${{ runner.os }}-gha-go-
+      - name: Install fixture dependencies
+        run: |
+          cd $GITHUB_WORKSPACE/pkg/deploy/discover/fixtures
+          yarn
+          cd $GITHUB_WORKSPACE/pkg/deploy/discover/fixtures/viewInline-yarnworkspace
+          yarn
       - name: go test
         run: |
           go test -race -timeout=30m -p 4 ./...

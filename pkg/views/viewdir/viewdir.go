@@ -13,7 +13,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TODO(zhan): this probably should be in airplanedev/cli.
 type ViewDirectoryInterface interface {
 	Root() string
 	EntrypointPath() string
