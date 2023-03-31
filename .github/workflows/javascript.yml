@@ -36,4 +36,4 @@ jobs:
       # If this check fails, it likely means that the JS files checked in are out-of-date.
       # Run `yarn build` and commit the changes.
       - name: check for modified files
-        run: git diff-index --name-status HEAD --exit-code
+        run: git diff HEAD --exit-code
