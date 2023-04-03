@@ -1,10 +1,12 @@
 package views
 
 import (
+	"encoding/json"
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/airplanedev/cli/pkg/build/node"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetAdditionalEnvs(t *testing.T) {
@@ -65,7 +67,7 @@ func TestGetAdditionalEnvs(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			assert := assert.New(t)
+			r := require.New(t)
 
 			for k, v := range tC.osEnvs {
 				os.Setenv(k, v)
@@ -76,7 +78,89 @@ func TestGetAdditionalEnvs(t *testing.T) {
 			}
 
 			e := getAdditionalEnvs(tC.host, tC.apiKey, tC.token, tC.envSlug, tunnelTokenPtr)
-			assert.Equal(tC.envs, e)
+			r.Equal(tC.envs, e)
+		})
+	}
+}
+
+func TestAddDepsToPackageJSON(t *testing.T) {
+	r := require.New(t)
+	var buildToolsPackageJSON node.PackageJSON
+	err := json.Unmarshal([]byte(node.BuildToolsPackageJSON), &buildToolsPackageJSON)
+	r.NoError(err)
+
+	testCases := []struct {
+		desc                   string
+		existingPackageJSON    node.PackageJSON
+		expectedDevPackageJSON node.PackageJSON
+	}{
+		{
+			desc:                "empty",
+			existingPackageJSON: node.PackageJSON{},
+			expectedDevPackageJSON: node.PackageJSON{
+				Dependencies: map[string]string{
+					"react":           buildToolsPackageJSON.Dependencies["react"],
+					"react-dom":       buildToolsPackageJSON.Dependencies["react-dom"],
+					"@airplane/views": buildToolsPackageJSON.Dependencies["@airplane/views"],
+					"object-hash":     buildToolsPackageJSON.Dependencies["object-hash"],
+				},
+				DevDependencies: map[string]string{
+					"@vitejs/plugin-react": buildToolsPackageJSON.Dependencies["@vitejs/plugin-react"],
+					"vite":                 buildToolsPackageJSON.Dependencies["vite"],
+				},
+			},
+		},
+		{
+			desc: "existing dep don't override",
+			existingPackageJSON: node.PackageJSON{
+				Dependencies: map[string]string{
+					"react": "1.0.0",
+				},
+			},
+			expectedDevPackageJSON: node.PackageJSON{
+				Dependencies: map[string]string{
+					"react-dom":       buildToolsPackageJSON.Dependencies["react-dom"],
+					"@airplane/views": buildToolsPackageJSON.Dependencies["@airplane/views"],
+					"object-hash":     buildToolsPackageJSON.Dependencies["object-hash"],
+				},
+				DevDependencies: map[string]string{
+					"@vitejs/plugin-react": buildToolsPackageJSON.Dependencies["@vitejs/plugin-react"],
+					"vite":                 buildToolsPackageJSON.Dependencies["vite"],
+				},
+			},
+		},
+		{
+			desc: "existing dev dep always override",
+			existingPackageJSON: node.PackageJSON{
+				DevDependencies: map[string]string{
+					"vite": "1.0.0",
+				},
+			},
+			expectedDevPackageJSON: node.PackageJSON{
+				Dependencies: map[string]string{
+					"react":           buildToolsPackageJSON.Dependencies["react"],
+					"react-dom":       buildToolsPackageJSON.Dependencies["react-dom"],
+					"@airplane/views": buildToolsPackageJSON.Dependencies["@airplane/views"],
+					"object-hash":     buildToolsPackageJSON.Dependencies["object-hash"],
+				},
+				DevDependencies: map[string]string{
+					"@vitejs/plugin-react": buildToolsPackageJSON.Dependencies["@vitejs/plugin-react"],
+					"vite":                 buildToolsPackageJSON.Dependencies["vite"],
+				},
+			},
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			subR := require.New(t)
+
+			devPackageJSON := node.PackageJSON{
+				Dependencies:    map[string]string{},
+				DevDependencies: map[string]string{},
+			}
+			err := addDevDepsToPackageJSON(tC.existingPackageJSON, devPackageJSON)
+			subR.NoError(err)
+			subR.Equal(tC.expectedDevPackageJSON, devPackageJSON)
 		})
 	}
 }

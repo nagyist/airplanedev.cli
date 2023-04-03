@@ -320,8 +320,10 @@ func (r Runtime) Root(path string) (string, error) {
 		return "", err
 	}
 
-	if pkgjsonRoot := pkg.Settings.Root; pkgjsonRoot != "" {
-		return filepath.Join(root, pkgjsonRoot), nil
+	if pkg.Settings != nil {
+		if pkgjsonRoot := pkg.Settings.Root; pkgjsonRoot != "" {
+			return filepath.Join(root, pkgjsonRoot), nil
+		}
 	}
 
 	return root, nil
@@ -333,7 +335,7 @@ func (r Runtime) Version(rootPath string) (buildVersion buildtypes.BuildTypeVers
 		return "", err
 	}
 
-	if pkg.Engines.NodeVersion != "" {
+	if pkg.Engines != nil && pkg.Engines.NodeVersion != "" {
 		// Look for version in package.json
 		nodeConstraint, err := semver.NewConstraint(pkg.Engines.NodeVersion)
 		if err != nil {

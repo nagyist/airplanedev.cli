@@ -1124,7 +1124,7 @@ func TestReadPackageJSON(t *testing.T) {
 			packageJSON: node.PackageJSON{
 				Name:            "airplane",
 				DevDependencies: map[string]string{"react": "18.2.0"},
-				Workspaces: node.PackageJSONWorkspaces{
+				Workspaces: &node.PackageJSONWorkspaces{
 					Workspaces: []string{"lib", "examples/*"},
 				},
 			},

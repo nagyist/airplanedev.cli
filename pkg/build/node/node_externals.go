@@ -250,7 +250,7 @@ func hasWorkspaces(pathPackageJSON string) (bool, error) {
 	if err := json.Unmarshal(buf, &pkg); err != nil {
 		return false, errors.Wrapf(err, "parsing %s", pathPackageJSON)
 	}
-	return len(pkg.Workspaces.Workspaces) > 0, nil
+	return pkg.Workspaces != nil && len(pkg.Workspaces.Workspaces) > 0, nil
 }
 
 func hasInstallHooks(pathPackageJSON string) (bool, error) {

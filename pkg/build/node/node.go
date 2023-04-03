@@ -213,7 +213,7 @@ func GetNodeInstallInstructions(
 	preinstall := []buildtypes.InstallInstruction{}
 	install := ""
 	postinstall := []buildtypes.InstallInstruction{}
-	if pkg.Settings.PreInstallCommand != "" {
+	if pkg.Settings != nil && pkg.Settings.PreInstallCommand != "" {
 		preinstall = append(preinstall, buildtypes.InstallInstruction{
 			Cmd: pkg.Settings.PreInstallCommand,
 		})
@@ -230,13 +230,13 @@ func GetNodeInstallInstructions(
 		})
 	}
 
-	if pkg.Settings.InstallCommand != "" {
+	if pkg.Settings != nil && pkg.Settings.InstallCommand != "" {
 		install = pkg.Settings.InstallCommand
 	} else if airplaneConfig.Javascript.Install != "" {
 		install = airplaneConfig.Javascript.Install
 	}
 
-	if pkg.Settings.PostInstallCommand != "" {
+	if pkg.Settings != nil && pkg.Settings.PostInstallCommand != "" {
 		postinstall = append(postinstall, buildtypes.InstallInstruction{
 			Cmd: pkg.Settings.PostInstallCommand,
 		})
@@ -435,15 +435,19 @@ func Node(
 	if err != nil {
 		return "", err
 	}
-	preinstallCommand := pkg.Settings.PreInstallCommand
-	if preinstallCommand == "" {
-		preinstallCommand = airplaneConfig.Javascript.PreInstall
+
+	var preInstallCommand, installCommand, postInstallCommand string
+	if pkg.Settings != nil {
+		preInstallCommand = pkg.Settings.PreInstallCommand
+		installCommand = pkg.Settings.InstallCommand
+		postInstallCommand = pkg.Settings.PostInstallCommand
 	}
-	postInstallCommand := pkg.Settings.PostInstallCommand
+	if preInstallCommand == "" {
+		preInstallCommand = airplaneConfig.Javascript.PreInstall
+	}
 	if postInstallCommand == "" {
 		postInstallCommand = airplaneConfig.Javascript.PostInstall
 	}
-	installCommand := pkg.Settings.InstallCommand
 	if installCommand == "" {
 		installCommand = airplaneConfig.Javascript.Install
 	}
@@ -451,11 +455,11 @@ func Node(
 	cfg := templateParams{
 		Workdir:        workdir,
 		HasPackageJSON: hasPackageJSON,
-		UsesWorkspaces: len(pkg.Workspaces.Workspaces) > 0,
+		UsesWorkspaces: pkg.Workspaces != nil && len(pkg.Workspaces.Workspaces) > 0,
 		// esbuild is relatively generous in the node versions it supports:
 		// https://esbuild.github.io/api/#target
 		NodeVersion:        GetNodeVersion(options),
-		PreInstallCommand:  preinstallCommand,
+		PreInstallCommand:  preInstallCommand,
 		PostInstallCommand: postInstallCommand,
 		Args:               makeArgsCommand(buildArgs),
 		IsWorkflow:         isWorkflow,
@@ -911,10 +915,10 @@ type Settings struct {
 
 type PackageJSON struct {
 	Name                 string                 `json:"name,omitempty"`
-	Settings             Settings               `json:"airplane,omitempty"`
-	Workspaces           PackageJSONWorkspaces  `json:"workspaces,omitempty"`
+	Settings             *Settings              `json:"airplane,omitempty"`
+	Workspaces           *PackageJSONWorkspaces `json:"workspaces,omitempty"`
 	Scripts              map[string]interface{} `json:"scripts,omitempty"`
-	Engines              PackageJSONEngines     `json:"engines,omitempty"`
+	Engines              *PackageJSONEngines    `json:"engines,omitempty"`
 	Dependencies         map[string]string      `json:"dependencies,omitempty"`
 	DevDependencies      map[string]string      `json:"devDependencies,omitempty"`
 	OptionalDependencies map[string]string      `json:"optionalDependencies,omitempty"`
@@ -1048,7 +1052,7 @@ func NodeBundle(
 	cfg := templateParams{
 		Workdir:        workdir,
 		HasPackageJSON: hasPackageJSON,
-		UsesWorkspaces: len(pkg.Workspaces.Workspaces) > 0,
+		UsesWorkspaces: pkg.Workspaces != nil && len(pkg.Workspaces.Workspaces) > 0,
 		// esbuild is relatively generous in the node versions it supports:
 		// https://esbuild.github.io/api/#target
 		NodeVersion:                      string(buildContext.VersionOrDefault()),
