@@ -36,4 +36,7 @@ jobs:
       # If this check fails, it likely means that the JS files checked in are out-of-date.
       # Run `yarn build` and commit the changes.
       - name: check for modified files
-        run: git diff-index --name-status HEAD
+        run: git diff HEAD --exit-code --text
+        # Temporarily disable this check on parser b/c the file generated in CI is
+        # different than what we generate locally.
+        if: matrix.dir != 'pkg/deploy/discover/parser/node'

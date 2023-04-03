@@ -82,7 +82,7 @@ func (r *RunbookConverter) Convert(ctx context.Context, runbookSlug string, envS
 	}
 
 	// TODO: Use template from
-	// https://github.com/airplanedev/lib/blob/main/pkg/runtime/javascript/javascript.go#L88
+	// https://github.com/airplanedev/cli/blob/main/pkg/runtime/javascript/javascript.go#L88
 	// for standard inline parameters (params, constraints, etc.).
 	workflowParams := map[string]map[string]interface{}{}
 	for _, param := range runbookInfo.runbook.Runbook.Parameters {

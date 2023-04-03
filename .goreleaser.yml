@@ -75,3 +75,6 @@ dockers:
     - us-docker.pkg.dev/airplane-prod/public/cli:{{ trimprefix .Tag "v" }}
     - us-docker.pkg.dev/airplane-prod/public/cli:{{ .Major }}.{{ .Minor }}
     skip_push: auto
+    # Store the Dockerfile in a subdirectory to avoid it getting picked up by tests that
+    # look for a Dockerfile in parent directories.
+    dockerfile: ./scripts/Dockerfile

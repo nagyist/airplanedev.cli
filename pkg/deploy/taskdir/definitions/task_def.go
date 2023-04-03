@@ -141,8 +141,12 @@ type ScheduleDefinition struct {
 // SchemaStore must be updated if this file is moved or renamed.
 // https://github.com/SchemaStore/schemastore/blob/b4eccc2fb5ad76fd9c0a70fa67228e5d65e2b562/src/api/json/catalog.json#L84
 //
-//go:embed schema_0_3.json
+//go:embed task_schema.json
 var schemaStr string
+
+func GetTaskSchema() string {
+	return schemaStr
+}
 
 func NewDefinition(name string, slug string, kind buildtypes.TaskKind, entrypoint string) (Definition, error) {
 	def := Definition{

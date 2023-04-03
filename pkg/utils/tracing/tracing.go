@@ -73,7 +73,7 @@ func StartSpanWithTime(
 		trace.WithTimestamp(ts),
 	}
 
-	ctx, otelSpan := otel.GetTracerProvider().Tracer("github.com/airplanedev/lib").
+	ctx, otelSpan := otel.GetTracerProvider().Tracer("github.com/airplanedev/cli").
 		Start(ctx, operation, opts...)
 	return ctx, &Span{
 		ctx,

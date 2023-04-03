@@ -11,7 +11,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
+    "experimentalDecorators": true
   },
   "exclude": ["node_modules"]
 }
