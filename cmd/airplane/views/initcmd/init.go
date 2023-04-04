@@ -126,10 +126,10 @@ func createViewScaffolding(cfg *config) error {
 }
 
 func generateEntrypointPath(cfg config) string {
-	return fmt.Sprintf("%s.airplane.tsx", cfg.slug)
+	return fmt.Sprintf("%s.airplane.tsx", strcase.ToCamel(cfg.slug))
 }
 
-//go:embed scaffolding/default_inline.airplane.tsx
+//go:embed scaffolding/Default.airplane.tsx
 var defaultEntrypointInline []byte
 
 func createEntrypoint(cfg config) (string, error) {

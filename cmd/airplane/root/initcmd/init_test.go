@@ -52,6 +52,7 @@ func TestFindTemplate(t *testing.T) {
 }
 
 func TestInit(t *testing.T) {
+	t.Setenv("YARN_CACHE_FOLDER", t.TempDir())
 	testCases := []testutils.InitTest{
 		{
 			Desc:       "Task",
