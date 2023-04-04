@@ -11,8 +11,7 @@ import (
 )
 
 func TestInit(t *testing.T) {
-	t.Setenv("YARN_CACHE_FOLDER", t.TempDir())
-
+	testutils.SetupYarn(t)
 	testCases := []testutils.InitTest{
 		{
 			Desc:       "View",

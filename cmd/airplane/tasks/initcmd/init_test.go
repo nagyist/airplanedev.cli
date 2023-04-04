@@ -98,9 +98,7 @@ func TestGetNewAirplaneConfig(t *testing.T) {
 }
 
 func TestInit(t *testing.T) {
-	// TODO(justin, 04152023): re-enable tests once we resolve the flaky yarn install collisions
-	t.Skip()
-
+	testutils.SetupYarn(t)
 	testCases := []testutils.InitTest{
 		{
 			Desc:       "JavaScript",
