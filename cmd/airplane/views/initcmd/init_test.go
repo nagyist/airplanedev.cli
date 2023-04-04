@@ -20,12 +20,6 @@ func TestInit(t *testing.T) {
 			Inputs:     []interface{}{"My view"},
 			FixtureDir: "./fixtures/view",
 		},
-		{
-			Desc:       "Noninline",
-			Inputs:     []interface{}{"Noninline view"},
-			FixtureDir: "./fixtures/noninline",
-			Args:       []string{"--inline=false"},
-		},
 	}
 
 	for _, tC := range testCases {

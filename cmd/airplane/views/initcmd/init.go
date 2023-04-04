@@ -12,7 +12,6 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/node"
 	"github.com/airplanedev/cli/pkg/utils"
@@ -24,7 +23,6 @@ import (
 
 type config struct {
 	root    *cli.Config
-	inline  bool
 	name    string
 	viewDir string
 	slug    string
@@ -49,17 +47,13 @@ func New(c *cli.Config) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&cfg.from, "from", "", "Path to an existing github URL to initialize from")
-	cmd.Flags().BoolVar(&cfg.inline, "inline", true, "If true, the view will be configured with inline configuration")
 	cfg.cmd = cmd
 
 	return cmd
 }
 
 func GetConfig(c *cli.Config) config {
-	return config{
-		root:   c,
-		inline: true,
-	}
+	return config{root: c}
 }
 
 func Run(ctx context.Context, cfg config) error {
@@ -93,20 +87,8 @@ func createViewScaffolding(cfg *config) error {
 	cfg.slug = slug
 
 	var directory string
-	if !cfg.inline {
-		// Nest non-inline views in a folder.
-		directory = slug
-		if err := utils.CreateDirectory(directory, cfg.root.Prompter); err != nil {
-			return err
-		}
-	}
 	cfg.viewDir = directory
 
-	if !cfg.inline {
-		if err := createViewDefinition(*cfg); err != nil {
-			return err
-		}
-	}
 	entrypoint, err := createEntrypoint(*cfg)
 	if err != nil {
 		return err
@@ -120,9 +102,7 @@ func createViewScaffolding(cfg *config) error {
 		packageJSONDir = filepath.Join(cwd, cfg.viewDir)
 	}
 	deps := []string{"@airplane/views", "react", "react-dom"}
-	if cfg.inline {
-		deps = append(deps, "airplane")
-	}
+	deps = append(deps, "airplane")
 	packageJSONDir, err = node.CreatePackageJSON(packageJSONDir, node.PackageJSONOptions{
 		Dependencies: node.NodeDependencies{
 			Dependencies:    deps,
@@ -145,82 +125,30 @@ func createViewScaffolding(cfg *config) error {
 	return nil
 }
 
-func generateEntrypointPath(cfg config, inViewDir bool) string {
-	if inViewDir {
-		return fmt.Sprintf("%s.view.tsx", cfg.slug)
-	} else if !cfg.inline {
-		return fmt.Sprintf("%s/%s.view.tsx", cfg.viewDir, cfg.slug)
-	} else {
-		return fmt.Sprintf("%s.airplane.tsx", cfg.slug)
-	}
+func generateEntrypointPath(cfg config) string {
+	return fmt.Sprintf("%s.airplane.tsx", cfg.slug)
 }
-
-func generateDefinitionFilePath(cfg config) string {
-	return fmt.Sprintf("%s/%s.view.yaml", cfg.viewDir, cfg.slug)
-}
-
-func createViewDefinition(cfg config) error {
-	if cfg.name == "" {
-		return errors.New("missing new view name")
-	}
-
-	def := definitions.ViewDefinition{
-		Name:       cfg.name,
-		Slug:       cfg.slug,
-		Entrypoint: generateEntrypointPath(cfg, true),
-	}
-
-	defnFilename := generateDefinitionFilePath(cfg)
-
-	buf, err := def.GenerateCommentedFile()
-	if err != nil {
-		return err
-	}
-
-	if err := os.WriteFile(defnFilename, buf, 0644); err != nil {
-		return err
-	}
-	logger.Step("Created view definition at %s", defnFilename)
-	return nil
-}
-
-//go:embed scaffolding/default.view.tsx
-var defaultEntrypoint []byte
 
 //go:embed scaffolding/default_inline.airplane.tsx
 var defaultEntrypointInline []byte
 
 func createEntrypoint(cfg config) (string, error) {
-	entrypointPath := generateEntrypointPath(cfg, false)
+	entrypointPath := generateEntrypointPath(cfg)
 
 	var entrypointContents []byte
-	if cfg.inline {
-		tmpl, err := template.New("entrypoint").Parse(string(defaultEntrypointInline))
-		if err != nil {
-			return "", errors.Wrap(err, "parsing inline entrypoint template")
-		}
-		buf := new(bytes.Buffer)
-		if err := tmpl.Execute(buf, map[string]interface{}{
-			"ViewName": strcase.ToCamel(cfg.slug),
-			"Slug":     cfg.slug,
-			"Name":     cfg.name,
-		}); err != nil {
-			return "", errors.Wrap(err, "executing inline entrypoint template")
-		}
-		entrypointContents = buf.Bytes()
-	} else {
-		tmpl, err := template.New("entrypoint").Parse(string(defaultEntrypoint))
-		if err != nil {
-			return "", errors.Wrap(err, "parsing inline entrypoint template")
-		}
-		buf := new(bytes.Buffer)
-		if err := tmpl.Execute(buf, map[string]interface{}{
-			"ViewName": strcase.ToCamel(cfg.name),
-		}); err != nil {
-			return "", errors.Wrap(err, "executing inline entrypoint template")
-		}
-		entrypointContents = buf.Bytes()
+	tmpl, err := template.New("entrypoint").Parse(string(defaultEntrypointInline))
+	if err != nil {
+		return "", errors.Wrap(err, "parsing inline entrypoint template")
 	}
+	buf := new(bytes.Buffer)
+	if err := tmpl.Execute(buf, map[string]interface{}{
+		"ViewName": strcase.ToCamel(cfg.slug),
+		"Slug":     cfg.slug,
+		"Name":     cfg.name,
+	}); err != nil {
+		return "", errors.Wrap(err, "executing inline entrypoint template")
+	}
+	entrypointContents = buf.Bytes()
 	if err := os.WriteFile(entrypointPath, entrypointContents, 0644); err != nil {
 		return "", errors.Wrap(err, "creating view entrypoint")
 	}
@@ -230,7 +158,7 @@ func createEntrypoint(cfg config) (string, error) {
 
 func suggestNextSteps(cfg config) {
 	if cfg.viewDir != "" && cfg.slug != "" {
-		logger.Suggest("✅ To complete your view:", fmt.Sprintf("Write your view logic in %s", generateEntrypointPath(cfg, false)))
+		logger.Suggest("✅ To complete your view:", fmt.Sprintf("Write your view logic in %s", generateEntrypointPath(cfg)))
 	}
 
 	logger.Suggest(
