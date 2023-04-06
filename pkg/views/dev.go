@@ -17,7 +17,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/airplanedev/cli/pkg/api/cliapi"
+	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/build/node"
 	libviews "github.com/airplanedev/cli/pkg/build/views"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -144,6 +144,16 @@ func Dev(ctx context.Context, v viewdir.ViewDirectoryInterface, viteOpts ViteOpt
 	// Create vite config.
 	if err := createViteConfig(root, airplaneViewDir, viteOpts.Port, viteOpts.Token); err != nil {
 		return nil, "", nil, errors.Wrap(err, "creating vite config")
+	}
+
+	if viteOpts.UsesYarn && !fsx.Exists(filepath.Join(airplaneViewDir, "yarn.lock")) {
+		// Create an empty yarn.lock file if one doesn't exist.
+		// This is necessary if the view is in a yarn workspace
+		// to exclude the .airplane-view subdirectory from the workspace.
+		_, err := os.Create(filepath.Join(airplaneViewDir, "yarn.lock"))
+		if err != nil {
+			return nil, "", nil, errors.Wrap(err, "creating yarn.lock")
+		}
 	}
 
 	l.Log("Installing development dependencies for view...")
