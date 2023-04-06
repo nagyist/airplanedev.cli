@@ -119,22 +119,34 @@ func (d *Definition) updateResources(resources api.Resources, kind buildtypes.Ta
 func (d *Definition) updateKindSpecific(t api.UpdateTaskRequest, availableResources []api.ResourceMetadata) error {
 	switch t.Kind {
 	case buildtypes.TaskKindImage:
-		d.Image = &ImageDefinition{}
+		if d.Image == nil {
+			d.Image = &ImageDefinition{}
+		}
 		return d.Image.update(t, availableResources)
 	case buildtypes.TaskKindNode:
-		d.Node = &NodeDefinition{}
+		if d.Node == nil {
+			d.Node = &NodeDefinition{}
+		}
 		return d.Node.update(t, availableResources)
 	case buildtypes.TaskKindPython:
-		d.Python = &PythonDefinition{}
+		if d.Python == nil {
+			d.Python = &PythonDefinition{}
+		}
 		return d.Python.update(t, availableResources)
 	case buildtypes.TaskKindShell:
-		d.Shell = &ShellDefinition{}
+		if d.Shell == nil {
+			d.Shell = &ShellDefinition{}
+		}
 		return d.Shell.update(t, availableResources)
 	case buildtypes.TaskKindSQL:
-		d.SQL = &SQLDefinition{}
+		if d.SQL == nil {
+			d.SQL = &SQLDefinition{}
+		}
 		return d.SQL.update(t, availableResources)
 	case buildtypes.TaskKindREST:
-		d.REST = &RESTDefinition{}
+		if d.REST == nil {
+			d.REST = &RESTDefinition{}
+		}
 		return d.REST.update(t, availableResources)
 	case buildtypes.TaskKindBuiltin:
 		return updateBuiltin(d, t, availableResources)
