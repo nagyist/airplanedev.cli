@@ -35,6 +35,7 @@ import (
 	"github.com/airplanedev/cli/pkg/views/viewdir"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/slices"
 )
 
 // AttachDevRoutes attaches the endpoints necessary to locally develop a task in the Airplane IDE.
@@ -199,6 +200,8 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 		})
 	}
 
+	sortEntityMap(entrypoints)
+
 	// List remote entrypoints if fallback env is specified
 	if envSlug != nil {
 		res, err := state.RemoteClient.ListTasks(ctx, *envSlug)
@@ -228,6 +231,13 @@ type FileNode struct {
 	Size     *int64           `json:"size"`
 	Children []*FileNode      `json:"children"`
 	Entities []EntityMetadata `json:"entities"`
+}
+
+func (f *FileNode) AddChild(child *FileNode) {
+	f.Children = append(f.Children, child)
+	slices.SortFunc(f.Children, func(a, b *FileNode) bool {
+		return a.Path < b.Path
+	})
 }
 
 type ListFilesResponse struct {
@@ -271,6 +281,8 @@ func ListFilesHandler(ctx context.Context, state *state.State, r *http.Request) 
 			Kind: EntityKindView,
 		})
 	}
+
+	sortEntityMap(filepathToEntities)
 
 	// Track all file tree nodes. We'll use this to build the file tree. Inspired by https://github.com/marcinwyszynski/directory_tree
 	nodes := make(map[string]*FileNode)
@@ -317,7 +329,7 @@ func ListFilesHandler(ctx context.Context, state *state.State, r *http.Request) 
 		parentDir := filepath.Dir(path)
 		parent, ok := nodes[parentDir]
 		if ok {
-			parent.Children = append(parent.Children, node)
+			parent.AddChild(node)
 		} else {
 			root = node
 		}
@@ -609,5 +621,21 @@ func DownloadBundleHandler(ctx context.Context, state *state.State, r *http.Requ
 func ProxyViewHandler(portProxy *httputil.ReverseProxy) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		portProxy.ServeHTTP(w, r)
+	}
+}
+
+// Sort entities-per-entrypoint for a consistent ordering.
+func sortEntityMap(m map[string][]EntityMetadata) {
+	for ep, entities := range m {
+		slices.SortFunc(entities, func(a, b EntityMetadata) bool {
+			if a.Slug == b.Slug {
+				if a.Name == b.Name {
+					return a.Kind < b.Kind
+				}
+				return a.Name < b.Name
+			}
+			return a.Slug < b.Slug
+		})
+		m[ep] = entities
 	}
 }

@@ -27,6 +27,7 @@ import (
 	"github.com/airplanedev/ojson"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/slices"
 )
 
 // AttachExternalAPIRoutes attaches a minimal subset of the actual Airplane API endpoints that are necessary to locally develop
@@ -159,6 +160,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 				if res.Resource.GetID() == resourceID {
 					resourceAttachments[builtinAlias] = slug
 					foundResource = true
+					break
 				}
 			}
 
@@ -623,6 +625,10 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 			CanUpdateResource: true,
 		})
 	}
+
+	slices.SortFunc(resources, func(a, b libapi.Resource) bool {
+		return a.Slug < b.Slug
+	})
 
 	return libapi.ListResourcesResponse{
 		Resources: resources,

@@ -17,6 +17,7 @@ import (
 	"github.com/airplanedev/cli/pkg/utils/fsx"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/slices"
 )
 
 type ViewInfo struct {
@@ -108,6 +109,10 @@ func ListViews(state *state.State) []ViewInfo {
 	for _, vc := range viewConfigs {
 		views = append(views, viewConfigToInfo(vc, nil, nil))
 	}
+
+	slices.SortFunc(views, func(a, b ViewInfo) bool {
+		return a.Slug < b.Slug
+	})
 
 	return views
 }

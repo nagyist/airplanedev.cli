@@ -30,6 +30,7 @@ import (
 	"github.com/gosimple/slug"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 // AttachInternalAPIRoutes attaches a minimal subset of the internal Airplane API endpoints that are necessary for the
@@ -236,6 +237,10 @@ func ListResourcesHandler(ctx context.Context, state *state.State, r *http.Reque
 	} else {
 		logger.Error("error fetching remote resources: %v", err)
 	}
+
+	slices.SortFunc(resourcesWithEnv, func(a, b APIResourceWithEnv) bool {
+		return a.Slug < b.Slug
+	})
 
 	return ListResourcesResponse{
 		Resources: resourcesWithEnv,
@@ -729,6 +734,12 @@ type ListConfigsResponse struct {
 
 func ListConfigsHandler(ctx context.Context, state *state.State, r *http.Request) (ListConfigsResponse, error) {
 	configsWithEnv := maps.Values(state.DevConfig.ConfigVars)
+	slices.SortFunc(configsWithEnv, func(a, b env.ConfigWithEnv) bool {
+		if a.Name == b.Name {
+			return a.Tag < b.Tag
+		}
+		return a.Name < b.Name
+	})
 	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
 
 	// Append any remote configs, if a fallback environment is set

@@ -5,15 +5,16 @@ import (
 	"net/http"
 
 	libapi "github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
+	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	libhttp "github.com/airplanedev/cli/pkg/api/http"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
-	"github.com/airplanedev/cli/pkg/resources/cliresources"
+	resources "github.com/airplanedev/cli/pkg/resources/cliresources"
 	"github.com/airplanedev/cli/pkg/runtime"
 	"github.com/airplanedev/cli/pkg/server/state"
 	serverutils "github.com/airplanedev/cli/pkg/server/utils"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
+	"golang.org/x/exp/slices"
 )
 
 type GetTaskResponse struct {
@@ -155,6 +156,11 @@ func ListTasks(ctx context.Context, s *state.State) ([]libapi.Task, error) {
 		}
 		tasks = append(tasks, t)
 	}
+
+	slices.SortFunc(tasks, func(a, b libapi.Task) bool {
+		return a.Slug < b.Slug
+	})
+
 	return tasks, nil
 }
 

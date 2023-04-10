@@ -27,6 +27,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/slices"
 )
 
 type Server struct {
@@ -324,6 +325,8 @@ func (s *Server) ReloadApps(ctx context.Context, wd string, e filewatcher.Event)
 				pathsToDiscover = append(pathsToDiscover, vC.Def.DefnFilePath)
 			}
 		}
+
+		slices.Sort(pathsToDiscover)
 		pathsToDiscover = utils.UniqueStrings(pathsToDiscover)
 
 		taskConfigs, viewConfigs, err := s.DiscoverTasksAndViews(ctx, pathsToDiscover...)
