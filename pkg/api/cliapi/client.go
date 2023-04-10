@@ -371,8 +371,8 @@ func (c *Client) GetUniqueSlug(ctx context.Context, name, preferredSlug string) 
 
 // ListRuns lists most recent runs.
 func (c *Client) ListRuns(ctx context.Context, req ListRunsRequest) (ListRunsResponse, error) {
-	pageLimit := 100
-	if req.Limit > 0 && req.Limit < 100 {
+	pageLimit := 50
+	if req.Limit > 0 && req.Limit < 50 {
 		// If a user provides a smaller limit, fetch exactly that many items.
 		pageLimit = req.Limit
 	}

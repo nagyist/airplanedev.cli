@@ -6,7 +6,7 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	libapi "github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
+	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/utils"
