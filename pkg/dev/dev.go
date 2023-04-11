@@ -44,12 +44,19 @@ type LocalExecutor struct {
 	BuiltinsClient *builtins.LocalBuiltinClient
 }
 
-func NewLocalExecutor(workingDir string) Executor {
+func NewLocalExecutor() Executor {
 	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{})
-	builtinsClient, err := builtins.NewLocalClient(workingDir, goruntime.GOOS, goruntime.GOARCH, l)
+
+	dir, err := builtins.CreateDefaultBuiltinsDirectory()
 	if err != nil {
 		l.Error(err.Error())
-		l.Warning("Local builtin execution is not supported on this machine. Builtin executions will error.")
+		l.Warning("Unable to create builtins directory. Builtins executions will error.")
+	}
+
+	builtinsClient, err := builtins.NewLocalClient(dir, goruntime.GOOS, goruntime.GOARCH, l)
+	if err != nil {
+		l.Error(err.Error())
+		l.Warning("Local builtin execution is not supported on this machine. Builtins executions will error.")
 		builtinsClient = nil
 	}
 

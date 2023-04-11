@@ -159,7 +159,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		DevConfig:            cfg.devConfig,
 		// TODO: can we pass ctx here? This was left as-is during the lib/cli merge.
 		//nolint:contextcheck
-		Executor:         dev.NewLocalExecutor(absoluteDir),
+		Executor:         dev.NewLocalExecutor(),
 		Dir:              absoluteDir,
 		AuthInfo:         authInfo,
 		Discoverer:       d,

@@ -206,7 +206,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 
 	// TODO: can we pass ctx here? This was left as-is during the lib/cli merge.
 	//nolint:contextcheck
-	localExecutor := dev.NewLocalExecutor(filepath.Dir(cfg.fileOrDir))
+	localExecutor := dev.NewLocalExecutor()
 	localClient := api.NewClient(api.ClientOpts{
 		Host:   fmt.Sprintf("127.0.0.1:%d", port),
 		Token:  cfg.root.Client.Token(),

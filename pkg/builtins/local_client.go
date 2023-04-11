@@ -38,6 +38,20 @@ const (
 	builtinsGCSBucket = "airplane-builtins-prod-a1a046b"
 )
 
+// CreateDefaultBuiltinsDirectory creates the builtins directory in a default location: namely, $HOME/.airplane/builtins.
+func CreateDefaultBuiltinsDirectory() (string, error) {
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		return "", errors.Wrap(err, "getting home directory")
+	}
+
+	builtinsDir := filepath.Join(homedir, ".airplane", "builtins")
+	if err := os.MkdirAll(builtinsDir, os.ModeDir|0777); err != nil && !os.IsExist(err) {
+		return "", errors.Wrap(err, "creating builtins directory")
+	}
+	return builtinsDir, nil
+}
+
 func isLocalExecutionSupported(opSystem, arch string) bool {
 	supportedArchs, osSupported := supportedArchsByOS[opSystem]
 	if !osSupported {
@@ -91,7 +105,7 @@ type LocalBuiltinClient struct {
 	mu     sync.Mutex
 }
 
-func NewLocalClient(root string, opSystem string, arch string, logger logger.Logger) (*LocalBuiltinClient, error) {
+func NewLocalClient(dir string, opSystem string, arch string, logger logger.Logger) (*LocalBuiltinClient, error) {
 	if !isLocalExecutionSupported(opSystem, arch) {
 		return nil, fmt.Errorf("Local builtins execution for %s %s systems is under development. Please reach out to support@airplane.dev for assistance.", opSystem, arch)
 	}
@@ -105,20 +119,15 @@ func NewLocalClient(root string, opSystem string, arch string, logger logger.Log
 		fileName += ".exe"
 	}
 
-	// put builtins directly under the .airplane dir
-	airplaneDir, err := airplane_directory.CreateAirplaneDir(root)
-	if err != nil {
-		return nil, errors.Wrap(err, "creating .airplane directory for builtins")
-	}
 	// we don't want to clean up builtin binaries, so return an empty noopCloser
 	noOpCloser := airplane_directory.CloseFunc(func() error { return nil })
 
 	client := &LocalBuiltinClient{
 		fileName:     fileName,
 		client:       storageClient,
-		directory:    airplaneDir,
-		checksumPath: filepath.Join(airplaneDir, checksumFileName),
-		binaryPath:   filepath.Join(airplaneDir, fileName),
+		directory:    dir,
+		checksumPath: filepath.Join(dir, checksumFileName),
+		binaryPath:   filepath.Join(dir, fileName),
 		logger:       logger,
 		Closer:       noOpCloser,
 	}
