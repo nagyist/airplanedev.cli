@@ -4,6 +4,11 @@ on:
   push:
     branches: ["main"]
   pull_request: {}
+  schedule:
+    # Run every day at 8AM UTC (middle of the night for US) to refresh caches. This
+    # is after the key switchover happens (midnight EST), but before most people start
+    # working.
+    - cron: "0 8 * * *"
 
 concurrency:
   # If this was triggered from a pull request, only run one at a time and cancel any older,
@@ -44,14 +49,25 @@ jobs:
       - uses: pre-commit/action@v3.0.0
       - run: scripts/check_gotidy.sh
 
-  test:
+  sharded-test:
     runs-on: buildjet-8vcpu-ubuntu-2004
+    strategy:
+      matrix:
+        shard: [0, 1]
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
           go-version-file: go.mod
           cache: false
+
+      - name: Get current date (EST)
+        id: date
+        # Use EST instead of UTC so that the key switchover doesn't happen during
+        # regular work hours.
+        run: TZ="EST" echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
       - uses: actions/cache@v3
         # https://github.com/actions/cache/issues/720#issuecomment-1030412967
         timeout-minutes: 5
@@ -61,15 +77,30 @@ jobs:
             ~/go/pkg/mod
             ~/.cache/go-build
             ~/.cache/pre-commit
-          key: ${{ runner.os }}-gha-go-test-${{ hashFiles('./go.sum') }}
+          key: ${{ runner.os }}-gha-go-test-shard${{ matrix.shard }}-${{ hashFiles('./go.sum') }}-${{ steps.date.outputs.date }}
           restore-keys: |
+            ${{ runner.os }}-gha-go-test-shard${{ matrix.shard }}-${{ hashFiles('./go.sum') }}-
+            ${{ runner.os }}-gha-go-test-shard${{ matrix.shard }}-
+            ${{ runner.os }}-gha-go-test-
             ${{ runner.os }}-gha-go-
+
       - name: Install fixture dependencies
         run: |
           cd $GITHUB_WORKSPACE/pkg/deploy/discover/fixtures
           yarn
           cd $GITHUB_WORKSPACE/pkg/deploy/discover/fixtures/viewInline-yarnworkspace
           yarn
+
       - name: go test
         run: |
-          go test -race -timeout=30m -p 4 ./...
+          go test -race -timeout=30m -p 4 $(./.github/workflows/split_tests.py ${{ matrix.shard }})
+
+  # Create no-op test job that depends on sharded tests so we don't need to
+  # individually add each shard to the required status checks in Github.
+  test:
+    needs:
+      - sharded-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run tests
+        run: echo "Done"
