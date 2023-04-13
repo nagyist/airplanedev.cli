@@ -80,6 +80,8 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/uploads/get", handlers.WithBody(state, GetUploadHandler)).Methods("POST", "OPTIONS") // Our web app expects POST for this endpoint
 
 	r.Handle("/envs/list", handlers.New(state, ListEnvsHandler)).Methods("GET", "OPTIONS")
+
+	r.Handle("/schedules/validateCronExpr", handlers.WithBody(state, ValidateCronExprHandler)).Methods("POST", "OPTIONS")
 }
 
 type CreateResourceRequest struct {

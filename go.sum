@@ -47,6 +47,8 @@ github.com/ahmetalpbalkan/dlog v0.0.0-20170105205344-4fb5f8204f26 h1:pzStYMLAXM7
 github.com/ahmetalpbalkan/dlog v0.0.0-20170105205344-4fb5f8204f26/go.mod h1:ilK+u7u1HoqaDk0mjhh27QJB7PyWMreGffEvOCoEKiY=
 github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021 h1:epOU0k9ymss5SvqH10GOBzH57m5AJbiWLx62TZwk748=
 github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021/go.mod h1:Dsagf3j6EvFajY16ZIuDnVL64yFCWtvfXE0tfG33w/U=
+github.com/airplanedev/cronexpr v1.0.6 h1:dn3DRXDiUKIrm2cbyngzSb1ouRquuxCA5PfGpJDY0zc=
+github.com/airplanedev/cronexpr v1.0.6/go.mod h1:n9GAMSVvP+rkSRfC5B1H/KsoOIaoNpk1HbicVh46+/A=
 github.com/airplanedev/dlog v0.0.0-20210615011719-ca8d3becde5e h1:MeoR75I33g2XHKnTfRE67THlKm6fCoKQ3KcxsElHL4w=
 github.com/airplanedev/dlog v0.0.0-20210615011719-ca8d3becde5e/go.mod h1:jTwpOa6MfHZELuUd5UGfKDxZOqBi6fAbI3aFRnLvcA4=
 github.com/airplanedev/ojson v0.1.0 h1:KpEO5zr/9S2xj38Vijky5MWZQ5l2mtDLUoxkxBPVCoI=

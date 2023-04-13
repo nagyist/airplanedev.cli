@@ -9,6 +9,7 @@ require (
 	github.com/MakeNowJust/heredoc/v2 v2.0.1
 	github.com/Masterminds/semver/v3 v3.2.0
 	github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021
+	github.com/airplanedev/cronexpr v1.0.6
 	github.com/airplanedev/dlog v0.0.0-20210615011719-ca8d3becde5e
 	github.com/airplanedev/ojson v0.1.0
 	github.com/airplanedev/path v0.0.1
