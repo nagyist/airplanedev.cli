@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/airplanedev/cli/pkg/build/node"
@@ -15,6 +16,10 @@ import (
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/pkg/errors"
+)
+
+var (
+	entityConfigExtractionLine = regexp.MustCompile(`.*EXTRACTED_ENTITY_CONFIGS:(.+)`)
 )
 
 // esbuildUserFiles builds an airplane entity -> root/.airplane/discover/.
@@ -119,11 +124,15 @@ func extractJSConfigs(file string, env []string) (ParsedJSConfigs, error) {
 	}
 
 	// Parser output is EXTRACTED_ENTITY_CONFIGS:{...}
-	parsedOutput := strings.SplitN(string(out), ":", 2)
+	match := entityConfigExtractionLine.FindStringSubmatch(string(out))
+	if len(match) != 2 {
+		return ParsedJSConfigs{}, errors.Errorf("could not find EXTRACTED_ENTITY_CONFIGS in parser output: %s", string(out))
+	}
+	configs := match[1]
 
 	var parsedConfigs ParsedJSConfigs
-	if err := json.Unmarshal([]byte(parsedOutput[1]), &parsedConfigs); err != nil {
-		return ParsedJSConfigs{}, errors.Wrapf(err, "unmarshalling parser output %s", parsedOutput[1])
+	if err := json.Unmarshal([]byte(configs), &parsedConfigs); err != nil {
+		return ParsedJSConfigs{}, errors.Wrapf(err, "unmarshalling parser output %s", configs)
 	}
 	return parsedConfigs, nil
 }
@@ -140,11 +149,15 @@ func extractPythonConfigs(file string, env []string) ([]map[string]interface{}, 
 	}
 
 	// Parser output is EXTRACTED_ENTITY_CONFIGS:{...}
-	parsedOutput := strings.SplitN(string(out), ":", 2)
+	match := entityConfigExtractionLine.FindStringSubmatch(string(out))
+	if len(match) != 2 {
+		return []map[string]interface{}{}, errors.Errorf("could not find EXTRACTED_ENTITY_CONFIGS in parser output: %s", string(out))
+	}
+	configs := match[1]
 
 	var parsedTasks []map[string]interface{}
-	if err := json.Unmarshal([]byte(parsedOutput[1]), &parsedTasks); err != nil {
-		return nil, errors.Wrapf(err, "unmarshalling parser output %s", parsedOutput[1])
+	if err := json.Unmarshal([]byte(configs), &parsedTasks); err != nil {
+		return nil, errors.Wrapf(err, "unmarshalling parser output %s", configs)
 	}
 	return parsedTasks, nil
 }

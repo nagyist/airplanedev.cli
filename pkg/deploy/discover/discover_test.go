@@ -714,6 +714,38 @@ func TestDiscover(t *testing.T) {
 			defnFilePaths: []string{fixturesPath + "/taskInline/codeOnlyTask.airplane.ts"},
 		},
 		{
+			name:  "node code definition with logs at the top level",
+			paths: []string{"./fixtures/taskInlineLogs/codeOnlyTask.airplane.ts"},
+			existingTasks: map[string]api.Task{
+				"collatz": {ID: "tsk123", Slug: "collatz", Kind: buildtypes.TaskKindPython, InterpolationMode: "jst"},
+			},
+			expectedTaskConfigs: []TaskConfig{
+				{
+					TaskID:         "tsk123",
+					TaskRoot:       fixturesPath,
+					TaskEntrypoint: fixturesPath + "/taskInlineLogs/codeOnlyTask.airplane.ts",
+					Def: definitions.Definition{
+						Slug:       "collatz",
+						Name:       "Collatz",
+						Parameters: []definitions.ParameterDefinition{},
+						Node:       &definitions.NodeDefinition{},
+					},
+					Source: ConfigSourceCode,
+				},
+			},
+			buildConfigs: []buildtypes.BuildConfig{
+				{
+					"entrypoint":     "taskInlineLogs/codeOnlyTask.airplane.ts",
+					"entrypointFunc": "collatz",
+					"workdir":        "",
+				},
+			},
+			absEntrypoints: []string{
+				fixturesPath + "/taskInlineLogs/codeOnlyTask.airplane.ts",
+			},
+			defnFilePaths: []string{fixturesPath + "/taskInlineLogs/codeOnlyTask.airplane.ts"},
+		},
+		{
 			name:  "node code definition with schedule",
 			paths: []string{"./fixtures/taskInlineSchedule/codeOnlyTask.airplane.ts"},
 			existingTasks: map[string]api.Task{
