@@ -94,13 +94,3 @@ jobs:
       - name: go test
         run: |
           go test -race -timeout=30m -p 4 $(./.github/workflows/split_tests.py ${{ matrix.shard }})
-
-  # Create no-op test job that depends on sharded tests so we don't need to
-  # individually add each shard to the required status checks in Github.
-  test:
-    needs:
-      - sharded-test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run tests
-        run: echo "Done"
