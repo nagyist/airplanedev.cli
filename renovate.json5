@@ -1,0 +1,55 @@
+{
+  extends: ["config:base", "group:allNonMajor"],
+  labels: ["merge"],
+  prBodyNotes: "If you are assigned as a reviewer, please help and promptly review this upgrade - [see docs](https://www.notion.so/airplanedev/Dependency-PRs-07a8a4f0570040a7965c2c1183fb87c8).",
+  postUpdateOptions: ["gomodTidy"],
+  reviewers: ["team:deps"],
+  schedule: ["before 5am on Thursday"],
+  timezone: "America/New_York",
+  ignorePaths: [
+    "pkg/runtime/javascript/fixtures/version/gt15lt18/package.json",
+    "pkg/examples/typescript/airplaneoverride/package.json"
+  ],
+  packageRules: [
+    {
+      matchPackageNames: [
+        "jsdom",
+        "typescript",
+        "react",
+        "react-dom",
+        "object-hash"
+      ],
+      schedule: ["every 2 months on the first day of the month"]
+    },
+    {
+      matchPaths: ["pkg/**/fixtures/**", "pkg/examples/**"],
+      groupName: "Fixtures",
+      description: "Group updates to fixture dependencies. If the tests pass, this is safe to merge."
+    },
+    {
+      // For some reason, Renovate is trying to use yarn v2+ on certain fixtures. Force yarn v1.
+      // See: https://github.com/renovatebot/renovate/issues/16416
+      matchPaths: [
+        "pkg/examples/**/yarn.lock",
+        "pkg/**/fixtures/**/yarn.lock"
+      ],
+      force: {
+        constraints: {
+          yarn: "1"
+        }
+      }
+    },
+    {
+      // For the fixtures that do need yarn v2, override the prior rule.
+      matchPaths: [
+        "pkg/examples/typescript/yarn2/yarn.lock",
+        "pkg/build/fixtures/node_externals/yarn2workspace_importlocal/yarn.lock"
+      ],
+      force: {
+        constraints: {
+          yarn: "2"
+        }
+      }
+    }
+  ]
+}
