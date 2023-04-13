@@ -2,11 +2,7 @@ package initcmd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
 	"os"
 	"strings"
 
@@ -15,8 +11,9 @@ import (
 	taskinit "github.com/airplanedev/cli/cmd/airplane/tasks/initcmd"
 	viewinit "github.com/airplanedev/cli/cmd/airplane/views/initcmd"
 	"github.com/airplanedev/cli/pkg/analytics"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
+	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/cli"
+	"github.com/airplanedev/cli/pkg/initcmd"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/cli/pkg/utils"
@@ -112,11 +109,11 @@ func run(ctx context.Context, cfg config) error {
 			return utils.CopyFromGithubPath(cfg.template, cfg.root.Prompter)
 		}
 
-		templates, err := ListTemplates(ctx)
-		if err != nil {
-			return err
-		}
-		return initFromTemplate(cfg, templates, cfg.template, cfg.root.Prompter)
+		return initcmd.InitFromTemplate(ctx, initcmd.InitFromTemplateRequest{
+			Client:       cfg.root.Client,
+			Prompter:     cfg.root.Prompter,
+			TemplateSlug: cfg.template,
+		})
 	}
 
 	if cfg.fromRunbook != "" {
@@ -142,7 +139,7 @@ func run(ctx context.Context, cfg config) error {
 	} else if selectedInit == viewOption {
 		return viewinit.Run(ctx, viewinit.GetConfig(cfg.root))
 	} else if selectedInit == templateOption {
-		templates, err := ListTemplates(ctx)
+		templates, err := initcmd.ListTemplates(ctx)
 		if err != nil {
 			return err
 		}
@@ -151,22 +148,18 @@ func run(ctx context.Context, cfg config) error {
 			return err
 		}
 
-		return initFromTemplate(cfg, templates, selectedTemplate, cfg.root.Prompter)
+		return initcmd.InitFromTemplate(ctx, initcmd.InitFromTemplateRequest{
+			Client:       cfg.root.Client,
+			Prompter:     cfg.root.Prompter,
+			Templates:    templates,
+			TemplateSlug: selectedTemplate,
+		})
 	}
 
 	return nil
 }
 
-type Template struct {
-	Name          string   `json:"name"`
-	Description   string   `json:"description"`
-	GitHubPath    string   `json:"githubPath"`
-	DemoResources []string `json:"demoResources"`
-	ViewSlugs     []string `json:"viewSlugs"`
-	TaskSlugs     []string `json:"taskSlugs"`
-}
-
-func selectTemplate(templates []Template, p prompts.Prompter) (string, error) {
+func selectTemplate(templates []initcmd.Template, p prompts.Prompter) (string, error) {
 	const templateBrowser = "Explore templates in the browser"
 	optionToPath := map[string]string{}
 
@@ -194,63 +187,4 @@ func selectTemplate(templates []Template, p prompts.Prompter) (string, error) {
 		}
 	}
 	return optionToPath[selectedTemplate], nil
-}
-
-func initFromTemplate(
-	cfg config,
-	templates []Template,
-	gitPath string,
-	p prompts.Prompter,
-) error {
-	analytics.Track(cfg.root.Client, "Template Cloned", map[string]interface{}{
-		"template_path": gitPath,
-	})
-	template, err := FindTemplate(templates, gitPath)
-	if err != nil {
-		return err
-	}
-	return utils.CopyFromGithubPath(template.GitHubPath, p)
-}
-
-const docsUrl = "http://docs.airplane.dev/templates/templates.json"
-const defaultGitPrefix = "github.com/airplanedev/templates"
-
-func ListTemplates(ctx context.Context) ([]Template, error) {
-	//nolint: noctx
-	resp, err := http.Get(docsUrl)
-	if err != nil {
-		return []Template{}, errors.Wrap(err, "getting templates json")
-	}
-	defer resp.Body.Close()
-	buf, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return []Template{}, errors.Wrap(err, "reading templates")
-	}
-
-	var t []Template
-	if err = json.Unmarshal(buf, &t); err != nil {
-		return []Template{}, errors.Wrap(err, "unmarshalling templates")
-	}
-	return t, nil
-}
-
-func FindTemplate(templates []Template, gitPath string) (Template, error) {
-	if !strings.HasPrefix(gitPath, "github.com/") {
-		if strings.HasPrefix(gitPath, "https://github.com/") {
-			gitPath = strings.TrimPrefix(gitPath, "https://")
-		} else {
-			p, err := url.JoinPath(defaultGitPrefix, gitPath)
-			if err != nil {
-				return Template{}, errors.Wrapf(err, "creating URL from %s and %s", defaultGitPrefix, gitPath)
-			}
-			gitPath = p
-		}
-	}
-
-	for _, t := range templates {
-		if t.GitHubPath == gitPath {
-			return t, nil
-		}
-	}
-	return Template{}, errors.New("template not found")
 }
