@@ -58,6 +58,11 @@ func (s *SandboxState) Rebuild(ctx context.Context, bd *bundlediscover.Discovere
 	}()
 }
 
+// Rebuilds fully synchronously.
+func (s *SandboxState) RebuildSynchronously(ctx context.Context, bd *bundlediscover.Discoverer, paths ...string) {
+	s.rebuild(ctx, bd, paths...)
+}
+
 // Kicks off a rebuild and waits up to five seconds. Returns true iff the rebuild is continuing
 // asynchronously.
 func (s *SandboxState) RebuildWithTimeout(ctx context.Context, bd *bundlediscover.Discoverer, paths ...string) bool {

@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/analytics"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
-	"github.com/airplanedev/cli/pkg/build/clibuild"
+	api "github.com/airplanedev/cli/pkg/api/cliapi"
+	build "github.com/airplanedev/cli/pkg/build/clibuild"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -143,7 +143,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	var sandboxState *state.SandboxState
 	if cfg.sandbox {
 		sandboxState = state.NewSandboxState(l)
-		sandboxState.Rebuild(ctx, bd, absoluteDir)
+		sandboxState.RebuildSynchronously(ctx, bd, absoluteDir)
 	}
 
 	var envSlug *string
