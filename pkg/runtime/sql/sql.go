@@ -88,12 +88,6 @@ func (r Runtime) Update(ctx context.Context, logger logger.Logger, path string, 
 		return err
 	}
 
-	// Update the SQL query within the entrypoint file.
-	root, err := r.Root(path)
-	if err != nil {
-		return err
-	}
-
 	if def.SQL == nil {
 		return errors.New("SQL configuration missing on definition")
 	}
@@ -103,7 +97,7 @@ func (r Runtime) Update(ctx context.Context, logger logger.Logger, path string, 
 		return err
 	}
 
-	entrypoint := filepath.Join(root, def.SQL.Entrypoint)
+	entrypoint := filepath.Join(filepath.Dir(def.GetDefnFilePath()), def.SQL.Entrypoint)
 	f, err := os.OpenFile(entrypoint, os.O_WRONLY|os.O_TRUNC, 0)
 	if err != nil {
 		return errors.Wrap(err, "opening entrypoint")
