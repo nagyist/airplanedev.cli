@@ -2,6 +2,7 @@ package apiint
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -26,7 +27,7 @@ func ValidateCronExprHandler(
 ) (ValidateCronExprResponse, error) {
 	if err := req.CronExpr.Validate(); err != nil {
 		return ValidateCronExprResponse{
-			ErrorMsg: err.Error(),
+			ErrorMsg: fmt.Sprintf("Invalid cron expression: %s", err.Error()),
 		}, nil
 	}
 
