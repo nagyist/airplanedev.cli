@@ -28,6 +28,7 @@ import (
 type InitTaskRequest struct {
 	Client   api.APIClient
 	Prompter prompts.Prompter
+	DryRun   bool
 
 	File     string
 	FromTask string
@@ -45,7 +46,8 @@ type InitTaskRequest struct {
 	TaskEntrypoint string
 }
 
-func InitTask(ctx context.Context, req InitTaskRequest) error {
+func InitTask(ctx context.Context, req InitTaskRequest) ([]string, error) {
+	filesCreated := []string{}
 	client := req.Client
 
 	var def definitions.Definition
@@ -55,7 +57,7 @@ func InitTask(ctx context.Context, req InitTaskRequest) error {
 			EnvSlug: req.EnvSlug,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if task.Runtime == buildtypes.TaskRuntimeWorkflow {
@@ -65,19 +67,19 @@ func InitTask(ctx context.Context, req InitTaskRequest) error {
 
 		resp, err := client.ListResourceMetadata(ctx)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		def, err = definitions.NewDefinitionFromTask(task, resp.Resources)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	} else {
 		if req.TaskName == "" {
-			return errors.New("missing new task name")
+			return nil, errors.New("missing new task name")
 		}
 		if req.TaskKind == "" {
-			return errors.New("missing new task kind")
+			return nil, errors.New("missing new task kind")
 		}
 
 		var err error
@@ -103,7 +105,7 @@ func InitTask(ctx context.Context, req InitTaskRequest) error {
 					},
 				)
 			default:
-				return errors.Errorf("don't know how to initialize task kind=builtin name=%s", req.TaskKindName)
+				return nil, errors.Errorf("don't know how to initialize task kind=builtin name=%s", req.TaskKindName)
 			}
 		} else {
 			def, err = definitions.NewDefinition(
@@ -114,13 +116,13 @@ func InitTask(ctx context.Context, req InitTaskRequest) error {
 			)
 		}
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	kind, err := def.Kind()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !isInlineSupportedKind(kind) {
 		req.Inline = false
@@ -133,7 +135,7 @@ func InitTask(ctx context.Context, req InitTaskRequest) error {
 	if entrypoint, err := def.Entrypoint(); err == definitions.ErrNoEntrypoint {
 		// no-op
 	} else if err != nil {
-		return err
+		return nil, err
 	} else {
 		if req.File != "" && !definitions.IsTaskDef(req.File) {
 			entrypoint = req.File
@@ -142,10 +144,10 @@ func InitTask(ctx context.Context, req InitTaskRequest) error {
 		if filepath.Ext(entrypoint) == "tsx" || filepath.Ext(entrypoint) == "jsx" {
 			logger.Log("You are trying to deploy a React file. Use `airplane views init` if you'd like to initialize a view.")
 			if ok, err := req.Prompter.ConfirmWithAssumptions("Are you sure you'd like to continue?", req.AssumeYes, req.AssumeNo); err != nil {
-				return err
+				return nil, err
 			} else if !ok {
 				logger.Log("Exiting flow")
-				return nil
+				return nil, nil
 			}
 		}
 
@@ -156,14 +158,14 @@ func InitTask(ctx context.Context, req InitTaskRequest) error {
 			} else {
 				entrypoint, err = promptForEntrypoint(def.GetSlug(), kind, entrypoint, req.Inline, req.Prompter)
 				if err != nil {
-					return err
+					return nil, err
 				}
 			}
 
 			if fsx.Exists(entrypoint) {
 				shouldOverwrite, shouldPrintToStdOut, err := shouldOverwriteTaskEntrypoint(req, entrypoint, kind)
 				if err != nil {
-					return err
+					return nil, err
 				}
 				shouldPrintEntrypointToStdOut = shouldPrintToStdOut
 				if shouldOverwrite || shouldPrintEntrypointToStdOut {
@@ -175,65 +177,69 @@ func InitTask(ctx context.Context, req InitTaskRequest) error {
 		}
 
 		if err := def.SetEntrypoint(entrypoint); err != nil {
-			return err
+			return nil, err
 		}
 		absEntrypoint, err := filepath.Abs(entrypoint)
 		if err != nil {
-			return errors.Wrap(err, "determining absolute entrypoint")
+			return nil, errors.Wrap(err, "determining absolute entrypoint")
 		}
 		if err := def.SetAbsoluteEntrypoint(absEntrypoint); err != nil {
-			return err
+			return nil, err
 		}
 
 		r, err := runtime.Lookup(entrypoint, kind)
 		if err != nil {
-			return errors.Wrapf(err, "unable to init %q - check that your CLI is up to date", entrypoint)
+			return nil, errors.Wrapf(err, "unable to init %q - check that your CLI is up to date", entrypoint)
 		}
 		localExecutionSupported = r.SupportsLocalExecution()
 
-		if kind == buildtypes.TaskKindSQL {
-			query, err := def.SQL.GetQuery()
-			if err != nil {
-				// Create a generic entrypoint.
-				if err := createTaskEntrypoint(r, entrypoint, nil); err != nil {
-					return errors.Wrapf(err, "unable to create entrypoint")
-				}
-			} else {
-				// Write the query to the entrypoint.
-				if err := writeTaskEntrypoint(entrypoint, []byte(query), 0644); err != nil {
-					return errors.Wrapf(err, "unable to create entrypoint")
-				}
-			}
-			logger.Step("Created %s", entrypoint)
-		} else if req.Inline {
-			if err := createInlineEntrypoint(r, entrypoint, &def, shouldPrintEntrypointToStdOut); err != nil {
-				return errors.Wrapf(err, "unable to create entrypoint")
-			}
-			if shouldPrintEntrypointToStdOut {
-				logger.Step("Printed task to stdout. Copy task configuration to %s.", entrypoint)
-			} else {
-				logger.Step("Created %s", entrypoint)
-			}
-		} else {
-			// Create entrypoint, without comment link, if it doesn't exist.
-			if !fsx.Exists(entrypoint) {
-				if err := createTaskEntrypoint(r, entrypoint, nil); err != nil {
-					return errors.Wrapf(err, "unable to create entrypoint")
+		if !req.DryRun {
+			if kind == buildtypes.TaskKindSQL {
+				query, err := def.SQL.GetQuery()
+				if err != nil {
+					// Create a generic entrypoint.
+					if err := createTaskEntrypoint(r, entrypoint, nil); err != nil {
+						return nil, errors.Wrapf(err, "unable to create entrypoint")
+					}
+				} else {
+					// Write the query to the entrypoint.
+					if err := writeTaskEntrypoint(entrypoint, []byte(query), 0644); err != nil {
+						return nil, errors.Wrapf(err, "unable to create entrypoint")
+					}
 				}
 				logger.Step("Created %s", entrypoint)
+			} else if req.Inline {
+				if err := createInlineEntrypoint(r, entrypoint, &def, shouldPrintEntrypointToStdOut); err != nil {
+					return nil, errors.Wrapf(err, "unable to create entrypoint")
+				}
+				if shouldPrintEntrypointToStdOut {
+					logger.Step("Printed task to stdout. Copy task configuration to %s.", entrypoint)
+				} else {
+					logger.Step("Created %s", entrypoint)
+				}
+			} else {
+				// Create entrypoint, without comment link, if it doesn't exist.
+				if !fsx.Exists(entrypoint) {
+					if err := createTaskEntrypoint(r, entrypoint, nil); err != nil {
+						return nil, errors.Wrapf(err, "unable to create entrypoint")
+					}
+					logger.Step("Created %s", entrypoint)
+				}
 			}
 		}
+		filesCreated = append(filesCreated, entrypoint)
 	}
 
 	var resp *writeDefnFileResponse
 	if !req.Inline {
 		resp, err = writeTaskDefnFile(&def, req)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if resp == nil {
-			return nil
+			return filesCreated, nil
 		}
+		filesCreated = append(filesCreated, resp.DefnFile)
 	} else {
 		entrypoint, _ := def.Entrypoint()
 		resp = &writeDefnFileResponse{
@@ -242,8 +248,20 @@ func InitTask(ctx context.Context, req InitTaskRequest) error {
 		}
 	}
 
-	if err := runKindSpecificInstallation(ctx, req.Prompter, req.Inline, kind, def); err != nil {
-		return err
+	kindSpecificFilesCreated, err := runKindSpecificInstallation(ctx, runKindSpecificInstallationRequest{
+		Prompter: req.Prompter,
+		DryRun:   req.DryRun,
+		Inline:   req.Inline,
+		Kind:     kind,
+		Def:      def,
+	})
+	if err != nil {
+		return nil, err
+	}
+	filesCreated = append(filesCreated, kindSpecificFilesCreated...)
+
+	if req.DryRun {
+		logger.Log("Running with --dry-run. This command would have created or updated the following files:\n- %s", strings.Join(filesCreated, "\n- "))
 	}
 
 	suggestNextTaskSteps(suggestNextTaskStepsRequest{
@@ -253,7 +271,8 @@ func InitTask(ctx context.Context, req InitTaskRequest) error {
 		kind:               kind,
 		isNew:              req.FromTask == "",
 	})
-	return nil
+
+	return filesCreated, nil
 }
 
 func shouldOverwriteTaskEntrypoint(req InitTaskRequest, entrypoint string, kind buildtypes.TaskKind) (shouldOverwrite, shouldPrintToStdOut bool, err error) {
@@ -364,8 +383,10 @@ func writeTaskDefnFile(def *definitions.Definition, req InitTaskRequest) (*write
 		return nil, err
 	}
 
-	if err := os.WriteFile(defnFilename, buf, 0644); err != nil {
-		return nil, err
+	if !req.DryRun {
+		if err := os.WriteFile(defnFilename, buf, 0644); err != nil {
+			return nil, err
+		}
 	}
 	logger.Step("Created %s", defnFilename)
 	return &writeDefnFileResponse{
@@ -575,82 +596,111 @@ func apiTaskToRuntimeTask(task *libapi.Task) *runtime.Task {
 	return t
 }
 
-func runKindSpecificInstallation(ctx context.Context, prompter prompts.Prompter, inline bool, kind buildtypes.TaskKind, def definitions.Definition) error {
-	switch kind {
-	case buildtypes.TaskKindNode:
-		entrypoint, err := def.GetAbsoluteEntrypoint()
-		if err != nil {
-			return err
-		}
-		packageJSONDir, err := node.CreatePackageJSON(filepath.Dir(entrypoint), node.PackageJSONOptions{
-			Dependencies: node.NodeDependencies{
-				Dependencies:    []string{"airplane"},
-				DevDependencies: []string{"@types/node"},
-			},
-		}, prompter)
-		if err != nil {
-			return err
-		}
+type runKindSpecificInstallationRequest struct {
+	Prompter prompts.Prompter
+	DryRun   bool
+	Inline   bool
+	Kind     buildtypes.TaskKind
+	Def      definitions.Definition
+}
 
-		_, nodeVersion, buildBase, err := def.GetBuildType()
+func runKindSpecificInstallation(ctx context.Context, req runKindSpecificInstallationRequest) ([]string, error) {
+	filesCreated := []string{}
+	switch req.Kind {
+	case buildtypes.TaskKindNode:
+		var packageJSONDir string
+		entrypoint, err := req.Def.GetAbsoluteEntrypoint()
 		if err != nil {
-			return err
+			return nil, err
+		}
+		if !req.DryRun {
+			packageJSONDir, err = node.CreatePackageJSON(filepath.Dir(entrypoint), node.PackageJSONOptions{
+				Dependencies: node.NodeDependencies{
+					Dependencies:    []string{"airplane"},
+					DevDependencies: []string{"@types/node"},
+				},
+			}, req.Prompter)
+			if err != nil {
+				return nil, err
+			}
+		}
+		filesCreated = append(filesCreated, filepath.Join(packageJSONDir, "package.json"))
+
+		_, nodeVersion, buildBase, err := req.Def.GetBuildType()
+		if err != nil {
+			return nil, err
 		}
 		if nodeVersion == "" {
 			nodeVersion = buildtypes.DefaultNodeVersion
 		}
 
-		if err := createOrUpdateAirplaneConfig(packageJSONDir, deployconfig.AirplaneConfig{
-			Javascript: deployconfig.JavaScriptConfig{
-				NodeVersion: string(nodeVersion),
-				Base:        string(buildBase),
-			},
-		}); err != nil {
-			return err
-		}
-		if filepath.Ext(entrypoint) == ".ts" || filepath.Ext(entrypoint) == ".tsx" {
-			// Create/update tsconfig in the same directory as the package.json file
-			if err := node.CreateTaskTSConfig(packageJSONDir, prompter); err != nil {
-				return err
+		if !req.DryRun {
+			if err := createOrUpdateAirplaneConfig(packageJSONDir, deployconfig.AirplaneConfig{
+				Javascript: deployconfig.JavaScriptConfig{
+					NodeVersion: string(nodeVersion),
+					Base:        string(buildBase),
+				},
+			}); err != nil {
+				return nil, err
 			}
 		}
-		return nil
+		filesCreated = append(filesCreated, filepath.Join(packageJSONDir, "airplane.yaml"))
+
+		if filepath.Ext(entrypoint) == ".ts" || filepath.Ext(entrypoint) == ".tsx" {
+			// Create/update tsconfig in the same directory as the package.json file
+			if !req.DryRun {
+				if err := node.CreateTaskTSConfig(packageJSONDir, req.Prompter); err != nil {
+					return nil, err
+				}
+			}
+			filesCreated = append(filesCreated, filepath.Join(packageJSONDir, "tsconfig.json"))
+		}
+
+		return filesCreated, nil
 	case buildtypes.TaskKindPython:
-		entrypoint, err := def.GetAbsoluteEntrypoint()
+		var requirementsTxtDir string
+		entrypoint, err := req.Def.GetAbsoluteEntrypoint()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		var deps []python.PythonDependency
-		if inline {
+		if req.Inline {
 			deps = []python.PythonDependency{
 				{Name: "airplanesdk", Version: "~=0.3.14"},
 			}
 		}
-		requirementsTxtDir, err := python.CreateRequirementsTxt(filepath.Dir(entrypoint), python.RequirementsTxtOptions{
-			Dependencies: deps,
-		}, prompter)
-		if err != nil {
-			return err
+		if !req.DryRun {
+			requirementsTxtDir, err = python.CreateRequirementsTxt(filepath.Dir(entrypoint), python.RequirementsTxtOptions{
+				Dependencies: deps,
+			}, req.Prompter)
+			if err != nil {
+				return nil, err
+			}
 		}
+		filesCreated = append(filesCreated, filepath.Join(requirementsTxtDir, "requirements.txt"))
 
-		_, pythonVersion, buildBase, err := def.GetBuildType()
+		_, pythonVersion, buildBase, err := req.Def.GetBuildType()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if pythonVersion == "" {
 			pythonVersion = buildtypes.DefaultPythonVersion
 		}
-		if err := createOrUpdateAirplaneConfig(requirementsTxtDir, deployconfig.AirplaneConfig{
-			Python: deployconfig.PythonConfig{
-				Version: string(pythonVersion),
-				Base:    string(buildBase),
-			},
-		}); err != nil {
-			return err
+
+		if !req.DryRun {
+			if err := createOrUpdateAirplaneConfig(requirementsTxtDir, deployconfig.AirplaneConfig{
+				Python: deployconfig.PythonConfig{
+					Version: string(pythonVersion),
+					Base:    string(buildBase),
+				},
+			}); err != nil {
+				return nil, err
+			}
 		}
-		return nil
+		filesCreated = append(filesCreated, filepath.Join(requirementsTxtDir, "airplane.yaml"))
+		return filesCreated, nil
 	default:
-		return nil
+		return nil, nil
 	}
 }
 

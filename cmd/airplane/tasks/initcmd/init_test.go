@@ -74,6 +74,51 @@ func TestInit(t *testing.T) {
 			FixtureDir: "./fixtures/fromrunbook",
 			Args:       []string{"--from-runbook=existing_runbook"},
 		},
+		{
+			Desc:   "Dry run JavaScript",
+			Inputs: []interface{}{"My JavaScript task", "JavaScript", "my_javascript_task.airplane.ts"},
+			Args:   []string{"--dry-run"},
+		},
+		{
+			Desc:   "Dry run Python",
+			Inputs: []interface{}{"My Python task", "Python", "my_python_task_airplane.py"},
+			Args:   []string{"--dry-run"},
+		},
+		{
+			Desc:   "Dry run SQL",
+			Inputs: []interface{}{"My SQL task", "SQL", "my_sql_task.sql", "my_sql_task.task.yaml"},
+			Args:   []string{"--dry-run"},
+		},
+		{
+			Desc:   "Dry run REST",
+			Inputs: []interface{}{"My REST task", "REST", "my_rest_task.task.yaml"},
+			Args:   []string{"--dry-run"},
+		},
+		{
+			Desc:   "Dry run GraphQL",
+			Inputs: []interface{}{"My GraphQL task", "GraphQL", "my_graphql_task.task.yaml"},
+			Args:   []string{"--dry-run"},
+		},
+		{
+			Desc:   "Dry run Shell",
+			Inputs: []interface{}{"My Shell task", "Shell", "my_shell_task.sh", "my_shell_task.task.yaml"},
+			Args:   []string{"--dry-run"},
+		},
+		{
+			Desc:   "Dry run Docker",
+			Inputs: []interface{}{"My Docker task", "Docker", "my_docker_task.task.yaml"},
+			Args:   []string{"--dry-run"},
+		},
+		{
+			Desc:   "Dry run Workflow",
+			Inputs: []interface{}{"My workflow task", "JavaScript", "my_workflow_task.airplane.ts"},
+			Args:   []string{"--workflow", "--dry-run"},
+		},
+		{
+			Desc:   "Dry run Noninline",
+			Inputs: []interface{}{"Noninline", "JavaScript", "noninline.ts", "noninline.task.yaml"},
+			Args:   []string{"--inline=false", "--dry-run"},
+		},
 	}
 
 	mc := api.NewMockClient()

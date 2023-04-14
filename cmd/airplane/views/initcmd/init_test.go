@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/airplanedev/cli/cmd/airplane/testutils"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
+	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/stretchr/testify/require"
@@ -17,6 +17,11 @@ func TestInit(t *testing.T) {
 			Desc:       "View",
 			Inputs:     []interface{}{"My view"},
 			FixtureDir: "./fixtures/view",
+		},
+		{
+			Desc:   "Dry run view",
+			Inputs: []interface{}{"My view"},
+			Args:   []string{"--dry-run"},
 		},
 	}
 

@@ -31,8 +31,17 @@ func TestCommandAndCompare(
 	args []string,
 	fixtureDir string,
 ) {
-	fixtureDir, err := filepath.Abs(fixtureDir)
-	require.NoError(err)
+	testIsEmpty := fixtureDir == ""
+	if !testIsEmpty {
+		absFixtureDir, err := filepath.Abs(fixtureDir)
+		require.NoError(err)
+		fixtureDir = absFixtureDir
+	} else {
+		tmpFixtureDir, err := os.MkdirTemp("", "empty_test")
+		require.NoError(err)
+		fixtureDir = tmpFixtureDir
+		defer os.RemoveAll(tmpFixtureDir)
+	}
 
 	// Create a temporary directory and cd into it
 	tempDir, err := os.MkdirTemp("", "cli_test")
@@ -82,7 +91,11 @@ func TestCommandAndCompare(
 
 		return defaultInclude(filePath, info)
 	}
-	compareDirectories(require, fixtureDir, tempDir, equalWithPackageJSONMajorPinned, include)
+	if testIsEmpty {
+		testDirectoryEmpty(require, tempDir, include)
+	} else {
+		compareDirectories(require, fixtureDir, tempDir, equalWithPackageJSONMajorPinned, include)
+	}
 }
 
 // compareDirectories compares the contents of two directories and returns true if all files in dir1 are in and equal
@@ -164,4 +177,34 @@ func compareDependencies(require *require.Assertions, deps1, deps2 map[string]st
 	for dep := range deps1 {
 		require.Contains(deps2, dep, "dependency should be present in both package.json files")
 	}
+}
+
+// testDirectoryEmpty ensures that a directory is empty.
+func testDirectoryEmpty(
+	require *require.Assertions,
+	dir string,
+	include func(filePath string, info os.FileInfo) (bool, error),
+) {
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if ok, err := include(path, info); err != nil {
+			return errors.Wrap(err, "checking if file should be included")
+		} else if info.IsDir() {
+			if ok {
+				return nil
+			}
+
+			return filepath.SkipDir
+		} else if !ok {
+			return nil
+		}
+
+		require.True(false, "directory is not empty")
+
+		return nil
+	})
+	require.NoError(err)
 }

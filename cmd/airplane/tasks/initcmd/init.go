@@ -31,8 +31,10 @@ import (
 )
 
 type config struct {
-	root        *cli.Config
-	client      api.APIClient
+	root   *cli.Config
+	client api.APIClient
+	dryRun bool
+
 	file        string
 	from        string
 	fromRunbook string
@@ -93,6 +95,11 @@ func New(c *cli.Config) *cobra.Command {
 		},
 	}
 
+	cmd.Flags().BoolVarP(&cfg.dryRun, "dry-run", "", false, "True to run a dry run of this command.")
+	if err := cmd.Flags().MarkHidden("dry-run"); err != nil {
+		logger.Debug("error: %s", err)
+	}
+
 	cmd.Flags().StringVar(&cfg.from, "slug", "", "Slug of an existing task to generate from.")
 	if err := cmd.Flags().MarkHidden("slug"); err != nil {
 		logger.Debug("error: %s", err)
@@ -144,9 +151,10 @@ func Run(ctx context.Context, cfg config) error {
 		}
 	}
 
-	return initcmd.InitTask(ctx, initcmd.InitTaskRequest{
+	_, err := initcmd.InitTask(ctx, initcmd.InitTaskRequest{
 		Client:         cfg.client,
 		Prompter:       cfg.root.Prompter,
+		DryRun:         cfg.dryRun,
 		File:           cfg.file,
 		FromTask:       cfg.from,
 		AssumeYes:      cfg.assumeYes,
@@ -159,6 +167,8 @@ func Run(ctx context.Context, cfg config) error {
 		TaskKindName:   cfg.newTaskInfo.kindName,
 		TaskEntrypoint: cfg.newTaskInfo.entrypoint,
 	})
+
+	return err
 }
 
 var allKindsByName = map[string]buildtypes.TaskKind{
