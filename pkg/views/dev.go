@@ -328,7 +328,6 @@ func addDevDepsToPackageJSON(existingPackageJSON node.PackageJSON, packageJSON n
 	defaultDevDeps := map[string]string{
 		"@vitejs/plugin-react": buildToolsPackageJSON.Dependencies["@vitejs/plugin-react"],
 		"vite":                 buildToolsPackageJSON.Dependencies["vite"],
-		"vite-plugin-replace":  buildToolsPackageJSON.Dependencies["vite-plugin-replace"],
 	}
 
 	existingDeps := existingPackageJSON.Dependencies

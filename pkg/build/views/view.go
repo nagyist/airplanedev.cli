@@ -402,7 +402,7 @@ func GenViewsShimPackageJSON(packageJSONs []string) (node.ShimPackageJSON, error
 	}
 
 	shimDeps := []string{"@airplane/views", "react", "react-dom", "object-hash"}
-	buildDeps := []string{"vite", "esbuild", "@vitejs/plugin-react", "vite-plugin-replace"}
+	buildDeps := []string{"vite", "esbuild", "@vitejs/plugin-react"}
 	requiredDepsMap := make(map[string]string, len(shimDeps)+len(buildDeps))
 
 	for _, de := range shimDeps {

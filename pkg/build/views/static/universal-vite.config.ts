@@ -1,23 +1,10 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
-import { replaceCodePlugin } from "vite-plugin-replace";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [
-    react(),
-    // Vite automatically replaces process.env with {} which breaks accessing env vars.
-    // This plugin replaces process.env with process['env'] to work around this.
-    replaceCodePlugin({
-      replacements: [
-        {
-          from: /process\.env/g,
-          to: "process['env']",
-        },
-      ],
-    }),
-  ],
+  plugins: [react()],
   envPrefix: "AIRPLANE_",
   resolve: {
     preserveSymlinks: true,
