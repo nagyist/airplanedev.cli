@@ -8,5 +8,6 @@
   },
   "devDependencies": {
     "@types/node": "^18.11.9"
-  }
+  },
+  "packageManager": "yarn@1.22.19"
 }

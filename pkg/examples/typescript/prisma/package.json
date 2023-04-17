@@ -17,5 +17,6 @@
   "airplane": {
     "install": "yarn install --production=false",
     "postinstall": "npm run gen"
-  }
+  },
+  "packageManager": "yarn@1.22.19"
 }

@@ -8,7 +8,9 @@
   timezone: "America/New_York",
   ignorePaths: [
     "pkg/runtime/javascript/fixtures/version/gt15lt18/package.json",
-    "pkg/examples/typescript/airplaneoverride/package.json"
+    "pkg/examples/typescript/airplaneoverride/package.json",
+    // Renovate uses Node 18, but this fixture requires <18.
+    "pkg/deploy/discover/fixtures/tasksWithVersion/lt18gt14/package.json"
   ],
   packageRules: [
     {
@@ -22,7 +24,7 @@
       schedule: ["every 2 months on the first day of the month"]
     },
     {
-      matchPaths: ["pkg/**/fixtures/**", "pkg/examples/**"],
+      matchPaths: ["pkg/**/fixtures/**", "pkg/**/examples/**"],
       groupName: "Fixtures",
       description: "Group updates to fixture dependencies. If the tests pass, this is safe to merge."
     }

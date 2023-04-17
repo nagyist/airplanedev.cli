@@ -4,5 +4,6 @@
     "airplane": "0.2.44",
     "pg": "^8.7.1",
     "pg-format": "^1.0.4"
-  }
+  },
+  "packageManager": "yarn@1.22.19"
 }
