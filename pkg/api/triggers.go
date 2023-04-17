@@ -2,7 +2,10 @@ package api
 
 import (
 	"fmt"
+	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 type Trigger struct {
@@ -47,4 +50,19 @@ type CronExpr struct {
 
 func (ce CronExpr) String() string {
 	return fmt.Sprintf("%s %s %s %s %s", ce.Minute, ce.Hour, ce.DayOfMonth, ce.Month, ce.DayOfWeek)
+}
+
+func NewCronExpr(s string) (CronExpr, error) {
+	parts := strings.Split(s, " ")
+	if len(parts) != 5 {
+		return CronExpr{}, errors.Errorf("invalid cron expression: %q", s)
+	}
+
+	return CronExpr{
+		Minute:     parts[0],
+		Hour:       parts[1],
+		DayOfMonth: parts[2],
+		Month:      parts[3],
+		DayOfWeek:  parts[4],
+	}, nil
 }

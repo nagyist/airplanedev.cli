@@ -9,9 +9,11 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/goccy/go-yaml"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
+	"golang.org/x/exp/slices"
 )
 
 type Definition struct {
@@ -586,6 +588,12 @@ func (d Definition) GetTask(opts GetTaskOpts) (api.Task, error) {
 		return api.Task{}, err
 	}
 
+	triggers, err := d.getTaskTriggers(opts)
+	if err != nil {
+		return api.Task{}, err
+	}
+	task.Triggers = triggers
+
 	return task, nil
 }
 
@@ -628,6 +636,48 @@ func (d Definition) addKindSpecificsToTask(task *api.Task, bc buildtypes.BuildCo
 		return err
 	}
 	return nil
+}
+
+func (d Definition) getTaskTriggers(opts GetTaskOpts) ([]api.Trigger, error) {
+	triggers := []api.Trigger{}
+
+	for slug, schedule := range d.Schedules {
+		ce, err := api.NewCronExpr(schedule.CronExpr)
+		if err != nil {
+			if opts.IgnoreInvalid {
+				continue
+			}
+			return nil, errors.Wrapf(err, "schedule %q has an invalid cron", slug)
+		}
+
+		paramValues := schedule.ParamValues
+		if paramValues == nil {
+			paramValues = map[string]any{}
+		}
+
+		triggers = append(triggers, api.Trigger{
+			Name:        schedule.Name,
+			Description: schedule.Description,
+			Slug:        pointers.String(slug),
+			Kind:        api.TriggerKindSchedule,
+			KindConfig: api.TriggerKindConfig{
+				Schedule: &api.TriggerKindConfigSchedule{
+					CronExpr:    ce,
+					ParamValues: paramValues,
+				},
+			},
+		})
+	}
+
+	slices.SortFunc(triggers, func(a, b api.Trigger) bool {
+		aSlug, bSlug := pointers.ToString(a.Slug), pointers.ToString(b.Slug)
+		if aSlug == bSlug {
+			return a.Name < b.Name
+		}
+		return aSlug < bSlug
+	})
+
+	return triggers, nil
 }
 
 // Entrypoint returns ErrNoEntrypoint if the task kind definition requires no entrypoint. May be

@@ -48,7 +48,14 @@ func GetTaskHandler(ctx context.Context, state *state.State, r *http.Request) (G
 	}, nil
 }
 
-func UpdateTaskHandler(ctx context.Context, state *state.State, r *http.Request, req libapi.UpdateTaskRequest) (struct{}, error) {
+type UpdateTaskRequest struct {
+	libapi.UpdateTaskRequest
+
+	// With Studio, schedules are edited in-tandem with the task. Accept both in the same endpoint.
+	Triggers []libapi.Trigger `json:"triggers"`
+}
+
+func UpdateTaskHandler(ctx context.Context, state *state.State, r *http.Request, req UpdateTaskRequest) (struct{}, error) {
 	taskConfig, ok := state.TaskConfigs.Get(req.Slug)
 	if !ok {
 		return struct{}{}, libhttp.NewErrNotFound("task with slug %q not found", req.Slug)
@@ -60,9 +67,8 @@ func UpdateTaskHandler(ctx context.Context, state *state.State, r *http.Request,
 		return struct{}{}, err
 	}
 
-	if err := taskConfig.Def.Update(req, definitions.UpdateOptions{
-		// TODO(colin, 04012023): add support for updating schedules. For now, we leave them as-is.
-		Triggers:           nil,
+	if err := taskConfig.Def.Update(req.UpdateTaskRequest, definitions.UpdateOptions{
+		Triggers:           req.Triggers,
 		AvailableResources: resources,
 	}); err != nil {
 		return struct{}{}, libhttp.NewErrBadRequest("unable to update task %q: %s", req.Slug, err.Error())
@@ -196,9 +202,6 @@ func taskConfigToAPITask(
 	task.UpdatedAt = metadata.RefreshedAt
 
 	// Certain fields are not supported by tasks-as-code, so give them default values.
-	if task.Triggers == nil {
-		task.Triggers = []libapi.Trigger{}
-	}
 	if task.ResourceRequests == nil {
 		task.ResourceRequests = libapi.ResourceRequests{}
 	}
