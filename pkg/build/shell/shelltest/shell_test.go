@@ -136,6 +136,23 @@ func TestShellBundleBuilder(t *testing.T) {
 			},
 		},
 		{
+			Root: "shell/simple",
+			Kind: buildtypes.TaskKindShell,
+			BuildContext: buildtypes.BuildContext{
+				Type: buildtypes.ShellBuildType,
+			},
+			ParamValues: map[string]interface{}{
+				"param_one": "\nLee=Weisberger",
+			},
+			Bundle: true,
+			BundleRuns: []build.BundleTestRun{
+				{
+					RelEntrypoint: "main.sh",
+					SearchString:  "Lee=Weisberger",
+				},
+			},
+		},
+		{
 			Root: "shell/ubuntu",
 			Kind: buildtypes.TaskKindShell,
 			BuildContext: buildtypes.BuildContext{
