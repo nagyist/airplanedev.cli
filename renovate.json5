@@ -17,7 +17,10 @@
     "pkg/examples/typescript/airplaneoverride/package.json",
     // The range we use for selecting a Node version is not supported:
     // "Complex ranges ending in greater than are not supported"
-    "pkg/deploy/discover/fixtures/tasksWithVersion/lt18gt14/package.json"
+    "pkg/deploy/discover/fixtures/tasksWithVersion/lt18gt14/package.json",
+    // These fixtures are used for testing package.json related logic. Many of the tests rely on matching hardcoded
+    // versions from the package.json.
+    "pkg/build/fixtures/node_externals/**"
   ],
   ignoreDeps: [
     // This is our fork of mholt/archiver. It's not tagged properly, so ignore it for now.

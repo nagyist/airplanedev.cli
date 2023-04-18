@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "@headlessui/react": "^1.4.1",
-    "airplane": "0.2.44",
+    "airplane": "0.2.54",
     "@prisma/client": "^4.0.0"
   },
   "devDependencies": {

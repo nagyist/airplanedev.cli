@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "airplane": "0.2.44",
+    "airplane": "0.2.54",
     "nodemailer": "^6.8.0"
   }
 }

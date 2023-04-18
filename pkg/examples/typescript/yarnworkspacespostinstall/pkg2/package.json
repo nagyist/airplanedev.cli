@@ -7,7 +7,7 @@
     "postinstall": "cat src/index.ts"
   },
   "dependencies": {
-    "airplane": "0.2.44",
+    "airplane": "0.2.54",
     "pkg1": "1.0.0",
     "node-fetch": "3.3.1"
   },

@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@airplane/lib@0.2.44":
-  version "0.2.44"
-  resolved "https://registry.yarnpkg.com/@airplane/lib/-/lib-0.2.44.tgz#050227eb41e4268920962227b4fde818ebf1e6b8"
-  integrity sha512-s0zRjKovOrhNKKxoj0QLvrpbyrE/48Skn+x3UJavOrxJOldsvU4zQzxVzAT2vjgUnrTpVENjE8xwO/P6pc0HZg==
+"@airplane/lib@0.2.54":
+  version "0.2.54"
+  resolved "https://registry.yarnpkg.com/@airplane/lib/-/lib-0.2.54.tgz#3fc96506085dbfec926f223c23197687a7be6929"
+  integrity sha512-C2pBqJMFRUCV/oa7aJI0NJ08KiL5DCbyVJnn3bCCaHjQopy3fRgAPE1Qu6AgNGuQVgO70+jgB8MS+kBvk0W3jw==
   dependencies:
     "@azure/abort-controller" "1.1.0"
     cross-fetch "3.1.5"
@@ -24,20 +24,21 @@
   integrity sha512-0nBr+VZNKm9tvNDZFstI3Pq1fCTEDK5OZTnVKNvBNAKgd0yIvmwsP4m61rEv7ZP+tOUjWJhROpxK5MsnlF911g==
 
 "@types/node@^18.15.2":
-  version "18.15.3"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.15.3.tgz#f0b991c32cfc6a4e7f3399d6cb4b8cf9a0315014"
-  integrity sha512-p6ua9zBxz5otCmbpb5D3U4B5Nanw6Pk3PPyX05xnxbB/fRv71N7CPmORg7uAD5P70T0xmx1pzAx/FUfa5X+3cw==
+  version "18.15.11"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.15.11.tgz#b3b790f09cb1696cffcec605de025b088fa4225f"
+  integrity sha512-E5Kwq2n4SbMzQOn6wnmBjuK9ouqlURrcZDVfbo9ftDDTFt3nk7ZKK4GMOzoYgnpQJKcxwQw+lGaBvvlMo0qN/Q==
 
 airplane@^0.2.44:
-  version "0.2.44"
-  resolved "https://registry.yarnpkg.com/airplane/-/airplane-0.2.44.tgz#9a21e5c1b52a55360bde8f861b2bf37c0ba4a5e4"
-  integrity sha512-Q5PA8msRCdnj52zM4o8Q08a7NtLhqS3LHkH5zTY/V1XWkTfBEyY55+fmTerVW5nFmddT6r+VnSvLlDJ09Vkw9g==
+  version "0.2.54"
+  resolved "https://registry.yarnpkg.com/airplane/-/airplane-0.2.54.tgz#966232907ac39fa9ac4aac4794e597ee81a266ba"
+  integrity sha512-2UVfrcVG9n10QOcJsjdzj9wTAaB+PVT/qvWVu7dLVIJtuWOVaYVpVtPEJr9A7HXwaoEvhA87EbU3ourlUA6hLg==
   dependencies:
-    "@airplane/lib" "0.2.44"
+    "@airplane/lib" "0.2.54"
     "@azure/abort-controller" "1.1.0"
     "@opentelemetry/api" "1.2.0"
-    fast-equals "4.0.3"
+    fast-equals "5.0.1"
     humanize-string "3.0.0"
+    mime "^3.0.0"
     ms "3.0.0-canary.1"
     ts-dedent "2.2.0"
     uuid "9.0.0"
@@ -54,10 +55,10 @@ decamelize@^6.0.0:
   resolved "https://registry.yarnpkg.com/decamelize/-/decamelize-6.0.0.tgz#8cad4d916fde5c41a264a43d0ecc56fe3d31749e"
   integrity sha512-Fv96DCsdOgB6mdGl67MT5JaTNKRzrzill5OH5s8bjYJXVlcXyPYGyPsUkWyGV5p1TXI5esYIYMMeDJL0hEIwaA==
 
-fast-equals@4.0.3:
-  version "4.0.3"
-  resolved "https://registry.yarnpkg.com/fast-equals/-/fast-equals-4.0.3.tgz#72884cc805ec3c6679b99875f6b7654f39f0e8c7"
-  integrity sha512-G3BSX9cfKttjr+2o1O22tYMLq0DPluZnYtq1rXumE1SpL/F/SLIfHx08WYQoWSIpeMYf8sRbJ8++71+v6Pnxfg==
+fast-equals@5.0.1:
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/fast-equals/-/fast-equals-5.0.1.tgz#a4eefe3c5d1c0d021aeed0bc10ba5e0c12ee405d"
+  integrity sha512-WF1Wi8PwwSY7/6Kx0vKXtw8RwuSGoM1bvDaJbu7MxDlR1vovZjIAKrnzyrThgAjm6JDTu0fVgWXDlMGspodfoQ==
 
 humanize-string@3.0.0:
   version "3.0.0"
@@ -65,6 +66,11 @@ humanize-string@3.0.0:
   integrity sha512-jhWD2GAZRMELz0IEIfqpEdi0M4CMQF1GpJpBYIopFN6wT+78STiujfQTKcKqZzOJgUkIgJSo2xFeHdsg922JZQ==
   dependencies:
     decamelize "^6.0.0"
+
+mime@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/mime/-/mime-3.0.0.tgz#b374550dca3a0c18443b0c950a6a58f1931cf7a7"
+  integrity sha512-jSCU7/VB1loIWBZe14aEYHU/+1UMEHoaO7qxCOVJOw9GgH72VAWppxNcjU+x9a2k3GSIBXNKxXQFqRvvZ7vr3A==
 
 ms@3.0.0-canary.1:
   version "3.0.0-canary.1"

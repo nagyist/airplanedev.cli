@@ -1007,6 +1007,18 @@ func TestGenShimPackageJSON(t *testing.T) {
 	err := json.Unmarshal([]byte(node.BuildToolsPackageJSON), &buildToolsPackageJSON)
 	require.NoError(t, err)
 
+	getDepVersion := func(path, dep string) string {
+		contents, err := os.ReadFile(examples.Path(t, path))
+		require.NoError(t, err)
+		var deps struct {
+			Deps map[string]string `json:"dependencies"`
+		}
+		require.NoError(t, json.Unmarshal(contents, &deps))
+		version := deps.Deps[dep]
+		require.NotEmpty(t, version)
+		return version
+	}
+
 	testCases := []struct {
 		desc                    string
 		packageJSON             string
@@ -1052,7 +1064,7 @@ func TestGenShimPackageJSON(t *testing.T) {
 					"@airplane/workflow-runtime": buildToolsPackageJSON.Dependencies["@airplane/workflow-runtime"],
 					"esbuild":                    buildToolsPackageJSON.Dependencies["esbuild"],
 					"jsdom":                      buildToolsPackageJSON.Dependencies["jsdom"],
-					"typescript":                 "4.9.5",
+					"typescript":                 buildToolsPackageJSON.Dependencies["typescript"],
 					"esbuild-plugin-tsc":         buildToolsPackageJSON.Dependencies["esbuild-plugin-tsc"],
 				},
 			},
@@ -1064,10 +1076,12 @@ func TestGenShimPackageJSON(t *testing.T) {
 			isBundle:    true,
 			expectedShimPackageJSON: node.ShimPackageJSON{
 				Dependencies: map[string]string{
-					"@airplane/workflow-runtime": buildToolsPackageJSON.Dependencies["@airplane/workflow-runtime"],
+					// The version of @airplane/workflow-runtime should match the user-supplied version of "airplane".
+					// Read this version dynamically so it doesn't need to be updated when bumped by Renovate.
+					"@airplane/workflow-runtime": getDepVersion("typescript/yarnworkspaces/pkg2/package.json", "airplane"),
 					"esbuild":                    buildToolsPackageJSON.Dependencies["esbuild"],
 					"jsdom":                      buildToolsPackageJSON.Dependencies["jsdom"],
-					"typescript":                 "4.9.5",
+					"typescript":                 buildToolsPackageJSON.Dependencies["typescript"],
 					"esbuild-plugin-tsc":         buildToolsPackageJSON.Dependencies["esbuild-plugin-tsc"],
 				},
 			},

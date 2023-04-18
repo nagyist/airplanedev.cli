@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "airplane": "0.2.44"
+    "airplane": "0.2.54"
   },
   "airplane": {
     "preinstall": "echo 'hello from preinstall' > preinstall.txt"

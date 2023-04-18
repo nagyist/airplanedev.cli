@@ -1,9 +1,9 @@
 {
   "dependencies": {
-    "@airplane/views": "2.0.2",
-    "airplane": "0.2.44",
+    "@airplane/views": "2.0.5",
+    "airplane": "0.2.54",
     "react": "18.2.0",
-    "react-datepicker": "4.10.0",
+    "react-datepicker": "4.11.0",
     "react-dom": "18.2.0"
   }
 }

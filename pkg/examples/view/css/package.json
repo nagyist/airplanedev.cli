@@ -1,16 +1,16 @@
 {
   "author": "lee",
   "dependencies": {
-    "@airplane/views": "2.0.2",
+    "@airplane/views": "2.0.5",
     "@vitejs/plugin-react": "^3.1.0",
-    "airplane": "0.2.44",
-    "esbuild": "0.17.11",
+    "airplane": "0.2.54",
+    "esbuild": "0.17.17",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "vite": "4.1.4"
+    "vite": "4.2.2"
   },
   "devDependencies": {
-    "@types/react": "18.0.28",
+    "@types/react": "18.0.37",
     "@types/react-dom": "18.0.11",
     "typescript": "^4.9.5"
   }

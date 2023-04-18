@@ -1,8 +1,8 @@
 {
     "name": "node_tasks",
     "dependencies": {
-        "@airplane/views": "2.0.2",
-        "airplane": "0.2.44",
+        "@airplane/views": "2.0.5",
+        "airplane": "0.2.54",
         "react": "^18.0.0",
         "react-dom": "^18.0.0"
     }
