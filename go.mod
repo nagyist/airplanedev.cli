@@ -23,6 +23,7 @@ require (
 	github.com/bep/debounce v1.2.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
+	github.com/bluekeyes/go-gitdiff v0.7.1
 	github.com/briandowns/spinner v1.22.0
 	github.com/docker/docker v23.0.1+incompatible
 	github.com/dustin/go-humanize v1.0.1
