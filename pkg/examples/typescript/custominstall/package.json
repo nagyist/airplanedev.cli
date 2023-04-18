@@ -8,6 +8,5 @@
   },
   "airplane": {
     "install": "yarn install --production=$IS_PRODUCTION"
-  },
-  "packageManager": "yarn@1.22.19"
+  }
 }

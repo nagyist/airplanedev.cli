@@ -1,5 +1,11 @@
 {
-  extends: ["config:base", "group:allNonMajor"],
+  // If changing this file, see:
+  // https://www.notion.so/airplanedev/Dependency-PRs-07a8a4f0570040a7965c2c1183fb87c8?pvs=4#5c5c05ba8d7545c4b82c5e8d049cef21
+  extends: [
+    ":dependencyDashboard",
+    "replacements:all",
+    "workarounds:all"
+  ],
   labels: ["merge"],
   prBodyNotes: "If you are assigned as a reviewer, please help and promptly review this upgrade - [see docs](https://www.notion.so/airplanedev/Dependency-PRs-07a8a4f0570040a7965c2c1183fb87c8).",
   postUpdateOptions: ["gomodTidy"],
@@ -9,24 +15,100 @@
   ignorePaths: [
     "pkg/runtime/javascript/fixtures/version/gt15lt18/package.json",
     "pkg/examples/typescript/airplaneoverride/package.json",
-    // Renovate uses Node 18, but this fixture requires <18.
+    // The range we use for selecting a Node version is not supported:
+    // "Complex ranges ending in greater than are not supported"
     "pkg/deploy/discover/fixtures/tasksWithVersion/lt18gt14/package.json"
   ],
+  ignoreDeps: [
+    // This is our fork of mholt/archiver. It's not tagged properly, so ignore it for now.
+    "github.com/airplanedev/archiver",
+    // They do not use Go modules correctly.
+    "github.com/segmentio/analytics-go"
+  ],
+  // Do not rate limit PRs created per-hour.
+  prHourlyLimit: 0,
   packageRules: [
     {
-      matchPackageNames: [
-        "jsdom",
-        "typescript",
-        "react",
-        "react-dom",
-        "object-hash"
+      // The built-in "group:allNonMajor" doesn't considers minor version bumps for v0
+      // packages as breaking changes. We filter those out here.
+      matchCurrentVersion: ">=1.0.0",
+      matchUpdateTypes: ["minor"],
+      groupName: "all non-major dependencies",
+      groupSlug: "all-minor-patch"
+    },
+    {
+      // The built-in "group:allNonMajor" doesn't considers minor version bumps for v0
+      // packages as breaking changes. We filter those out here.
+      matchUpdateTypes: ["patch"],
+      groupName: "all non-major dependencies",
+      groupSlug: "all-minor-patch"
+    },
+    {
+      // The following dependencies rarely have breaking changes. To reduce noise,
+      // group them into the weekly dependency update.
+      matchPackagePatterns: [
+        // These packages are versioned by git commit, which is considered a major
+        // version by Renovate since there can be breaking changes.
+        "google.golang.org/genproto",
+        // These packages are bumped according to semver, but rarely have breaking changes.
+        "google.golang.org/api",
+        "golang.org/x/"
       ],
+      groupName: "all non-major dependencies",
+      groupSlug: "all-minor-patch",
+    },
+    {
+      // Split out Docker updates into their own PR.
+      matchDatasources: ["docker"],
+      groupName: "docker",
+      groupSlug: "docker"
+    },
+    {
+      // The fixtures have a large number of dependencies, which makes them noisy to review. In general,
+      // if the tests pass, they can be safely merged, so we separate them into their own group.
+      matchPaths: ["**/fixtures/**", "**/examples/**"],
+      groupName: "Fixtures",
+      groupSlug: "fixtures",
+      description: "Grouped updates to fixture dependencies. If the tests pass, this is safe to merge."
+    },
+    {
+      matchPaths: [
+        "pkg/build/fixtures/node_externals/yarn2workspace_importlocal/**",
+        "pkg/examples/typescript/yarn2/**"
+      ],
+      groupName: "Fixtures (yarn 2)",
+      groupSlug: "fixtures-yarn-2",
+      // Reduce noise by grouping major + minor updates together here.
+      separateMajorMinor: false,
+      description: "Grouped updates to fixture dependencies. If the tests pass, this is safe to merge.\n\nThese fixtures use a newer version of Yarn, so they need to be built on their own."
+    },
+    {
+      // Group together the GitHub Action updates.
+      matchPaths: [".github/**"],
+      // Do not split breaking changes from non-breaking changes. Changes are easy enough to make that
+      // it's easier to review as a single PR.
+      separateMajorMinor: false,
+      groupName: "github actions",
+      groupSlug: "github-actions"
+    },
+    {
+      // Group updates to the dependencies used when building JavaScript tasks/views. Updating these
+      // deps will invalidate the build cache, so we prefer to update these less often.
+      // https://github.com/airplanedev/lib/pull/534#discussion_r1095122958
+      matchPaths: ["pkg/build/package.json", "pkg/build/views/static/package.json"],
+      groupName: "JavaScript builder dependencies",
+      groupSlug: "js-builder-deps",
+      // Do not split breaking changes from non-breaking changes to preserve the cache.
+      separateMajorMinor: false,
       schedule: ["every 2 months on the first day of the month"]
     },
     {
-      matchPaths: ["pkg/**/fixtures/**", "pkg/**/examples/**"],
-      groupName: "Fixtures",
-      description: "Group updates to fixture dependencies. If the tests pass, this is safe to merge."
-    }
+      matchPackagePatterns: [
+        // otel is making lots of backwards-incompatible breaking changes in minor
+        // versions. Remove once they've stabilized.
+        "^go.opentelemetry.io/"
+      ],
+      enabled: false
+    },
   ]
 }
