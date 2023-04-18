@@ -60,13 +60,12 @@ func InitWorkflowFromRunbook(ctx context.Context, req InitWorkflowFromRunbookReq
 		return err
 	}
 
-	_, err = runKindSpecificInstallation(ctx, runKindSpecificInstallationRequest{
+	if err = runKindSpecificInstallation(ctx, runKindSpecificInstallationRequest{
 		Prompter: req.Prompter,
 		Inline:   req.Inline,
 		Kind:     buildtypes.TaskKindNode,
 		Def:      def,
-	})
-	if err != nil {
+	}); err != nil {
 		return err
 	}
 

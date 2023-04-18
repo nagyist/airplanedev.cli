@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"text/template"
 
 	"github.com/airplanedev/cli/pkg/logger"
@@ -31,25 +30,42 @@ type InitViewRequest struct {
 	suffixCharset string
 }
 
-func InitView(ctx context.Context, req InitViewRequest) ([]string, error) {
+func InitView(ctx context.Context, req InitViewRequest) (InitResponse, error) {
 	if req.suffixCharset == "" {
 		req.suffixCharset = utils.CharsetLowercaseNumeric
 	}
-	filesCreated := []string{}
 	if req.Name == "" {
-		return nil, errors.New("missing new view name")
+		return InitResponse{}, errors.New("missing new view name")
 	}
 
 	if req.WorkingDirectory == "" {
 		wd, err := filepath.Abs(".")
 		if err != nil {
-			return nil, err
+			return InitResponse{}, err
 		}
 		req.WorkingDirectory = wd
 	} else {
 		wd, err := filepath.Abs(req.WorkingDirectory)
 		if err != nil {
-			return nil, err
+			return InitResponse{}, err
+		}
+		req.WorkingDirectory = wd
+	}
+	ret, err := newInitResponse(req.WorkingDirectory)
+	if err != nil {
+		return InitResponse{}, err
+	}
+
+	if req.WorkingDirectory == "" {
+		wd, err := filepath.Abs(".")
+		if err != nil {
+			return InitResponse{}, err
+		}
+		req.WorkingDirectory = wd
+	} else {
+		wd, err := filepath.Abs(req.WorkingDirectory)
+		if err != nil {
+			return InitResponse{}, err
 		}
 		req.WorkingDirectory = wd
 	}
@@ -65,48 +81,48 @@ func InitView(ctx context.Context, req InitViewRequest) ([]string, error) {
 		suffixCharset:    req.suffixCharset,
 	})
 	if err != nil {
-		return nil, err
+		return InitResponse{}, err
 	}
-	filesCreated = append(filesCreated, entrypoint)
+	ret.AddCreatedFile(entrypoint)
 
 	packageJSONDir := req.WorkingDirectory
 	if fsx.Exists(filepath.Join(req.WorkingDirectory, viewDir, "package.json")) {
 		packageJSONDir = filepath.Join(req.WorkingDirectory, viewDir)
 	}
-	if !req.DryRun {
-		deps := []string{"@airplane/views", "react", "react-dom"}
-		deps = append(deps, "airplane")
-		packageJSONDir, err = node.CreatePackageJSON(packageJSONDir, node.PackageJSONOptions{
-			Dependencies: node.NodeDependencies{
-				Dependencies:    deps,
-				DevDependencies: []string{"@types/react", "@types/react-dom", "typescript"},
-			},
-		}, req.Prompter)
-		if err != nil {
-			return nil, err
-		}
+	deps := []string{"@airplane/views", "react", "react-dom"}
+	deps = append(deps, "airplane")
+	packageJSONDir, packageJSONCreated, err := node.CreatePackageJSON(packageJSONDir, node.PackageJSONOptions{
+		Dependencies: node.NodeDependencies{
+			Dependencies:    deps,
+			DevDependencies: []string{"@types/react", "@types/react-dom", "typescript"},
+		},
+	}, req.Prompter, req.DryRun)
+	if err != nil {
+		return InitResponse{}, err
 	}
-	filesCreated = append(filesCreated, path.Join(packageJSONDir, "package.json"))
+	ret.AddFile(packageJSONCreated, path.Join(packageJSONDir, "package.json"))
 
 	if filepath.Ext(entrypoint) == ".tsx" {
+		// Create/update tsconfig in the same directory as the package.json file
+		tsConfigCreated, err := node.CreateViewTSConfig(packageJSONDir, req.Prompter, req.DryRun)
+		if err != nil {
+			return InitResponse{}, err
+		}
+		ret.AddFile(tsConfigCreated, path.Join(packageJSONDir, "tsconfig.json"))
+	}
+
+	gitignorePath := filepath.Join(req.WorkingDirectory, ".gitignore")
+	if utils.ShouldCreateDefaultGitignoreFile(gitignorePath) {
 		if !req.DryRun {
-			// Create/update tsconfig in the same directory as the package.json file
-			if err := node.CreateViewTSConfig(packageJSONDir, req.Prompter); err != nil {
-				return nil, err
+			if err := utils.CreateDefaultGitignoreFile(gitignorePath); err != nil {
+				return InitResponse{}, err
 			}
 		}
-		filesCreated = append(filesCreated, path.Join(packageJSONDir, "tsconfig.json"))
+		ret.AddCreatedFile(gitignorePath)
 	}
-
-	if !req.DryRun {
-		if err := utils.CreateDefaultGitignoreFile(filepath.Join(req.WorkingDirectory, ".gitignore")); err != nil {
-			return nil, err
-		}
-	}
-	filesCreated = append(filesCreated, ".gitignore")
 
 	if req.DryRun {
-		logger.Log("Running with --dry-run. This command would have created or updated the following files:\n- %s", strings.Join(filesCreated, "\n- "))
+		logger.Log("Running with --dry-run. This command would have created or updated the following files:\n%s", ret.String())
 	}
 
 	suggestNextViewSteps(suggestNextViewStepsRequest{
@@ -114,7 +130,7 @@ func InitView(ctx context.Context, req InitViewRequest) ([]string, error) {
 		slug:    slug,
 	})
 
-	return filesCreated, nil
+	return ret, nil
 }
 
 func generateViewEntrypointPath(slug string) string {

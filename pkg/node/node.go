@@ -36,16 +36,19 @@ type PackageJSONOptions = struct {
 // If package.json exists in cwd, use it.
 // If package.json exists in parent directory, ask user if they want to use that or create a new one.
 // If package.json doesn't exist, create a new one.
-// Returns the path to the directory where the package.json is created/found.
-func CreatePackageJSON(directory string, packageJSONOptions PackageJSONOptions, p prompts.Prompter) (string, error) {
+// Returns the path to the directory where the package.json is created/found and true if a file was
+// created (false if it was modified).
+func CreatePackageJSON(directory string, packageJSONOptions PackageJSONOptions, p prompts.Prompter, dryRun bool) (string, bool, error) {
 	// Check if there's a package.json in the current or parent directory of entrypoint
 	packageJSONDirPath, ok := fsx.Find(directory, "package.json")
 	useYarn := utils.ShouldUseYarn(packageJSONDirPath)
+	existed := false
 
 	var selectedPackageJSONDir string
 	if ok {
 		if packageJSONDirPath == directory {
 			selectedPackageJSONDir = packageJSONDirPath
+			existed = true
 		} else {
 			opts := []string{
 				"Yes (recommended)",
@@ -55,7 +58,7 @@ func CreatePackageJSON(directory string, packageJSONOptions PackageJSONOptions, 
 			var surveyResp string
 			formattedPath, err := formatFilepath(directory, filepath.Join(packageJSONDirPath, "package.json"), defaultMaxParentDirs)
 			if err != nil {
-				return "", err
+				return "", false, err
 			}
 			if p == nil {
 				logger.Log("Using existing project with package.json at %s...", formattedPath)
@@ -67,26 +70,36 @@ func CreatePackageJSON(directory string, packageJSONOptions PackageJSONOptions, 
 					prompts.WithSelectOptions(opts),
 					prompts.WithDefault(useExisting),
 				); err != nil {
-					return "", err
+					return "", false, err
 				}
 			}
 			if surveyResp == useExisting {
 				selectedPackageJSONDir = packageJSONDirPath
+				existed = true
 			} else {
 				selectedPackageJSONDir = directory
-				if err := createPackageJSONFile(selectedPackageJSONDir); err != nil {
-					return "", err
+				if !dryRun {
+					if err := createPackageJSONFile(selectedPackageJSONDir); err != nil {
+						return "", false, err
+					}
 				}
 			}
 		}
 	} else {
 		selectedPackageJSONDir = directory
-		if err := createPackageJSONFile(selectedPackageJSONDir); err != nil {
-			return "", err
+		if !dryRun {
+			if err := createPackageJSONFile(selectedPackageJSONDir); err != nil {
+				return "", false, err
+			}
+		}
+	}
+	if !dryRun {
+		if err := addAllPackages(selectedPackageJSONDir, useYarn, packageJSONOptions.Dependencies); err != nil {
+			return "", false, err
 		}
 	}
 
-	return selectedPackageJSONDir, addAllPackages(selectedPackageJSONDir, useYarn, packageJSONOptions.Dependencies)
+	return selectedPackageJSONDir, !existed, nil
 }
 
 func addAllPackages(packageJSONDirPath string, useYarn bool, dependencies NodeDependencies) error {
@@ -215,15 +228,17 @@ func createPackageJSONFile(cwd string) error {
 //go:embed scaffolding/viewTSConfig.json
 var defaultViewTSConfig []byte
 
-func CreateViewTSConfig(configDir string, p prompts.Prompter) error {
-	return mergeTSConfig(configDir, defaultViewTSConfig, MergeStrategyPreferTemplate, p)
+// CreateViewTSConfig returns true if a tsconfig.json file was created.
+func CreateViewTSConfig(configDir string, p prompts.Prompter, dryRun bool) (bool, error) {
+	return mergeTSConfig(configDir, defaultViewTSConfig, MergeStrategyPreferTemplate, p, dryRun)
 }
 
 //go:embed scaffolding/taskTSConfig.json
 var defaultTaskTSConfig []byte
 
-func CreateTaskTSConfig(configDir string, p prompts.Prompter) error {
-	return mergeTSConfig(configDir, defaultTaskTSConfig, MergeStrategyPreferExisting, p)
+// CreateTaskTSConfig returns true if a tsconfig.json file was created.
+func CreateTaskTSConfig(configDir string, p prompts.Prompter, dryRun bool) (bool, error) {
+	return mergeTSConfig(configDir, defaultTaskTSConfig, MergeStrategyPreferExisting, p, dryRun)
 }
 
 type MergeStrategy string
@@ -233,27 +248,30 @@ const (
 	MergeStrategyPreferTemplate MergeStrategy = "template"
 )
 
-func mergeTSConfig(configDir string, configFile []byte, strategy MergeStrategy, p prompts.Prompter) error {
+// mergeTSConfig return strue if a tsconfig.json file was created.
+func mergeTSConfig(configDir string, configFile []byte, strategy MergeStrategy, p prompts.Prompter, dryRun bool) (bool, error) {
+	existed := false
 	configPath, err := formatTSConfigPath(configDir)
 	if err != nil {
-		return errors.Wrap(err, "getting tsconfig path")
+		return false, errors.Wrap(err, "getting tsconfig path")
 	}
 
 	if fsx.Exists(configPath) {
+		existed = true
 		templateTSConfig, err := parseTSConfig(configFile)
 		if err != nil {
-			return errors.Wrap(err, "parsing template tsconfig")
+			return false, errors.Wrap(err, "parsing template tsconfig")
 		}
 
 		logger.Debug("Found existing tsconfig.json...")
 
 		existingFile, err := os.ReadFile(configPath)
 		if err != nil {
-			return errors.Wrap(err, "reading existing tsconfig.json")
+			return false, errors.Wrap(err, "reading existing tsconfig.json")
 		}
 		existingTSConfig, err := parseTSConfig(existingFile)
 		if err != nil {
-			return errors.Wrap(err, "parsing existing tsconfig")
+			return false, errors.Wrap(err, "parsing existing tsconfig")
 		}
 
 		newTSConfig := map[string]interface{}{}
@@ -267,7 +285,7 @@ func mergeTSConfig(configDir string, configFile []byte, strategy MergeStrategy, 
 
 		changesNeeded, err := printTSConfigChanges(configPath, existingTSConfig, newTSConfig)
 		if err != nil {
-			return err
+			return false, err
 		}
 
 		if changesNeeded {
@@ -276,30 +294,34 @@ func mergeTSConfig(configDir string, configFile []byte, strategy MergeStrategy, 
 					fmt.Sprintf("Would you like to override %s with these changes?", configPath),
 					prompts.WithDefault(true),
 				); err != nil {
-					return err
+					return false, err
 				} else if !ok {
-					return nil
+					return false, nil
 				}
 			}
 
 			configFile, err = json.MarshalIndent(newTSConfig, "", "  ")
 			if err != nil {
-				return errors.Wrap(err, "marshalling tsconfig.json file")
+				return false, errors.Wrap(err, "marshalling tsconfig.json file")
 			}
 
-			if err := os.WriteFile(configPath, configFile, 0644); err != nil {
-				return errors.Wrap(err, "writing tsconfig.json")
+			if !dryRun {
+				if err := os.WriteFile(configPath, configFile, 0644); err != nil {
+					return false, errors.Wrap(err, "writing tsconfig.json")
+				}
 			}
 			logger.Step(fmt.Sprintf("Updated %s", configPath))
 		}
 	} else {
-		if err := os.WriteFile(configPath, configFile, 0644); err != nil {
-			return errors.Wrap(err, "writing tsconfig.json")
+		if !dryRun {
+			if err := os.WriteFile(configPath, configFile, 0644); err != nil {
+				return false, errors.Wrap(err, "writing tsconfig.json")
+			}
 		}
 		logger.Step(fmt.Sprintf("Created %s", configPath))
 	}
 
-	return nil
+	return !existed, nil
 }
 
 func parseTSConfig(configBytes []byte) (map[string]interface{}, error) {

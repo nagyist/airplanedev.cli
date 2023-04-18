@@ -29,10 +29,12 @@ type RequirementsTxtOptions = struct {
 // If requirements.txt exists in cwd, use it.
 // If requirements.txt exists in parent directory, ask user if they want to use that or create a new one.
 // If requirements.txt doesn't exist, create a new one.
-// Returns the path to the directory where the requirements.txt is created/found.
-func CreateRequirementsTxt(directory string, options RequirementsTxtOptions, p prompts.Prompter) (string, error) {
+// Returns the path to the directory where the requirements.txt is created/found and true if a file
+// was created (false if it was modified).
+func CreateRequirementsTxt(directory string, options RequirementsTxtOptions, p prompts.Prompter, dryRun bool) (string, bool, error) {
 	// Check if there's a requirements.txt in the current or parent directory of entrypoint
 	requirementsTxtDirPath, ok := fsx.Find(directory, "requirements.txt")
+	existed := false
 
 	var selectedRequirementsTxtDir string
 	if ok {
@@ -47,7 +49,7 @@ func CreateRequirementsTxt(directory string, options RequirementsTxtOptions, p p
 			var surveyResp string
 			formattedPath, err := formatFilepath(directory, filepath.Join(requirementsTxtDirPath, "requirements.txt"), defaultMaxParentDirs)
 			if err != nil {
-				return "", err
+				return "", false, err
 			}
 			if err := p.Input(
 				fmt.Sprintf("Found an existing project with requirements.txt at %s. Use this project?", formattedPath),
@@ -55,25 +57,35 @@ func CreateRequirementsTxt(directory string, options RequirementsTxtOptions, p p
 				prompts.WithSelectOptions(opts),
 				prompts.WithDefault(useExisting),
 			); err != nil {
-				return "", err
+				return "", false, err
 			}
 			if surveyResp == useExisting {
 				selectedRequirementsTxtDir = requirementsTxtDirPath
 			} else {
 				selectedRequirementsTxtDir = directory
-				if err := createRequirementsTxtFile(selectedRequirementsTxtDir); err != nil {
-					return "", err
+				if !dryRun {
+					if err := createRequirementsTxtFile(selectedRequirementsTxtDir); err != nil {
+						return "", false, err
+					}
 				}
 			}
 		}
 	} else {
 		selectedRequirementsTxtDir = directory
-		if err := createRequirementsTxtFile(selectedRequirementsTxtDir); err != nil {
-			return "", err
+		if !dryRun {
+			if err := createRequirementsTxtFile(selectedRequirementsTxtDir); err != nil {
+				return "", false, err
+			}
 		}
 	}
 
-	return selectedRequirementsTxtDir, addAllPackages(selectedRequirementsTxtDir, options.Dependencies)
+	if !dryRun {
+		if err := addAllPackages(selectedRequirementsTxtDir, options.Dependencies); err != nil {
+			return "", false, err
+		}
+	}
+
+	return selectedRequirementsTxtDir, !existed, nil
 }
 
 func addAllPackages(requirementsTxtDirPath string, dependencies []PythonDependency) error {

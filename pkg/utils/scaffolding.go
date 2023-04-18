@@ -13,11 +13,15 @@ import (
 var defaultGitignoreContents []byte
 
 func CreateDefaultGitignoreFile(path string) error {
-	if !fsx.Exists(path) {
+	if ShouldCreateDefaultGitignoreFile(path) {
 		if err := os.WriteFile(path, defaultGitignoreContents, 0644); err != nil {
 			return errors.Wrap(err, "creating .gitignore")
 		}
 		logger.Step("Created .gitignore")
 	}
 	return nil
+}
+
+func ShouldCreateDefaultGitignoreFile(path string) bool {
+	return !fsx.Exists(path)
 }
