@@ -36,7 +36,7 @@ func CreateRequirementsTxt(directory string, options RequirementsTxtOptions, p p
 
 	var selectedRequirementsTxtDir string
 	if ok {
-		if requirementsTxtDirPath == directory {
+		if requirementsTxtDirPath == directory || p == nil {
 			selectedRequirementsTxtDir = requirementsTxtDirPath
 		} else {
 			opts := []string{

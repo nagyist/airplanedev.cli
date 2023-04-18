@@ -21,34 +21,57 @@ import (
 )
 
 type InitViewRequest struct {
-	Prompter prompts.Prompter
-	DryRun   bool
+	Prompter         prompts.Prompter
+	DryRun           bool
+	WorkingDirectory string
 
 	Name string
+
+	// ease of testing
+	suffixCharset string
 }
 
 func InitView(ctx context.Context, req InitViewRequest) ([]string, error) {
+	if req.suffixCharset == "" {
+		req.suffixCharset = utils.CharsetLowercaseNumeric
+	}
 	filesCreated := []string{}
 	if req.Name == "" {
 		return nil, errors.New("missing new view name")
 	}
 
+	if req.WorkingDirectory == "" {
+		wd, err := filepath.Abs(".")
+		if err != nil {
+			return nil, err
+		}
+		req.WorkingDirectory = wd
+	} else {
+		wd, err := filepath.Abs(req.WorkingDirectory)
+		if err != nil {
+			return nil, err
+		}
+		req.WorkingDirectory = wd
+	}
+
 	slug := utils.MakeSlug(req.Name)
 	viewDir := ""
 
-	entrypoint, err := createViewEntrypoint(req.DryRun, slug, req.Name)
+	entrypoint, err := createViewEntrypoint(createViewEntrypointRequest{
+		DryRun:           req.DryRun,
+		WorkingDirectory: req.WorkingDirectory,
+		Slug:             slug,
+		Name:             req.Name,
+		suffixCharset:    req.suffixCharset,
+	})
 	if err != nil {
 		return nil, err
 	}
 	filesCreated = append(filesCreated, entrypoint)
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, errors.Wrap(err, "getting working directory")
-	}
-	packageJSONDir := cwd
-	if fsx.Exists(filepath.Join(cwd, viewDir, "package.json")) {
-		packageJSONDir = filepath.Join(cwd, viewDir)
+	packageJSONDir := req.WorkingDirectory
+	if fsx.Exists(filepath.Join(req.WorkingDirectory, viewDir, "package.json")) {
+		packageJSONDir = filepath.Join(req.WorkingDirectory, viewDir)
 	}
 	if !req.DryRun {
 		deps := []string{"@airplane/views", "react", "react-dom"}
@@ -76,7 +99,7 @@ func InitView(ctx context.Context, req InitViewRequest) ([]string, error) {
 	}
 
 	if !req.DryRun {
-		if err := utils.CreateDefaultGitignoreFile(".gitignore"); err != nil {
+		if err := utils.CreateDefaultGitignoreFile(filepath.Join(req.WorkingDirectory, ".gitignore")); err != nil {
 			return nil, err
 		}
 	}
@@ -101,8 +124,20 @@ func generateViewEntrypointPath(slug string) string {
 //go:embed view_scaffolding/Default.airplane.tsx
 var defaultViewEntrypointInline []byte
 
-func createViewEntrypoint(dryRun bool, slug string, name string) (string, error) {
-	entrypointPath := generateViewEntrypointPath(slug)
+type createViewEntrypointRequest struct {
+	DryRun           bool
+	WorkingDirectory string
+	Slug             string
+	Name             string
+	suffixCharset    string
+}
+
+func createViewEntrypoint(req createViewEntrypointRequest) (string, error) {
+	entrypointPath := generateViewEntrypointPath(req.Slug)
+	absEntrypointPath, err := trySuffix(filepath.Join(req.WorkingDirectory, entrypointPath), nil, 3, req.suffixCharset)
+	if err != nil {
+		return "", err
+	}
 
 	var entrypointContents []byte
 	tmpl, err := template.New("entrypoint").Parse(string(defaultViewEntrypointInline))
@@ -111,18 +146,18 @@ func createViewEntrypoint(dryRun bool, slug string, name string) (string, error)
 	}
 	buf := new(bytes.Buffer)
 	if err := tmpl.Execute(buf, map[string]interface{}{
-		"ViewName": strcase.ToCamel(slug),
-		"Slug":     slug,
-		"Name":     name,
+		"ViewName": strcase.ToCamel(req.Slug),
+		"Slug":     req.Slug,
+		"Name":     req.Name,
 	}); err != nil {
 		return "", errors.Wrap(err, "executing inline entrypoint template")
 	}
 	entrypointContents = buf.Bytes()
-	if !dryRun {
-		if err := os.WriteFile(entrypointPath, entrypointContents, 0644); err != nil {
+	if !req.DryRun {
+		if err := os.WriteFile(absEntrypointPath, entrypointContents, 0644); err != nil {
 			return "", errors.Wrap(err, "creating view entrypoint")
 		}
 	}
-	logger.Step("Created view entrypoint at %s", entrypointPath)
-	return entrypointPath, nil
+	logger.Step("Created view entrypoint at %s", absEntrypointPath)
+	return absEntrypointPath, nil
 }

@@ -3,17 +3,15 @@ package initcmd
 import (
 	"testing"
 
-	"github.com/airplanedev/cli/cmd/airplane/testutils"
 	libapi "github.com/airplanedev/cli/pkg/api"
 	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/prompts"
-	"github.com/stretchr/testify/require"
+	"github.com/airplanedev/cli/pkg/testutils"
 )
 
 func TestInit(t *testing.T) {
-	testutils.SetupYarn(t)
 	testCases := []testutils.InitTest{
 		{
 			Desc:       "JavaScript",
@@ -73,6 +71,53 @@ func TestInit(t *testing.T) {
 			Inputs:     []interface{}{"existing_runbook.airplane.ts"},
 			FixtureDir: "./fixtures/fromrunbook",
 			Args:       []string{"--from-runbook=existing_runbook"},
+		},
+		{
+			Desc:       "JavaScript with folder",
+			Inputs:     []interface{}{"My JavaScript task", "JavaScript", "folder/my_javascript_task.airplane.ts"},
+			FixtureDir: "./fixtures/javascript_with_folder",
+		},
+		{
+			Desc:       "Python with folder",
+			Inputs:     []interface{}{"My Python task", "Python", "folder/my_python_task_airplane.py"},
+			FixtureDir: "./fixtures/python_with_folder",
+		},
+		{
+			Desc:       "SQL with folder",
+			Inputs:     []interface{}{"My SQL task", "SQL", "folder/my_sql_task.sql", "folder/my_sql_task.task.yaml"},
+			FixtureDir: "./fixtures/sql_with_folder",
+		},
+		{
+			Desc:       "REST with folder",
+			Inputs:     []interface{}{"My REST task", "REST", "folder/my_rest_task.task.yaml"},
+			FixtureDir: "./fixtures/rest_with_folder",
+		},
+		{
+			Desc:       "GraphQL with folder",
+			Inputs:     []interface{}{"My GraphQL task", "GraphQL", "folder/my_graphql_task.task.yaml"},
+			FixtureDir: "./fixtures/graphql_with_folder",
+		},
+		{
+			Desc:       "Shell with folder",
+			Inputs:     []interface{}{"My Shell task", "Shell", "folder/my_shell_task.sh", "folder/my_shell_task.task.yaml"},
+			FixtureDir: "./fixtures/shell_with_folder",
+		},
+		{
+			Desc:       "Docker with folder",
+			Inputs:     []interface{}{"My Docker task", "Docker", "folder/my_docker_task.task.yaml"},
+			FixtureDir: "./fixtures/docker_with_folder",
+		},
+		{
+			Desc:       "Workflow with folder",
+			Inputs:     []interface{}{"My workflow task", "JavaScript", "folder/my_workflow_task.airplane.ts"},
+			FixtureDir: "./fixtures/workflow_with_folder",
+			Args:       []string{"--workflow"},
+		},
+		{
+			Desc:       "Noninline with folder",
+			Inputs:     []interface{}{"Noninline", "JavaScript", "folder/noninline.ts", "folder/noninline.task.yaml"},
+			FixtureDir: "./fixtures/noninline_with_folder",
+			Args:       []string{"--inline=false"},
 		},
 		{
 			Desc:   "Dry run JavaScript",
@@ -199,14 +244,13 @@ func TestInit(t *testing.T) {
 
 	for _, tC := range testCases {
 		t.Run(tC.Desc, func(t *testing.T) {
-			subR := require.New(t)
 			var cfg = &cli.Config{
 				Client:   mc,
 				Prompter: prompts.NewMock(tC.Inputs...),
 			}
 
 			cmd := New(cfg)
-			testutils.TestCommandAndCompare(subR, cmd, tC.Args, tC.FixtureDir)
+			testutils.TestCommandAndCompare(t, cmd, tC.Args, tC.FixtureDir)
 		})
 	}
 }

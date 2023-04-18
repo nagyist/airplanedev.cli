@@ -26,9 +26,10 @@ import (
 )
 
 type InitTaskRequest struct {
-	Client   api.APIClient
-	Prompter prompts.Prompter
-	DryRun   bool
+	Client           api.APIClient
+	Prompter         prompts.Prompter
+	DryRun           bool
+	WorkingDirectory string
 
 	File     string
 	FromTask string
@@ -44,11 +45,31 @@ type InitTaskRequest struct {
 	TaskKind       buildtypes.TaskKind
 	TaskKindName   string
 	TaskEntrypoint string
+
+	// ease of testing
+	suffixCharset string
 }
 
 func InitTask(ctx context.Context, req InitTaskRequest) ([]string, error) {
+	if req.suffixCharset == "" {
+		req.suffixCharset = utils.CharsetLowercaseNumeric
+	}
 	filesCreated := []string{}
 	client := req.Client
+
+	if req.WorkingDirectory == "" {
+		wd, err := filepath.Abs(".")
+		if err != nil {
+			return nil, err
+		}
+		req.WorkingDirectory = wd
+	} else {
+		wd, err := filepath.Abs(req.WorkingDirectory)
+		if err != nil {
+			return nil, err
+		}
+		req.WorkingDirectory = wd
+	}
 
 	var def definitions.Definition
 	if req.FromTask != "" {
@@ -142,46 +163,81 @@ func InitTask(ctx context.Context, req InitTaskRequest) ([]string, error) {
 		}
 
 		if filepath.Ext(entrypoint) == "tsx" || filepath.Ext(entrypoint) == "jsx" {
-			logger.Log("You are trying to deploy a React file. Use `airplane views init` if you'd like to initialize a view.")
-			if ok, err := req.Prompter.ConfirmWithAssumptions("Are you sure you'd like to continue?", req.AssumeYes, req.AssumeNo); err != nil {
-				return nil, err
-			} else if !ok {
-				logger.Log("Exiting flow")
-				return nil, nil
+			errorMsg := "You are trying to initialize a task in a React file. Use `airplane views init` if you'd like to initialize a view."
+			if req.Prompter == nil {
+				return nil, errors.New(errorMsg)
+			} else {
+				logger.Log(errorMsg)
+				if ok, err := req.Prompter.ConfirmWithAssumptions("Are you sure you'd like to continue?", req.AssumeYes, req.AssumeNo); err != nil {
+					return nil, err
+				} else if !ok {
+					logger.Log("Exiting flow")
+					return nil, nil
+				}
 			}
 		}
 
+		if req.AssumeYes && req.File != "" {
+			entrypoint = req.File
+		} else {
+			entrypoint, err = promptForEntrypoint(def.GetSlug(), kind, entrypoint, req.Inline, req.Prompter)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		var absEntrypoint string
 		var shouldPrintEntrypointToStdOut bool
-		for {
-			if req.AssumeYes && req.File != "" {
-				entrypoint = req.File
-			} else {
+
+		absEntrypoint = entrypoint
+		if !filepath.IsAbs(absEntrypoint) {
+			abs, err := filepath.Abs(filepath.Join(req.WorkingDirectory, entrypoint))
+			if err != nil {
+				return nil, errors.Wrap(err, "determining absolute entrypoint")
+			}
+			absEntrypoint = abs
+		}
+
+		if req.Prompter == nil {
+			// Add a suffix to it.
+			absEntrypoint, err = trySuffix(absEntrypoint, addEntrypointSuffixFunc(req), 3, req.suffixCharset)
+			if err != nil {
+				return nil, errors.Wrap(err, "finding entrypoint")
+			}
+			entrypoint = filepath.Base(absEntrypoint)
+		} else {
+			for {
+				if fsx.Exists(absEntrypoint) {
+					shouldOverwrite, shouldPrintToStdOut, err := shouldOverwriteTaskEntrypoint(req, absEntrypoint, kind)
+					if err != nil {
+						return nil, err
+					}
+					shouldPrintEntrypointToStdOut = shouldPrintToStdOut
+					if shouldOverwrite || shouldPrintEntrypointToStdOut {
+						break
+					}
+				} else {
+					break
+				}
+
 				entrypoint, err = promptForEntrypoint(def.GetSlug(), kind, entrypoint, req.Inline, req.Prompter)
 				if err != nil {
 					return nil, err
 				}
-			}
 
-			if fsx.Exists(entrypoint) {
-				shouldOverwrite, shouldPrintToStdOut, err := shouldOverwriteTaskEntrypoint(req, entrypoint, kind)
-				if err != nil {
-					return nil, err
+				absEntrypoint = entrypoint
+				if !filepath.IsAbs(absEntrypoint) {
+					abs, err := filepath.Abs(filepath.Join(req.WorkingDirectory, entrypoint))
+					if err != nil {
+						return nil, errors.Wrap(err, "determining absolute entrypoint")
+					}
+					absEntrypoint = abs
 				}
-				shouldPrintEntrypointToStdOut = shouldPrintToStdOut
-				if shouldOverwrite || shouldPrintEntrypointToStdOut {
-					break
-				}
-			} else {
-				break
 			}
 		}
 
 		if err := def.SetEntrypoint(entrypoint); err != nil {
 			return nil, err
-		}
-		absEntrypoint, err := filepath.Abs(entrypoint)
-		if err != nil {
-			return nil, errors.Wrap(err, "determining absolute entrypoint")
 		}
 		if err := def.SetAbsoluteEntrypoint(absEntrypoint); err != nil {
 			return nil, err
@@ -198,18 +254,18 @@ func InitTask(ctx context.Context, req InitTaskRequest) ([]string, error) {
 				query, err := def.SQL.GetQuery()
 				if err != nil {
 					// Create a generic entrypoint.
-					if err := createTaskEntrypoint(r, entrypoint, nil); err != nil {
+					if err := createTaskEntrypoint(r, absEntrypoint, nil); err != nil {
 						return nil, errors.Wrapf(err, "unable to create entrypoint")
 					}
 				} else {
 					// Write the query to the entrypoint.
-					if err := writeTaskEntrypoint(entrypoint, []byte(query), 0644); err != nil {
+					if err := writeTaskEntrypoint(absEntrypoint, []byte(query), 0644); err != nil {
 						return nil, errors.Wrapf(err, "unable to create entrypoint")
 					}
 				}
 				logger.Step("Created %s", entrypoint)
 			} else if req.Inline {
-				if err := createInlineEntrypoint(r, entrypoint, &def, shouldPrintEntrypointToStdOut); err != nil {
+				if err := createInlineEntrypoint(r, absEntrypoint, &def, shouldPrintEntrypointToStdOut); err != nil {
 					return nil, errors.Wrapf(err, "unable to create entrypoint")
 				}
 				if shouldPrintEntrypointToStdOut {
@@ -219,15 +275,15 @@ func InitTask(ctx context.Context, req InitTaskRequest) ([]string, error) {
 				}
 			} else {
 				// Create entrypoint, without comment link, if it doesn't exist.
-				if !fsx.Exists(entrypoint) {
-					if err := createTaskEntrypoint(r, entrypoint, nil); err != nil {
+				if !fsx.Exists(absEntrypoint) {
+					if err := createTaskEntrypoint(r, absEntrypoint, nil); err != nil {
 						return nil, errors.Wrapf(err, "unable to create entrypoint")
 					}
 					logger.Step("Created %s", entrypoint)
 				}
 			}
 		}
-		filesCreated = append(filesCreated, entrypoint)
+		filesCreated = append(filesCreated, absEntrypoint)
 	}
 
 	var resp *writeDefnFileResponse
@@ -334,20 +390,33 @@ func writeTaskDefnFile(def *definitions.Definition, req InitTaskRequest) (*write
 	if !definitions.IsTaskDef(req.File) {
 		defaultDefnFn := fmt.Sprintf("%s.task.yaml", def.Slug)
 		entrypoint, _ := def.Entrypoint()
-		fn, err := promptForNewDefinition(defaultDefnFn, entrypoint, req.Prompter)
-		if err != nil {
-			return nil, err
+		if req.Prompter != nil {
+			fn, err := promptForNewDefinition(defaultDefnFn, entrypoint, req.Prompter)
+			if err != nil {
+				return nil, err
+			}
+			defnFilename = fn
+		} else {
+			defnFilename = defaultDefnFn
 		}
-		defnFilename = fn
 	}
+	defnFilename = filepath.Join(req.WorkingDirectory, defnFilename)
 	if fsx.Exists(defnFilename) {
 		// If it exists, check for existence of this file before overwriting it.
-		question := fmt.Sprintf("Would you like to overwrite %s?", defnFilename)
-		if ok, err := req.Prompter.ConfirmWithAssumptions(question, req.AssumeYes, req.AssumeNo); err != nil {
-			return nil, err
-		} else if !ok {
-			// User answered "no", so bail here.
-			return nil, nil
+		if req.Prompter != nil {
+			question := fmt.Sprintf("Would you like to overwrite %s?", defnFilename)
+			if ok, err := req.Prompter.ConfirmWithAssumptions(question, req.AssumeYes, req.AssumeNo); err != nil {
+				return nil, err
+			} else if !ok {
+				// User answered "no", so bail here.
+				return nil, nil
+			}
+		} else {
+			var err error
+			defnFilename, err = trySuffix(defnFilename, nil, 3, req.suffixCharset)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -358,7 +427,7 @@ func writeTaskDefnFile(def *definitions.Definition, req InitTaskRequest) (*write
 	} else if err != nil {
 		return nil, err
 	} else {
-		absEntrypoint, err := filepath.Abs(entrypoint)
+		absEntrypoint, err := def.GetAbsoluteEntrypoint()
 		if err != nil {
 			return nil, errors.Wrap(err, "determining absolute entrypoint")
 		}
@@ -422,31 +491,33 @@ func promptForEntrypoint(slug string, kind buildtypes.TaskKind, defaultEntrypoin
 		entrypoint = modifyEntrypointForInline(kind, entrypoint)
 	}
 
-	exts := runtime.SuggestExts(kind)
-	if err := prompter.Input(
-		"Where is the script for this task?",
-		&entrypoint,
-		prompts.WithDefault(entrypoint),
-		prompts.WithSuggest(func(toComplete string) []string {
-			files, _ := filepath.Glob(toComplete + "*")
-			return files
-		}),
-		prompts.WithValidator(func(val interface{}) error {
-			if len(exts) == 0 {
-				return nil
-			}
-			if str, ok := val.(string); ok {
-				for _, ext := range exts {
-					if strings.HasSuffix(str, ext) {
-						return nil
-					}
+	if prompter != nil {
+		exts := runtime.SuggestExts(kind)
+		if err := prompter.Input(
+			"Where is the script for this task?",
+			&entrypoint,
+			prompts.WithDefault(entrypoint),
+			prompts.WithSuggest(func(toComplete string) []string {
+				files, _ := filepath.Glob(toComplete + "*")
+				return files
+			}),
+			prompts.WithValidator(func(val interface{}) error {
+				if len(exts) == 0 {
+					return nil
 				}
-				return errors.Errorf("File must have a valid extension: %s", exts)
-			}
-			return errors.New("expected string")
-		}),
-	); err != nil {
-		return "", err
+				if str, ok := val.(string); ok {
+					for _, ext := range exts {
+						if strings.HasSuffix(str, ext) {
+							return nil
+						}
+					}
+					return errors.Errorf("File must have a valid extension: %s", exts)
+				}
+				return errors.New("expected string")
+			}),
+		); err != nil {
+			return "", err
+		}
 	}
 
 	// Ensure that the selected file has the correct extension for an inline entrypoint.
@@ -560,6 +631,21 @@ func modifyEntrypointForInline(kind buildtypes.TaskKind, entrypoint string) stri
 		return fmt.Sprintf("%s_airplane%s", entrypointWithoutExt, ext)
 	}
 	return entrypoint
+}
+
+func addEntrypointSuffixFunc(req InitTaskRequest) func(string, string) string {
+	if req.TaskKind == buildtypes.TaskKindPython && req.Inline {
+		return func(s, suffix string) string {
+			ext := filepath.Ext(s)
+			if strings.HasSuffix(s, "_airplane"+ext) {
+				base := strings.TrimSuffix(s, "_airplane"+ext)
+				return fmt.Sprintf("%s_%s_airplane%s", base, suffix, ext)
+			}
+			return fsx.AddFileSuffix(s, suffix)
+		}
+	}
+
+	return nil
 }
 
 func writeTaskEntrypoint(path string, b []byte, fileMode os.FileMode) error {

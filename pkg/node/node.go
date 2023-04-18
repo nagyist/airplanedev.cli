@@ -57,13 +57,18 @@ func CreatePackageJSON(directory string, packageJSONOptions PackageJSONOptions, 
 			if err != nil {
 				return "", err
 			}
-			if err := p.Input(
-				fmt.Sprintf("Found an existing project with package.json at %s. Use this project?", formattedPath),
-				&surveyResp,
-				prompts.WithSelectOptions(opts),
-				prompts.WithDefault(useExisting),
-			); err != nil {
-				return "", err
+			if p == nil {
+				logger.Log("Using existing project with package.json at %s...", formattedPath)
+				surveyResp = useExisting
+			} else {
+				if err := p.Input(
+					fmt.Sprintf("Found an existing project with package.json at %s. Use this project?", formattedPath),
+					&surveyResp,
+					prompts.WithSelectOptions(opts),
+					prompts.WithDefault(useExisting),
+				); err != nil {
+					return "", err
+				}
 			}
 			if surveyResp == useExisting {
 				selectedPackageJSONDir = packageJSONDirPath
@@ -200,7 +205,7 @@ func createPackageJSONFile(cwd string) error {
 		return errors.Wrap(err, "executing package.json template")
 	}
 
-	if err := os.WriteFile("package.json", buf.Bytes(), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(cwd, "package.json"), buf.Bytes(), 0644); err != nil {
 		return errors.Wrap(err, "writing package.json")
 	}
 	logger.Step("Created package.json")
@@ -266,13 +271,15 @@ func mergeTSConfig(configDir string, configFile []byte, strategy MergeStrategy, 
 		}
 
 		if changesNeeded {
-			if ok, err := p.Confirm(
-				fmt.Sprintf("Would you like to override %s with these changes?", configPath),
-				prompts.WithDefault(true),
-			); err != nil {
-				return err
-			} else if !ok {
-				return nil
+			if p != nil {
+				if ok, err := p.Confirm(
+					fmt.Sprintf("Would you like to override %s with these changes?", configPath),
+					prompts.WithDefault(true),
+				); err != nil {
+					return err
+				} else if !ok {
+					return nil
+				}
 			}
 
 			configFile, err = json.MarshalIndent(newTSConfig, "", "  ")

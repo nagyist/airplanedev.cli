@@ -8,93 +8,21 @@ import (
 	"github.com/airplanedev/cli/pkg/build/ignore"
 	"github.com/airplanedev/cli/pkg/build/node"
 	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 )
 
-// InitTest specifies a test case for airplane init commands.
-type InitTest struct {
-	// Desc is a description of the test case.
-	Desc string
-	// Inputs are the Inputs that will be passed to any prompts, in order.
-	Inputs []interface{}
-	// Args are any arguments (and flags) that will be passed to the Cobra command.
-	Args []string
-	// FixtureDir is the directory that the test case should be compared against.
-	FixtureDir string
-}
-
-// TestCommandAndCompare runs the given command and compares the output to the given fixture directory.
-func TestCommandAndCompare(
-	require *require.Assertions,
-	cmd *cobra.Command,
-	args []string,
-	fixtureDir string,
-) {
-	testIsEmpty := fixtureDir == ""
-	if !testIsEmpty {
-		absFixtureDir, err := filepath.Abs(fixtureDir)
-		require.NoError(err)
-		fixtureDir = absFixtureDir
-	} else {
-		tmpFixtureDir, err := os.MkdirTemp("", "empty_test")
-		require.NoError(err)
-		fixtureDir = tmpFixtureDir
-		defer os.RemoveAll(tmpFixtureDir)
-	}
-
-	// Create a temporary directory and cd into it
-	tempDir, err := os.MkdirTemp("", "cli_test")
-	require.NoError(err)
-	defer os.RemoveAll(tempDir)
-
-	// The name of the directory that a cobra command is run in may affect the output of the command. As such, we create
-	// a subdirectory with the base name of the fixture directory so that the output of the command is consistent.
-	subdir := filepath.Base(fixtureDir)
-	tempDir = filepath.Join(tempDir, subdir)
-	err = os.MkdirAll(tempDir, 0755)
-	require.NoError(err)
-
-	cwd, err := os.Getwd()
-	require.NoError(err)
-
-	// Change directories so that the Cobra command runs in a temporary directory instead of ./initcmd
-	err = os.Chdir(tempDir)
-	require.NoError(err)
-
-	defer func() {
-		// Change back to the original directory when the current test case is done.
-		err = os.Chdir(cwd)
-		require.NoError(err)
-	}()
-
-	if args == nil {
-		// By default, command is set to os.Args[1:]. We don't want this; instead, we want to pass no args so that we
-		// can properly test directives like MaximumNArgs, etc. Setting it to nil does nothing, so we set it to the
-		// empty slice.
-		cmd.SetArgs([]string{})
-	} else {
-		cmd.SetArgs(args)
-	}
-	err = cmd.Execute()
-	require.NoError(err)
-
-	include := func(filePath string, info os.FileInfo) (bool, error) {
+func includeFunc(dir string) func(string, os.FileInfo) (bool, error) {
+	return func(filePath string, info os.FileInfo) (bool, error) {
 		if !info.IsDir() && filepath.Base(filePath) == "yarn.lock" {
 			return false, nil
 		}
 
-		defaultInclude, err := ignore.Func(fixtureDir)
+		defaultInclude, err := ignore.Func(dir)
 		if err != nil {
 			return false, err
 		}
 
 		return defaultInclude(filePath, info)
-	}
-	if testIsEmpty {
-		testDirectoryEmpty(require, tempDir, include)
-	} else {
-		compareDirectories(require, fixtureDir, tempDir, equalWithPackageJSONMajorPinned, include)
 	}
 }
 

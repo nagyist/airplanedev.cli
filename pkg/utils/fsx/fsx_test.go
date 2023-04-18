@@ -111,3 +111,37 @@ func TestAssertExistsAny(t *testing.T) {
 	err = AssertExistsAny(cwd + "/testdata/monorepo/my/task/task.ts")
 	assert.NoError(err)
 }
+
+func TestAddFileSuffix(t *testing.T) {
+	for _, test := range []struct {
+		desc     string
+		filename string
+		suffix   string
+		expected string
+	}{
+		{
+			desc:     "simple",
+			filename: "foo.txt",
+			suffix:   "aaa",
+			expected: "foo_aaa.txt",
+		},
+		{
+			desc:     "multipart ext",
+			filename: "foo.bar.txt",
+			suffix:   "aaa",
+			expected: "foo_aaa.bar.txt",
+		},
+		{
+			desc:     "no ext",
+			filename: "foo",
+			suffix:   "aaa",
+			expected: "foo_aaa",
+		},
+	} {
+		t.Run(test.desc, func(t *testing.T) {
+			require.New(t)
+			suffixed := AddFileSuffix(test.filename, test.suffix)
+			require.Equal(t, test.expected, suffixed)
+		})
+	}
+}

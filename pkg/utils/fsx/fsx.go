@@ -82,3 +82,17 @@ func TrimExtension(file string) string {
 	ext := filepath.Ext(file)
 	return strings.TrimSuffix(file, ext)
 }
+
+func AddFileSuffix(filename string, suffix string) string {
+	base := filepath.Base(filename)
+	dir := filepath.Dir(filename)
+
+	// Use strings.SplitN instead of filepath.Ext in case there are multiple dots
+	parts := strings.SplitN(base, ".", 2)
+	suffixedBase := fmt.Sprintf("%s_%s", parts[0], suffix)
+	if len(parts) > 1 {
+		suffixedBase += "." + parts[1]
+	}
+
+	return filepath.Join(dir, suffixedBase)
+}
