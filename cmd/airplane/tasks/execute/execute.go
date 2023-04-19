@@ -14,7 +14,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/params"
+	"github.com/airplanedev/cli/pkg/parameters"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/pkg/errors"
@@ -110,7 +110,7 @@ func run(ctx context.Context, cfg config) error {
 
 	logger.Log("Executing %s task: %s", logger.Bold(task.Name), logger.Gray(client.TaskURL(task.Slug, cfg.envSlug)))
 
-	req.ParamValues, err = params.CLI(cfg.args, task.Name, task.Parameters, cfg.root.Prompter)
+	req.ParamValues, err = parameters.CLI(cfg.args, task.Name, task.Parameters, cfg.root.Prompter)
 	if errors.Is(err, flag.ErrHelp) {
 		return nil
 	} else if err != nil {

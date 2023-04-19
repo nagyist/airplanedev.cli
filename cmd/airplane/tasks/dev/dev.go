@@ -18,7 +18,7 @@ import (
 	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/params"
+	"github.com/airplanedev/cli/pkg/parameters"
 	"github.com/airplanedev/cli/pkg/resources/cliresources"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/state"
@@ -253,11 +253,11 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	}); err != nil {
 		return err
 	}
-	parameters, err := taskConfig.Def.GetParameters()
+	params, err := taskConfig.Def.GetParameters()
 	if err != nil {
 		return err
 	}
-	paramValues, err := params.CLI(cfg.args, taskConfig.Def.GetName(), parameters, cfg.root.Prompter)
+	paramValues, err := parameters.CLI(cfg.args, taskConfig.Def.GetName(), params, cfg.root.Prompter)
 	if errors.Is(err, flag.ErrHelp) {
 		return nil
 	} else if err != nil {

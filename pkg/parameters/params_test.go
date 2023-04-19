@@ -1,4 +1,4 @@
-package params_test
+package parameters_test
 
 import (
 	"context"
@@ -6,13 +6,13 @@ import (
 
 	libapi "github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/api/cliapi"
-	"github.com/airplanedev/cli/pkg/params"
+	"github.com/airplanedev/cli/pkg/parameters"
 	"github.com/stretchr/testify/require"
 )
 
 func TestApplyDefaults(t *testing.T) {
 	require := require.New(t)
-	parameters := libapi.Parameters{libapi.Parameter{
+	params := libapi.Parameters{libapi.Parameter{
 		Name:    "Param 1",
 		Slug:    "p1",
 		Type:    libapi.TypeString,
@@ -26,7 +26,7 @@ func TestApplyDefaults(t *testing.T) {
 	paramValues := api.Values{
 		"p2": "Erie",
 	}
-	paramValuesWithDefaults := params.ApplyDefaults(parameters, paramValues)
+	paramValuesWithDefaults := parameters.ApplyDefaults(params, paramValues)
 	require.Equal("Eric", paramValuesWithDefaults["p1"])
 	require.Equal("Erie", paramValuesWithDefaults["p2"])
 }
@@ -60,7 +60,7 @@ func TestStandardizeParams(t *testing.T) {
 		Slug: "date",
 		Type: libapi.TypeDate,
 	}
-	parameters := libapi.Parameters{fileParam, stringParam, dateParam}
+	params := libapi.Parameters{fileParam, stringParam, dateParam}
 
 	paramValues := api.Values{
 		"file":        "upl1",
@@ -69,7 +69,7 @@ func TestStandardizeParams(t *testing.T) {
 		"nonexistent": "nonexistent", // should not be included in standardized values
 	}
 
-	standardizedValues, err := params.StandardizeParamValues(context.Background(), remoteClient, parameters, paramValues)
+	standardizedValues, err := parameters.StandardizeParamValues(context.Background(), remoteClient, params, paramValues)
 	require.NoError(err)
 	require.Equal(3, len(standardizedValues))
 	require.Equal("hello", standardizedValues["string"]) // should not be affected by standardization

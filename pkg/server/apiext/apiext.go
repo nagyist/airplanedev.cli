@@ -15,7 +15,7 @@ import (
 	"github.com/airplanedev/cli/pkg/configs"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/params"
+	"github.com/airplanedev/cli/pkg/parameters"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/resources/cliresources"
 	"github.com/airplanedev/cli/pkg/server/handlers"
@@ -118,7 +118,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 
 	localTaskConfig, ok := state.TaskConfigs.Get(req.Slug)
 	isBuiltin := builtins.IsBuiltinTaskSlug(req.Slug)
-	parameters := libapi.Parameters{}
+	params := libapi.Parameters{}
 	start := time.Now().UTC()
 	if isBuiltin || ok {
 		runConfig := dev.LocalRunConfig{
@@ -201,7 +201,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			if runConfig.ConfigAttachments, err = localTaskConfig.Def.GetConfigAttachments(); err != nil {
 				return api.RunTaskResponse{}, errors.Wrap(err, "getting attached configs")
 			}
-			parameters, err = localTaskConfig.Def.GetParameters()
+			params, err = localTaskConfig.Def.GetParameters()
 			if err != nil {
 				return api.RunTaskResponse{}, errors.Wrap(err, "getting parameters")
 			}
@@ -212,9 +212,9 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 				return api.RunTaskResponse{}, errors.Wrap(err, "merging local and remote configs")
 			}
 			run.TaskRevision = localTaskConfig
-			paramValuesWithDefaults := params.ApplyDefaults(parameters, req.ParamValues)
+			paramValuesWithDefaults := parameters.ApplyDefaults(params, req.ParamValues)
 			run.ParamValues = paramValuesWithDefaults
-			runConfig.ParamValues, err = params.StandardizeParamValues(ctx, state.RemoteClient, parameters, paramValuesWithDefaults)
+			runConfig.ParamValues, err = parameters.StandardizeParamValues(ctx, state.RemoteClient, params, paramValuesWithDefaults)
 			if err != nil {
 				return api.RunTaskResponse{}, err
 			}
@@ -233,7 +233,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		run.Resources = resources.GenerateResourceAliasToID(aliasToResourceMap)
 		run.CreatedAt = start
 
-		run.Parameters = &parameters
+		run.Parameters = &params
 		run.FallbackEnvSlug = pointers.ToString(envSlug)
 
 		run.Status = api.RunActive
@@ -531,7 +531,7 @@ func CreatePromptHandler(ctx context.Context, state *state.State, r *http.Reques
 		req.Values = map[string]interface{}{}
 	}
 
-	req.Values = params.ApplyDefaults(req.Schema, req.Values)
+	req.Values = parameters.ApplyDefaults(req.Schema, req.Values)
 	// NOTE: we don't standardize param values here since currently parameter values
 	// are represented as map[string]interface{} whereas in Airport, they are a Values type.
 	// The Aiport Values type has a custom JSON marshaler that converts upload objects to
@@ -602,7 +602,7 @@ func GetPromptHandler(ctx context.Context, state *state.State, r *http.Request) 
 		if p.ID == promptID {
 			// Standardize the prompt values here to convert upload IDs to objects. We do it in the
 			// prompts get handler (not list) to agree with Airport.
-			p.Values, err = params.StandardizeParamValues(ctx, state.RemoteClient, p.Schema, p.Values)
+			p.Values, err = parameters.StandardizeParamValues(ctx, state.RemoteClient, p.Schema, p.Values)
 			if err != nil {
 				return GetPromptResponse{}, err
 			}

@@ -1,6 +1,6 @@
 // This package provides utilities for translating between
 // inputs (entered via CLI) and api values (representation to API)
-package params
+package parameters
 
 import (
 	"context"
@@ -68,7 +68,7 @@ func ValidateInput(param libapi.Parameter, in string) error {
 }
 
 // ParseInput converts a string entered from CLI into the API value
-// Handles deafult values when in is empty
+// Handles default values when it is empty
 func ParseInput(param libapi.Parameter, in string) (interface{}, error) {
 	if in == "" {
 		return param.Default, nil

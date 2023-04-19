@@ -12,7 +12,7 @@ import (
 	libapi "github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/logger"
-	"github.com/airplanedev/cli/pkg/params"
+	"github.com/airplanedev/cli/pkg/parameters"
 	"github.com/airplanedev/ojson"
 	"github.com/olekukonko/tablewriter"
 )
@@ -62,7 +62,7 @@ func (t Table) tasks(tasks []libapi.Task) {
 
 				var defaultStr string
 				if p.Default != nil {
-					defaultVal, err := params.APIValueToInput(p, p.Default)
+					defaultVal, err := parameters.APIValueToInput(p, p.Default)
 					if err != nil {
 						defaultVal = "<unknown>"
 					}
@@ -108,7 +108,7 @@ func (t Table) task(task libapi.Task) {
 				requiredStr = "no"
 			}
 
-			defaultStr, err := params.APIValueToInput(p, p.Default)
+			defaultStr, err := parameters.APIValueToInput(p, p.Default)
 			if err != nil {
 				defaultStr = "<unknown>"
 			}
