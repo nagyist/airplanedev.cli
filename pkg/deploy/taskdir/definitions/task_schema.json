@@ -299,6 +299,7 @@
     "allowSelfApprovals": true,
     "timeout": true,
     "runtime": true,
+    "permissions": true,
     "schedules": true,
     "restrictCallers": true,
     "node": true,
@@ -411,6 +412,20 @@
       },
       "additionalProperties": false,
       "required": ["slug", "type"]
+    },
+    "permissionConfig": {
+      "type": "object",
+      "properties": {
+        "groups": {
+          "description": "Groups to assign the permission to.",
+          "type": "array"
+        },
+        "users": {
+          "description": "Users to assign the permission to.",
+          "type": "array"
+        }
+      },
+      "additionalProperties": false
     },
     "envVars": {
       "description": "A map of environment variables to use when running the task. If specifying raw values, the value may be a string; if using config variables, the value must be an object with config mapped to the name of the config variable.",
@@ -531,6 +546,34 @@
           "description": "Set the runtime used for this task.",
           "enum": ["", "workflow"],
           "default": ""
+        },
+        "permissions": {
+          "description": "Permissions for the task. If specified, permission configuration will not be allowed in the UI.",
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "viewers": {
+                  "description": "Groups and users who can see task information, but can't request or execute tasks.",
+                  "$ref": "#/$defs/permissionConfig"
+                },
+                "requesters": {
+                  "description": "Groups and users who have all the permission of viewers, and can also request tasks.",
+                  "$ref": "#/$defs/permissionConfig"
+                },
+                "executers": {
+                  "description": "Groups and users who have all the permissions of requesters, and can also execute tasks and other's requests.",
+                  "$ref": "#/$defs/permissionConfig"
+                },
+                "admins": {
+                  "description": "Groups and users who have full access to the task, and can change task configurations and permissions.",
+                  "$ref": "#/$defs/permissionConfig"
+                }
+              },
+              "additionalProperties": false
+            },
+            { "type": "string", "enum": ["team_access"] }
+          ]
         },
         "schedules": {
           "description": "A map of schedules that are to be deployed with this task. The key corresponds to a unique schedule across deploys.",

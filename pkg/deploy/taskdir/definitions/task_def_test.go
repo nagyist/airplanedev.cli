@@ -36,6 +36,22 @@ schedules:
     paramValues:
       param_one: 5.5
       param_two: memes
+permissions:
+  viewers:
+    groups:
+    - group1
+    users:
+    - user1
+  requesters:
+    groups:
+    - group2
+  executers:
+    groups:
+    - group3
+    - group4
+  admins:
+    groups:
+    - group5
 `)
 
 // Contains explicit defaults.
@@ -73,6 +89,32 @@ var fullJSON = []byte(
 				"param_two": "memes"
 			}
 		}
+	},
+	"permissions": {
+		"viewers": {
+			"groups": [
+				"group1"
+			],
+			"users": [
+				"user1"
+			]
+		},
+		"requesters": {
+			"groups": [
+				"group2"
+			]
+		},
+		"executers": {
+			"groups": [
+				"group3",
+				"group4"
+			]
+		},
+		"admins": {
+			"groups": [
+				"group5"
+			]
+		}
 	}
 }`)
 
@@ -101,6 +143,22 @@ schedules:
     paramValues:
       param_one: 5.5
       param_two: memes
+permissions:
+  admins:
+    groups:
+    - group5
+  executers:
+    groups:
+    - group3
+    - group4
+  requesters:
+    groups:
+    - group2
+  viewers:
+    groups:
+    - group1
+    users:
+    - user1
 `)
 
 // Contains no explicit defaults.
@@ -137,7 +195,102 @@ var jsonWithDefault = []byte(
 				"param_two": "memes"
 			}
 		}
+	},
+	"permissions": {
+		"admins": {
+			"groups": [
+				"group5"
+			]
+		},
+		"executers": {
+			"groups": [
+				"group3",
+				"group4"
+			]
+		},
+		"requesters": {
+			"groups": [
+				"group2"
+			]
+		},
+		"viewers": {
+			"groups": [
+				"group1"
+			],
+			"users": [
+				"user1"
+			]
+		}
 	}
+}
+`)
+
+// Permissions are set to team_access.
+// Contains no explicit defaults.
+var yamlWithDefaultAndTeamAccessPermissions = []byte(
+	`slug: hello_world
+name: Hello World
+description: A starter task.
+parameters:
+- slug: name
+  name: Name
+  description: Someone's name.
+  type: shorttext
+  default: World
+resources:
+  db: demo_db
+python:
+  entrypoint: hello_world.py
+timeout: 3600
+schedules:
+  every_midnight:
+    name: Every Midnight
+    cron: 0 0 * * *
+  no_name_params:
+    cron: 0 0 * * *
+    paramValues:
+      param_one: 5.5
+      param_two: memes
+permissions: team_access
+`)
+
+// Permissions are set to team_access.
+// Contains no explicit defaults.
+var jsonWithDefaultAndTeamAccessPermissions = []byte(
+	`{
+	"slug": "hello_world",
+	"name": "Hello World",
+	"description": "A starter task.",
+	"parameters": [
+		{
+			"slug": "name",
+			"name": "Name",
+			"description": "Someone's name.",
+			"type": "shorttext",
+			"default": "World"
+		}
+	],
+	"resources": {
+		"db": "demo_db"
+	},
+	"python": {
+		"entrypoint": "hello_world.py"
+	},
+	"timeout": 3600,
+	"schedules": {
+		"every_midnight": {
+			"name": "Every Midnight",
+			"cron": "0 0 * * *"
+		},
+		"no_name_params": {
+			"cron": "0 0 * * *",
+			"paramValues": {
+				"param_one": 5.5,
+				"param_two": "memes"
+			}
+		}
+	},
+	"permissions": "team_access"
 }
 `)
 
@@ -174,6 +327,13 @@ var fullDef = Definition{
 			},
 		},
 	},
+	Permissions: &PermissionsDefinition{
+		Viewers:                    PermissionRecipients{Groups: []string{"group1"}, Users: []string{"user1"}},
+		Requesters:                 PermissionRecipients{Groups: []string{"group2"}},
+		Executers:                  PermissionRecipients{Groups: []string{"group3", "group4"}},
+		Admins:                     PermissionRecipients{Groups: []string{"group5"}},
+		RequireExplicitPermissions: true,
+	},
 }
 
 // Contains no explicit defaults.
@@ -208,6 +368,49 @@ var defWithDefault = Definition{
 			},
 		},
 	},
+	Permissions: &PermissionsDefinition{
+		Viewers:                    PermissionRecipients{Groups: []string{"group1"}, Users: []string{"user1"}},
+		Requesters:                 PermissionRecipients{Groups: []string{"group2"}},
+		Executers:                  PermissionRecipients{Groups: []string{"group3", "group4"}},
+		Admins:                     PermissionRecipients{Groups: []string{"group5"}},
+		RequireExplicitPermissions: true,
+	},
+}
+
+var defWithDefaultAndTeamAccessPermissions = Definition{
+	Name:        "Hello World",
+	Slug:        "hello_world",
+	Description: "A starter task.",
+	Parameters: []ParameterDefinition{
+		{
+			Name:        "Name",
+			Slug:        "name",
+			Type:        "shorttext",
+			Description: "Someone's name.",
+			Default:     "World",
+		},
+	},
+	Python: &PythonDefinition{
+		Entrypoint: "hello_world.py",
+	},
+	Timeout:   3600,
+	Resources: map[string]string{"db": "demo_db"},
+	Schedules: map[string]ScheduleDefinition{
+		"every_midnight": {
+			Name:     "Every Midnight",
+			CronExpr: "0 0 * * *",
+		},
+		"no_name_params": {
+			CronExpr: "0 0 * * *",
+			ParamValues: map[string]interface{}{
+				"param_one": 5.5,
+				"param_two": "memes",
+			},
+		},
+	},
+	Permissions: &PermissionsDefinition{
+		RequireExplicitPermissions: false,
+	},
 }
 
 func TestDefinitionMarshal(t *testing.T) {
@@ -230,6 +433,19 @@ func TestDefinitionMarshal(t *testing.T) {
 			def:      fullDef,
 			expected: jsonWithDefault,
 		},
+		{
+			name:     "marshal yaml with team access permissions",
+			format:   DefFormatYAML,
+			def:      defWithDefaultAndTeamAccessPermissions,
+			expected: yamlWithDefaultAndTeamAccessPermissions,
+		},
+		{
+			name:     "marshal json with team access permissions",
+			format:   DefFormatJSON,
+			def:      defWithDefaultAndTeamAccessPermissions,
+			expected: jsonWithDefaultAndTeamAccessPermissions,
+		},
+
 		{
 			name:   "marshal yaml with multiline",
 			format: DefFormatYAML,
@@ -332,6 +548,18 @@ func TestDefinitionUnmarshal(t *testing.T) {
 			format:   DefFormatJSON,
 			bytestr:  jsonWithDefault,
 			expected: defWithDefault,
+		},
+		{
+			name:     "marshal yaml with team access permissions",
+			format:   DefFormatYAML,
+			bytestr:  yamlWithDefaultAndTeamAccessPermissions,
+			expected: defWithDefaultAndTeamAccessPermissions,
+		},
+		{
+			name:     "marshal json with team access permissions",
+			format:   DefFormatJSON,
+			bytestr:  jsonWithDefaultAndTeamAccessPermissions,
+			expected: defWithDefaultAndTeamAccessPermissions,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {

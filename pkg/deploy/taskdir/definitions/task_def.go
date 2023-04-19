@@ -40,7 +40,8 @@ type Definition struct {
 	AllowSelfApprovals DefaultTrueDefinition `json:"allowSelfApprovals,omitempty"`
 	RestrictCallers    []string              `json:"restrictCallers,omitempty"`
 
-	Schedules map[string]ScheduleDefinition `json:"schedules,omitempty"`
+	Schedules   map[string]ScheduleDefinition `json:"schedules,omitempty"`
+	Permissions *PermissionsDefinition        `json:"permissions,omitempty"`
 
 	buildConfig  buildtypes.BuildConfig
 	defnFilePath string
@@ -138,6 +139,72 @@ type ScheduleDefinition struct {
 	Description string                 `json:"description,omitempty"`
 	CronExpr    string                 `json:"cron"`
 	ParamValues map[string]interface{} `json:"paramValues,omitempty"`
+}
+
+type PermissionsDefinition struct {
+	Viewers    PermissionRecipients `json:"viewers,omitempty"`
+	Requesters PermissionRecipients `json:"requesters,omitempty"`
+	Executers  PermissionRecipients `json:"executers,omitempty"`
+	Admins     PermissionRecipients `json:"admins,omitempty"`
+	// If RequireExplicitPermissions is false, then none of the above should be set.
+	// If RequireExplicitPermissions is true, then only the recipients defined above
+	// will have permissions for this task (in addition to permissions inherited by roles).
+	RequireExplicitPermissions bool `json:"-"`
+}
+
+type PermissionRecipients struct {
+	// Groups are identified by their slugs.
+	Groups []string `json:"groups,omitempty"`
+	// Users are identified by their emails.
+	Users []string `json:"users,omitempty"`
+}
+
+func (p *PermissionsDefinition) UnmarshalJSON(b []byte) error {
+	// If permissions is a string, it should mean team_access.
+	var s string
+	if err := json.Unmarshal(b, &s); err == nil {
+		*p = PermissionsDefinition{
+			RequireExplicitPermissions: s != "team_access"}
+		return nil
+	}
+	// Otherwise, perform a normal unmarshal operation.
+	// Note we need a new type, otherwise we recursively call this
+	// method and end up stack overflowing.
+	type permissions PermissionsDefinition
+	var perm permissions
+	if err := json.Unmarshal(b, &perm); err != nil {
+		return err
+	}
+	perm.RequireExplicitPermissions = true
+	*p = PermissionsDefinition(perm)
+	return nil
+}
+
+func (p PermissionsDefinition) MarshalJSON() ([]byte, error) {
+	if !p.RequireExplicitPermissions {
+		return json.Marshal("team_access")
+	}
+	return json.Marshal(p)
+}
+
+func (p PermissionsDefinition) MarshalYAML() (interface{}, error) {
+	if !p.RequireExplicitPermissions {
+		return "team_access", nil
+	}
+	m := map[string]any{}
+	if len(p.Viewers.Groups) > 0 || len(p.Viewers.Users) > 0 {
+		m["viewers"] = p.Viewers
+	}
+	if len(p.Requesters.Groups) > 0 || len(p.Requesters.Users) > 0 {
+		m["requesters"] = p.Requesters
+	}
+	if len(p.Executers.Groups) > 0 || len(p.Executers.Users) > 0 {
+		m["executers"] = p.Executers
+	}
+	if len(p.Admins.Groups) > 0 || len(p.Admins.Users) > 0 {
+		m["admins"] = p.Admins
+	}
+	return m, nil
 }
 
 // SchemaStore must be updated if this file is moved or renamed.
