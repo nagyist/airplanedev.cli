@@ -180,31 +180,15 @@ func (p *PermissionsDefinition) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (p PermissionsDefinition) MarshalJSON() ([]byte, error) {
-	if !p.RequireExplicitPermissions {
-		return json.Marshal("team_access")
-	}
-	return json.Marshal(p)
-}
-
 func (p PermissionsDefinition) MarshalYAML() (interface{}, error) {
 	if !p.RequireExplicitPermissions {
 		return "team_access", nil
 	}
-	m := map[string]any{}
-	if len(p.Viewers.Groups) > 0 || len(p.Viewers.Users) > 0 {
-		m["viewers"] = p.Viewers
-	}
-	if len(p.Requesters.Groups) > 0 || len(p.Requesters.Users) > 0 {
-		m["requesters"] = p.Requesters
-	}
-	if len(p.Executers.Groups) > 0 || len(p.Executers.Users) > 0 {
-		m["executers"] = p.Executers
-	}
-	if len(p.Admins.Groups) > 0 || len(p.Admins.Users) > 0 {
-		m["admins"] = p.Admins
-	}
-	return m, nil
+	// Note we need a new type, otherwise we recursively call this
+	// method and end up stack overflowing.
+	type permissions PermissionsDefinition
+	perm := permissions(p)
+	return perm, nil
 }
 
 // SchemaStore must be updated if this file is moved or renamed.

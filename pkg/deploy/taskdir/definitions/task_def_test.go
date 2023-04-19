@@ -144,21 +144,21 @@ schedules:
       param_one: 5.5
       param_two: memes
 permissions:
-  admins:
-    groups:
-    - group5
-  executers:
-    groups:
-    - group3
-    - group4
-  requesters:
-    groups:
-    - group2
   viewers:
     groups:
     - group1
     users:
     - user1
+  requesters:
+    groups:
+    - group2
+  executers:
+    groups:
+    - group3
+    - group4
+  admins:
+    groups:
+    - group5
 `)
 
 // Contains no explicit defaults.
@@ -197,9 +197,17 @@ var jsonWithDefault = []byte(
 		}
 	},
 	"permissions": {
-		"admins": {
+		"viewers": {
 			"groups": [
-				"group5"
+				"group1"
+			],
+			"users": [
+				"user1"
+			]
+		},
+		"requesters": {
+			"groups": [
+				"group2"
 			]
 		},
 		"executers": {
@@ -208,17 +216,9 @@ var jsonWithDefault = []byte(
 				"group4"
 			]
 		},
-		"requesters": {
+		"admins": {
 			"groups": [
-				"group2"
-			]
-		},
-		"viewers": {
-			"groups": [
-				"group1"
-			],
-			"users": [
-				"user1"
+				"group5"
 			]
 		}
 	}
@@ -445,7 +445,6 @@ func TestDefinitionMarshal(t *testing.T) {
 			def:      defWithDefaultAndTeamAccessPermissions,
 			expected: jsonWithDefaultAndTeamAccessPermissions,
 		},
-
 		{
 			name:   "marshal yaml with multiline",
 			format: DefFormatYAML,
