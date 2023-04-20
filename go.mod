@@ -20,7 +20,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.20.9
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.25.1
 	github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible
-	github.com/bep/debounce v1.2.1
+	github.com/benbjohnson/clock v1.3.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/bluekeyes/go-gitdiff v0.7.1

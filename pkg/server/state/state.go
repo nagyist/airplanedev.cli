@@ -12,7 +12,7 @@ import (
 	"time"
 
 	libapi "github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
+	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	libhttp "github.com/airplanedev/cli/pkg/api/http"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/deploy/bundlediscover"
@@ -21,13 +21,12 @@ import (
 	"github.com/airplanedev/cli/pkg/flags/flagsiface"
 	"github.com/airplanedev/cli/pkg/logger"
 	libparams "github.com/airplanedev/cli/pkg/parameters"
-	"github.com/airplanedev/cli/pkg/resources/cliresources"
+	resources "github.com/airplanedev/cli/pkg/resources/cliresources"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/network"
 	"github.com/airplanedev/cli/pkg/server/status"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/airplanedev/cli/pkg/version"
-	"github.com/bep/debounce"
 	lrucache "github.com/hashicorp/golang-lru/v2"
 	"github.com/pkg/errors"
 )
@@ -61,8 +60,9 @@ type State struct {
 
 	Discoverer       *discover.Discoverer
 	BundleDiscoverer *bundlediscover.Discoverer
-	// Debouncer returns the debouncing function for a given key
-	Debouncer DebounceStore
+
+	// Debouncers maps paths to debouncing functions.
+	Debouncers Store[string, func()]
 
 	DevConfig *conf.DevConfig
 	// ViteContexts is an in-memory cache that maps view slugs to vite contexts.
@@ -127,7 +127,7 @@ func New(devToken *string) (*State, error) {
 		TaskConfigs:  NewStore[string, discover.TaskConfig](nil),
 		AppCondition: NewStore[string, AppCondition](nil),
 		ViewConfigs:  NewStore[string, discover.ViewConfig](nil),
-		Debouncer:    NewDebouncer(),
+		Debouncers:   NewStore[string, func()](nil),
 		ViteContexts: viteContextCache,
 		PortProxy:    network.ViewPortProxy(devToken),
 		DevToken:     devToken,
@@ -367,36 +367,6 @@ func (store *runsStore) GetRunHistory(taskID string) []dev.LocalRun {
 	}
 
 	return res
-}
-
-// DebounceStore keeps a mapping of keys to debounce functions
-// A debouncer takes in a function and executes it when the debouncer stops being called after X duration.
-// The debounce function can be called with different functions, but the last one will win.
-type DebounceStore struct {
-	// Mapping of key to debounce function
-	debouncers map[string]func(f func())
-	mu         sync.Mutex
-}
-
-func NewDebouncer() DebounceStore {
-	return DebounceStore{debouncers: map[string]func(f func()){}}
-}
-
-const DefaultDebounceDuration = time.Second * 1
-
-// Get will return the debounce function for a given key
-// If it does not exist, it will create one
-func (r *DebounceStore) Get(key string) func(f func()) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	fn, exists := r.debouncers[key]
-	if exists {
-		return fn
-	} else {
-		debouncer := debounce.New(DefaultDebounceDuration)
-		r.debouncers[key] = debouncer
-		return debouncer
-	}
 }
 
 func (s *State) SetServerStatus(status status.ServerStatus) {

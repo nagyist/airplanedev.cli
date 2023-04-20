@@ -345,10 +345,15 @@ func (s *Server) ReloadApps(ctx context.Context, wd string, e filewatcher.Event)
 		}
 	}
 
-	debounce := s.state.Debouncer.Get(path)
+	dfn, ok := s.state.Debouncers.Get(path)
+	if !ok {
+		dfn = utils.Debounce(time.Second, reload)
+		s.state.Debouncers.Add(path, dfn)
+	}
 	// kick off a debounced version of the reload
 	// debounce is non-blocking and will execute reload() in a separate goroutine
-	debounce(reload)
+	dfn()
+
 	return nil
 }
 
