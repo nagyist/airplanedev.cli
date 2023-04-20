@@ -128,13 +128,14 @@ func CreateResourceHandler(ctx context.Context, state *state.State, r *http.Requ
 	resourceSlug := req.Slug
 	var err error
 	if resourceSlug == "" {
-		if resourceSlug, err = utils.GetUniqueSlug(utils.GetUniqueSlugRequest{
+		resourceSlug, err = utils.GetUniqueSlug(utils.GetUniqueSlugRequest{
 			Slug: slug.Make(req.Name),
 			SlugExists: func(slug string) (bool, error) {
 				_, ok := state.DevConfig.Resources[slug]
 				return ok, nil
 			},
-		}); err != nil {
+		})
+		if err != nil {
 			return CreateResourceResponse{}, errors.Errorf("could not generate unique resource slug: %s", err.Error())
 		}
 	} else {

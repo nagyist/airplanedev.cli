@@ -10,7 +10,6 @@ import (
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
-	"github.com/pkg/errors"
 )
 
 type CreateSleepRequest struct {
@@ -30,7 +29,11 @@ func CreateSleepHandler(ctx context.Context, state *state.State, r *http.Request
 		return CreateSleepResponse{}, err
 	}
 	if runID == "" {
-		return CreateSleepResponse{}, errors.Errorf("expected runID from airplane token: %s", err.Error())
+		return CreateSleepResponse{}, libhttp.NewErrBadRequest("this endpoint can only be called from the task runtime")
+	}
+
+	if req.DurationMs < 0 {
+		return CreateSleepResponse{}, libhttp.NewErrBadRequest("sleep duration must be greater than 0")
 	}
 
 	sleep := libapi.Sleep{
@@ -58,14 +61,14 @@ type GetSleepResponse struct {
 func GetSleepHandler(ctx context.Context, state *state.State, r *http.Request) (GetSleepResponse, error) {
 	sleepID := r.URL.Query().Get("id")
 	if sleepID == "" {
-		return GetSleepResponse{}, libhttp.NewErrBadRequest("id is required")
+		return GetSleepResponse{}, libhttp.NewErrBadRequest("expected a sleep ID")
 	}
 	runID, err := getRunIDFromToken(r)
 	if err != nil {
 		return GetSleepResponse{}, err
 	}
 	if runID == "" {
-		return GetSleepResponse{}, errors.Errorf("expected runID from airplane token")
+		return GetSleepResponse{}, libhttp.NewErrBadRequest("this endpoint can only be called from the task runtime")
 	}
 
 	run, err := state.GetRunInternal(ctx, runID)
@@ -89,7 +92,7 @@ type ListSleepsResponse struct {
 func ListSleepsHandler(ctx context.Context, state *state.State, r *http.Request) (ListSleepsResponse, error) {
 	runID := r.URL.Query().Get("runID")
 	if runID == "" {
-		return ListSleepsResponse{}, libhttp.NewErrBadRequest("runID is required")
+		return ListSleepsResponse{}, libhttp.NewErrBadRequest("expected a runID")
 	}
 
 	run, err := state.GetRunInternal(ctx, runID)
