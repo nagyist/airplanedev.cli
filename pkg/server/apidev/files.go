@@ -107,25 +107,33 @@ type GetFileResponse struct {
 	Content string `json:"content"`
 }
 
-// GetFileHandler returns the contents of the file at the requested location. Path is the absolute path to the file,
-// irrespective of the dev server root.
+// GetFileHandler returns the contents of the file at the requested location. Path is the relative path from the dev
+// root or an absolute path.
 func GetFileHandler(ctx context.Context, state *state.State, r *http.Request) (GetFileResponse, error) {
 	path := r.URL.Query().Get("path")
 	if path == "" {
 		return GetFileResponse{}, libhttp.NewErrBadRequest("path is required")
 	}
 
+	absPath := path
+	if !filepath.IsAbs(absPath) {
+		absPath = filepath.Join(state.Dir, absPath)
+	}
+
 	// Ensure the path is within the dev server root.
-	if !strings.HasPrefix(path, state.Dir) {
+	if !strings.HasPrefix(absPath, state.Dir) {
 		return GetFileResponse{}, libhttp.NewErrBadRequest("path is outside dev root")
 	}
 
-	if strings.Contains(path, "..") {
+	if strings.Contains(absPath, "..") {
 		return GetFileResponse{}, libhttp.NewErrBadRequest("path may not contain directory traversal elements (`..`)")
 	}
 
-	contents, err := os.ReadFile(path)
+	contents, err := os.ReadFile(absPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return GetFileResponse{}, libhttp.NewErrNotFound("file not found")
+		}
 		return GetFileResponse{}, errors.Wrap(err, "reading file")
 	}
 

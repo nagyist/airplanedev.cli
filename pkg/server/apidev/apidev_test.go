@@ -271,17 +271,27 @@ func TestGetFileHandler(t *testing.T) {
 	require.NoError(err)
 	require.Equal("Test\n", resp.Content)
 
+	// Relative path
+	body = h.GET("/dev/files/get").
+		WithQuery("path", "subfile").
+		Expect().
+		Status(http.StatusOK).Body()
+
+	err = json.Unmarshal([]byte(body.Raw()), &resp)
+	require.NoError(err)
+	require.Equal("Test\n", resp.Content)
+
 	// Nonexistent path
 	nonexistentPath := filepath.Join(absoluteDir, "nonexistent")
 	body = h.GET("/dev/files/get").
 		WithQuery("path", nonexistentPath).
 		Expect().
-		Status(http.StatusInternalServerError).Body()
+		Status(http.StatusNotFound).Body()
 
 	var errResp libhttp.ErrorResponse
 	err = json.Unmarshal([]byte(body.Raw()), &errResp)
 	require.NoError(err)
-	require.Contains(errResp.Error, "no such file or directory")
+	require.Contains(errResp.Error, "File not found")
 
 	// Path outside dev root
 	pathOutsideRoot := filepath.Join(absoluteDir, "../my_task.airplane.ts")
