@@ -565,3 +565,16 @@ const (
 type CompleteViewComponentContext struct {
 	Kind ViewComponentKind `json:"kind"`
 }
+
+type GenerateStudioIDTokenRequest struct {
+	Audience    string `json:"audience"`
+	ParentRunID string `json:"parentRunID"`
+	RunID       string `json:"runID"`
+	RunnerID    string `json:"runnerID"`
+	TaskID      string `json:"taskID"`
+	TaskSlug    string `json:"taskSlug"`
+}
+
+type GenerateStudioIDTokenResponse struct {
+	Token string `json:"token"`
+}

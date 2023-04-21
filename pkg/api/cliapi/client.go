@@ -186,6 +186,8 @@ type APIClient interface {
 
 	AutopilotComplete(ctx context.Context, req AutopilotCompleteRequest) (AutopilotCompleteResponse, error)
 
+	GenerateStudioIDToken(ctx context.Context, req GenerateStudioIDTokenRequest) (GenerateStudioIDTokenResponse, error)
+
 	// All methods below this point represent CLI-specific API operations, and not requests to api.airplane.dev.
 	AuthInfo(ctx context.Context) (res AuthInfoResponse, err error)
 	Token() string
@@ -801,6 +803,11 @@ func (c *Client) CreateSandbox(ctx context.Context, req CreateSandboxRequest) (r
 
 func (c *Client) AutopilotComplete(ctx context.Context, req AutopilotCompleteRequest) (res AutopilotCompleteResponse, err error) {
 	err = c.post(ctx, "/autopilot/complete", req, &res)
+	return
+}
+
+func (c *Client) GenerateStudioIDToken(ctx context.Context, req GenerateStudioIDTokenRequest) (res GenerateStudioIDTokenResponse, err error) {
+	err = c.post(ctx, "/oidc/generateStudioIDToken", req, &res)
 	return
 }
 

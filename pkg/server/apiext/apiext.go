@@ -65,6 +65,8 @@ func AttachExternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/hosts/web", handlers.New(state, WebHostHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/uploads/create", handlers.WithBody(state, CreateUploadHandler)).Methods("POST", "OPTIONS")
+
+	r.Handle("/oidc/generateIDToken", handlers.WithBody(state, GenerateStudioIDTokenHandler)).Methods("POST", "OPTIONS")
 }
 
 func getRunIDFromToken(r *http.Request) (string, error) {
@@ -403,4 +405,42 @@ func SearchEntitiesHandler(
 	return SearchEntitiesResponse{
 		Results: []struct{}{},
 	}, nil
+}
+
+type GenerateStudioIDTokenHandlerRequest struct {
+	Audience string `json:"audience"`
+}
+
+type GenerateStudioIDTokenHandlerResponse struct {
+	Token string `json:"token"`
+}
+
+func GenerateStudioIDTokenHandler(
+	ctx context.Context,
+	state *state.State,
+	r *http.Request,
+	req GenerateStudioIDTokenHandlerRequest,
+) (GenerateStudioIDTokenHandlerResponse, error) {
+	runID, err := getRunIDFromToken(r)
+	if err != nil {
+		return GenerateStudioIDTokenHandlerResponse{}, libhttp.NewErrBadRequest("unable to determine runID from token")
+	}
+
+	run, err := state.GetRun(ctx, runID)
+	if err != nil {
+		return GenerateStudioIDTokenHandlerResponse{}, errors.Wrap(err, "getting run")
+	}
+
+	resp, err := state.RemoteClient.GenerateStudioIDToken(ctx, api.GenerateStudioIDTokenRequest{
+		Audience:    req.Audience,
+		ParentRunID: run.ParentID,
+		RunID:       run.ID,
+		RunnerID:    run.CreatorID,
+		TaskID:      run.TaskID,
+		TaskSlug:    run.TaskSlug,
+	})
+	if err != nil {
+		return GenerateStudioIDTokenHandlerResponse{}, errors.Wrap(err, "generating ID token")
+	}
+	return GenerateStudioIDTokenHandlerResponse{Token: resp.Token}, nil
 }

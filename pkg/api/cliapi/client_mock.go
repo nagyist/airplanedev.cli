@@ -470,3 +470,7 @@ func (mc *MockClient) AutopilotComplete(ctx context.Context, req AutopilotComple
 		Content: mc.AutopilotResponses[req.Prompt],
 	}, nil
 }
+
+func (mc *MockClient) GenerateStudioIDToken(ctx context.Context, req GenerateStudioIDTokenRequest) (GenerateStudioIDTokenResponse, error) {
+	panic("not implemented")
+}

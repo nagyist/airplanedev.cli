@@ -164,6 +164,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		}
 		run.StdAPIRequest = stdapiReq
 		run.TaskName = req.Slug
+		run.TaskSlug = req.Slug
 		run.ParamValues = req.ParamValues
 	} else {
 		kind, kindOptions, err := dev.GetKindAndOptions(localTaskConfig)
@@ -189,6 +190,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			return api.RunTaskResponse{}, errors.Wrap(err, "getting parameters")
 		}
 		run.TaskID = req.Slug
+		run.TaskSlug = req.Slug
 		run.TaskName = localTaskConfig.Def.GetName()
 		runConfig.ConfigVars, err = configs.MergeRemoteConfigs(ctx, state, envSlug)
 		if err != nil {

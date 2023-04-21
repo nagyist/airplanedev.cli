@@ -4,7 +4,7 @@ import (
 	"time"
 
 	libapi "github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
+	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/builtins"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/dev/logs"
@@ -31,6 +31,7 @@ type LocalRun struct {
 	Parameters       *libapi.Parameters     `json:"parameters"`
 	ParentID         string                 `json:"parentID"`
 	TaskID           string                 `json:"taskID"`
+	TaskSlug         string                 `json:"taskSlug"`
 	TaskName         string                 `json:"taskName"`
 	Displays         []libapi.Display       `json:"displays"`
 	Prompts          []libapi.Prompt        `json:"prompts"`

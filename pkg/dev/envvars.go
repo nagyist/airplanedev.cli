@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	libapi "github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
+	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/conf"
 	devenv "github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
