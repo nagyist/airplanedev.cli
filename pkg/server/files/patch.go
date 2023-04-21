@@ -39,7 +39,11 @@ func Patch(s *state.State, patch string) error {
 		// TODO: Handle the case when old name and new name differ (i.e. we're renaming files).
 		path := filepath.Join(s.Dir, diff.OldName)
 
-		f, err := os.OpenFile(path, os.O_RDWR, 0755)
+		if err := os.MkdirAll(filepath.Dir(path), 0770); err != nil {
+			return errors.Wrap(err, "creating directories for file")
+		}
+
+		f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0755)
 		if err != nil {
 			return errors.Wrap(err, "opening file")
 		}
