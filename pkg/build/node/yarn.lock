@@ -2161,10 +2161,10 @@ es-module-lexer@^0.9.0:
   resolved "https://registry.yarnpkg.com/es-module-lexer/-/es-module-lexer-0.9.3.tgz#6f13db00cc38417137daf74366f535c8eb438f19"
   integrity sha512-1HQ2M2sPtxwnvOvT1ZClHyQDiggdNjURWpY2we6aMKCQiUVxTmVs2UYPLIrD84sS+kMdUwfBSylbJPwNnBrnHQ==
 
-esbuild-plugin-tsc@0.3.1:
-  version "0.3.1"
-  resolved "https://registry.yarnpkg.com/esbuild-plugin-tsc/-/esbuild-plugin-tsc-0.3.1.tgz#673a18e236c3afaa0c85df8cbddc9a372f04b117"
-  integrity sha512-/AWxnbo/flR6oaWmciNe3oWs/l57ojOwPZlsSH/B4cxovkLnlXbgm8KjxNGQbbB4bx+IVP5rkDnZJYntX/zrgg==
+esbuild-plugin-tsc@0.4.0:
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/esbuild-plugin-tsc/-/esbuild-plugin-tsc-0.4.0.tgz#d7d516fda0e0b05c8e0b442152deebdee01ddc61"
+  integrity sha512-q9gWIovt1nkwchMLc2zhyksaiHOv3kDK4b0AUol8lkMCRhJ1zavgfb2fad6BKp7FT9rh/OHmEBXVjczLoi/0yw==
   dependencies:
     strip-comments "^2.0.1"
 
