@@ -688,6 +688,9 @@ type EvaluateTemplateRequest struct {
 	Resources   map[string]resources.Resource `json:"resources"`
 	Configs     map[string]string             `json:"configs"`
 	ParamValues map[string]interface{}        `json:"paramValues"`
+	ParentRunID string                        `json:"parentRunID"`
+	TaskID      string                        `json:"taskID"`
+	TaskSlug    string                        `json:"taskSlug"`
 	// Lookup maps is a mapping of namespace to the lookup map for that namespace.
 	// These are in addition to the lookup maps generated above. The user cannot
 	// override a default lookup, i.e. a lookup map with namespace "params" would
