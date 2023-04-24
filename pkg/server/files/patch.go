@@ -43,26 +43,38 @@ func Patch(s *state.State, patch string) error {
 			return errors.Wrap(err, "creating directories for file")
 		}
 
-		f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0755)
+		f, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE, 0755)
 		if err != nil {
-			return errors.Wrap(err, "opening file")
+			return errors.Wrap(err, "opening file for reading")
 		}
 
 		// apply the changes in the patch to a source diff and store it in a buffer.
 		var output bytes.Buffer
-		err = gitdiff.Apply(&output, f, diff)
-		if err != nil {
+		if err = gitdiff.Apply(&output, f, diff); err != nil {
 			return errors.Wrap(err, "applying patch")
-		}
-
-		// write the new contents to the file
-		if _, err := f.Write(output.Bytes()); err != nil {
-			return errors.Wrap(err, "writing new contents")
 		}
 
 		if err := f.Close(); err != nil {
 			return errors.Wrap(err, "closing file")
 		}
+
+		if err := overwriteFile(path, output.Bytes()); err != nil {
+			return errors.Wrap(err, "writing file")
+		}
+	}
+
+	return nil
+}
+
+func overwriteFile(path string, content []byte) error {
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, 0755)
+	if err != nil {
+		return errors.Wrap(err, "opening file for writing")
+	}
+
+	// write the new contents to the file
+	if _, err := f.Write(content); err != nil {
+		return errors.Wrap(err, "writing new contents")
 	}
 
 	return nil
