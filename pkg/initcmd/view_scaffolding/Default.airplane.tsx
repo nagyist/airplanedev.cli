@@ -39,6 +39,9 @@ export default airplane.view(
   {
     slug: "{{.Slug}}",
     name: "{{.Name}}",
+    {{- if .Description}}
+    description: "{{.Description}}",
+    {{- end}}
   },
   {{.ViewName}}
 );

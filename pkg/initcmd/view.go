@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"text/template"
 
+	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/node"
 	"github.com/airplanedev/cli/pkg/prompts"
@@ -24,7 +25,8 @@ type InitViewRequest struct {
 	DryRun           bool
 	WorkingDirectory string
 
-	Name string
+	Name        string
+	Description string
 
 	// ease of testing
 	suffixCharset string
@@ -78,6 +80,7 @@ func InitView(ctx context.Context, req InitViewRequest) (InitResponse, error) {
 		WorkingDirectory: req.WorkingDirectory,
 		Slug:             slug,
 		Name:             req.Name,
+		Description:      req.Description,
 		suffixCharset:    req.suffixCharset,
 	})
 	if err != nil {
@@ -130,6 +133,13 @@ func InitView(ctx context.Context, req InitViewRequest) (InitResponse, error) {
 		slug:    slug,
 	})
 
+	ret.NewViewDefinition = &definitions.ViewDefinition{
+		Name:         req.Name,
+		Slug:         slug,
+		Description:  req.Description,
+		DefnFilePath: entrypoint,
+	}
+
 	return ret, nil
 }
 
@@ -145,6 +155,7 @@ type createViewEntrypointRequest struct {
 	WorkingDirectory string
 	Slug             string
 	Name             string
+	Description      string
 	suffixCharset    string
 }
 
@@ -162,9 +173,10 @@ func createViewEntrypoint(req createViewEntrypointRequest) (string, error) {
 	}
 	buf := new(bytes.Buffer)
 	if err := tmpl.Execute(buf, map[string]interface{}{
-		"ViewName": strcase.ToCamel(req.Slug),
-		"Slug":     req.Slug,
-		"Name":     req.Name,
+		"ViewName":    strcase.ToCamel(req.Slug),
+		"Slug":        req.Slug,
+		"Name":        req.Name,
+		"Description": req.Description,
 	}); err != nil {
 		return "", errors.Wrap(err, "executing inline entrypoint template")
 	}

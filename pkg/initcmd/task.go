@@ -41,14 +41,23 @@ type InitTaskRequest struct {
 	Inline   bool
 	Workflow bool
 
-	TaskName       string
-	TaskKind       buildtypes.TaskKind
-	TaskKindName   string
-	TaskEntrypoint string
+	TaskName        string
+	TaskKind        buildtypes.TaskKind
+	TaskKindName    string
+	TaskEntrypoint  string
+	TaskDescription string
+	TaskNodeFlavor  NodeFlavor
 
 	// ease of testing
 	suffixCharset string
 }
+
+type NodeFlavor string
+
+const (
+	NodeFlavorTypeScript = "TypeScript"
+	NodeFlavorJavaScript = "JavaScript"
+)
 
 func InitTask(ctx context.Context, req InitTaskRequest) (InitResponse, error) {
 	if req.suffixCharset == "" {
@@ -143,6 +152,7 @@ func InitTask(ctx context.Context, req InitTaskRequest) (InitResponse, error) {
 			return InitResponse{}, err
 		}
 	}
+	ret.NewTaskDefinition = &def
 
 	kind, err := def.Kind()
 	if err != nil {
@@ -154,6 +164,7 @@ func InitTask(ctx context.Context, req InitTaskRequest) (InitResponse, error) {
 	if req.Workflow {
 		def.Runtime = buildtypes.TaskRuntimeWorkflow
 	}
+	def.Description = req.TaskDescription
 
 	localExecutionSupported := false
 	if entrypoint, err := def.Entrypoint(); err == definitions.ErrNoEntrypoint {
@@ -183,7 +194,14 @@ func InitTask(ctx context.Context, req InitTaskRequest) (InitResponse, error) {
 		if req.AssumeYes && req.File != "" {
 			entrypoint = req.File
 		} else {
-			entrypoint, err = promptForEntrypoint(def.GetSlug(), kind, entrypoint, req.Inline, req.Prompter)
+			entrypoint, err = promptForEntrypoint(promptForEntrypointRequest{
+				prompter:          req.Prompter,
+				slug:              def.GetSlug(),
+				kind:              kind,
+				defaultEntrypoint: entrypoint,
+				inline:            req.Inline,
+				nodeFlavor:        req.TaskNodeFlavor,
+			})
 			if err != nil {
 				return InitResponse{}, err
 			}
@@ -223,7 +241,14 @@ func InitTask(ctx context.Context, req InitTaskRequest) (InitResponse, error) {
 					break
 				}
 
-				entrypoint, err = promptForEntrypoint(def.GetSlug(), kind, entrypoint, req.Inline, req.Prompter)
+				entrypoint, err = promptForEntrypoint(promptForEntrypointRequest{
+					prompter:          req.Prompter,
+					slug:              def.GetSlug(),
+					kind:              kind,
+					defaultEntrypoint: entrypoint,
+					inline:            req.Inline,
+					nodeFlavor:        req.TaskNodeFlavor,
+				})
 				if err != nil {
 					return InitResponse{}, err
 				}
@@ -299,6 +324,7 @@ func InitTask(ctx context.Context, req InitTaskRequest) (InitResponse, error) {
 			return ret, nil
 		}
 		ret.AddCreatedFile(resp.DefnFile)
+		def.SetDefnFilePath(resp.DefnFile)
 	} else {
 		entrypoint, _ := def.Entrypoint()
 		resp = &writeDefnFileResponse{
@@ -466,11 +492,20 @@ func writeTaskDefnFile(def *definitions.Definition, req InitTaskRequest) (*write
 	}, nil
 }
 
-func promptForEntrypoint(slug string, kind buildtypes.TaskKind, defaultEntrypoint string, inline bool, prompter prompts.Prompter) (string, error) {
-	entrypoint := defaultEntrypoint
+type promptForEntrypointRequest struct {
+	prompter          prompts.Prompter
+	slug              string
+	kind              buildtypes.TaskKind
+	defaultEntrypoint string
+	inline            bool
+	nodeFlavor        NodeFlavor
+}
+
+func promptForEntrypoint(req promptForEntrypointRequest) (string, error) {
+	entrypoint := req.defaultEntrypoint
 	if entrypoint == "" {
 		var err error
-		entrypoint, err = getEntrypointFile(slug, kind, inline)
+		entrypoint, err = getEntrypointFile(req)
 		if err != nil {
 			return "", err
 		}
@@ -481,7 +516,7 @@ func promptForEntrypoint(slug string, kind buildtypes.TaskKind, defaultEntrypoin
 		}
 		if fileInfo.IsDir() {
 			// The user provided a directory. Create an entrypoint in that directory.
-			entrypointFile, err := getEntrypointFile(slug, kind, inline)
+			entrypointFile, err := getEntrypointFile(req)
 			if err != nil {
 				return "", err
 			}
@@ -489,13 +524,13 @@ func promptForEntrypoint(slug string, kind buildtypes.TaskKind, defaultEntrypoin
 		}
 	}
 	// Ensure that the file has the correct extension for an inline entrypoint.
-	if inline {
-		entrypoint = modifyEntrypointForInline(kind, entrypoint)
+	if req.inline {
+		entrypoint = modifyEntrypointForInline(req.kind, entrypoint)
 	}
 
-	if prompter != nil {
-		exts := runtime.SuggestExts(kind)
-		if err := prompter.Input(
+	if req.prompter != nil {
+		exts := runtime.SuggestExts(req.kind)
+		if err := req.prompter.Input(
 			"Where is the script for this task?",
 			&entrypoint,
 			prompts.WithDefault(entrypoint),
@@ -523,8 +558,8 @@ func promptForEntrypoint(slug string, kind buildtypes.TaskKind, defaultEntrypoin
 	}
 
 	// Ensure that the selected file has the correct extension for an inline entrypoint.
-	if inline {
-		entrypoint = modifyEntrypointForInline(kind, entrypoint)
+	if req.inline {
+		entrypoint = modifyEntrypointForInline(req.kind, entrypoint)
 	}
 
 	directory := filepath.Dir(entrypoint)
@@ -535,12 +570,18 @@ func promptForEntrypoint(slug string, kind buildtypes.TaskKind, defaultEntrypoin
 	return entrypoint, nil
 }
 
-func getEntrypointFile(slug string, kind buildtypes.TaskKind, inline bool) (string, error) {
-	exts := runtime.SuggestExts(kind)
-	entrypoint := slug
-	if kind == buildtypes.TaskKindNode && len(exts) > 1 {
-		// Special case JavaScript tasks and make their extensions '.ts'
-		entrypoint += ".ts"
+func getEntrypointFile(req promptForEntrypointRequest) (string, error) {
+	exts := runtime.SuggestExts(req.kind)
+	entrypoint := req.slug
+	if req.kind == buildtypes.TaskKindNode && len(exts) > 1 {
+		if req.nodeFlavor == NodeFlavorTypeScript {
+			entrypoint += ".ts"
+		} else if req.nodeFlavor == NodeFlavorJavaScript {
+			entrypoint += ".js"
+		} else {
+			// Special case JavaScript tasks and make their extensions '.ts'
+			entrypoint += ".ts"
+		}
 	} else {
 		entrypoint += exts[0]
 	}
@@ -552,8 +593,8 @@ func getEntrypointFile(slug string, kind buildtypes.TaskKind, inline bool) (stri
 		entrypoint = filepath.Join("airplane", entrypoint)
 	}
 
-	if inline {
-		entrypoint = modifyEntrypointForInline(kind, entrypoint)
+	if req.inline {
+		entrypoint = modifyEntrypointForInline(req.kind, entrypoint)
 	}
 	return entrypoint, nil
 }

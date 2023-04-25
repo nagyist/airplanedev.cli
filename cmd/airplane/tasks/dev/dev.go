@@ -12,14 +12,14 @@ import (
 	"github.com/airplanedev/cli/cmd/airplane/auth/login"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config"
 	"github.com/airplanedev/cli/pkg/analytics"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
+	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/parameters"
-	"github.com/airplanedev/cli/pkg/resources/cliresources"
+	resources "github.com/airplanedev/cli/pkg/resources/cliresources"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
@@ -247,7 +247,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		return err
 	}
 
-	if _, err := apiServer.RegisterTasksAndViews(ctx, server.DiscoverOpts{
+	if _, err := apiServer.RegisterTasksAndViews(ctx, state.DiscoverOpts{
 		Tasks: taskConfigs,
 		Views: viewConfigs,
 	}); err != nil {

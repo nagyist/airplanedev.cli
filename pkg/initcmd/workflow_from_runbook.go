@@ -34,7 +34,13 @@ func InitWorkflowFromRunbook(ctx context.Context, req InitWorkflowFromRunbookReq
 	if req.AssumeYes && req.File != "" {
 		entrypoint = req.File
 	} else {
-		entrypoint, err = promptForEntrypoint(req.FromRunbook, buildtypes.TaskKindNode, entrypoint, req.Inline, req.Prompter)
+		entrypoint, err = promptForEntrypoint(promptForEntrypointRequest{
+			prompter:          req.Prompter,
+			slug:              req.FromRunbook,
+			kind:              buildtypes.TaskKindNode,
+			defaultEntrypoint: entrypoint,
+			inline:            req.Inline,
+		})
 		if err != nil {
 			return err
 		}

@@ -202,7 +202,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	)
 
 	// Register discovered tasks with local dev server
-	unsupportedApps, err := apiServer.RegisterTasksAndViews(ctx, server.DiscoverOpts{
+	unsupportedApps, err := apiServer.RegisterTasksAndViews(ctx, state.DiscoverOpts{
 		Tasks: taskConfigs,
 		Views: viewConfigs,
 	})

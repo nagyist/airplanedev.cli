@@ -11,7 +11,7 @@ import (
 	"time"
 
 	libapi "github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
+	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	libhttp "github.com/airplanedev/cli/pkg/api/http"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	libviews "github.com/airplanedev/cli/pkg/build/views"
@@ -59,6 +59,9 @@ func AttachDevRoutes(r *mux.Router, s *state.State) {
 
 	r.Handle("/logs/{run_id}", handlers.SSE(s, LogsHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/tasks/errors", handlers.New(s, GetTaskErrorsHandler)).Methods("GET", "OPTIONS")
+
+	r.Handle("/tasks/create", handlers.WithBody(s, InitTaskHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/views/create", handlers.WithBody(s, InitViewHandler)).Methods("POST", "OPTIONS")
 
 	r.PathPrefix("/views").HandlerFunc(ProxyViewHandler(s.PortProxy)).Methods("GET", "POST", "OPTIONS")
 	r.Handle("/dependencies/reinstall", handlers.New(s, ReinstallDependenciesHandler)).Methods("POST", "OPTIONS")

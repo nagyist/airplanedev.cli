@@ -5,12 +5,15 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
 	"golang.org/x/exp/slices"
 )
 
 type InitResponse struct {
-	WorkingDirectory string
-	filenames        map[string]fileStatus
+	WorkingDirectory  string
+	filenames         map[string]fileStatus
+	NewTaskDefinition *definitions.Definition
+	NewViewDefinition *definitions.ViewDefinition
 }
 
 type fileStatus string
@@ -19,6 +22,11 @@ const (
 	fileStatusCreated  fileStatus = "created"
 	fileStatusModified fileStatus = "modified"
 )
+
+type FilenameWithStatus struct {
+	Filename   string     `json:"filename"`
+	FileStatus fileStatus `json:"fileStatus"`
+}
 
 func newInitResponse(wd string) (InitResponse, error) {
 	absWd, err := filepath.Abs(wd)
@@ -77,6 +85,23 @@ func (ir InitResponse) GetModifiedFiles() []string {
 	slices.SortFunc(filenames, sortFilenames)
 
 	return filenames
+}
+
+func (ir InitResponse) GetFilenamesWithStatus() []FilenameWithStatus {
+	filenames := []string{}
+	for fn := range ir.filenames {
+		filenames = append(filenames, fn)
+	}
+	slices.SortFunc(filenames, sortFilenames)
+
+	filenamesWithStatus := []FilenameWithStatus{}
+	for _, fn := range filenames {
+		filenamesWithStatus = append(filenamesWithStatus, FilenameWithStatus{
+			Filename:   fn,
+			FileStatus: ir.filenames[fn],
+		})
+	}
+	return filenamesWithStatus
 }
 
 func (ir InitResponse) String() string {
