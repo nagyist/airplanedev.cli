@@ -691,6 +691,8 @@ type EvaluateTemplateRequest struct {
 	ParentRunID string                        `json:"parentRunID"`
 	TaskID      string                        `json:"taskID"`
 	TaskSlug    string                        `json:"taskSlug"`
+	// If strict mode is disabled, then the template engine will not throw an error for invalid templates.
+	DisableStrictMode bool `json:"disableStrictMode"`
 	// Lookup maps is a mapping of namespace to the lookup map for that namespace.
 	// These are in addition to the lookup maps generated above. The user cannot
 	// override a default lookup, i.e. a lookup map with namespace "params" would
