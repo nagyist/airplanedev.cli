@@ -353,6 +353,7 @@ func getCommonEnvVars() map[string]string {
 
 var allowedSystemEnvVars = map[string]bool{
 	"HOME": true, // Used by the snowflake client to identify the user's home directory for caching.
+	"PATH": true, // Allow airplane dev to access available executables
 }
 
 // filteredSystemEnvVars returns a list of environment variables from the user's system that can be passed to the task.
