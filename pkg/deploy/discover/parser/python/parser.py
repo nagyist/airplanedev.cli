@@ -127,8 +127,8 @@ def extract_task_configs(files: List[str]) -> List[Def]:
                         restrictCallers=conf.restrict_callers if hasattr(conf, "restrict_callers") else None,
                         timeout=conf.timeout,
                         runtime=conf.runtime,
-                        concurrencyKey=conf.concurrency_key,
-                        concurrencyLimit=conf.concurrency_limit,
+                        concurrencyKey=conf.concurrency_key if hasattr(conf, "concurrency_key") else "",
+                        concurrencyLimit=conf.concurrency_limit if hasattr(conf, "concurrency_limit") else 1,
                         schedules={
                             s.slug: Schedule(
                                 name=s.name,
