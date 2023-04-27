@@ -70,6 +70,13 @@ func (d *Definition) Update(req api.UpdateTaskRequest, opts UpdateOptions) error
 	if d.RestrictCallers == nil {
 		d.RestrictCallers = []string{}
 	}
+	if req.ExecuteRules.ConcurrencyKey != nil {
+		d.ConcurrencyKey = *req.ExecuteRules.ConcurrencyKey
+	}
+	d.ConcurrencyLimit = req.ExecuteRules.ConcurrencyLimit
+	if d.ConcurrencyLimit == nil {
+		d.ConcurrencyLimit = pointers.Int64(1)
+	}
 
 	if opts.Triggers != nil {
 		d.Schedules = map[string]ScheduleDefinition{}

@@ -299,6 +299,8 @@
     "allowSelfApprovals": true,
     "timeout": true,
     "runtime": true,
+    "concurrencyKey": true,
+    "concurrencyLimit": true,
     "permissions": true,
     "schedules": true,
     "restrictCallers": true,
@@ -546,6 +548,16 @@
           "description": "Set the runtime used for this task.",
           "enum": ["", "workflow"],
           "default": ""
+        },
+        "concurrencyKey": {
+          "description": "If non-empty, restricts runs with the same concurrency key from executing at the same time.",
+          "type": "string"
+        },
+        "concurrencyLimit": {
+          "description": "If concurrency key is set, only allows this task's runs to start if the number of other active runs with the same key is below this limit.",
+          "default": 1,
+          "type": "number",
+          "exclusiveMinimum": 0
         },
         "permissions": {
           "description": "Permissions for the task. If specified, permission configuration will not be allowed in the UI.",

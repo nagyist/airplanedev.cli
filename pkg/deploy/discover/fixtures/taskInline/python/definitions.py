@@ -28,6 +28,8 @@ class TaskDef:
     allow_self_approvals: Optional[bool]
     restrict_callers: Optional[List[str]]
     timeout: Optional[int]
+    concurrency_key: Optional[str]
+    concurrency_limit: Optional[int]
     constraints: Optional[Dict[str, str]]
     resources: Optional[List[Any]]
     schedules: Optional[List[Any]]

@@ -87,6 +87,8 @@ func (t Task) AsUpdateTaskRequest() UpdateTaskRequest {
 			DisallowSelfApprove: &t.ExecuteRules.DisallowSelfApprove,
 			RequireRequests:     &t.ExecuteRules.RequireRequests,
 			RestrictCallers:     t.ExecuteRules.RestrictCallers,
+			ConcurrencyKey:      &t.ExecuteRules.ConcurrencyKey,
+			ConcurrencyLimit:    t.ExecuteRules.ConcurrencyLimit,
 		},
 		Timeout: t.Timeout,
 	}
@@ -126,6 +128,12 @@ func (t Task) AsUpdateTaskRequest() UpdateTaskRequest {
 	}
 	if req.ExecuteRules.RestrictCallers == nil {
 		req.ExecuteRules.RestrictCallers = []string{}
+	}
+	if req.ExecuteRules.ConcurrencyKey == nil {
+		req.ExecuteRules.ConcurrencyKey = pointers.String("")
+	}
+	if req.ExecuteRules.ConcurrencyLimit == nil {
+		req.ExecuteRules.ConcurrencyLimit = pointers.Int64(1)
 	}
 
 	if t.InterpolationMode != "" {
@@ -258,6 +266,8 @@ type UpdateExecuteRulesRequest struct {
 	DisallowSelfApprove *bool    `json:"disallowSelfApprove"`
 	RequireRequests     *bool    `json:"requireRequests"`
 	RestrictCallers     []string `json:"restrictCallers"`
+	ConcurrencyKey      *string  `json:"concurrencyKey"`
+	ConcurrencyLimit    *int64   `json:"concurrencyLimit"`
 }
 
 type ListResourcesResponse struct {
@@ -558,6 +568,8 @@ type ExecuteRules struct {
 	DisallowSelfApprove bool     `json:"disallowSelfApprove"`
 	RequireRequests     bool     `json:"requireRequests"`
 	RestrictCallers     []string `json:"restrictCallers"`
+	ConcurrencyKey      string   `json:"concurrencyKey"`
+	ConcurrencyLimit    *int64   `json:"concurrencyLimit"`
 }
 
 type View struct {

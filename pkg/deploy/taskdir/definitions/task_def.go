@@ -39,6 +39,8 @@ type Definition struct {
 	RequireRequests    bool                  `json:"requireRequests,omitempty"`
 	AllowSelfApprovals DefaultTrueDefinition `json:"allowSelfApprovals,omitempty"`
 	RestrictCallers    []string              `json:"restrictCallers,omitempty"`
+	ConcurrencyKey     string                `json:"concurrencyKey,omitempty"`
+	ConcurrencyLimit   *int64                `json:"concurrencyLimit,omitempty"`
 
 	Schedules   map[string]ScheduleDefinition `json:"schedules,omitempty"`
 	Permissions *PermissionsDefinition        `json:"permissions,omitempty"`
@@ -602,6 +604,8 @@ func (d Definition) GetTask(opts GetTaskOpts) (api.Task, error) {
 			RequireRequests:     d.RequireRequests,
 			DisallowSelfApprove: !d.AllowSelfApprovals.Value(),
 			RestrictCallers:     d.RestrictCallers,
+			ConcurrencyKey:      d.ConcurrencyKey,
+			ConcurrencyLimit:    d.ConcurrencyLimit,
 		},
 		Resources: api.Resources{},
 		Configs:   []api.ConfigAttachment{},

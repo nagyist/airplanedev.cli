@@ -62,6 +62,8 @@ class Def:
     restrictCallers: Optional[List[Literal["task", "view"]]]
     timeout: int
     runtime: Literal["standard", "workflow"]
+    concurrencyKey: str
+    concurrencyLimit: int
 
     schedules: Dict[str, Schedule]
 
@@ -125,6 +127,8 @@ def extract_task_configs(files: List[str]) -> List[Def]:
                         restrictCallers=conf.restrict_callers if hasattr(conf, "restrict_callers") else None,
                         timeout=conf.timeout,
                         runtime=conf.runtime,
+                        concurrencyKey=conf.concurrency_key,
+                        concurrencyLimit=conf.concurrency_limit,
                         schedules={
                             s.slug: Schedule(
                                 name=s.name,
