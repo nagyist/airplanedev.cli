@@ -26,6 +26,7 @@ type InitViewRequest struct {
 	WorkingDirectory string
 
 	Name        string
+	Slug        string
 	Description string
 
 	// ease of testing
@@ -72,7 +73,10 @@ func InitView(ctx context.Context, req InitViewRequest) (InitResponse, error) {
 		req.WorkingDirectory = wd
 	}
 
-	slug := utils.MakeSlug(req.Name)
+	slug := req.Slug
+	if slug == "" {
+		slug = utils.MakeSlug(req.Name)
+	}
 	viewDir := ""
 
 	entrypoint, err := createViewEntrypoint(createViewEntrypointRequest{

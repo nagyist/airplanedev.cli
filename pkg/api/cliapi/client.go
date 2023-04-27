@@ -161,6 +161,7 @@ type APIClient interface {
 	GetUpload(ctx context.Context, uploadID string) (res libapi.GetUploadResponse, err error)
 
 	GetView(ctx context.Context, req libapi.GetViewRequest) (libapi.View, error)
+	GetViewMetadata(ctx context.Context, slug string) (libapi.ViewMetadata, error)
 	CreateView(ctx context.Context, req libapi.CreateViewRequest) (libapi.View, error)
 	CreateDemoDB(ctx context.Context, name string) (string, error)
 	ResetDemoDB(ctx context.Context) (string, error)
@@ -583,6 +584,23 @@ func (c *Client) GetView(ctx context.Context, req libapi.GetViewRequest) (res li
 		return res, &libapi.ViewMissingError{
 			AppURL: c.AppURL().String(),
 			Slug:   req.Slug,
+		}
+	}
+
+	return
+}
+
+// GetViewMetadata fetches a view's metadata by slug. If the slug does not match a view, a *ViewMissingError is returned.
+func (c *Client) GetViewMetadata(ctx context.Context, slug string) (res libapi.ViewMetadata, err error) {
+	err = c.get(ctx, encodeQueryString("/views/getMetadata", url.Values{
+		"slug": []string{slug},
+	}), &res)
+
+	var errsc libhttp.ErrStatusCode
+	if errors.As(err, &errsc) && errsc.StatusCode == 404 {
+		return res, &libapi.ViewMissingError{
+			AppURL: c.AppURL().String(),
+			Slug:   slug,
 		}
 	}
 

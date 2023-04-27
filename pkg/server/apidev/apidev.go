@@ -61,7 +61,9 @@ func AttachDevRoutes(r *mux.Router, s *state.State) {
 	r.Handle("/tasks/errors", handlers.New(s, GetTaskErrorsHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/tasks/create", handlers.WithBody(s, InitTaskHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/tasks/isSlugAvailable", handlers.New(s, IsTaskSlugAvailableHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/views/create", handlers.WithBody(s, InitViewHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/views/isSlugAvailable", handlers.New(s, IsViewSlugAvailableHandler)).Methods("GET", "OPTIONS")
 
 	r.PathPrefix("/views").HandlerFunc(ProxyViewHandler(s.PortProxy)).Methods("GET", "POST", "OPTIONS")
 	r.Handle("/dependencies/reinstall", handlers.New(s, ReinstallDependenciesHandler)).Methods("POST", "OPTIONS")

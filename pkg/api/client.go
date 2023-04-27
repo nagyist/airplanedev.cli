@@ -587,6 +587,15 @@ type View struct {
 	IsLocal bool `json:"isLocal"`
 }
 
+type ViewMetadata struct {
+	ID         string `json:"id"`
+	Slug       string `json:"slug"`
+	IsArchived bool   `json:"isArchived"`
+	// IsLocal is true if the view is local in the editor, false if it's a
+	// view that's already deployed.
+	IsLocal bool `json:"isLocal"`
+}
+
 type GetViewRequest struct {
 	ID   string
 	Slug string

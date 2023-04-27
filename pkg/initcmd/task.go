@@ -42,6 +42,7 @@ type InitTaskRequest struct {
 	Workflow bool
 
 	TaskName        string
+	TaskSlug        string
 	TaskKind        buildtypes.TaskKind
 	TaskKindName    string
 	TaskEntrypoint  string
@@ -116,7 +117,10 @@ func InitTask(ctx context.Context, req InitTaskRequest) (InitResponse, error) {
 		}
 
 		var err error
-		slug := utils.MakeSlug(req.TaskName)
+		slug := req.TaskSlug
+		if slug == "" {
+			slug = utils.MakeSlug(req.TaskName)
+		}
 		if req.TaskKind == buildtypes.TaskKindBuiltin {
 			switch req.TaskKindName {
 			case "GraphQL":

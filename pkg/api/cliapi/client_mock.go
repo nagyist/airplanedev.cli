@@ -264,6 +264,18 @@ func (mc *MockClient) GetView(ctx context.Context, req libapi.GetViewRequest) (r
 	return a, nil
 }
 
+func (mc *MockClient) GetViewMetadata(ctx context.Context, slug string) (res libapi.ViewMetadata, err error) {
+	view, ok := mc.Views[slug]
+	if !ok {
+		return libapi.ViewMetadata{}, &libapi.ViewMissingError{AppURL: "api/", Slug: slug}
+	}
+	return libapi.ViewMetadata{
+		ID:         view.ID,
+		Slug:       view.Slug,
+		IsArchived: view.ArchivedAt != nil,
+	}, nil
+}
+
 func (mc *MockClient) CreateView(ctx context.Context, req libapi.CreateViewRequest) (res libapi.View, err error) {
 	panic("not implemented") // TODO: Implement
 }

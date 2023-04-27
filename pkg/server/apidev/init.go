@@ -24,6 +24,7 @@ type InitTaskRequest struct {
 	DryRun bool `json:"dryRun"`
 
 	Name        string              `json:"name"`
+	Slug        string              `json:"slug"`
 	Description string              `json:"description"`
 	Kind        buildtypes.TaskKind `json:"kind"`
 	KindName    string              `json:"kindName"`
@@ -37,10 +38,17 @@ type InitTaskResponse struct {
 
 func InitTaskHandler(ctx context.Context, s *state.State, r *http.Request, req InitTaskRequest) (InitTaskResponse, error) {
 	if req.Name == "" {
-		return InitTaskResponse{}, libhttp.NewErrBadRequest("missing name")
+		return InitTaskResponse{}, libhttp.NewErrBadRequest("Please supply a name.")
 	}
 	if req.Kind == "" {
-		return InitTaskResponse{}, libhttp.NewErrBadRequest("missing kind")
+		return InitTaskResponse{}, libhttp.NewErrBadRequest("Please supply a task kind.")
+	}
+
+	// Check for slug uniqueness
+	if ok, err := IsTaskSlugAvailable(ctx, s, req.Slug); err != nil {
+		return InitTaskResponse{}, errors.Wrap(err, "checking if slug is available")
+	} else if !ok {
+		return InitTaskResponse{}, libhttp.NewErrBadRequest("This slug is already used by another task. Please choose a unique slug.")
 	}
 
 	resp, err := initcmd.InitTask(ctx, initcmd.InitTaskRequest{
@@ -49,6 +57,7 @@ func InitTaskHandler(ctx context.Context, s *state.State, r *http.Request, req I
 		WorkingDirectory: s.Dir,
 		Inline:           true,
 		TaskName:         req.Name,
+		TaskSlug:         req.Slug,
 		TaskKind:         req.Kind,
 		TaskKindName:     req.KindName,
 		TaskDescription:  req.Description,
@@ -101,6 +110,7 @@ type InitViewRequest struct {
 	DryRun bool `json:"dryRun"`
 
 	Name        string `json:"name"`
+	Slug        string `json:"slug"`
 	Description string `json:"description"`
 }
 
@@ -111,13 +121,21 @@ type InitViewResponse struct {
 
 func InitViewHandler(ctx context.Context, s *state.State, r *http.Request, req InitViewRequest) (InitViewResponse, error) {
 	if req.Name == "" {
-		return InitViewResponse{}, libhttp.NewErrBadRequest("missing name")
+		return InitViewResponse{}, libhttp.NewErrBadRequest("Please supply a name.")
+	}
+
+	// Check for slug uniqueness
+	if ok, err := IsViewSlugAvailable(ctx, s, req.Slug); err != nil {
+		return InitViewResponse{}, errors.Wrap(err, "checking if slug is available")
+	} else if !ok {
+		return InitViewResponse{}, libhttp.NewErrBadRequest("This slug is already used by another view. Please choose a unique slug.")
 	}
 
 	resp, err := initcmd.InitView(ctx, initcmd.InitViewRequest{
 		DryRun:           req.DryRun,
 		WorkingDirectory: s.Dir,
 		Name:             req.Name,
+		Slug:             req.Slug,
 		Description:      req.Description,
 	})
 	if err != nil {
@@ -130,7 +148,7 @@ func InitViewHandler(ctx context.Context, s *state.State, r *http.Request, req I
 			return InitViewResponse{}, errors.Wrap(err, "reloading path")
 		}
 
-		// Wait a maximum of five seconds for the task to be discovered.
+		// Wait a maximum of five seconds for the view to be discovered.
 		utils.WaitUntilTimeout(func() bool {
 			if _, ok := s.ViewConfigs.Get(resp.NewViewDefinition.Slug); ok {
 				return true
