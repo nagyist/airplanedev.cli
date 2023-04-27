@@ -98,7 +98,7 @@ func getEnvVars(
 
 		// Interpolate any JSTs in environment variables.
 		if len(materializedEnvVars) > 0 {
-			result, err := interpolate(ctx, config.RemoteClient, interpolateRequest, materializedEnvVars)
+			result, err := interpolate(ctx, config.RemoteClient, interpolateRequest, StrictModeOn, materializedEnvVars)
 			if err != nil {
 				return nil, err
 			}

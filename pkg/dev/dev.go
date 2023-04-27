@@ -13,8 +13,7 @@ import (
 	"time"
 
 	libapi "github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
-	libhttp "github.com/airplanedev/cli/pkg/api/http"
+	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/builtins"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
@@ -174,9 +173,14 @@ func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api
 	}
 
 	baseInterpolateRequest := baseEvaluateTemplateRequest(config, configVars)
-
+	interpolatedRes, err := interpolateResource(ctx, config.RemoteClient, baseInterpolateRequest, config.AliasToResource)
+	if err != nil {
+		return api.Outputs{}, errors.Wrap(err, "failed to interpolate resources")
+	}
+	config.AliasToResource = interpolatedRes
+	baseInterpolateRequest.Resources = interpolatedRes
 	if config.KindOptions != nil {
-		interpolatedKindOptions, err := interpolate(ctx, config.RemoteClient, baseInterpolateRequest, config.KindOptions)
+		interpolatedKindOptions, err := interpolate(ctx, config.RemoteClient, baseInterpolateRequest, StrictModeOn, config.KindOptions)
 		if err != nil {
 			return api.Outputs{}, err
 		}
@@ -391,34 +395,4 @@ func entrypointFromDefn(file string) (string, error) {
 	}
 
 	return def.GetAbsoluteEntrypoint()
-}
-
-func baseEvaluateTemplateRequest(cfg LocalRunConfig, configVars map[string]string) libapi.EvaluateTemplateRequest {
-	return libapi.EvaluateTemplateRequest{
-		RunID:       cfg.ID,
-		Env:         devenv.NewLocalEnv(),
-		Resources:   cfg.AliasToResource,
-		Configs:     configVars,
-		ParamValues: cfg.ParamValues,
-	}
-}
-
-func interpolate(ctx context.Context, remoteClient api.APIClient, baseRequest libapi.EvaluateTemplateRequest, value any) (any, error) {
-	resp, err := remoteClient.EvaluateTemplate(ctx, libapi.EvaluateTemplateRequest{
-		Value:       value,
-		RunID:       baseRequest.RunID,
-		Env:         baseRequest.Env,
-		Resources:   baseRequest.Resources,
-		Configs:     baseRequest.Configs,
-		ParamValues: baseRequest.ParamValues,
-	})
-	if err != nil {
-		var errsc libhttp.ErrStatusCode
-		if errors.As(err, &errsc) {
-			return nil, errors.New(errsc.Msg)
-		}
-		return nil, err
-	}
-
-	return resp.Value, nil
 }
