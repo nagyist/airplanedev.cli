@@ -8,6 +8,7 @@ import (
 	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
+	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/cli/pkg/rb2wf"
 	"github.com/pkg/errors"
@@ -16,6 +17,7 @@ import (
 type InitWorkflowFromRunbookRequest struct {
 	Client   api.APIClient
 	Prompter prompts.Prompter
+	Logger   logger.Logger
 
 	File        string
 	FromRunbook string
@@ -28,6 +30,9 @@ type InitWorkflowFromRunbookRequest struct {
 }
 
 func InitWorkflowFromRunbook(ctx context.Context, req InitWorkflowFromRunbookRequest) error {
+	if req.Logger == nil {
+		req.Logger = logger.NewNoopLogger()
+	}
 	var entrypoint string
 	var err error
 
@@ -68,6 +73,7 @@ func InitWorkflowFromRunbook(ctx context.Context, req InitWorkflowFromRunbookReq
 
 	if err = runKindSpecificInstallation(ctx, runKindSpecificInstallationRequest{
 		Prompter: req.Prompter,
+		Logger:   req.Logger,
 		Inline:   req.Inline,
 		Kind:     buildtypes.TaskKindNode,
 		Def:      def,
@@ -86,6 +92,7 @@ func InitWorkflowFromRunbook(ctx context.Context, req InitWorkflowFromRunbookReq
 	}
 
 	suggestNextTaskSteps(suggestNextTaskStepsRequest{
+		logger:     req.Logger,
 		entrypoint: entrypoint,
 		kind:       buildtypes.TaskKindNode,
 		isNew:      true,

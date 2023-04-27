@@ -10,6 +10,7 @@ import (
 
 	"github.com/airplanedev/cli/pkg/analytics"
 	api "github.com/airplanedev/cli/pkg/api/cliapi"
+	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/pkg/errors"
@@ -18,6 +19,7 @@ import (
 type InitFromTemplateRequest struct {
 	Client   api.APIClient
 	Prompter prompts.Prompter
+	Logger   logger.Logger
 
 	TemplateSlug string
 	Templates    []Template
@@ -55,7 +57,7 @@ func InitFromTemplate(ctx context.Context, req InitFromTemplateRequest) error {
 		templatePath = template.GitHubPath
 	}
 
-	return utils.CopyFromGithubPath(templatePath, req.Prompter)
+	return utils.CopyFromGithubPath(req.Prompter, req.Logger, templatePath)
 }
 
 const docsUrl = "http://docs.airplane.dev/templates/templates.json"

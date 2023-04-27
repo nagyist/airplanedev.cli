@@ -8,6 +8,7 @@ import (
 )
 
 type suggestNextTaskStepsRequest struct {
+	logger             logger.Logger
 	defnFile           string
 	entrypoint         string
 	showLocalExecution bool
@@ -37,7 +38,7 @@ func suggestNextTaskSteps(req suggestNextTaskStepsRequest) {
 		if req.defnFile != "" {
 			steps = append(steps, fmt.Sprintf("Configure your task with parameters, a description and more in %s", req.defnFile))
 		}
-		logger.SuggestSteps("✅ To complete your task:", steps...)
+		req.logger.SuggestSteps("✅ To complete your task:", steps...)
 	}
 
 	file := req.defnFile
@@ -45,13 +46,13 @@ func suggestNextTaskSteps(req suggestNextTaskStepsRequest) {
 		file = req.entrypoint
 	}
 	if req.showLocalExecution {
-		logger.Suggest(
+		req.logger.Suggest(
 			"⚡ To develop the task locally:",
 			"airplane dev %s",
 			file,
 		)
 	}
-	logger.Suggest(
+	req.logger.Suggest(
 		"🛫 To deploy your task to Airplane:",
 		"airplane deploy %s",
 		file,
@@ -59,16 +60,17 @@ func suggestNextTaskSteps(req suggestNextTaskStepsRequest) {
 }
 
 type suggestNextViewStepsRequest struct {
+	logger  logger.Logger
 	viewDir string
 	slug    string
 }
 
 func suggestNextViewSteps(req suggestNextViewStepsRequest) {
 	if req.viewDir != "" && req.slug != "" {
-		logger.Suggest("✅ To complete your view:", fmt.Sprintf("Write your view logic in %s", generateViewEntrypointPath(req.slug)))
+		req.logger.Suggest("✅ To complete your view:", fmt.Sprintf("Write your view logic in %s", generateViewEntrypointPath(req.slug)))
 	}
 
-	logger.Suggest(
+	req.logger.Suggest(
 		"⚡ To develop your view locally:",
 		"airplane dev %s",
 		req.viewDir,
@@ -80,7 +82,7 @@ func suggestNextViewSteps(req suggestNextViewStepsRequest) {
 	} else {
 		deployDir = "."
 	}
-	logger.Suggest(
+	req.logger.Suggest(
 		"🛫 To deploy your view to Airplane:",
 		"airplane deploy %s",
 		deployDir,

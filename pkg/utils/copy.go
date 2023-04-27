@@ -15,7 +15,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func CopyFile(srcPath string, dstDirectory string) error {
+func CopyFile(l logger.Logger, srcPath string, dstDirectory string) error {
 	src, err := os.ReadFile(srcPath)
 	if err != nil {
 		return errors.Wrapf(err, "reading src file %s", srcPath)
@@ -25,11 +25,11 @@ func CopyFile(srcPath string, dstDirectory string) error {
 	if err := os.WriteFile(dstPath, src, 0644); err != nil {
 		return errors.Wrapf(err, "writing dst file %s", dstPath)
 	}
-	logger.Step("Copied %s", dstPath)
+	l.Step("Copied %s", dstPath)
 	return nil
 }
 
-func CopyDirectoryContents(srcDirectory string, dstDirectory string) error {
+func CopyDirectoryContents(l logger.Logger, srcDirectory string, dstDirectory string) error {
 	return filepath.WalkDir(srcDirectory, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -47,11 +47,11 @@ func CopyDirectoryContents(srcDirectory string, dstDirectory string) error {
 		if d.IsDir() {
 			return os.MkdirAll(filepath.Join(dstDirectory, rel), 0755)
 		}
-		return CopyFile(path, filepath.Join(dstDirectory, filepath.Dir(rel)))
+		return CopyFile(l, path, filepath.Join(dstDirectory, filepath.Dir(rel)))
 	})
 }
 
-func CreateDirectory(directoryName string, p prompts.Prompter) error {
+func CreateDirectory(p prompts.Prompter, l logger.Logger, directoryName string) error {
 	if fsx.Exists(directoryName) {
 		question := fmt.Sprintf("Directory %s already exists. Do you want to remove its existing files and continue?", directoryName)
 
@@ -69,7 +69,7 @@ func CreateDirectory(directoryName string, p prompts.Prompter) error {
 	return nil
 }
 
-func CopyFromGithubPath(gitPath string, p prompts.Prompter) error {
+func CopyFromGithubPath(p prompts.Prompter, l logger.Logger, gitPath string) error {
 	if !(strings.HasPrefix(gitPath, "github.com/") || strings.HasPrefix(gitPath, "https://github.com/")) {
 		return errors.New("expected path to be in the format github.com/ORG/REPO/PATH/TO/FOLDER[@REF]")
 	}
@@ -86,21 +86,21 @@ func CopyFromGithubPath(gitPath string, p prompts.Prompter) error {
 
 	if fileInfo.IsDir() {
 		directory := filepath.Base(tempPath)
-		if err := CreateDirectory(directory, p); err != nil {
+		if err := CreateDirectory(p, l, directory); err != nil {
 			return err
 		}
-		if err := CopyDirectoryContents(tempPath, directory); err != nil {
+		if err := CopyDirectoryContents(l, tempPath, directory); err != nil {
 			return err
 		}
 
 		if fsx.Exists(filepath.Join(directory, "package.json")) {
 			useYarn := ShouldUseYarn(directory)
-			logger.Step("Installing dependencies...")
+			l.Step("Installing dependencies...")
 
 			if err = InstallDependencies(directory, InstallOptions{
 				Yarn: useYarn,
 			}); err != nil {
-				logger.Debug(err.Error())
+				l.Debug(err.Error())
 				if errors.Is(err, exec.ErrNotFound) {
 					if useYarn {
 						return errors.New("error installing dependencies using yarn. Try installing yarn.")
@@ -110,19 +110,19 @@ func CopyFromGithubPath(gitPath string, p prompts.Prompter) error {
 				}
 				return errors.Wrap(err, "running npm/yarn install")
 			}
-			logger.Step("Finished installing dependencies")
+			l.Step("Finished installing dependencies")
 		}
 		if err := CreateDefaultGitignoreFile(filepath.Join(directory, ".gitignore")); err != nil {
 			return err
 		}
 		readmePath := filepath.Join(directory, "README.md")
 		if fsx.Exists(readmePath) {
-			logger.Log(logger.Gray(fmt.Sprintf("\nPreviewing %s:", readmePath)))
+			l.Log(logger.Gray(fmt.Sprintf("\nPreviewing %s:", readmePath)))
 			readme, err := os.ReadFile(readmePath)
 			if err != nil {
 				return errors.Wrap(err, "reading README")
 			}
-			logger.Log(string(readme))
+			l.Log(string(readme))
 		}
 	} else {
 		cwd, err := os.Getwd()
@@ -140,7 +140,7 @@ func CopyFromGithubPath(gitPath string, p prompts.Prompter) error {
 				return errors.New("canceled airplane views init")
 			}
 		}
-		if err := CopyFile(tempPath, cwd); err != nil {
+		if err := CopyFile(l, tempPath, cwd); err != nil {
 			return err
 		}
 	}

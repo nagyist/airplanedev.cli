@@ -31,7 +31,7 @@ type RequirementsTxtOptions = struct {
 // If requirements.txt doesn't exist, create a new one.
 // Returns the path to the directory where the requirements.txt is created/found and true if a file
 // was created (false if it was modified).
-func CreateRequirementsTxt(directory string, options RequirementsTxtOptions, p prompts.Prompter, dryRun bool) (string, bool, error) {
+func CreateRequirementsTxt(directory string, options RequirementsTxtOptions, p prompts.Prompter, l logger.Logger, dryRun bool) (string, bool, error) {
 	// Check if there's a requirements.txt in the current or parent directory of entrypoint
 	requirementsTxtDirPath, ok := fsx.Find(directory, "requirements.txt")
 	existed := false
@@ -64,7 +64,7 @@ func CreateRequirementsTxt(directory string, options RequirementsTxtOptions, p p
 			} else {
 				selectedRequirementsTxtDir = directory
 				if !dryRun {
-					if err := createRequirementsTxtFile(selectedRequirementsTxtDir); err != nil {
+					if err := createRequirementsTxtFile(l, selectedRequirementsTxtDir); err != nil {
 						return "", false, err
 					}
 				}
@@ -73,14 +73,14 @@ func CreateRequirementsTxt(directory string, options RequirementsTxtOptions, p p
 	} else {
 		selectedRequirementsTxtDir = directory
 		if !dryRun {
-			if err := createRequirementsTxtFile(selectedRequirementsTxtDir); err != nil {
+			if err := createRequirementsTxtFile(l, selectedRequirementsTxtDir); err != nil {
 				return "", false, err
 			}
 		}
 	}
 
 	if !dryRun {
-		if err := addAllPackages(selectedRequirementsTxtDir, options.Dependencies); err != nil {
+		if err := addAllPackages(l, selectedRequirementsTxtDir, options.Dependencies); err != nil {
 			return "", false, err
 		}
 	}
@@ -88,9 +88,12 @@ func CreateRequirementsTxt(directory string, options RequirementsTxtOptions, p p
 	return selectedRequirementsTxtDir, !existed, nil
 }
 
-func addAllPackages(requirementsTxtDirPath string, dependencies []PythonDependency) error {
-	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{WithLoader: true})
-	defer l.StopLoader()
+func addAllPackages(l logger.Logger, requirementsTxtDirPath string, dependencies []PythonDependency) error {
+	lwl, ok := l.(logger.LoggerWithLoader)
+	if ok {
+		lwl.StartLoader()
+		defer lwl.StartLoader()
+	}
 
 	requirementsTxtPath := filepath.Join(requirementsTxtDirPath, "requirements.txt")
 	file, err := os.OpenFile(requirementsTxtPath, os.O_APPEND|os.O_RDWR, 0644)
@@ -156,11 +159,11 @@ func getPackagesToAdd(requirementsTxtReader io.Reader, dependencies []PythonDepe
 	return dependenciesToAdd, nil
 }
 
-func createRequirementsTxtFile(directory string) error {
+func createRequirementsTxtFile(l logger.Logger, directory string) error {
 	if _, err := os.Create(filepath.Join(directory, "requirements.txt")); err != nil {
 		return errors.Wrap(err, "writing requirements.txt")
 	}
-	logger.Step("Created requirements.txt")
+	l.Step("Created requirements.txt")
 	return nil
 }
 

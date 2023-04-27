@@ -53,9 +53,16 @@ func GetConfig(c *cli.Config) config {
 }
 
 func Run(ctx context.Context, cfg config) error {
+	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{
+		WithLoader:      true,
+		StartNotLoading: true,
+	})
+	defer l.StopLoader()
+
 	if cfg.from != "" {
 		if err := initcmd.InitViewFromExample(ctx, initcmd.InitViewFromExampleRequest{
 			Prompter:    cfg.root.Prompter,
+			Logger:      l,
 			ExamplePath: cfg.from,
 		}); err != nil {
 			return err
@@ -66,6 +73,7 @@ func Run(ctx context.Context, cfg config) error {
 		}
 		if _, err := initcmd.InitView(ctx, initcmd.InitViewRequest{
 			Prompter: cfg.root.Prompter,
+			Logger:   l,
 			DryRun:   cfg.dryRun,
 			Name:     cfg.name,
 		}); err != nil {

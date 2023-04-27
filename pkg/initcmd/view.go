@@ -22,6 +22,7 @@ import (
 
 type InitViewRequest struct {
 	Prompter         prompts.Prompter
+	Logger           logger.Logger
 	DryRun           bool
 	WorkingDirectory string
 
@@ -36,6 +37,9 @@ type InitViewRequest struct {
 func InitView(ctx context.Context, req InitViewRequest) (InitResponse, error) {
 	if req.suffixCharset == "" {
 		req.suffixCharset = utils.CharsetLowercaseNumeric
+	}
+	if req.Logger == nil {
+		req.Logger = logger.NewNoopLogger()
 	}
 	if req.Name == "" {
 		return InitResponse{}, errors.New("missing new view name")
@@ -80,6 +84,7 @@ func InitView(ctx context.Context, req InitViewRequest) (InitResponse, error) {
 	viewDir := ""
 
 	entrypoint, err := createViewEntrypoint(createViewEntrypointRequest{
+		Logger:           req.Logger,
 		DryRun:           req.DryRun,
 		WorkingDirectory: req.WorkingDirectory,
 		Slug:             slug,
@@ -103,7 +108,7 @@ func InitView(ctx context.Context, req InitViewRequest) (InitResponse, error) {
 			Dependencies:    deps,
 			DevDependencies: []string{"@types/react", "@types/react-dom", "typescript"},
 		},
-	}, req.Prompter, req.DryRun)
+	}, req.Prompter, req.Logger, req.DryRun)
 	if err != nil {
 		return InitResponse{}, err
 	}
@@ -111,7 +116,7 @@ func InitView(ctx context.Context, req InitViewRequest) (InitResponse, error) {
 
 	if filepath.Ext(entrypoint) == ".tsx" {
 		// Create/update tsconfig in the same directory as the package.json file
-		tsConfigCreated, err := node.CreateViewTSConfig(packageJSONDir, req.Prompter, req.DryRun)
+		tsConfigCreated, err := node.CreateViewTSConfig(packageJSONDir, req.Prompter, req.Logger, req.DryRun)
 		if err != nil {
 			return InitResponse{}, err
 		}
@@ -129,10 +134,11 @@ func InitView(ctx context.Context, req InitViewRequest) (InitResponse, error) {
 	}
 
 	if req.DryRun {
-		logger.Log("Running with --dry-run. This command would have created or updated the following files:\n%s", ret.String())
+		req.Logger.Log("Running with --dry-run. This command would have created or updated the following files:\n%s", ret.String())
 	}
 
 	suggestNextViewSteps(suggestNextViewStepsRequest{
+		logger:  req.Logger,
 		viewDir: viewDir,
 		slug:    slug,
 	})
@@ -155,6 +161,7 @@ func generateViewEntrypointPath(slug string) string {
 var defaultViewEntrypointInline []byte
 
 type createViewEntrypointRequest struct {
+	Logger           logger.Logger
 	DryRun           bool
 	WorkingDirectory string
 	Slug             string
@@ -190,6 +197,6 @@ func createViewEntrypoint(req createViewEntrypointRequest) (string, error) {
 			return "", errors.Wrap(err, "creating view entrypoint")
 		}
 	}
-	logger.Step("Created view entrypoint at %s", absEntrypointPath)
+	req.Logger.Step("Created view entrypoint at %s", absEntrypointPath)
 	return absEntrypointPath, nil
 }

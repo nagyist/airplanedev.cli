@@ -28,6 +28,7 @@ import (
 type InitTaskRequest struct {
 	Client           api.APIClient
 	Prompter         prompts.Prompter
+	Logger           logger.Logger
 	DryRun           bool
 	WorkingDirectory string
 
@@ -63,6 +64,9 @@ const (
 func InitTask(ctx context.Context, req InitTaskRequest) (InitResponse, error) {
 	if req.suffixCharset == "" {
 		req.suffixCharset = utils.CharsetLowercaseNumeric
+	}
+	if req.Logger == nil {
+		req.Logger = logger.NewNoopLogger()
 	}
 	client := req.Client
 
@@ -185,11 +189,11 @@ func InitTask(ctx context.Context, req InitTaskRequest) (InitResponse, error) {
 			if req.Prompter == nil {
 				return InitResponse{}, errors.New(errorMsg)
 			} else {
-				logger.Log(errorMsg)
+				req.Logger.Log(errorMsg)
 				if ok, err := req.Prompter.ConfirmWithAssumptions("Are you sure you'd like to continue?", req.AssumeYes, req.AssumeNo); err != nil {
 					return InitResponse{}, err
 				} else if !ok {
-					logger.Log("Exiting flow")
+					req.Logger.Log("Exiting flow")
 					return InitResponse{}, nil
 				}
 			}
@@ -295,15 +299,15 @@ func InitTask(ctx context.Context, req InitTaskRequest) (InitResponse, error) {
 						return InitResponse{}, errors.Wrapf(err, "unable to create entrypoint")
 					}
 				}
-				logger.Step("Created %s", entrypoint)
+				req.Logger.Step("Created %s", entrypoint)
 			} else if req.Inline {
-				if err := createInlineEntrypoint(r, absEntrypoint, &def, shouldPrintEntrypointToStdOut); err != nil {
+				if err := createInlineEntrypoint(req.Logger, r, absEntrypoint, &def, shouldPrintEntrypointToStdOut); err != nil {
 					return InitResponse{}, errors.Wrapf(err, "unable to create entrypoint")
 				}
 				if shouldPrintEntrypointToStdOut {
-					logger.Step("Printed task to stdout. Copy task configuration to %s.", entrypoint)
+					req.Logger.Step("Printed task to stdout. Copy task configuration to %s.", entrypoint)
 				} else {
-					logger.Step("Created %s", entrypoint)
+					req.Logger.Step("Created %s", entrypoint)
 				}
 			} else {
 				// Create entrypoint, without comment link, if it doesn't exist.
@@ -311,7 +315,7 @@ func InitTask(ctx context.Context, req InitTaskRequest) (InitResponse, error) {
 					if err := createTaskEntrypoint(r, absEntrypoint, nil); err != nil {
 						return InitResponse{}, errors.Wrapf(err, "unable to create entrypoint")
 					}
-					logger.Step("Created %s", entrypoint)
+					req.Logger.Step("Created %s", entrypoint)
 				}
 			}
 		}
@@ -339,6 +343,7 @@ func InitTask(ctx context.Context, req InitTaskRequest) (InitResponse, error) {
 
 	if err := runKindSpecificInstallation(ctx, runKindSpecificInstallationRequest{
 		Prompter:     req.Prompter,
+		Logger:       req.Logger,
 		DryRun:       req.DryRun,
 		Inline:       req.Inline,
 		Kind:         kind,
@@ -349,10 +354,11 @@ func InitTask(ctx context.Context, req InitTaskRequest) (InitResponse, error) {
 	}
 
 	if req.DryRun {
-		logger.Log("Running with --dry-run. This command would have created or updated the following files:\n%s", ret.String())
+		req.Logger.Log("Running with --dry-run. This command would have created or updated the following files:\n%s", ret.String())
 	}
 
 	suggestNextTaskSteps(suggestNextTaskStepsRequest{
+		logger:             req.Logger,
 		defnFile:           resp.DefnFile,
 		entrypoint:         resp.EntrypointFile,
 		showLocalExecution: localExecutionSupported,
@@ -489,7 +495,7 @@ func writeTaskDefnFile(def *definitions.Definition, req InitTaskRequest) (*write
 			return nil, err
 		}
 	}
-	logger.Step("Created %s", defnFilename)
+	req.Logger.Step("Created %s", defnFilename)
 	return &writeDefnFileResponse{
 		DefnFile:       defnFilename,
 		EntrypointFile: entrypoint,
@@ -651,13 +657,13 @@ func createTaskEntrypoint(r runtime.Interface, entrypoint string, task *libapi.T
 	return writeTaskEntrypoint(entrypoint, code, fileMode)
 }
 
-func createInlineEntrypoint(r runtime.Interface, entrypoint string, def *definitions.Definition, printToStdOut bool) error {
+func createInlineEntrypoint(l logger.Logger, r runtime.Interface, entrypoint string, def *definitions.Definition, printToStdOut bool) error {
 	code, fileMode, err := r.GenerateInline(def)
 	if err != nil {
 		return err
 	}
 	if printToStdOut {
-		return printEntrypointToStdOut(code)
+		return printEntrypointToStdOut(l, code)
 	}
 
 	return writeTaskEntrypoint(entrypoint, code, fileMode)
@@ -707,8 +713,8 @@ func writeTaskEntrypoint(path string, b []byte, fileMode os.FileMode) error {
 	return nil
 }
 
-func printEntrypointToStdOut(b []byte) error {
-	logger.Log(string(b))
+func printEntrypointToStdOut(l logger.Logger, b []byte) error {
+	l.Log(string(b))
 	return nil
 }
 
@@ -731,6 +737,7 @@ func apiTaskToRuntimeTask(task *libapi.Task) *runtime.Task {
 
 type runKindSpecificInstallationRequest struct {
 	Prompter     prompts.Prompter
+	Logger       logger.Logger
 	DryRun       bool
 	Inline       bool
 	Kind         buildtypes.TaskKind
@@ -750,7 +757,7 @@ func runKindSpecificInstallation(ctx context.Context, req runKindSpecificInstall
 				Dependencies:    []string{"airplane"},
 				DevDependencies: []string{"@types/node"},
 			},
-		}, req.Prompter, req.DryRun)
+		}, req.Prompter, req.Logger, req.DryRun)
 		if err != nil {
 			return err
 		}
@@ -771,7 +778,7 @@ func runKindSpecificInstallation(ctx context.Context, req runKindSpecificInstall
 				NodeVersion: string(nodeVersion),
 				Base:        string(buildBase),
 			},
-		}, req.DryRun)
+		}, req.Logger, req.DryRun)
 		if err != nil {
 			return err
 		}
@@ -781,7 +788,7 @@ func runKindSpecificInstallation(ctx context.Context, req runKindSpecificInstall
 
 		if filepath.Ext(entrypoint) == ".ts" || filepath.Ext(entrypoint) == ".tsx" {
 			// Create/update tsconfig in the same directory as the package.json file
-			tsConfigCreated, err := node.CreateTaskTSConfig(packageJSONDir, req.Prompter, req.DryRun)
+			tsConfigCreated, err := node.CreateTaskTSConfig(packageJSONDir, req.Prompter, req.Logger, req.DryRun)
 			if err != nil {
 				return err
 			}
@@ -805,7 +812,7 @@ func runKindSpecificInstallation(ctx context.Context, req runKindSpecificInstall
 		}
 		requirementsTxtDir, requirementsTxtCreated, err := python.CreateRequirementsTxt(filepath.Dir(entrypoint), python.RequirementsTxtOptions{
 			Dependencies: deps,
-		}, req.Prompter, req.DryRun)
+		}, req.Prompter, req.Logger, req.DryRun)
 		if err != nil {
 			return err
 		}
@@ -826,7 +833,7 @@ func runKindSpecificInstallation(ctx context.Context, req runKindSpecificInstall
 				Version: string(pythonVersion),
 				Base:    string(buildBase),
 			},
-		}, req.DryRun)
+		}, req.Logger, req.DryRun)
 		if err != nil {
 			return err
 		}
@@ -841,7 +848,7 @@ func runKindSpecificInstallation(ctx context.Context, req runKindSpecificInstall
 
 // createOrUpdateAirplaneConfig creates or updates an existing airplane.yaml. Returns true if a
 // file was created.
-func createOrUpdateAirplaneConfig(root string, cfg deployconfig.AirplaneConfig, dryRun bool) (bool, error) {
+func createOrUpdateAirplaneConfig(root string, cfg deployconfig.AirplaneConfig, l logger.Logger, dryRun bool) (bool, error) {
 	var existingConfig deployconfig.AirplaneConfig
 	var err error
 	existingConfigFilePath := filepath.Join(root, deployconfig.FileName)
@@ -860,6 +867,7 @@ func createOrUpdateAirplaneConfig(root string, cfg deployconfig.AirplaneConfig, 
 		}
 
 		if err := writeNewAirplaneConfig(f, getNewAirplaneConfigOptions{
+			logger:            l,
 			cfg:               cfg,
 			existingConfig:    existingConfig,
 			hasExistingConfig: hasExistingConfigFile,
@@ -872,6 +880,7 @@ func createOrUpdateAirplaneConfig(root string, cfg deployconfig.AirplaneConfig, 
 }
 
 type getNewAirplaneConfigOptions struct {
+	logger            logger.Logger
 	cfg               deployconfig.AirplaneConfig
 	existingConfig    deployconfig.AirplaneConfig
 	hasExistingConfig bool
@@ -885,14 +894,14 @@ func writeNewAirplaneConfig(writer io.Writer, opts getNewAirplaneConfigOptions) 
 			// The existing config is not empty. Don't update it, but possibly log
 			// some helpful hints.
 			if opts.cfg.Javascript.NodeVersion != "" && opts.existingConfig.Javascript.NodeVersion == "" {
-				logger.Warning("We recommend specifying a javascript.nodeVersion in your %s.", deployconfig.FileName)
-				logger.Warning("> javascript:")
-				logger.Warning(">   nodeVersion: \"18\"")
+				opts.logger.Warning("We recommend specifying a javascript.nodeVersion in your %s.", deployconfig.FileName)
+				opts.logger.Warning("> javascript:")
+				opts.logger.Warning(">   nodeVersion: \"18\"")
 			}
 			if opts.cfg.Python.Version != "" && opts.existingConfig.Python.Version == "" {
-				logger.Warning("We recommend specifying a python.version in your %s.", deployconfig.FileName)
-				logger.Warning("> python:")
-				logger.Warning(">   version: \"3.10\"")
+				opts.logger.Warning("We recommend specifying a python.version in your %s.", deployconfig.FileName)
+				opts.logger.Warning("> python:")
+				opts.logger.Warning(">   version: \"3.10\"")
 			}
 			return nil
 		}
@@ -906,9 +915,9 @@ func writeNewAirplaneConfig(writer io.Writer, opts getNewAirplaneConfigOptions) 
 	}
 
 	if opts.hasExistingConfig {
-		logger.Step("Updated %s", deployconfig.FileName)
+		opts.logger.Step("Updated %s", deployconfig.FileName)
 	} else {
-		logger.Step("Created %s", deployconfig.FileName)
+		opts.logger.Step("Created %s", deployconfig.FileName)
 	}
 	return nil
 }

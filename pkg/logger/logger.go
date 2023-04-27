@@ -42,7 +42,8 @@ type StdErrLogger struct {
 }
 
 type StdErrLoggerOpts struct {
-	WithLoader bool
+	WithLoader      bool
+	StartNotLoading bool
 }
 
 // NewStdErrLogger creates a new logger that logs to stderr.
@@ -54,7 +55,9 @@ func NewStdErrLogger(opts StdErrLoggerOpts) LoggerWithLoader {
 	} else {
 		loader = &NoopLoader{}
 	}
-	loader.Start()
+	if !opts.StartNotLoading {
+		loader.Start()
+	}
 	return &StdErrLogger{
 		loader: loader,
 	}

@@ -128,6 +128,12 @@ func Run(ctx context.Context, cfg config) error {
 		return errors.New("Cannot specify both --from and --from-runbook")
 	}
 
+	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{
+		WithLoader:      true,
+		StartNotLoading: true,
+	})
+	defer l.StopLoader()
+
 	// workflows are also inline
 	cfg.inline = cfg.inline || cfg.workflow || cfg.fromRunbook != ""
 
@@ -135,6 +141,7 @@ func Run(ctx context.Context, cfg config) error {
 		return initcmd.InitWorkflowFromRunbook(ctx, initcmd.InitWorkflowFromRunbookRequest{
 			Client:      cfg.client,
 			Prompter:    cfg.root.Prompter,
+			Logger:      l,
 			File:        cfg.file,
 			FromRunbook: cfg.fromRunbook,
 			Inline:      cfg.inline,
@@ -154,6 +161,7 @@ func Run(ctx context.Context, cfg config) error {
 	_, err := initcmd.InitTask(ctx, initcmd.InitTaskRequest{
 		Client:         cfg.client,
 		Prompter:       cfg.root.Prompter,
+		Logger:         l,
 		DryRun:         cfg.dryRun,
 		File:           cfg.file,
 		FromTask:       cfg.from,

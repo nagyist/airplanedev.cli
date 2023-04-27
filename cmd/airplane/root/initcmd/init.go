@@ -88,6 +88,12 @@ var orderedInitOptions = []string{
 const templateGallery = "https://docs.airplane.dev/templates"
 
 func run(ctx context.Context, cfg config) error {
+	l := logger.NewStdErrLogger(logger.StdErrLoggerOpts{
+		WithLoader:      true,
+		StartNotLoading: true,
+	})
+	defer l.StopLoader()
+
 	if cfg.download {
 		return initializeCodeWorkspace(ctx, cfg)
 	}
@@ -97,21 +103,24 @@ func run(ctx context.Context, cfg config) error {
 		if err != nil {
 			return errors.Wrap(err, "resetting demo db")
 		}
-		logger.Step("Demo DB reset")
-		logger.Debug("Demo DB has resource ID %s", resourceID)
+		l.Step("Demo DB reset")
+		l.Debug("Demo DB has resource ID %s", resourceID)
 	}
 
 	if cfg.template != "" {
+
 		if strings.HasPrefix(cfg.template, "github.com/") || strings.HasPrefix(cfg.template, "https://github.com/") {
 			analytics.Track(cfg.root.Client, "Template Cloned", map[string]interface{}{
 				"template_path": cfg.template,
 			})
-			return utils.CopyFromGithubPath(cfg.template, cfg.root.Prompter)
+
+			return utils.CopyFromGithubPath(cfg.root.Prompter, l, cfg.template)
 		}
 
 		return initcmd.InitFromTemplate(ctx, initcmd.InitFromTemplateRequest{
 			Client:       cfg.root.Client,
 			Prompter:     cfg.root.Prompter,
+			Logger:       l,
 			TemplateSlug: cfg.template,
 		})
 	}
@@ -143,7 +152,7 @@ func run(ctx context.Context, cfg config) error {
 		if err != nil {
 			return err
 		}
-		selectedTemplate, err := selectTemplate(templates, cfg.root.Prompter)
+		selectedTemplate, err := selectTemplate(cfg.root.Prompter, l, templates)
 		if err != nil {
 			return err
 		}
@@ -151,6 +160,7 @@ func run(ctx context.Context, cfg config) error {
 		return initcmd.InitFromTemplate(ctx, initcmd.InitFromTemplateRequest{
 			Client:       cfg.root.Client,
 			Prompter:     cfg.root.Prompter,
+			Logger:       l,
 			Templates:    templates,
 			TemplateSlug: selectedTemplate,
 		})
@@ -159,7 +169,7 @@ func run(ctx context.Context, cfg config) error {
 	return nil
 }
 
-func selectTemplate(templates []initcmd.Template, p prompts.Prompter) (string, error) {
+func selectTemplate(p prompts.Prompter, l logger.Logger, templates []initcmd.Template) (string, error) {
 	const templateBrowser = "Explore templates in the browser"
 	optionToPath := map[string]string{}
 
@@ -182,7 +192,7 @@ func selectTemplate(templates []initcmd.Template, p prompts.Prompter) (string, e
 		}
 		if selectedTemplate == templateBrowser {
 			if ok := utils.Open(templateGallery); ok {
-				logger.Log("Something went wrong with opening templates in the browser")
+				l.Log("Something went wrong with opening templates in the browser")
 			}
 		}
 	}
