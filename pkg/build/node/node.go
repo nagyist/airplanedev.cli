@@ -1236,6 +1236,10 @@ func NodeBundle(
 		# FilesToDiscover is the location of the output of the transpiled js files
 		# that should be discovered.
 		{{if .FilesToDiscover}}
+		# Bust the cache for discovery
+		ARG AIRPLANE_BUILD_ID
+		RUN echo "$AIRPLANE_BUILD_ID"
+
 		RUN node /airplane/.airplane-build-tools/inlineParser.cjs {{.FilesToDiscover}}
 		{{end}}
 	`), cfg)

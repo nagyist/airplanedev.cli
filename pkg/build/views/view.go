@@ -367,6 +367,10 @@ func ViewBundle(root string, buildContext buildtypes.BuildContext, options build
 		{{end}}
 
 		{{if .FilesToDiscover}}
+		# Bust the cache for discovery
+		ARG AIRPLANE_BUILD_ID
+		RUN echo "$AIRPLANE_BUILD_ID"
+
 		# Build and discover inline views.
 		RUN node /airplane/.airplane-build-tools/esbuild.js \
 			'{{.FilesToBuild}}' \

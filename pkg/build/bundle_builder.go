@@ -170,6 +170,7 @@ func (b *BundleBuilder) Build(ctx context.Context, bundleBuildID, version string
 	}
 	defer bc.Close()
 
+	testBuildID := "test-build-id"
 	opts := types.ImageBuildOptions{
 		Dockerfile:  dockerfilePath,
 		Tags:        []string{uri},
@@ -177,6 +178,9 @@ func (b *BundleBuilder) Build(ctx context.Context, bundleBuildID, version string
 		AuthConfigs: b.authconfigs(),
 		Version:     types.BuilderBuildKit,
 		Target:      b.target,
+		BuildArgs: map[string]*string{
+			"AIRPLANE_BUILD_ID": &testBuildID,
+		},
 	}
 
 	resp, err := b.client.ImageBuild(ctx, bc, opts)
