@@ -21,7 +21,7 @@ type printTask struct {
 	Parameters                 libapi.Parameters         `json:"parameters" yaml:"parameters"`
 	Configs                    []libapi.ConfigAttachment `json:"configs" yaml:"configs"`
 	Constraints                libapi.RunConstraints     `json:"constraints" yaml:"constraints"`
-	Env                        libapi.TaskEnv            `json:"env" yaml:"env"`
+	Env                        libapi.EnvVars            `json:"env" yaml:"env"`
 	ResourceRequests           libapi.ResourceRequests   `json:"resourceRequests" yaml:"resourceRequests"`
 	Resources                  libapi.Resources          `json:"resources" yaml:"resources"`
 	Kind                       buildtypes.TaskKind       `json:"builder" yaml:"builder"`

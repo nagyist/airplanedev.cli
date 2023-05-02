@@ -8,8 +8,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type TaskEnv map[string]EnvVarValue
-
 type EnvVars map[string]EnvVarValue
 
 type EnvVarValue struct {

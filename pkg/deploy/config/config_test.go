@@ -21,7 +21,7 @@ func TestNewAirplaneConfigFromFile(t *testing.T) {
 			airplaneConfig: AirplaneConfig{
 				Javascript: JavaScriptConfig{
 					NodeVersion: "18",
-					EnvVars: TaskEnv{
+					EnvVars: EnvVars{
 						"fromValue":  EnvVarValue{Value: pointers.String("value")},
 						"fromValue2": EnvVarValue{Value: pointers.String("value2")},
 						"fromConfig": EnvVarValue{Config: pointers.String("CONFIG")},
@@ -31,7 +31,7 @@ func TestNewAirplaneConfigFromFile(t *testing.T) {
 					PostInstall: "postinstall",
 				},
 				Python: PythonConfig{
-					EnvVars: TaskEnv{
+					EnvVars: EnvVars{
 						"fromValue":  EnvVarValue{Value: pointers.String("value3")},
 						"fromValue2": EnvVarValue{Value: pointers.String("value4")},
 						"fromConfig": EnvVarValue{Config: pointers.String("CONFIG2")},
@@ -42,7 +42,7 @@ func TestNewAirplaneConfigFromFile(t *testing.T) {
 					PostInstall: "postinstall",
 				},
 				View: ViewConfig{
-					EnvVars: TaskEnv{
+					EnvVars: EnvVars{
 						"fromValue": EnvVarValue{Value: pointers.String("viewValue")},
 					},
 				},

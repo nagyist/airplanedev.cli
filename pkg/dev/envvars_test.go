@@ -31,7 +31,7 @@ func TestSetEnvVars(t *testing.T) {
 		LocalClient:  &api.Client{},
 		RemoteClient: &api.MockClient{},
 		Kind:         buildtypes.TaskKindNode,
-		TaskEnvVars: map[string]libapi.EnvVarValue{
+		TaskEnvVars: libapi.EnvVars{
 			"ENV_VAR_FROM_VALUE": {
 				Value: &envVarValue,
 			},
@@ -99,7 +99,7 @@ func TestSetEnvVarsOverride(t *testing.T) {
 		LocalClient:  &api.Client{},
 		RemoteClient: &api.MockClient{},
 		Kind:         buildtypes.TaskKindNode,
-		TaskEnvVars: map[string]libapi.EnvVarValue{
+		TaskEnvVars: libapi.EnvVars{
 			"ENV_VAR_FROM_VALUE": {
 				Value: &envVarValue,
 			},
@@ -127,7 +127,7 @@ func TestGetEnvVarsForView(t *testing.T) {
 		{
 			desc: "Gets env vars from value from view",
 			config: GetEnvVarsForViewConfig{
-				ViewEnvVars: map[string]libapi.EnvVarValue{
+				ViewEnvVars: libapi.EnvVars{
 					"ENV_VAR_FROM_VALUE": {
 						Value: pointers.String("foo"),
 					},
@@ -140,7 +140,7 @@ func TestGetEnvVarsForView(t *testing.T) {
 		{
 			desc: "Gets env vars from config from dev config file",
 			config: GetEnvVarsForViewConfig{
-				ViewEnvVars: map[string]libapi.EnvVarValue{
+				ViewEnvVars: libapi.EnvVars{
 					"ENV_VAR_FROM_CONFIG": {
 						Config: pointers.String("my_config"),
 					},
@@ -175,7 +175,7 @@ func TestGetEnvVarsForView(t *testing.T) {
 				DevConfigEnvVars: map[string]string{
 					"ENV_VAR_FROM_VALUE": "bar",
 				},
-				ViewEnvVars: map[string]libapi.EnvVarValue{
+				ViewEnvVars: libapi.EnvVars{
 					"ENV_VAR_FROM_VALUE": {
 						Value: pointers.String("foo"),
 					},

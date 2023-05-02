@@ -129,10 +129,10 @@ func (d *RESTDefinition) getEntrypoint() (string, error) {
 	return "", ErrNoEntrypoint
 }
 
-func (d *RESTDefinition) getEnv() (api.TaskEnv, error) {
+func (d *RESTDefinition) getEnv() (api.EnvVars, error) {
 	return nil, nil
 }
-func (d *RESTDefinition) setEnv(e api.TaskEnv) error {
+func (d *RESTDefinition) setEnv(e api.EnvVars) error {
 	return nil
 }
 

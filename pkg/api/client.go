@@ -37,7 +37,7 @@ type Task struct {
 	Parameters                 Parameters             `json:"parameters" yaml:"parameters"`
 	Configs                    []ConfigAttachment     `json:"configs" yaml:"configs"`
 	Constraints                RunConstraints         `json:"constraints" yaml:"constraints"`
-	Env                        TaskEnv                `json:"env" yaml:"env"`
+	Env                        EnvVars                `json:"env" yaml:"env"`
 	ResourceRequests           ResourceRequests       `json:"resourceRequests" yaml:"resourceRequests"`
 	Resources                  Resources              `json:"resources" yaml:"resources"`
 	Kind                       buildtypes.TaskKind    `json:"kind" yaml:"kind"`
@@ -112,7 +112,7 @@ func (t Task) AsUpdateTaskRequest() UpdateTaskRequest {
 		req.Constraints.Labels = []AgentLabel{}
 	}
 	if req.Env == nil {
-		req.Env = TaskEnv{}
+		req.Env = EnvVars{}
 	}
 	if req.Resources == nil {
 		req.Resources = map[string]string{}
@@ -210,7 +210,7 @@ type CreateTaskRequest struct {
 	Parameters       Parameters             `json:"parameters"`
 	Configs          []ConfigAttachment     `json:"configs"`
 	Constraints      RunConstraints         `json:"constraints"`
-	EnvVars          TaskEnv                `json:"env"`
+	EnvVars          EnvVars                `json:"env"`
 	ResourceRequests map[string]string      `json:"resourceRequests"`
 	Resources        map[string]string      `json:"resources"`
 	Kind             buildtypes.TaskKind    `json:"kind"`
@@ -239,7 +239,7 @@ type UpdateTaskRequest struct {
 	Parameters                 Parameters                `json:"parameters"`
 	Configs                    *[]ConfigAttachment       `json:"configs"`
 	Constraints                RunConstraints            `json:"constraints"`
-	Env                        TaskEnv                   `json:"env"`
+	Env                        EnvVars                   `json:"env"`
 	ResourceRequests           map[string]string         `json:"resourceRequests"`
 	Resources                  map[string]string         `json:"resources"`
 	Kind                       buildtypes.TaskKind       `json:"kind"`
@@ -399,8 +399,6 @@ const (
 type ResourceRequests map[string]string
 
 type Resources map[string]string
-
-type TaskEnv map[string]EnvVarValue
 
 type EnvVars map[string]EnvVarValue
 

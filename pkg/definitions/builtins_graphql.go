@@ -149,10 +149,10 @@ func (d GraphQLDefinition) getEntrypoint() (string, error) {
 	return "", ErrNoEntrypoint
 }
 
-func (d GraphQLDefinition) getEnv() (api.TaskEnv, error) {
+func (d GraphQLDefinition) getEnv() (api.EnvVars, error) {
 	return nil, nil
 }
-func (d GraphQLDefinition) setEnv(e api.TaskEnv) error {
+func (d GraphQLDefinition) setEnv(e api.EnvVars) error {
 	return nil
 }
 

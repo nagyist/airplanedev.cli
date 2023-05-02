@@ -12,7 +12,7 @@ var _ taskKind = &ShellDefinition{}
 
 type ShellDefinition struct {
 	Entrypoint string      `json:"entrypoint"`
-	EnvVars    api.TaskEnv `json:"envVars,omitempty"`
+	EnvVars    api.EnvVars `json:"envVars,omitempty"`
 
 	absoluteEntrypoint string `json:"-"`
 }
@@ -74,11 +74,11 @@ func (d *ShellDefinition) getEntrypoint() (string, error) {
 	return d.Entrypoint, nil
 }
 
-func (d *ShellDefinition) getEnv() (api.TaskEnv, error) {
+func (d *ShellDefinition) getEnv() (api.EnvVars, error) {
 	return d.EnvVars, nil
 }
 
-func (d *ShellDefinition) setEnv(e api.TaskEnv) error {
+func (d *ShellDefinition) setEnv(e api.EnvVars) error {
 	d.EnvVars = e
 	return nil
 }

@@ -143,11 +143,11 @@ func (d *SQLDefinition) getEntrypoint() (string, error) {
 	return d.Entrypoint, nil
 }
 
-func (d *SQLDefinition) getEnv() (api.TaskEnv, error) {
+func (d *SQLDefinition) getEnv() (api.EnvVars, error) {
 	return nil, nil
 }
 
-func (d *SQLDefinition) setEnv(e api.TaskEnv) error {
+func (d *SQLDefinition) setEnv(e api.EnvVars) error {
 	return nil
 }
 

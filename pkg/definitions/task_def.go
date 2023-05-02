@@ -66,8 +66,8 @@ type taskKind interface {
 	getAbsoluteEntrypoint() (string, error)
 	getKindOptions() (buildtypes.KindOptions, error)
 	getEntrypoint() (string, error)
-	getEnv() (api.TaskEnv, error)
-	setEnv(api.TaskEnv) error
+	getEnv() (api.EnvVars, error)
+	setEnv(api.EnvVars) error
 	getConfigAttachments() []api.ConfigAttachment
 	getResourceAttachments() map[string]string
 	getBuildType() (buildtypes.BuildType, buildtypes.BuildTypeVersion, buildtypes.BuildBase)
@@ -824,7 +824,7 @@ func (d *Definition) GetKindAndOptions() (buildtypes.TaskKind, buildtypes.KindOp
 	return kind, options, nil
 }
 
-func (d *Definition) GetEnv() (api.TaskEnv, error) {
+func (d *Definition) GetEnv() (api.EnvVars, error) {
 	taskKind, err := d.taskKind()
 	if err != nil {
 		return nil, err
@@ -832,7 +832,7 @@ func (d *Definition) GetEnv() (api.TaskEnv, error) {
 	return taskKind.getEnv()
 }
 
-func (d *Definition) SetEnv(e api.TaskEnv) error {
+func (d *Definition) SetEnv(e api.EnvVars) error {
 	taskKind, err := d.taskKind()
 	if err != nil {
 		return err

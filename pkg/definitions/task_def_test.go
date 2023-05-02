@@ -48,7 +48,7 @@ python:
 				Resources:   ResourcesDefinition{},
 				Python: &PythonDefinition{
 					Entrypoint: "",
-					EnvVars:    api.TaskEnv{},
+					EnvVars:    api.EnvVars{},
 				},
 				Configs:            []string{},
 				Timeout:            3600,
@@ -115,7 +115,7 @@ permissions: team_access
 				Resources: map[string]string{"db": "demo_db"},
 				Python: &PythonDefinition{
 					Entrypoint: "entrypoint.py",
-					EnvVars: api.TaskEnv{
+					EnvVars: api.EnvVars{
 						"TEST_ENV": api.EnvVarValue{
 							Value: pointers.String("hello world"),
 						},
@@ -369,7 +369,7 @@ func TestTaskToDefinition(t *testing.T) {
 				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.py",
 				},
-				Env: api.TaskEnv{
+				Env: api.EnvVars{
 					"value": api.EnvVarValue{
 						Value: pointers.String("value"),
 					},
@@ -385,7 +385,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Parameters:  []ParameterDefinition{},
 				Python: &PythonDefinition{
 					Entrypoint: "main.py",
-					EnvVars: api.TaskEnv{
+					EnvVars: api.EnvVars{
 						"value": api.EnvVarValue{
 							Value: pointers.String("value"),
 						},
@@ -414,7 +414,7 @@ func TestTaskToDefinition(t *testing.T) {
 					"entrypoint":  "main.ts",
 					"nodeVersion": "14",
 				},
-				Env: api.TaskEnv{
+				Env: api.EnvVars{
 					"value": api.EnvVarValue{
 						Value: pointers.String("value"),
 					},
@@ -430,7 +430,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Node: &NodeDefinition{
 					Entrypoint:  "main.ts",
 					NodeVersion: "14",
-					EnvVars: api.TaskEnv{
+					EnvVars: api.EnvVars{
 						"value": api.EnvVarValue{
 							Value: pointers.String("value"),
 						},
@@ -465,7 +465,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Parameters: []ParameterDefinition{},
 				Node: &NodeDefinition{
 					Entrypoint: "main.ts",
-					EnvVars:    api.TaskEnv{},
+					EnvVars:    api.EnvVars{},
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 				RestrictCallers:    []string{},
@@ -488,7 +488,7 @@ func TestTaskToDefinition(t *testing.T) {
 					"nodeVersion": "14",
 					"base":        buildtypes.BuildBaseSlim,
 				},
-				Env: api.TaskEnv{
+				Env: api.EnvVars{
 					"value": api.EnvVarValue{
 						Value: pointers.String("value"),
 					},
@@ -504,7 +504,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Node: &NodeDefinition{
 					Entrypoint:  "main.ts",
 					NodeVersion: "14",
-					EnvVars: api.TaskEnv{
+					EnvVars: api.EnvVars{
 						"value": api.EnvVarValue{
 							Value: pointers.String("value"),
 						},
@@ -533,7 +533,7 @@ func TestTaskToDefinition(t *testing.T) {
 				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.sh",
 				},
-				Env: api.TaskEnv{
+				Env: api.EnvVars{
 					"value": api.EnvVarValue{
 						Value: pointers.String("value"),
 					},
@@ -548,7 +548,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Parameters: []ParameterDefinition{},
 				Shell: &ShellDefinition{
 					Entrypoint: "main.sh",
-					EnvVars: api.TaskEnv{
+					EnvVars: api.EnvVars{
 						"value": api.EnvVarValue{
 							Value: pointers.String("value"),
 						},
@@ -576,7 +576,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Kind:        buildtypes.TaskKindImage,
 				KindOptions: buildtypes.KindOptions{},
 				Image:       pointers.String("ubuntu:latest"),
-				Env: api.TaskEnv{
+				Env: api.EnvVars{
 					"value": api.EnvVarValue{
 						Value: pointers.String("value"),
 					},
@@ -593,7 +593,7 @@ func TestTaskToDefinition(t *testing.T) {
 					Image:      "ubuntu:latest",
 					Entrypoint: "bash",
 					Command:    `-c 'echo "foobar"'`,
-					EnvVars: api.TaskEnv{
+					EnvVars: api.EnvVars{
 						"value": api.EnvVarValue{
 							Value: pointers.String("value"),
 						},
@@ -844,7 +844,7 @@ func TestTaskToDefinition(t *testing.T) {
 				},
 				Python: &PythonDefinition{
 					Entrypoint: "main.py",
-					EnvVars:    api.TaskEnv{},
+					EnvVars:    api.EnvVars{},
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 				RestrictCallers:    []string{},
@@ -879,7 +879,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Parameters: []ParameterDefinition{},
 				Python: &PythonDefinition{
 					Entrypoint: "main.py",
-					EnvVars:    api.TaskEnv{},
+					EnvVars:    api.EnvVars{},
 				},
 				RequireRequests:    true,
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(false)},
@@ -913,7 +913,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Parameters: []ParameterDefinition{},
 				Python: &PythonDefinition{
 					Entrypoint: "main.py",
-					EnvVars:    api.TaskEnv{},
+					EnvVars:    api.EnvVars{},
 				},
 				RequireRequests:    false,
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
@@ -1004,7 +1004,7 @@ func TestTaskToDefinition(t *testing.T) {
 				KindOptions: buildtypes.KindOptions{
 					"entrypoint": "main.py",
 				},
-				Env: api.TaskEnv{
+				Env: api.EnvVars{
 					"value": api.EnvVarValue{
 						Value: pointers.String("value"),
 					},
@@ -1078,7 +1078,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Parameters:  []ParameterDefinition{},
 				Python: &PythonDefinition{
 					Entrypoint: "main.py",
-					EnvVars: api.TaskEnv{
+					EnvVars: api.EnvVars{
 						"value": api.EnvVarValue{
 							Value: pointers.String("value"),
 						},
@@ -1117,7 +1117,7 @@ func TestTaskToDefinition(t *testing.T) {
 					"entrypoint": "main.py",
 					"base":       buildtypes.BuildBaseSlim,
 				},
-				Env: api.TaskEnv{
+				Env: api.EnvVars{
 					"value": api.EnvVarValue{
 						Value: pointers.String("value"),
 					},
@@ -1133,7 +1133,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Parameters:  []ParameterDefinition{},
 				Python: &PythonDefinition{
 					Entrypoint: "main.py",
-					EnvVars: api.TaskEnv{
+					EnvVars: api.EnvVars{
 						"value": api.EnvVarValue{
 							Value: pointers.String("value"),
 						},
@@ -1171,7 +1171,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Kind:        buildtypes.TaskKindImage,
 				KindOptions: buildtypes.KindOptions{},
 				Image:       pointers.String("ubuntu:latest"),
-				Env: api.TaskEnv{
+				Env: api.EnvVars{
 					"value": api.EnvVarValue{
 						Value: pointers.String("value"),
 					},
@@ -1194,7 +1194,7 @@ func TestTaskToDefinition(t *testing.T) {
 					Image:      "ubuntu:latest",
 					Entrypoint: "bash",
 					Command:    `-c 'echo "foobar"'`,
-					EnvVars: api.TaskEnv{
+					EnvVars: api.EnvVars{
 						"value": api.EnvVarValue{
 							Value: pointers.String("value"),
 						},
@@ -1259,7 +1259,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 					ConcurrencyLimit:    pointers.Int64(1),
 				},
 				Timeout: 0,
-				Env:     api.TaskEnv{},
+				Env:     api.EnvVars{},
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
@@ -1306,7 +1306,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 					ConcurrencyLimit:    pointers.Int64(1),
 				},
 				Timeout: 0,
-				Env:     api.TaskEnv{},
+				Env:     api.EnvVars{},
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
@@ -1341,7 +1341,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 					ConcurrencyLimit:    pointers.Int64(1),
 				},
 				Timeout: 0,
-				Env:     api.TaskEnv{},
+				Env:     api.EnvVars{},
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
@@ -1388,7 +1388,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 					ConcurrencyLimit:    pointers.Int64(1),
 				},
 				Timeout: 0,
-				Env:     api.TaskEnv{},
+				Env:     api.EnvVars{},
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
@@ -1421,7 +1421,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 					ConcurrencyLimit:    pointers.Int64(1),
 				},
 				Timeout: 0,
-				Env:     api.TaskEnv{},
+				Env:     api.EnvVars{},
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
@@ -1473,7 +1473,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				},
 				InterpolationMode: pointers.String("jst"),
 				Timeout:           0,
-				Env:               api.TaskEnv{},
+				Env:               api.EnvVars{},
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
@@ -1508,7 +1508,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 					ConcurrencyLimit:    pointers.Int64(1),
 				},
 				Timeout: 0,
-				Env:     api.TaskEnv{},
+				Env:     api.EnvVars{},
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
@@ -1555,7 +1555,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 					ConcurrencyLimit:    pointers.Int64(1),
 				},
 				Timeout: 0,
-				Env:     api.TaskEnv{},
+				Env:     api.EnvVars{},
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
@@ -1600,7 +1600,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 					ConcurrencyLimit:    pointers.Int64(1),
 				},
 				Timeout: 0,
-				Env:     api.TaskEnv{},
+				Env:     api.EnvVars{},
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
@@ -1637,7 +1637,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 					ConcurrencyLimit:    pointers.Int64(1),
 				},
 				Timeout: 0,
-				Env:     api.TaskEnv{},
+				Env:     api.EnvVars{},
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
@@ -1877,7 +1877,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 					ConcurrencyLimit:    pointers.Int64(1),
 				},
 				Timeout: 0,
-				Env:     api.TaskEnv{},
+				Env:     api.EnvVars{},
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
@@ -1931,7 +1931,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 					ConcurrencyLimit:    pointers.Int64(1),
 				},
 				Timeout: 0,
-				Env:     api.TaskEnv{},
+				Env:     api.EnvVars{},
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
@@ -1957,7 +1957,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 					Image:      "ubuntu:latest",
 					Entrypoint: "bash",
 					Command:    `-c 'echo "foobar"'`,
-					EnvVars: api.TaskEnv{
+					EnvVars: api.EnvVars{
 						"value": api.EnvVarValue{
 							Value: pointers.String("value"),
 						},
@@ -1977,7 +1977,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Arguments:  []string{"-c", `echo "foobar"`},
 				Kind:       buildtypes.TaskKindImage,
 				Image:      pointers.String("ubuntu:latest"),
-				Env: api.TaskEnv{
+				Env: api.EnvVars{
 					"value": api.EnvVarValue{
 						Value: pointers.String("value"),
 					},

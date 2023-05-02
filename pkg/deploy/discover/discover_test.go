@@ -44,7 +44,7 @@ func TestDiscover(t *testing.T) {
 						Slug:       "my_task",
 						Parameters: []definitions.ParameterDefinition{},
 						Node: &definitions.NodeDefinition{
-							EnvVars: api.TaskEnv{},
+							EnvVars: api.EnvVars{},
 						},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 						RestrictCallers:    []string{},
@@ -80,7 +80,7 @@ func TestDiscover(t *testing.T) {
 						Slug:       "my_task",
 						Parameters: []definitions.ParameterDefinition{},
 						Node: &definitions.NodeDefinition{
-							EnvVars: api.TaskEnv{},
+							EnvVars: api.EnvVars{},
 						},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 						RestrictCallers:    []string{},
@@ -100,7 +100,7 @@ func TestDiscover(t *testing.T) {
 						Slug:       "my_task2",
 						Parameters: []definitions.ParameterDefinition{},
 						Node: &definitions.NodeDefinition{
-							EnvVars: api.TaskEnv{},
+							EnvVars: api.EnvVars{},
 						},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 						RestrictCallers:    []string{},
@@ -140,7 +140,7 @@ func TestDiscover(t *testing.T) {
 						Slug:       "my_task",
 						Parameters: []definitions.ParameterDefinition{},
 						Node: &definitions.NodeDefinition{
-							EnvVars: api.TaskEnv{},
+							EnvVars: api.EnvVars{},
 						},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 						RestrictCallers:    []string{},
@@ -160,7 +160,7 @@ func TestDiscover(t *testing.T) {
 						Slug:       "my_task2",
 						Parameters: []definitions.ParameterDefinition{},
 						Node: &definitions.NodeDefinition{
-							EnvVars: api.TaskEnv{},
+							EnvVars: api.EnvVars{},
 						},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 						RestrictCallers:    []string{},
@@ -351,7 +351,7 @@ func TestDiscover(t *testing.T) {
 						Slug:       "my_task",
 						Parameters: []definitions.ParameterDefinition{},
 						Node: &definitions.NodeDefinition{
-							EnvVars: api.TaskEnv{},
+							EnvVars: api.EnvVars{},
 						},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 						RestrictCallers:    []string{},
@@ -533,7 +533,7 @@ func TestDiscover(t *testing.T) {
 						Resources:          map[string]string{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
 						Python: &definitions.PythonDefinition{
-							EnvVars: api.TaskEnv{},
+							EnvVars: api.EnvVars{},
 						},
 						Schedules: map[string]definitions.ScheduleDefinition{},
 					},
@@ -581,7 +581,7 @@ func TestDiscover(t *testing.T) {
 						Resources:          map[string]string{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
 						Python: &definitions.PythonDefinition{
-							EnvVars: api.TaskEnv{},
+							EnvVars: api.EnvVars{},
 						},
 						Schedules: map[string]definitions.ScheduleDefinition{},
 					},
@@ -629,7 +629,7 @@ func TestDiscover(t *testing.T) {
 						Resources:          map[string]string{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
 						Python: &definitions.PythonDefinition{
-							EnvVars: api.TaskEnv{},
+							EnvVars: api.EnvVars{},
 						},
 						Schedules: map[string]definitions.ScheduleDefinition{},
 					},
@@ -655,7 +655,7 @@ func TestDiscover(t *testing.T) {
 						Resources:          map[string]string{},
 						AllowSelfApprovals: definitions.NewDefaultTrueDefinition(false),
 						Python: &definitions.PythonDefinition{
-							EnvVars: api.TaskEnv{},
+							EnvVars: api.EnvVars{},
 						},
 						Schedules: map[string]definitions.ScheduleDefinition{},
 					},
@@ -854,7 +854,7 @@ func TestDiscover(t *testing.T) {
 						Slug:       "collatz",
 						Parameters: []definitions.ParameterDefinition{},
 						Node: &definitions.NodeDefinition{
-							EnvVars: api.TaskEnv{
+							EnvVars: api.EnvVars{
 								"ENV1": api.EnvVarValue{Value: pointers.String("1")},
 								"ENV2": api.EnvVarValue{Value: pointers.String("2")},
 								"ENV3": api.EnvVarValue{Value: pointers.String("3a")},
@@ -960,7 +960,7 @@ func TestDiscover(t *testing.T) {
 						Description: "ut dolor sit officia ea",
 						Node: &definitions.NodeDefinition{
 							Entrypoint: "./single_task.js",
-							EnvVars: api.TaskEnv{
+							EnvVars: api.EnvVars{
 								"ENV2": api.EnvVarValue{Value: pointers.String("2")},
 								"ENV3": api.EnvVarValue{Value: pointers.String("3a")},
 								"ENV5": api.EnvVarValue{Value: pointers.String("5")},

@@ -254,7 +254,7 @@ func setBuildVersionAndWorkingDir(file string, def *definitions.Definition) (str
 	if len(envVars) == 0 {
 		envVars = nil
 	} else {
-		newDefnEnvVars := make(api.TaskEnv, len(envVars))
+		newDefnEnvVars := make(api.EnvVars, len(envVars))
 		for k, v := range envVars {
 			newDefnEnvVars[k] = api.EnvVarValue(v)
 		}

@@ -128,7 +128,7 @@ func getEnvVars(
 func materializeEnvVars(
 	ctx context.Context,
 	remoteClient api.APIClient,
-	taskEnvVars libapi.TaskEnv,
+	taskEnvVars libapi.EnvVars,
 	configVars map[string]devenv.ConfigWithEnv,
 	fallbackEnvSlug string,
 ) (map[string]string, error) {
@@ -157,7 +157,7 @@ func materializeEnvVars(
 
 // applyEnvVarFileOverrides applies any overrides from dotenv or dev config files to the entity's environment variables.
 func applyEnvVarFileOverrides(entityEnvVars map[string]libapi.EnvVarValue, devConfigEnvVars map[string]string,
-	r runtime.Interface, entrypoint string) libapi.TaskEnv {
+	r runtime.Interface, entrypoint string) libapi.EnvVars {
 	envVars := make(map[string]libapi.EnvVarValue)
 	maps.Copy(envVars, entityEnvVars)
 

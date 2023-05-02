@@ -71,7 +71,7 @@ func TestUpdateJavaScriptTask(t *testing.T) {
 					"db": "db",
 				},
 				Node: &definitions.NodeDefinition{
-					EnvVars: api.TaskEnv{
+					EnvVars: api.EnvVars{
 						"CONFIG": api.EnvVarValue{
 							Config: pointers.String("aws_access_key"),
 						},
@@ -110,7 +110,7 @@ func TestUpdateJavaScriptTask(t *testing.T) {
 				Parameters:  []definitions.ParameterDefinition{},
 				Resources:   map[string]string{},
 				Node: &definitions.NodeDefinition{
-					EnvVars: api.TaskEnv{},
+					EnvVars: api.EnvVars{},
 				},
 				Constraints:        map[string]string{},
 				RequireRequests:    false,

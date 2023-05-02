@@ -87,7 +87,7 @@ type LocalRunConfig struct {
 	ConfigAttachments []libapi.ConfigAttachment
 	ConfigVars        map[string]devenv.ConfigWithEnv
 	EnvVars           map[string]string
-	TaskEnvVars       libapi.TaskEnv
+	TaskEnvVars       libapi.EnvVars
 
 	IsBuiltin bool
 	LogBroker logs.LogBroker

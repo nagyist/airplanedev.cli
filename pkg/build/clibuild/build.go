@@ -19,7 +19,7 @@ type Request struct {
 	Root    string
 	Def     definitions.Definition
 	TaskID  string
-	TaskEnv libapi.TaskEnv
+	TaskEnv libapi.EnvVars
 	Shim    bool
 }
 

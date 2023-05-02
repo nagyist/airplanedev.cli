@@ -14,7 +14,7 @@ type PythonDefinition struct {
 	// Entrypoint is the relative path from the task definition file to the script. It does not
 	// apply for inline configured tasks.
 	Entrypoint string               `json:"entrypoint"`
-	EnvVars    api.TaskEnv          `json:"envVars,omitempty"`
+	EnvVars    api.EnvVars          `json:"envVars,omitempty"`
 	Base       buildtypes.BuildBase `json:"base,omitempty"`
 	Version    string               `json:"-"`
 
@@ -99,11 +99,11 @@ func (d *PythonDefinition) getEntrypoint() (string, error) {
 	return d.Entrypoint, nil
 }
 
-func (d *PythonDefinition) getEnv() (api.TaskEnv, error) {
+func (d *PythonDefinition) getEnv() (api.EnvVars, error) {
 	return d.EnvVars, nil
 }
 
-func (d *PythonDefinition) setEnv(e api.TaskEnv) error {
+func (d *PythonDefinition) setEnv(e api.EnvVars) error {
 	d.EnvVars = e
 	return nil
 }

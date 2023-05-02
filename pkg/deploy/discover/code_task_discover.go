@@ -292,7 +292,7 @@ func ConstructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPat
 	if err := def.SetBuildVersionBase(buildContext.Version, buildContext.Base); err != nil {
 		return definitions.Definition{}, err
 	}
-	envVars := make(api.TaskEnv)
+	envVars := make(api.EnvVars)
 	envVarsFromDefn, err := def.GetEnv()
 	if err != nil {
 		return definitions.Definition{}, err

@@ -13,7 +13,7 @@ type ImageDefinition struct {
 	Image      string      `json:"image"`
 	Entrypoint string      `json:"entrypoint,omitempty"`
 	Command    string      `json:"command"`
-	EnvVars    api.TaskEnv `json:"envVars,omitempty"`
+	EnvVars    api.EnvVars `json:"envVars,omitempty"`
 }
 
 func (d *ImageDefinition) copyToTask(task *api.Task, bc buildtypes.BuildConfig, opts GetTaskOpts) error {
@@ -64,10 +64,10 @@ func (d *ImageDefinition) getEntrypoint() (string, error) {
 	return "", ErrNoEntrypoint
 }
 
-func (d *ImageDefinition) getEnv() (api.TaskEnv, error) {
+func (d *ImageDefinition) getEnv() (api.EnvVars, error) {
 	return d.EnvVars, nil
 }
-func (d *ImageDefinition) setEnv(e api.TaskEnv) error {
+func (d *ImageDefinition) setEnv(e api.EnvVars) error {
 	d.EnvVars = e
 	return nil
 }

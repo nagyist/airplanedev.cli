@@ -16,7 +16,7 @@ type NodeDefinition struct {
 	// apply for inline configured tasks.
 	Entrypoint  string               `json:"entrypoint"`
 	NodeVersion string               `json:"nodeVersion"`
-	EnvVars     api.TaskEnv          `json:"envVars,omitempty"`
+	EnvVars     api.EnvVars          `json:"envVars,omitempty"`
 	Base        buildtypes.BuildBase `json:"base,omitempty"`
 
 	absoluteEntrypoint string `json:"-"`
@@ -115,11 +115,11 @@ func (d *NodeDefinition) getEntrypoint() (string, error) {
 	return d.Entrypoint, nil
 }
 
-func (d *NodeDefinition) getEnv() (api.TaskEnv, error) {
+func (d *NodeDefinition) getEnv() (api.EnvVars, error) {
 	return d.EnvVars, nil
 }
 
-func (d *NodeDefinition) setEnv(e api.TaskEnv) error {
+func (d *NodeDefinition) setEnv(e api.EnvVars) error {
 	d.EnvVars = e
 	return nil
 }

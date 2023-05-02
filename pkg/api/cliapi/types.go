@@ -37,7 +37,7 @@ type CreateTaskRequest struct {
 	Parameters       libapi.Parameters         `json:"parameters"`
 	Configs          []libapi.ConfigAttachment `json:"configs"`
 	Constraints      libapi.RunConstraints     `json:"constraints"`
-	EnvVars          libapi.TaskEnv            `json:"env"`
+	EnvVars          libapi.EnvVars            `json:"env"`
 	ResourceRequests map[string]string         `json:"resourceRequests"`
 	Resources        map[string]string         `json:"resources"`
 	Kind             buildtypes.TaskKind       `json:"kind"`
@@ -374,7 +374,7 @@ type DeployTask struct {
 	BuildConfig       buildtypes.BuildConfig     `json:"buildConfig"`
 	UploadID          string                     `json:"uploadID"`
 	UpdateTaskRequest libapi.UpdateTaskRequest   `json:"updateTaskRequest"`
-	EnvVars           libapi.TaskEnv             `json:"envVars"`
+	EnvVars           libapi.EnvVars             `json:"envVars"`
 	GitFilePath       string                     `json:"gitFilePath"`
 	Schedules         map[string]libapi.Schedule `json:"schedules"`
 }

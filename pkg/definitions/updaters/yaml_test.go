@@ -102,7 +102,7 @@ func TestUpdateYAMLTask(t *testing.T) {
 				Node: &definitions.NodeDefinition{
 					Entrypoint:  "./entrypoint.js",
 					NodeVersion: "18",
-					EnvVars:     api.TaskEnv{},
+					EnvVars:     api.EnvVars{},
 				},
 				Constraints:        map[string]string{},
 				RequireRequests:    false,
@@ -266,7 +266,7 @@ func TestUpdateYAMLTask(t *testing.T) {
 				Node: &definitions.NodeDefinition{
 					Entrypoint:  "./entrypoint.js",
 					NodeVersion: "18",
-					EnvVars: api.TaskEnv{
+					EnvVars: api.EnvVars{
 						"CONFIG": api.EnvVarValue{
 							Config: pointers.String("aws_access_key"),
 						},
@@ -285,7 +285,7 @@ func TestUpdateYAMLTask(t *testing.T) {
 				Slug: "my_task",
 				Python: &definitions.PythonDefinition{
 					Entrypoint: "./entrypoint.py",
-					EnvVars: api.TaskEnv{
+					EnvVars: api.EnvVars{
 						"CONFIG": api.EnvVarValue{
 							Config: pointers.String("aws_access_key"),
 						},
@@ -304,7 +304,7 @@ func TestUpdateYAMLTask(t *testing.T) {
 				Slug: "my_task",
 				Shell: &definitions.ShellDefinition{
 					Entrypoint: "./entrypoint.sh",
-					EnvVars: api.TaskEnv{
+					EnvVars: api.EnvVars{
 						"CONFIG": api.EnvVarValue{
 							Config: pointers.String("aws_access_key"),
 						},
@@ -325,7 +325,7 @@ func TestUpdateYAMLTask(t *testing.T) {
 					Image:      "alpine:3",
 					Command:    "cat",
 					Entrypoint: "./entrypoint.sh",
-					EnvVars: api.TaskEnv{
+					EnvVars: api.EnvVars{
 						"CONFIG": api.EnvVarValue{
 							Config: pointers.String("aws_access_key"),
 						},

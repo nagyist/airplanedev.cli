@@ -81,7 +81,7 @@ func (d *localBuildCreator) CreateBuild(ctx context.Context, req Request) (*buil
 
 // Retrieves a build env from def - looks for env vars starting with BUILD_ and either uses the
 // string literal or looks up the config value.
-func getBuildEnv(ctx context.Context, client api.APIClient, taskEnv libapi.TaskEnv) (map[string]string, error) {
+func getBuildEnv(ctx context.Context, client api.APIClient, taskEnv libapi.EnvVars) (map[string]string, error) {
 	buildEnv := make(map[string]string)
 	for k, v := range taskEnv {
 		if v.Value != nil {
