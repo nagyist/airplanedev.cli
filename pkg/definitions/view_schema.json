@@ -25,7 +25,7 @@
     "envVars": { "$ref": "#/$defs/envVars" }
   },
   "additionalProperties": false,
-  "required": ["name", "slug", "entrypoint"],
+  "required": ["slug", "entrypoint"],
   "$defs": {
     "envVars": {
       "description": "A map of environment variables to use for the view. If specifying raw values, the value may be a string; if using config variables, the value must be an object with config mapped to the name of the config variable.",
