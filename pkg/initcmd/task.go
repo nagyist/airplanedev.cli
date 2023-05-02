@@ -807,7 +807,7 @@ func runKindSpecificInstallation(ctx context.Context, req runKindSpecificInstall
 		var deps []python.PythonDependency
 		if req.Inline {
 			deps = []python.PythonDependency{
-				{Name: "airplanesdk", Version: "~=0.3.14"},
+				{Name: "airplanesdk", Version: "~=0.3.26"},
 			}
 		}
 		requirementsTxtDir, requirementsTxtCreated, err := python.CreateRequirementsTxt(filepath.Dir(entrypoint), python.RequirementsTxtOptions{
@@ -901,7 +901,7 @@ func writeNewAirplaneConfig(writer io.Writer, opts getNewAirplaneConfigOptions) 
 			if opts.cfg.Python.Version != "" && opts.existingConfig.Python.Version == "" {
 				opts.logger.Warning("We recommend specifying a python.version in your %s.", deployconfig.FileName)
 				opts.logger.Warning("> python:")
-				opts.logger.Warning(">   version: \"3.10\"")
+				opts.logger.Warning(">   version: \"0.3.26\"")
 			}
 			return nil
 		}
