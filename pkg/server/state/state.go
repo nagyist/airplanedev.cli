@@ -174,6 +174,21 @@ func (s *State) GetTaskErrors(ctx context.Context, slug string, envSlug string) 
 			Reason:  fmt.Sprintf("%v task does not support local execution", kind),
 		})
 	} else {
+		// Is local execution supported?
+		kind, _, err := taskConfig.Def.GetKindAndOptions()
+		if err != nil {
+			return AppCondition{}, errors.Wrap(err, "getting task kind")
+		}
+		supported := supportsLocalExecution(taskConfig.Def.GetName(), taskConfig.TaskEntrypoint, kind)
+		if !supported {
+			result.Errors = append(result.Errors, dev_errors.AppError{
+				Level:   dev_errors.LevelError,
+				AppName: taskConfig.Def.GetName(),
+				AppKind: "task",
+				Reason:  fmt.Sprintf("%v tasks cannot be executed locally.", kind.UserFriendlyTaskKind()),
+			})
+		}
+
 		mergedResources, err := resources.MergeRemoteResources(ctx, s.RemoteClient, s.DevConfig, pointers.String(envSlug))
 		if err != nil {
 			return AppCondition{}, errors.Wrap(err, "merging local and remote resources")

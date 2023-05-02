@@ -247,7 +247,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		return err
 	}
 
-	if _, err := apiServer.RegisterTasksAndViews(ctx, state.DiscoverOpts{
+	if err := apiServer.RegisterTasksAndViews(ctx, state.DiscoverOpts{
 		Tasks: taskConfigs,
 		Views: viewConfigs,
 	}); err != nil {

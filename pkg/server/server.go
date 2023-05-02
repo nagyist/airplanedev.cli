@@ -14,7 +14,6 @@ import (
 	"github.com/airplanedev/cli/pkg/server/apidev"
 	"github.com/airplanedev/cli/pkg/server/apiext"
 	"github.com/airplanedev/cli/pkg/server/apiint"
-	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/filewatcher"
 	"github.com/airplanedev/cli/pkg/server/middleware"
 	"github.com/airplanedev/cli/pkg/server/network"
@@ -246,7 +245,7 @@ func (s *Server) ReloadApps(ctx context.Context, wd string, e filewatcher.Event)
 // RegisterTasksAndViews generates a mapping of slug to task and view configs and stores the mappings in the server
 // state. Task registration must occur after the local dev server has started because the task discoverer hits the
 // /v0/tasks/getMetadata endpoint.
-func (s *Server) RegisterTasksAndViews(ctx context.Context, opts state.DiscoverOpts) (map[string]dev_errors.AppError, error) {
+func (s *Server) RegisterTasksAndViews(ctx context.Context, opts state.DiscoverOpts) error {
 	return s.state.RegisterTasksAndViews(ctx, opts)
 }
 

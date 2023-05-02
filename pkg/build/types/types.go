@@ -30,6 +30,38 @@ const (
 	TaskKindBuiltin TaskKind = "builtin"
 )
 
+type UserFriendlyTaskKind string
+
+const (
+	UserFriendlyTaskKindImage  UserFriendlyTaskKind = "Docker"
+	UserFriendlyTaskKindNode   UserFriendlyTaskKind = "JavaScript"
+	UserFriendlyTaskKindPython UserFriendlyTaskKind = "Python"
+	UserFriendlyTaskKindShell  UserFriendlyTaskKind = "Shell"
+
+	UserFriendlyTaskKindSQL  UserFriendlyTaskKind = "SQL"
+	UserFriendlyTaskKindREST UserFriendlyTaskKind = "REST"
+)
+
+// TODO: this should ideally also be able to convert TaskKindBuiltin
+func (k TaskKind) UserFriendlyTaskKind() UserFriendlyTaskKind {
+	switch k {
+	case TaskKindImage:
+		return UserFriendlyTaskKindImage
+	case TaskKindNode:
+		return UserFriendlyTaskKindNode
+	case TaskKindPython:
+		return UserFriendlyTaskKindPython
+	case TaskKindShell:
+		return UserFriendlyTaskKindShell
+	case TaskKindSQL:
+		return UserFriendlyTaskKindSQL
+	case TaskKindREST:
+		return UserFriendlyTaskKindREST
+	}
+
+	return ""
+}
+
 type BuildType string
 
 const (

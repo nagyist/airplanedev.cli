@@ -2,7 +2,6 @@ package state
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -11,7 +10,6 @@ import (
 	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/runtime"
-	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/status"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/pkg/errors"
@@ -71,7 +69,7 @@ func (s *State) ReloadPath(ctx context.Context, path string) error {
 			logger.Error(err.Error())
 		}
 
-		_, err = s.RegisterTasksAndViews(ctx, DiscoverOpts{
+		err = s.RegisterTasksAndViews(ctx, DiscoverOpts{
 			Tasks:        taskConfigs,
 			Views:        viewConfigs,
 			OverwriteAll: shouldRefreshDir,
@@ -116,20 +114,13 @@ type DiscoverOpts struct {
 // RegisterTasksAndViews generates a mapping of slug to task and view configs and stores the mappings in the server
 // state. Task registration must occur after the local dev server has started because the task discoverer hits the
 // /v0/tasks/getMetadata endpoint.
-func (s *State) RegisterTasksAndViews(ctx context.Context, opts DiscoverOpts) (map[string]dev_errors.AppError, error) {
-	unsupportedApps, err := ValidateTasks(ctx, opts.Tasks)
-	if err != nil {
-		return nil, errors.Wrap(err, "validating task")
-	}
-
+func (s *State) RegisterTasksAndViews(ctx context.Context, opts DiscoverOpts) error {
 	// Always invalidate the AppCondition cache.
 	s.AppCondition.ReplaceItems(map[string]AppCondition{})
 
 	taskConfigs := map[string]discover.TaskConfig{}
 	for _, cfg := range opts.Tasks {
-		if _, isUnsupported := unsupportedApps[cfg.Def.GetSlug()]; !isUnsupported {
-			taskConfigs[cfg.Def.GetSlug()] = cfg
-		}
+		taskConfigs[cfg.Def.GetSlug()] = cfg
 	}
 	viewConfigs := map[string]discover.ViewConfig{}
 	for _, cfg := range opts.Views {
@@ -145,7 +136,7 @@ func (s *State) RegisterTasksAndViews(ctx context.Context, opts DiscoverOpts) (m
 
 	s.SetServerStatus(status.ServerReady)
 
-	return unsupportedApps, err
+	return nil
 }
 
 func supportsLocalExecution(name string, entrypoint string, kind buildtypes.TaskKind) bool {
@@ -156,30 +147,6 @@ func supportsLocalExecution(name string, entrypoint string, kind buildtypes.Task
 	}
 	// Check if task kind can be locally developed.
 	return r.SupportsLocalExecution()
-}
-
-// ValidateTasks returns a map of slug -> AppError for unsupported tasks.
-func ValidateTasks(ctx context.Context, taskConfigs []discover.TaskConfig) (map[string]dev_errors.AppError, error) {
-	unsupportedApps := map[string]dev_errors.AppError{}
-
-	for _, cfg := range taskConfigs {
-		kind, _, err := cfg.Def.GetKindAndOptions()
-		if err != nil {
-			return nil, errors.Wrap(err, "getting task kind")
-		}
-		supported := supportsLocalExecution(cfg.Def.GetName(), cfg.TaskEntrypoint, kind)
-		if !supported {
-			appErr := dev_errors.AppError{
-				Level:   dev_errors.LevelError,
-				AppName: cfg.Def.GetName(),
-				AppKind: "task",
-				Reason:  fmt.Sprintf("%v task does not support local execution", kind)}
-			unsupportedApps[cfg.Def.GetSlug()] = appErr
-			continue
-		}
-	}
-
-	return unsupportedApps, nil
 }
 
 // LogNewApps prints the names of the tasks/views that were discovered
