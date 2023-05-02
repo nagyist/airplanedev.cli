@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
+	"github.com/airplanedev/cli/pkg/definitions"
 	"golang.org/x/exp/slices"
 )
 

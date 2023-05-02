@@ -8,8 +8,8 @@ import (
 	"github.com/airplanedev/cli/pkg/api/cliapi"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/conf"
+	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
-	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/stretchr/testify/require"
 )

@@ -14,7 +14,7 @@ import (
 	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
+	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/initcmd"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/prompts"

@@ -3,7 +3,7 @@ package deployutils
 import (
 	"strings"
 
-	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
+	"github.com/airplanedev/cli/pkg/definitions"
 )
 
 func IsAirplaneEntity(filepath string) bool {

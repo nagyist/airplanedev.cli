@@ -6,7 +6,7 @@ import (
 	libapi "github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/build"
-	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
+	"github.com/airplanedev/cli/pkg/definitions"
 )
 
 type BuildCreator interface {

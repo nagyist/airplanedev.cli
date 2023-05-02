@@ -8,7 +8,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api"
 	libhttp "github.com/airplanedev/cli/pkg/api/http"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
-	"github.com/airplanedev/cli/pkg/deploy/taskdir/definitions"
+	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/initcmd"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
