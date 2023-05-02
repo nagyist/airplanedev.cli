@@ -366,11 +366,13 @@ func ViewBundle(root string, buildContext buildtypes.BuildContext, options build
 		RUN {{.InlinePostcssConfig}} > /airplane/postcss.config.js
 		{{end}}
 
-		{{if .FilesToDiscover}}
-		# Bust the cache for discovery
-		ARG AIRPLANE_BUILD_ID
-		RUN echo "$AIRPLANE_BUILD_ID"
+		# Generate index.html and main.tsx for each entrypoint.
+		RUN {{.InlineIndexHtml}} > /airplane/index.html && {{.InlineMainTsx}} > /airplane/main.tsx && /airplane/.airplane-build-tools/gen_view.sh "{{.FilesToBuildWithoutExtension}}" /airplane/index.html /airplane/main.tsx
+		# Copy in universal Vite config and build view
+		RUN {{.InlineViteConfig}} > vite.config.ts && /airplane/node_modules/.bin/vite build --outDir {{.OutDir}}
+		RUN yarn list --pattern @airplane/views | grep @airplane/views | sed "s/^.*@airplane\/views@\(.*\)$/\1/" > {{.OutDir}}/.airplane-views-version
 
+		{{if .FilesToDiscover}}
 		# Build and discover inline views.
 		RUN node /airplane/.airplane-build-tools/esbuild.js \
 			'{{.FilesToBuild}}' \
@@ -380,14 +382,13 @@ func ViewBundle(root string, buildContext buildtypes.BuildContext, options build
 			{{.DirectoryToBuildTo}} \
 			/airplane/src \
 			true
-		RUN node /airplane/.airplane-build-tools/inlineParser.js {{.FilesToDiscover}}
+		RUN node /airplane/.airplane-build-tools/inlineParser.js {{.FilesToDiscover}} > /airplane/.airplane-build-tools/discovery.json
+
+		# Bust the Docker cache to ensure discovered entities are logged.
+		ARG AIRPLANE_BUILD_ID
+		RUN echo "$AIRPLANE_BUILD_ID"&& cat /airplane/.airplane-build-tools/discovery.json
 		{{end}}
 
-		# Generate index.html and main.tsx for each entrypoint.
-		RUN {{.InlineIndexHtml}} > /airplane/index.html && {{.InlineMainTsx}} > /airplane/main.tsx && /airplane/.airplane-build-tools/gen_view.sh "{{.FilesToBuildWithoutExtension}}" /airplane/index.html /airplane/main.tsx
-		# Copy in universal Vite config and build view
-		RUN {{.InlineViteConfig}} > vite.config.ts && /airplane/node_modules/.bin/vite build --outDir {{.OutDir}}
-		RUN yarn list --pattern @airplane/views | grep @airplane/views | sed "s/^.*@airplane\/views@\(.*\)$/\1/" > {{.OutDir}}/.airplane-views-version
 		# Docker's minimal image - we just need an empty place to copy the build artifacts.
 		FROM scratch
 		COPY --from=builder {{.OutDir}}/ .

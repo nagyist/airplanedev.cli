@@ -1236,11 +1236,11 @@ func NodeBundle(
 		# FilesToDiscover is the location of the output of the transpiled js files
 		# that should be discovered.
 		{{if .FilesToDiscover}}
-		# Bust the cache for discovery
-		ARG AIRPLANE_BUILD_ID
-		RUN echo "$AIRPLANE_BUILD_ID"
+		RUN node /airplane/.airplane-build-tools/inlineParser.cjs {{.FilesToDiscover}} > /airplane/.airplane-build-tools/discovery.json
 
-		RUN node /airplane/.airplane-build-tools/inlineParser.cjs {{.FilesToDiscover}}
+		# Bust the Docker cache to ensure discovered entities are logged.
+		ARG AIRPLANE_BUILD_ID
+		RUN echo "$AIRPLANE_BUILD_ID" && cat /airplane/.airplane-build-tools/discovery.json
 		{{end}}
 	`), cfg)
 }

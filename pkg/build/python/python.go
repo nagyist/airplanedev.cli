@@ -343,11 +343,11 @@ func PythonBundle(
 		ENV PYTHONUNBUFFERED=1
 
 		{{if .FilesToDiscover}}
-		# Bust the cache for discovery
-		ARG AIRPLANE_BUILD_ID
-		RUN echo "$AIRPLANE_BUILD_ID"
+		RUN python .airplane-build-tools/inlineParser.py {{.FilesToDiscover}} > airplane-discovery.json
 
-		RUN python .airplane-build-tools/inlineParser.py {{.FilesToDiscover}}
+		# Bust the Docker cache to ensure discovered entities are logged.
+		ARG AIRPLANE_BUILD_ID
+		RUN echo "$AIRPLANE_BUILD_ID" && cat airplane-discovery.json
 		{{end}}
 	`)
 
