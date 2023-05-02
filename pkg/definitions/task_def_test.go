@@ -10,446 +10,279 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Contains explicit defaults.
-var fullYAML = []byte(
-	`name: Hello World
-slug: hello_world
-description: A starter task.
-parameters:
-- name: Name
-  slug: name
-  type: shorttext
-  description: Someone's name.
-  default: World
-  required: true
-resources:
-  db: demo_db
-python:
-  entrypoint: hello_world.py
-timeout: 3600
-schedules:
-  every_midnight:
-    name: Every Midnight
-    cron: 0 0 * * *
-  no_name_params:
-    cron: 0 0 * * *
-    paramValues:
-      param_one: 5.5
-      param_two: memes
-permissions:
-  viewers:
-    groups:
-    - group1
-    users:
-    - user1
-  requesters:
-    groups:
-    - group2
-  executers:
-    groups:
-    - group3
-    - group4
-  admins:
-    groups:
-    - group5
-`)
-
-// Contains explicit defaults.
-var fullJSON = []byte(
-	`{
-	"name": "Hello World",
-	"slug": "hello_world",
-	"description": "A starter task.",
-	"parameters": [
+func TestDefinitionMarshal(t *testing.T) {
+	for _, test := range []struct {
+		name                    string
+		def                     Definition
+		overrideUnmarshalledDef *Definition
+		expectedYAML            string
+		expectedJSON            string
+	}{
 		{
-			"name": "Name",
-			"slug": "name",
-			"type": "shorttext",
-			"description": "Someone's name.",
-			"default": "World",
-			"required": true
-		}
-	],
-	"resources": {
-		"db": "demo_db"
-	},
-	"python": {
-		"entrypoint": "hello_world.py"
-	},
-	"timeout": 3600,
-	"schedules": {
-		"every_midnight": {
-			"name": "Every Midnight",
-			"cron": "0 0 * * *"
-		},
-		"no_name_params": {
-			"cron": "0 0 * * *",
-			"paramValues": {
-				"param_one": 5.5,
-				"param_two": "memes"
-			}
-		}
-	},
-	"permissions": {
-		"viewers": {
-			"groups": [
-				"group1"
-			],
-			"users": [
-				"user1"
-			]
-		},
-		"requesters": {
-			"groups": [
-				"group2"
-			]
-		},
-		"executers": {
-			"groups": [
-				"group3",
-				"group4"
-			]
-		},
-		"admins": {
-			"groups": [
-				"group5"
-			]
-		}
-	}
-}`)
-
-// Contains no explicit defaults.
-var yamlWithDefault = []byte(
-	`slug: hello_world
-name: Hello World
-description: A starter task.
-parameters:
-- slug: name
-  name: Name
-  description: Someone's name.
-  type: shorttext
-  default: World
-resources:
-  db: demo_db
+			name: "implicit defaults",
+			def: Definition{
+				Slug:   "hello_world",
+				Python: &PythonDefinition{},
+			},
+			expectedYAML: `slug: hello_world
 python:
-  entrypoint: hello_world.py
-timeout: 3600
-schedules:
-  every_midnight:
-    name: Every Midnight
-    cron: 0 0 * * *
-  no_name_params:
-    cron: 0 0 * * *
-    paramValues:
-      param_one: 5.5
-      param_two: memes
-permissions:
-  viewers:
-    groups:
-    - group1
-    users:
-    - user1
-  requesters:
-    groups:
-    - group2
-  executers:
-    groups:
-    - group3
-    - group4
-  admins:
-    groups:
-    - group5
-`)
-
-// Contains no explicit defaults.
-var jsonWithDefault = []byte(
-	`{
+  entrypoint: ""
+`,
+			expectedJSON: `{
 	"slug": "hello_world",
-	"name": "Hello World",
-	"description": "A starter task.",
-	"parameters": [
-		{
-			"slug": "name",
-			"name": "Name",
-			"description": "Someone's name.",
-			"type": "shorttext",
-			"default": "World"
-		}
-	],
-	"resources": {
-		"db": "demo_db"
-	},
 	"python": {
-		"entrypoint": "hello_world.py"
-	},
-	"timeout": 3600,
-	"schedules": {
-		"every_midnight": {
-			"name": "Every Midnight",
-			"cron": "0 0 * * *"
-		},
-		"no_name_params": {
-			"cron": "0 0 * * *",
-			"paramValues": {
-				"param_one": 5.5,
-				"param_two": "memes"
-			}
-		}
-	},
-	"permissions": {
-		"viewers": {
-			"groups": [
-				"group1"
-			],
-			"users": [
-				"user1"
-			]
-		},
-		"requesters": {
-			"groups": [
-				"group2"
-			]
-		},
-		"executers": {
-			"groups": [
-				"group3",
-				"group4"
-			]
-		},
-		"admins": {
-			"groups": [
-				"group5"
-			]
-		}
+		"entrypoint": ""
 	}
 }
-`)
-
-// Permissions are set to team_access.
-// Contains no explicit defaults.
-var yamlWithDefaultAndTeamAccessPermissions = []byte(
-	`slug: hello_world
-name: Hello World
-description: A starter task.
-parameters:
-- slug: name
-  name: Name
-  description: Someone's name.
-  type: shorttext
-  default: World
-resources:
-  db: demo_db
-python:
-  entrypoint: hello_world.py
-timeout: 3600
-schedules:
-  every_midnight:
-    name: Every Midnight
-    cron: 0 0 * * *
-  no_name_params:
-    cron: 0 0 * * *
-    paramValues:
-      param_one: 5.5
-      param_two: memes
-permissions: team_access
-`)
-
-// Permissions are set to team_access.
-// Contains no explicit defaults.
-var jsonWithDefaultAndTeamAccessPermissions = []byte(
-	`{
-	"slug": "hello_world",
-	"name": "Hello World",
-	"description": "A starter task.",
-	"parameters": [
-		{
-			"slug": "name",
-			"name": "Name",
-			"description": "Someone's name.",
-			"type": "shorttext",
-			"default": "World"
-		}
-	],
-	"resources": {
-		"db": "demo_db"
-	},
-	"python": {
-		"entrypoint": "hello_world.py"
-	},
-	"timeout": 3600,
-	"schedules": {
-		"every_midnight": {
-			"name": "Every Midnight",
-			"cron": "0 0 * * *"
+`,
 		},
-		"no_name_params": {
-			"cron": "0 0 * * *",
-			"paramValues": {
-				"param_one": 5.5,
-				"param_two": "memes"
-			}
-		}
+		{
+			// This test sets all values explicitly to their defaults which should not be serialized.
+			name: "explicit defaults",
+			def: Definition{
+				Slug:        "hello_world",
+				Name:        "",
+				Description: "",
+				Parameters:  []ParameterDefinition{},
+				Runtime:     buildtypes.TaskRuntimeStandard,
+				Resources:   ResourcesDefinition{},
+				Python: &PythonDefinition{
+					Entrypoint: "",
+					EnvVars:    api.TaskEnv{},
+				},
+				Configs:            []string{},
+				Timeout:            3600,
+				Constraints:        map[string]string{},
+				RequireRequests:    false,
+				AllowSelfApprovals: NewDefaultTrueDefinition(true),
+				RestrictCallers:    []string{},
+				ConcurrencyKey:     "",
+				ConcurrencyLimit:   NewDefaultOneDefinition(1),
+				Schedules:          map[string]ScheduleDefinition{},
+				Permissions: &PermissionsDefinition{
+					Viewers:                    PermissionRecipients{},
+					Requesters:                 PermissionRecipients{},
+					Executers:                  PermissionRecipients{},
+					Admins:                     PermissionRecipients{},
+					RequireExplicitPermissions: false,
+				},
+			},
+			// When unmarshalled, the default values will not be set.
+			overrideUnmarshalledDef: &Definition{
+				Slug: "hello_world",
+				Python: &PythonDefinition{
+					Entrypoint: "",
+				},
+				Permissions: &PermissionsDefinition{
+					Viewers:                    PermissionRecipients{},
+					Requesters:                 PermissionRecipients{},
+					Executers:                  PermissionRecipients{},
+					Admins:                     PermissionRecipients{},
+					RequireExplicitPermissions: false,
+				},
+			},
+			expectedYAML: `slug: hello_world
+python:
+  entrypoint: ""
+permissions: team_access
+`,
+			expectedJSON: `{
+	"slug": "hello_world",
+	"python": {
+		"entrypoint": ""
 	},
 	"permissions": "team_access"
 }
-`)
-
-// Contains explicit defaults.
-var fullDef = Definition{
-	Name:        "Hello World",
-	Slug:        "hello_world",
-	Description: "A starter task.",
-	Parameters: []ParameterDefinition{
-		{
-			Name:        "Name",
-			Slug:        "name",
-			Type:        "shorttext",
-			Description: "Someone's name.",
-			Default:     "World",
-			Required:    DefaultTrueDefinition{pointers.Bool(true)},
-		},
-	},
-	Resources: map[string]string{"db": "demo_db"},
-	Python: &PythonDefinition{
-		Entrypoint: "hello_world.py",
-	},
-	Timeout: 3600,
-	Schedules: map[string]ScheduleDefinition{
-		"every_midnight": {
-			Name:     "Every Midnight",
-			CronExpr: "0 0 * * *",
-		},
-		"no_name_params": {
-			CronExpr: "0 0 * * *",
-			ParamValues: map[string]interface{}{
-				"param_one": 5.5,
-				"param_two": "memes",
-			},
-		},
-	},
-	Permissions: &PermissionsDefinition{
-		Viewers:                    PermissionRecipients{Groups: []string{"group1"}, Users: []string{"user1"}},
-		Requesters:                 PermissionRecipients{Groups: []string{"group2"}},
-		Executers:                  PermissionRecipients{Groups: []string{"group3", "group4"}},
-		Admins:                     PermissionRecipients{Groups: []string{"group5"}},
-		RequireExplicitPermissions: true,
-	},
-}
-
-// Contains no explicit defaults.
-var defWithDefault = Definition{
-	Name:        "Hello World",
-	Slug:        "hello_world",
-	Description: "A starter task.",
-	Parameters: []ParameterDefinition{
-		{
-			Name:        "Name",
-			Slug:        "name",
-			Type:        "shorttext",
-			Description: "Someone's name.",
-			Default:     "World",
-		},
-	},
-	Python: &PythonDefinition{
-		Entrypoint: "hello_world.py",
-	},
-	Timeout:   3600,
-	Resources: map[string]string{"db": "demo_db"},
-	Schedules: map[string]ScheduleDefinition{
-		"every_midnight": {
-			Name:     "Every Midnight",
-			CronExpr: "0 0 * * *",
-		},
-		"no_name_params": {
-			CronExpr: "0 0 * * *",
-			ParamValues: map[string]interface{}{
-				"param_one": 5.5,
-				"param_two": "memes",
-			},
-		},
-	},
-	Permissions: &PermissionsDefinition{
-		Viewers:                    PermissionRecipients{Groups: []string{"group1"}, Users: []string{"user1"}},
-		Requesters:                 PermissionRecipients{Groups: []string{"group2"}},
-		Executers:                  PermissionRecipients{Groups: []string{"group3", "group4"}},
-		Admins:                     PermissionRecipients{Groups: []string{"group5"}},
-		RequireExplicitPermissions: true,
-	},
-}
-
-var defWithDefaultAndTeamAccessPermissions = Definition{
-	Name:        "Hello World",
-	Slug:        "hello_world",
-	Description: "A starter task.",
-	Parameters: []ParameterDefinition{
-		{
-			Name:        "Name",
-			Slug:        "name",
-			Type:        "shorttext",
-			Description: "Someone's name.",
-			Default:     "World",
-		},
-	},
-	Python: &PythonDefinition{
-		Entrypoint: "hello_world.py",
-	},
-	Timeout:   3600,
-	Resources: map[string]string{"db": "demo_db"},
-	Schedules: map[string]ScheduleDefinition{
-		"every_midnight": {
-			Name:     "Every Midnight",
-			CronExpr: "0 0 * * *",
-		},
-		"no_name_params": {
-			CronExpr: "0 0 * * *",
-			ParamValues: map[string]interface{}{
-				"param_one": 5.5,
-				"param_two": "memes",
-			},
-		},
-	},
-	Permissions: &PermissionsDefinition{
-		RequireExplicitPermissions: false,
-	},
-}
-
-func TestDefinitionMarshal(t *testing.T) {
-	// marshalling tests
-	for _, test := range []struct {
-		name     string
-		format   DefFormat
-		def      Definition
-		expected []byte
-	}{
-		{
-			name:     "marshal yaml",
-			format:   DefFormatYAML,
-			def:      fullDef,
-			expected: yamlWithDefault,
+`,
 		},
 		{
-			name:     "marshal json",
-			format:   DefFormatJSON,
-			def:      fullDef,
-			expected: jsonWithDefault,
-		},
-		{
-			name:     "marshal yaml with team access permissions",
-			format:   DefFormatYAML,
-			def:      defWithDefaultAndTeamAccessPermissions,
-			expected: yamlWithDefaultAndTeamAccessPermissions,
-		},
-		{
-			name:     "marshal json with team access permissions",
-			format:   DefFormatJSON,
-			def:      defWithDefaultAndTeamAccessPermissions,
-			expected: jsonWithDefaultAndTeamAccessPermissions,
-		},
-		{
-			name:   "marshal yaml with multiline",
-			format: DefFormatYAML,
+			// This test sets all values to non-default values. All should be serialized.
+			name: "non-default values",
 			def: Definition{
-				Name: "REST task",
+				Slug:        "hello_world",
+				Name:        "Hello World",
+				Description: "A starter task.",
+				Parameters: []ParameterDefinition{
+					{
+						Name:        "Name",
+						Slug:        "name",
+						Type:        "shorttext",
+						Description: "Someone's name.",
+						Default:     "World",
+						Required:    NewDefaultTrueDefinition(false),
+					},
+				},
+				Resources: map[string]string{"db": "demo_db"},
+				Python: &PythonDefinition{
+					Entrypoint: "entrypoint.py",
+					EnvVars: api.TaskEnv{
+						"TEST_ENV": api.EnvVarValue{
+							Value: pointers.String("hello world"),
+						},
+					},
+				},
+				Timeout: 600,
+				Schedules: map[string]ScheduleDefinition{
+					"every_midnight": {
+						Name:     "Every Midnight",
+						CronExpr: "0 0 * * *",
+					},
+					"no_name_params": {
+						CronExpr: "0 0 * * *",
+						ParamValues: map[string]interface{}{
+							"param_one": 5.5,
+							"param_two": "memes",
+						},
+					},
+				},
+				Permissions: &PermissionsDefinition{
+					Viewers:                    PermissionRecipients{Groups: []string{"group1"}, Users: []string{"user1"}},
+					Requesters:                 PermissionRecipients{Groups: []string{"group2"}},
+					Executers:                  PermissionRecipients{Groups: []string{"group3", "group4"}},
+					Admins:                     PermissionRecipients{Groups: []string{"group5"}},
+					RequireExplicitPermissions: true,
+				},
+			},
+			expectedYAML: `slug: hello_world
+name: Hello World
+description: A starter task.
+parameters:
+- slug: name
+  name: Name
+  description: Someone's name.
+  type: shorttext
+  required: false
+  default: World
+resources:
+  db: demo_db
+python:
+  entrypoint: entrypoint.py
+  envVars:
+    TEST_ENV:
+      value: hello world
+timeout: 600
+schedules:
+  every_midnight:
+    name: Every Midnight
+    cron: 0 0 * * *
+  no_name_params:
+    cron: 0 0 * * *
+    paramValues:
+      param_one: 5.5
+      param_two: memes
+permissions:
+  viewers:
+    groups:
+    - group1
+    users:
+    - user1
+  requesters:
+    groups:
+    - group2
+  executers:
+    groups:
+    - group3
+    - group4
+  admins:
+    groups:
+    - group5
+`,
+			expectedJSON: `{
+	"slug": "hello_world",
+	"name": "Hello World",
+	"description": "A starter task.",
+	"parameters": [
+		{
+			"slug": "name",
+			"name": "Name",
+			"description": "Someone's name.",
+			"type": "shorttext",
+			"required": false,
+			"default": "World"
+		}
+	],
+	"resources": {
+		"db": "demo_db"
+	},
+	"python": {
+		"entrypoint": "entrypoint.py",
+		"envVars": {
+			"TEST_ENV": {
+				"value": "hello world"
+			}
+		}
+	},
+	"timeout": 600,
+	"schedules": {
+		"every_midnight": {
+			"name": "Every Midnight",
+			"cron": "0 0 * * *"
+		},
+		"no_name_params": {
+			"cron": "0 0 * * *",
+			"paramValues": {
+				"param_one": 5.5,
+				"param_two": "memes"
+			}
+		}
+	},
+	"permissions": {
+		"viewers": {
+			"groups": [
+				"group1"
+			],
+			"users": [
+				"user1"
+			]
+		},
+		"requesters": {
+			"groups": [
+				"group2"
+			]
+		},
+		"executers": {
+			"groups": [
+				"group3",
+				"group4"
+			]
+		},
+		"admins": {
+			"groups": [
+				"group5"
+			]
+		}
+	}
+}
+`,
+		},
+		{
+			name: "team access permissions",
+			def: Definition{
+				Slug: "hello_world",
+				Python: &PythonDefinition{
+					Entrypoint: "entrypoint.py",
+				},
+				Permissions: &PermissionsDefinition{
+					RequireExplicitPermissions: false,
+				},
+			},
+			expectedYAML: `slug: hello_world
+python:
+  entrypoint: entrypoint.py
+permissions: team_access
+`,
+			expectedJSON: `{
+	"slug": "hello_world",
+	"python": {
+		"entrypoint": "entrypoint.py"
+	},
+	"permissions": "team_access"
+}
+`,
+		},
+		{
+			name: "multiline strings",
+			def: Definition{
 				Slug: "rest_task",
 				REST: &RESTDefinition{
 					Resource: "httpbin",
@@ -458,11 +291,8 @@ func TestDefinitionMarshal(t *testing.T) {
 					BodyType: "json",
 					Body:     "{\n  \"name\": \"foo\",\n  \"number\": 30\n}\n",
 				},
-				Timeout: 300,
 			},
-			expected: []byte(
-				`slug: rest_task
-name: REST task
+			expectedYAML: `slug: rest_task
 rest:
   resource: httpbin
   method: POST
@@ -473,100 +303,41 @@ rest:
       "name": "foo",
       "number": 30
     }
-timeout: 300
-`),
-		},
-		{
-			name:   "marshal json with multiline",
-			format: DefFormatJSON,
-			def: Definition{
-				Name: "REST task",
-				Slug: "rest_task",
-				REST: &RESTDefinition{
-					Resource: "httpbin",
-					Method:   "POST",
-					Path:     "/post",
-					BodyType: "json",
-					Body:     "{\n  \"name\": \"foo\",\n  \"number\": 30\n}\n",
-				},
-				Timeout: 300,
-			},
-			expected: []byte(
-				`{
+`,
+			expectedJSON: `{
 	"slug": "rest_task",
-	"name": "REST task",
 	"rest": {
 		"resource": "httpbin",
 		"method": "POST",
 		"path": "/post",
 		"bodyType": "json",
 		"body": "{\n  \"name\": \"foo\",\n  \"number\": 30\n}\n"
-	},
-	"timeout": 300
-}
-`),
-		},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			assert := require.New(t)
-			bytestr, err := test.def.Marshal(test.format)
-			assert.NoError(err)
-			assert.Equal(test.expected, bytestr)
-		})
 	}
 }
-
-func TestDefinitionUnmarshal(t *testing.T) {
-
-	for _, test := range []struct {
-		name     string
-		format   DefFormat
-		bytestr  []byte
-		expected Definition
-	}{
-		{
-			name:     "unmarshal yaml",
-			format:   DefFormatYAML,
-			bytestr:  fullYAML,
-			expected: fullDef,
-		},
-		{
-			name:     "unmarshal json",
-			format:   DefFormatJSON,
-			bytestr:  fullJSON,
-			expected: fullDef,
-		},
-		{
-			name:     "unmarshal yaml with default",
-			format:   DefFormatYAML,
-			bytestr:  yamlWithDefault,
-			expected: defWithDefault,
-		},
-		{
-			name:     "unmarshal json with default",
-			format:   DefFormatJSON,
-			bytestr:  jsonWithDefault,
-			expected: defWithDefault,
-		},
-		{
-			name:     "marshal yaml with team access permissions",
-			format:   DefFormatYAML,
-			bytestr:  yamlWithDefaultAndTeamAccessPermissions,
-			expected: defWithDefaultAndTeamAccessPermissions,
-		},
-		{
-			name:     "marshal json with team access permissions",
-			format:   DefFormatJSON,
-			bytestr:  jsonWithDefaultAndTeamAccessPermissions,
-			expected: defWithDefaultAndTeamAccessPermissions,
+`,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			assert := require.New(t)
-			d := Definition{}
-			err := d.Unmarshal(test.format, test.bytestr)
-			assert.NoError(err)
-			assert.Equal(test.expected, d)
+			require := require.New(t)
+
+			for _, fmt := range []DefFormat{DefFormatYAML, DefFormatJSON} {
+				expected := test.expectedYAML
+				if fmt == DefFormatJSON {
+					expected = test.expectedJSON
+				}
+
+				bytestr, err := test.def.Marshal(fmt)
+				require.NoError(err)
+				require.Equal(expected, string(bytestr))
+				d := Definition{}
+				err = d.Unmarshal(fmt, []byte(expected))
+				require.NoError(err)
+				if test.overrideUnmarshalledDef != nil {
+					require.Equal(*test.overrideUnmarshalledDef, d)
+				} else {
+					require.Equal(test.def, d)
+				}
+			}
 		})
 	}
 }
@@ -625,7 +396,7 @@ func TestTaskToDefinition(t *testing.T) {
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 				RestrictCallers:    []string{},
-				ConcurrencyLimit:   pointers.Int64(1),
+				ConcurrencyLimit:   NewDefaultOneDefinition(1),
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
@@ -670,7 +441,7 @@ func TestTaskToDefinition(t *testing.T) {
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 				RestrictCallers:    []string{},
-				ConcurrencyLimit:   pointers.Int64(1),
+				ConcurrencyLimit:   NewDefaultOneDefinition(1),
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
@@ -698,7 +469,7 @@ func TestTaskToDefinition(t *testing.T) {
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 				RestrictCallers:    []string{},
-				ConcurrencyLimit:   pointers.Int64(1),
+				ConcurrencyLimit:   NewDefaultOneDefinition(1),
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
@@ -745,7 +516,7 @@ func TestTaskToDefinition(t *testing.T) {
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 				RestrictCallers:    []string{},
-				ConcurrencyLimit:   pointers.Int64(1),
+				ConcurrencyLimit:   NewDefaultOneDefinition(1),
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
@@ -788,7 +559,7 @@ func TestTaskToDefinition(t *testing.T) {
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 				RestrictCallers:    []string{},
-				ConcurrencyLimit:   pointers.Int64(1),
+				ConcurrencyLimit:   NewDefaultOneDefinition(1),
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
@@ -833,7 +604,7 @@ func TestTaskToDefinition(t *testing.T) {
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 				RestrictCallers:    []string{},
-				ConcurrencyLimit:   pointers.Int64(1),
+				ConcurrencyLimit:   NewDefaultOneDefinition(1),
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
@@ -894,7 +665,7 @@ func TestTaskToDefinition(t *testing.T) {
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 				RestrictCallers:    []string{},
-				ConcurrencyLimit:   pointers.Int64(1),
+				ConcurrencyLimit:   NewDefaultOneDefinition(1),
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
@@ -1077,7 +848,7 @@ func TestTaskToDefinition(t *testing.T) {
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 				RestrictCallers:    []string{},
-				ConcurrencyLimit:   pointers.Int64(1),
+				ConcurrencyLimit:   NewDefaultOneDefinition(1),
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
@@ -1097,6 +868,9 @@ func TestTaskToDefinition(t *testing.T) {
 				ExecuteRules: api.ExecuteRules{
 					DisallowSelfApprove: true,
 					RequireRequests:     true,
+					RestrictCallers:     []string{"task", "view"},
+					ConcurrencyKey:      "scripts",
+					ConcurrencyLimit:    pointers.Int64(5),
 				},
 			},
 			definition: Definition{
@@ -1109,8 +883,9 @@ func TestTaskToDefinition(t *testing.T) {
 				},
 				RequireRequests:    true,
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(false)},
-				RestrictCallers:    []string{},
-				ConcurrencyLimit:   pointers.Int64(1),
+				RestrictCallers:    []string{"task", "view"},
+				ConcurrencyKey:     "scripts",
+				ConcurrencyLimit:   NewDefaultOneDefinition(5),
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
@@ -1143,7 +918,7 @@ func TestTaskToDefinition(t *testing.T) {
 				RequireRequests:    false,
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 				RestrictCallers:    []string{},
-				ConcurrencyLimit:   pointers.Int64(1),
+				ConcurrencyLimit:   NewDefaultOneDefinition(1),
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
@@ -1213,7 +988,7 @@ func TestTaskToDefinition(t *testing.T) {
 				Configs:            []string{"CONFIG_NAME_1", "CONFIG_NAME_2"},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 				RestrictCallers:    []string{},
-				ConcurrencyLimit:   pointers.Int64(1),
+				ConcurrencyLimit:   NewDefaultOneDefinition(1),
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
 			},
@@ -1324,7 +1099,7 @@ func TestTaskToDefinition(t *testing.T) {
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 				RestrictCallers:    []string{},
-				ConcurrencyLimit:   pointers.Int64(1),
+				ConcurrencyLimit:   NewDefaultOneDefinition(1),
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Resources:          map[string]string{},
@@ -1370,7 +1145,7 @@ func TestTaskToDefinition(t *testing.T) {
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 				RestrictCallers:    []string{},
-				ConcurrencyLimit:   pointers.Int64(1),
+				ConcurrencyLimit:   NewDefaultOneDefinition(1),
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},
@@ -1430,7 +1205,7 @@ func TestTaskToDefinition(t *testing.T) {
 				},
 				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
 				RestrictCallers:    []string{},
-				ConcurrencyLimit:   pointers.Int64(1),
+				ConcurrencyLimit:   NewDefaultOneDefinition(1),
 				Configs:            []string{},
 				Constraints:        map[string]string{},
 				Schedules:          map[string]ScheduleDefinition{},

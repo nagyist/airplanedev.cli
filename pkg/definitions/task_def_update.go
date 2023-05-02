@@ -73,9 +73,8 @@ func (d *Definition) Update(req api.UpdateTaskRequest, opts UpdateOptions) error
 	if req.ExecuteRules.ConcurrencyKey != nil {
 		d.ConcurrencyKey = *req.ExecuteRules.ConcurrencyKey
 	}
-	d.ConcurrencyLimit = req.ExecuteRules.ConcurrencyLimit
-	if d.ConcurrencyLimit == nil {
-		d.ConcurrencyLimit = pointers.Int64(1)
+	if req.ExecuteRules.ConcurrencyLimit != nil {
+		d.ConcurrencyLimit = NewDefaultOneDefinition(int(*req.ExecuteRules.ConcurrencyLimit))
 	}
 
 	if opts.Triggers != nil {

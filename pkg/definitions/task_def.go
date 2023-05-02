@@ -16,6 +16,15 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// Definition specifies a task's configuration.
+//
+// A definition is commonly serialized as a YAML file in a `.task.yaml` file however it can also be
+// inlined with a task's code, e.g. in a JavaScript or Python file.
+//
+// Optional fields should have `omitempty` set. If omitempty doesn't work on the field's type, add an
+// `IsZero` method. See the `DefaultXYZDefinition` structs as an example. Add test cases to
+// TestDefinitionMarshal to confirm this behavior. This behavior is relied upon when updating task
+// definitions via `definitions/updaters`. You should also add test cases there for the new fields.
 type Definition struct {
 	Slug        string                 `json:"slug"`
 	Name        string                 `json:"name,omitempty"`
@@ -40,7 +49,7 @@ type Definition struct {
 	AllowSelfApprovals DefaultTrueDefinition `json:"allowSelfApprovals,omitempty"`
 	RestrictCallers    []string              `json:"restrictCallers,omitempty"`
 	ConcurrencyKey     string                `json:"concurrencyKey,omitempty"`
-	ConcurrencyLimit   *int64                `json:"concurrencyLimit,omitempty"`
+	ConcurrencyLimit   DefaultOneDefinition  `json:"concurrencyLimit,omitempty"`
 
 	Schedules   map[string]ScheduleDefinition `json:"schedules,omitempty"`
 	Permissions *PermissionsDefinition        `json:"permissions,omitempty"`
@@ -309,11 +318,25 @@ func (d *Definition) UnmarshalJSON(b []byte) error {
 		break
 	}
 
+	// The default timeout is conditional on the runtime, so it can't use a DefaultXDefinition struct.
+	// Invert the conditional omitempty behavior from Marshal().
+	if def.Timeout == 0 {
+		if def.Runtime == buildtypes.TaskRuntimeStandard {
+			def.Timeout = 3600
+		}
+	}
+
 	return nil
 }
 
 // Marshal returns a serialized version of the definition in the given format.
 func (d Definition) Marshal(format DefFormat) ([]byte, error) {
+	// The default timeout is conditional on the runtime, so it can't use a DefaultXDefinition struct.
+	// Clear it if it is the default so that omitempty applies.
+	if d.Timeout == 3600 && d.Runtime == buildtypes.TaskRuntimeStandard {
+		d.Timeout = 0
+	}
+
 	switch format {
 	case DefFormatYAML:
 		// Use the JSON marshaler so we use MarshalJSON methods.
@@ -605,7 +628,7 @@ func (d Definition) GetTask(opts GetTaskOpts) (api.Task, error) {
 			DisallowSelfApprove: !d.AllowSelfApprovals.Value(),
 			RestrictCallers:     d.RestrictCallers,
 			ConcurrencyKey:      d.ConcurrencyKey,
-			ConcurrencyLimit:    d.ConcurrencyLimit,
+			ConcurrencyLimit:    pointers.Int64(int64(d.ConcurrencyLimit.Value())),
 		},
 		Resources: api.Resources{},
 		Configs:   []api.ConfigAttachment{},

@@ -36,6 +36,8 @@ export default airplane.task(
     requireRequests: true,
     allowSelfApprovals: false,
     restrictCallers: ["view", "task"],
+    concurrencyKey: "scripts",
+    concurrencyLimit: 5,
     schedules: {
       all: {
         name: "All fields",
@@ -47,6 +49,21 @@ export default airplane.task(
       },
       min: {
         cron: "* * * * *"
+      }
+    },
+    permissions: {
+      viewers: {
+        groups: ["group1"],
+        users: ["user1"]
+      },
+      requesters: {
+        groups: ["group2"]
+      },
+      executers: {
+        groups: ["group3", "group4"]
+      },
+      admins: {
+        groups: ["group5"]
       }
     }
   },

@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/pkg/errors"
@@ -15,11 +14,6 @@ func UpdateYAMLTask(ctx context.Context, logger logger.Logger, path string, slug
 	format := definitions.GetTaskDefFormat(path)
 	if format == definitions.DefFormatUnknown {
 		return errors.Errorf("updating tasks within %q files is not supported", filepath.Base(path))
-	}
-
-	// Apply a default value to the timeout field.
-	if def.Timeout == 3600 && def.Runtime == types.TaskRuntimeStandard {
-		def.Timeout = 0
 	}
 
 	content, err := def.Marshal(format)

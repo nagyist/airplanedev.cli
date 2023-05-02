@@ -42,3 +42,39 @@ func (d DefaultTrueDefinition) MarshalJSON() ([]byte, error) {
 func (d DefaultTrueDefinition) IsZero() bool {
 	return d.Value()
 }
+
+type DefaultOneDefinition struct {
+	value *int
+}
+
+var _ yaml.IsZeroer = &DefaultOneDefinition{}
+var _ json.Unmarshaler = &DefaultOneDefinition{}
+var _ json.Marshaler = &DefaultOneDefinition{}
+
+func NewDefaultOneDefinition(value int) DefaultOneDefinition {
+	return DefaultOneDefinition{&value}
+}
+
+func (d DefaultOneDefinition) Value() int {
+	if d.value == nil {
+		return 1
+	}
+	return *d.value
+}
+
+func (d *DefaultOneDefinition) UnmarshalJSON(b []byte) error {
+	var v int
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	d.value = &v
+	return nil
+}
+
+func (d DefaultOneDefinition) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.Value())
+}
+
+func (d DefaultOneDefinition) IsZero() bool {
+	return d.Value() == 1
+}

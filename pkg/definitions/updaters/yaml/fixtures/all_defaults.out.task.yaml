@@ -2,3 +2,4 @@ slug: my_task
 node:
   entrypoint: ./entrypoint.js
   nodeVersion: "18"
+permissions: team_access

@@ -70,6 +70,15 @@ func TestUpdateYAMLTask(t *testing.T) {
 				Resources: map[string]string{
 					"db": "db",
 				},
+				ConcurrencyKey:   "scripts",
+				ConcurrencyLimit: definitions.NewDefaultOneDefinition(5),
+				Permissions: &definitions.PermissionsDefinition{
+					Viewers:                    definitions.PermissionRecipients{Groups: []string{"group1"}, Users: []string{"user1"}},
+					Requesters:                 definitions.PermissionRecipients{Groups: []string{"group2"}},
+					Executers:                  definitions.PermissionRecipients{Groups: []string{"group3", "group4"}},
+					Admins:                     definitions.PermissionRecipients{Groups: []string{"group5"}},
+					RequireExplicitPermissions: true,
+				},
 			},
 		},
 		{
@@ -100,7 +109,11 @@ func TestUpdateYAMLTask(t *testing.T) {
 				AllowSelfApprovals: definitions.NewDefaultTrueDefinition(true),
 				Timeout:            3600,
 				Runtime:            types.TaskRuntimeStandard,
-				Schedules:          map[string]definitions.ScheduleDefinition{},
+				Schedules:          map[string]definitions.ScheduleDefinition{}, ConcurrencyKey: "",
+				ConcurrencyLimit: definitions.NewDefaultOneDefinition(1),
+				Permissions: &definitions.PermissionsDefinition{
+					RequireExplicitPermissions: false,
+				},
 			},
 		},
 		{

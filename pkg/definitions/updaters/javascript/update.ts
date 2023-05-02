@@ -109,10 +109,6 @@ const buildTaskConfig = (def: any): ExpressionKind => {
 
     delete def.node;
   }
-  // Apply a default value to the timeout field.
-  if (def.timeout === 0 || (def.runtime !== "workflow" && def.timeout === 3600)) {
-    delete def.timeout;
-  }
   // Parameters are stored as a map of slug to parameter definition rather than a list of definitions.
   if (def.parameters) {
     const parameters = {};
