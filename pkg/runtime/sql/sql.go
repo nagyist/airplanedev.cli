@@ -11,8 +11,8 @@ import (
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/builtins"
 	"github.com/airplanedev/cli/pkg/definitions"
+	"github.com/airplanedev/cli/pkg/definitions/updaters"
 	"github.com/airplanedev/cli/pkg/runtime"
-	"github.com/airplanedev/cli/pkg/runtime/updaters"
 	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/pkg/errors"
 )
@@ -84,7 +84,7 @@ func (r Runtime) SupportsLocalExecution() bool {
 }
 
 func (r Runtime) Update(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
-	if err := updaters.UpdateYAML(ctx, logger, path, slug, def); err != nil {
+	if err := updaters.UpdateYAMLTask(ctx, logger, path, slug, def); err != nil {
 		return err
 	}
 
@@ -112,7 +112,7 @@ func (r Runtime) Update(ctx context.Context, logger logger.Logger, path string, 
 }
 
 func (r Runtime) CanUpdate(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error) {
-	if canUpdate, err := updaters.CanUpdateYAML(path); err != nil {
+	if canUpdate, err := updaters.CanUpdateYAMLTask(path); err != nil {
 		return false, err
 	} else if !canUpdate {
 		return false, nil

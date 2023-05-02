@@ -13,13 +13,13 @@ concurrency:
 
 jobs:
   run:
-    name: test (${{ matrix.dir }})
+    name: test (${{ matrix.dir.name }})
     strategy:
       fail-fast: false
       matrix:
         dir:
-          - pkg/runtime/javascript/updater
-          - pkg/deploy/discover/parser/node
+          - { name: "updater", value: "pkg/definitions/updaters/javascript" }
+          - { name: "discovery", value: "pkg/deploy/discover/parser/node" }
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -27,16 +27,16 @@ jobs:
         with:
           node-version: 18
           cache: "yarn"
-          cache-dependency-path: "${{matrix.dir}}/yarn.lock"
-      - run: cd ${{matrix.dir}} && yarn install --frozen-lockfile
+          cache-dependency-path: "${{matrix.dir.value}}/yarn.lock"
+      - run: cd ${{matrix.dir.value}} && yarn install --frozen-lockfile
       - name: lint
-        run: cd ${{matrix.dir}} && yarn lint
+        run: cd ${{matrix.dir.value}} && yarn lint
       - name: build
-        run: cd ${{matrix.dir}} && yarn build
+        run: cd ${{matrix.dir.value}} && yarn build
       # If this check fails, it likely means that the JS files checked in are out-of-date.
       # Run `yarn build` and commit the changes.
       - name: check for modified files
         run: git diff HEAD --exit-code --text
         # Temporarily disable this check on parser b/c the file generated in CI is
         # different than what we generate locally.
-        if: matrix.dir != 'pkg/deploy/discover/parser/node'
+        if: matrix.dir.name != 'discovery'

@@ -19,10 +19,10 @@ import (
 	"github.com/airplanedev/cli/pkg/build/python"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/definitions"
+	"github.com/airplanedev/cli/pkg/definitions/updaters"
 	"github.com/airplanedev/cli/pkg/deploy/config"
 	"github.com/airplanedev/cli/pkg/deploy/utils"
 	"github.com/airplanedev/cli/pkg/runtime"
-	"github.com/airplanedev/cli/pkg/runtime/updaters"
 	"github.com/airplanedev/cli/pkg/utils/airplane_directory"
 	"github.com/airplanedev/cli/pkg/utils/fsx"
 	"github.com/airplanedev/cli/pkg/utils/logger"
@@ -512,7 +512,7 @@ func (r Runtime) Update(ctx context.Context, logger logger.Logger, path string, 
 		return errors.New("Support for updating .py files is coming soon.")
 	}
 
-	return updaters.UpdateYAML(ctx, logger, path, slug, def)
+	return updaters.UpdateYAMLTask(ctx, logger, path, slug, def)
 }
 
 func (r Runtime) CanUpdate(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error) {
@@ -521,5 +521,5 @@ func (r Runtime) CanUpdate(ctx context.Context, logger logger.Logger, path strin
 		return false, errors.New("Support for updating .py files is coming soon.")
 	}
 
-	return updaters.CanUpdateYAML(path)
+	return updaters.CanUpdateYAMLTask(path)
 }

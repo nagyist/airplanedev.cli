@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"text/template"
 	"time"
@@ -21,10 +20,9 @@ import (
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	buildversions "github.com/airplanedev/cli/pkg/build/versions"
 	"github.com/airplanedev/cli/pkg/definitions"
+	"github.com/airplanedev/cli/pkg/definitions/updaters"
 	"github.com/airplanedev/cli/pkg/deploy/config"
-	deployutils "github.com/airplanedev/cli/pkg/deploy/utils"
 	"github.com/airplanedev/cli/pkg/runtime"
-	"github.com/airplanedev/cli/pkg/runtime/updaters"
 	"github.com/airplanedev/cli/pkg/utils/airplane_directory"
 	"github.com/airplanedev/cli/pkg/utils/cryptox"
 	"github.com/airplanedev/cli/pkg/utils/fsx"
@@ -42,9 +40,6 @@ func init() {
 const (
 	depHashFile = "dep-hash"
 )
-
-//go:embed updater/index.js
-var updaterScript []byte
 
 // Code template.
 var code = template.Must(template.New("js").Parse(`{{with .Comment -}}
@@ -578,103 +573,12 @@ func (r Runtime) SupportsLocalExecution() bool {
 	return true
 }
 
-var airplaneErrorRegex = regexp.MustCompile("__airplane_error (.*)\n")
-var airplaneOutputRegex = regexp.MustCompile("__airplane_output (.*)\n")
-
 func (r Runtime) Update(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
-	if deployutils.IsNodeInlineAirplaneEntity(path) {
-		if _, err := os.Stat(path); err != nil {
-			return errors.Wrap(err, "opening file")
-		}
-
-		tempFile, err := os.CreateTemp("", "airplane.transformer-js-*")
-		if err != nil {
-			return errors.Wrap(err, "creating temporary file")
-		}
-		defer os.Remove(tempFile.Name())
-		_, err = tempFile.Write(updaterScript)
-		if err != nil {
-			return errors.Wrap(err, "writing script")
-		}
-
-		defJSON, err := def.Marshal(definitions.DefFormatJSON)
-		if err != nil {
-			return errors.Wrap(err, "marshalling definition as JSON")
-		}
-
-		_, err = runNodeCommand(ctx, logger, updaterScript, "update", path, slug, string(defJSON))
-		if err != nil {
-			return errors.WithMessagef(err, "updating task at %q (re-run with --debug for more context)", path)
-		}
-
-		return nil
-	}
-
-	return updaters.UpdateYAML(ctx, logger, path, slug, def)
+	return updaters.UpdateJavaScriptTask(ctx, logger, path, slug, def)
 }
 
 func (r Runtime) CanUpdate(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error) {
-	if deployutils.IsNodeInlineAirplaneEntity(path) {
-		if _, err := os.Stat(path); err != nil {
-			return false, errors.Wrap(err, "opening file")
-		}
-
-		out, err := runNodeCommand(ctx, logger, updaterScript, "can_update", path, slug)
-		if err != nil {
-			return false, errors.WithMessagef(err, "checking if task can be updated at %q (re-run with --debug for more context)", path)
-		}
-
-		var canEdit bool
-		if err := json.Unmarshal([]byte(out), &canEdit); err != nil {
-			return false, errors.Wrap(err, "checking if task can be updated")
-		}
-
-		return canEdit, nil
-	}
-
-	return updaters.CanUpdateYAML(path)
-}
-
-func runNodeCommand(ctx context.Context, logger logger.Logger, script []byte, args ...string) (string, error) {
-	tempFile, err := os.CreateTemp("", "airplane.runtime.javascript-*")
-	if err != nil {
-		return "", errors.Wrap(err, "creating temporary file")
-	}
-	defer os.Remove(tempFile.Name())
-
-	_, err = tempFile.Write(script)
-	if err != nil {
-		return "", errors.Wrap(err, "writing script")
-	}
-
-	allArgs := append([]string{tempFile.Name()}, args...)
-	cmd := exec.Command("node", allArgs...)
-	logger.Debug("Running %s", strings.Join(cmd.Args, " "))
-
-	out, err := cmd.Output()
-	if len(out) == 0 {
-		out = []byte("(none)")
-	}
-	logger.Debug("Output:\n%s", out)
-
-	if err != nil {
-		if ee, ok := err.(*exec.ExitError); ok {
-			matches := airplaneErrorRegex.FindStringSubmatch(string(ee.Stderr))
-			if len(matches) >= 2 {
-				errMsg := matches[1]
-				return "", errors.New(errMsg)
-			}
-		}
-		return "", errors.Wrap(err, "running node command")
-	}
-
-	matches := airplaneOutputRegex.FindStringSubmatch(string(out))
-	if len(matches) >= 2 {
-		msg := matches[1]
-		return msg, nil
-	}
-
-	return "", nil
+	return updaters.CanUpdateJavaScriptTask(ctx, logger, path, slug)
 }
 
 // checkNodeVersion compares the major version of the currently installed

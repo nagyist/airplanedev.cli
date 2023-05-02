@@ -14,8 +14,8 @@ import (
 	"github.com/airplanedev/cli/pkg/build/shell"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/definitions"
+	"github.com/airplanedev/cli/pkg/definitions/updaters"
 	"github.com/airplanedev/cli/pkg/runtime"
-	"github.com/airplanedev/cli/pkg/runtime/updaters"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/airplane_directory"
 	"github.com/airplanedev/cli/pkg/utils/fsx"
@@ -170,11 +170,11 @@ func (r Runtime) SupportsLocalExecution() bool {
 }
 
 func (r Runtime) Update(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
-	return updaters.UpdateYAML(ctx, logger, path, slug, def)
+	return updaters.UpdateYAMLTask(ctx, logger, path, slug, def)
 }
 
 func (r Runtime) CanUpdate(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error) {
-	return updaters.CanUpdateYAML(path)
+	return updaters.CanUpdateYAMLTask(path)
 }
 
 // checkAndPromptFileExecutable checks that a file is executable. If it isn't, it prompts the user to make it

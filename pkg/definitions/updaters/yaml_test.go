@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestUpdateYAML(t *testing.T) {
+func TestUpdateYAMLTask(t *testing.T) {
 	testCases := []struct {
 		name string
 		slug string
@@ -443,7 +443,7 @@ func TestUpdateYAML(t *testing.T) {
 			}
 
 			// Clone the input file into a temporary directory as it will be overwritten by `Update()`.
-			in, err := os.Open(fmt.Sprintf("./fixtures/%s.%s", tC.name, ext))
+			in, err := os.Open(fmt.Sprintf("./yaml/fixtures/%s.%s", tC.name, ext))
 			require.NoError(err)
 			f, err := os.CreateTemp("", "runtime-update-yaml-*."+ext)
 			require.NoError(err)
@@ -456,18 +456,18 @@ func TestUpdateYAML(t *testing.T) {
 
 			l := &logger.MockLogger{}
 
-			canUpdate, err := CanUpdateYAML(f.Name())
+			canUpdate, err := CanUpdateYAMLTask(f.Name())
 			require.NoError(err)
 			require.True(canUpdate)
 
 			// Perform the update on the temporary file.
-			err = UpdateYAML(context.Background(), l, f.Name(), tC.slug, tC.def)
+			err = UpdateYAMLTask(context.Background(), l, f.Name(), tC.slug, tC.def)
 			require.NoError(err)
 
 			// Compare
 			actual, err := os.ReadFile(f.Name())
 			require.NoError(err)
-			expected, err := os.ReadFile(fmt.Sprintf("./fixtures/%s.out.%s", tC.name, ext))
+			expected, err := os.ReadFile(fmt.Sprintf("./yaml/fixtures/%s.out.%s", tC.name, ext))
 			require.NoError(err)
 			require.Equal(string(expected), string(actual))
 		})

@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func UpdateYAML(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
+func UpdateYAMLTask(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
 	format := definitions.GetTaskDefFormat(path)
 	if format == definitions.DefFormatUnknown {
 		return errors.Errorf("updating tasks within %q files is not supported", filepath.Base(path))
@@ -40,7 +40,7 @@ func UpdateYAML(ctx context.Context, logger logger.Logger, path string, slug str
 	return nil
 }
 
-func CanUpdateYAML(path string) (bool, error) {
+func CanUpdateYAMLTask(path string) (bool, error) {
 	if !definitions.IsTaskDef(path) {
 		return false, errors.Errorf("updating tasks within %q files is not supported", filepath.Base(path))
 	}

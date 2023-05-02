@@ -1,2 +1,2 @@
-pkg/runtime/javascript/updater/*.js -diff linguist-generated=true
+pkg/definitions/updaters/javascript/*.js -diff linguist-generated=true
 pkg/deploy/discover/parser/node/*.js -diff linguist-generated=true
