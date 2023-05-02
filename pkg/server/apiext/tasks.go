@@ -75,9 +75,22 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 
 	localTaskConfig, ok := state.TaskConfigs.Get(req.Slug)
 	isBuiltin := builtins.IsBuiltinTaskSlug(req.Slug)
-	if !isBuiltin && !ok {
+	hasErrors := false
+	if ok {
+		// If it's registered locally, only execute it if it doesn't have errors.
+		taskErrors, err := state.GetTaskErrors(ctx, req.Slug, pointers.ToString(envSlug))
+		if err != nil {
+			return api.RunTaskResponse{}, err
+		}
+		hasErrors = len(taskErrors.Errors) > 0
+	}
+	if hasErrors || (!isBuiltin && !ok) {
 		if envSlug == nil {
-			return api.RunTaskResponse{}, libhttp.NewErrNotFound("task with slug %q is not registered locally", req.Slug)
+			message := fmt.Sprintf("task with slug %q is not registered locally", req.Slug)
+			if hasErrors {
+				message = fmt.Sprintf("task with slug %q cannot be executed locally", req.Slug)
+			}
+			return api.RunTaskResponse{}, libhttp.NewErrNotFound(message)
 		}
 
 		resp, err := state.RemoteClient.RunTask(ctx, api.RunTaskRequest{
@@ -88,7 +101,11 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		if err != nil {
 			var taskMissingError *libapi.TaskMissingError
 			if errors.As(err, &taskMissingError) {
-				return api.RunTaskResponse{}, libhttp.NewErrNotFound("task with slug %q is not registered locally or remotely in environment %q", req.Slug, pointers.ToString(envSlug))
+				message := fmt.Sprintf("task with slug %q is not registered locally or remotely in environment %q", req.Slug, pointers.ToString(envSlug))
+				if hasErrors {
+					message = fmt.Sprintf("task with slug %q cannot be executed locally and is not registered remotely in environment %q", req.Slug, pointers.ToString(envSlug))
+				}
+				return api.RunTaskResponse{}, libhttp.NewErrNotFound(message)
 			} else {
 				return api.RunTaskResponse{}, err
 			}
