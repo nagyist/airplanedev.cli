@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   test:
-    name: test (${{ matrix.test.name }})
+    name: test (py-${{ matrix.test.name }})
     strategy:
       fail-fast: false
       matrix:

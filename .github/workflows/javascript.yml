@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   run:
-    name: test (${{ matrix.dir.name }})
+    name: test (js-${{ matrix.dir.name }})
     strategy:
       fail-fast: false
       matrix:
