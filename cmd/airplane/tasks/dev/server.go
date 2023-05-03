@@ -1,6 +1,7 @@
 package dev
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"net"
@@ -249,13 +250,20 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	studioURL := fmt.Sprintf("%s/studio?__airplane_host=%s&__env=%s", appURL, studioHost, remoteEnv.Slug)
 	logger.Log("Started studio session at %s (^C to quit)", logger.Blue(studioURL))
 
-	// Execute the flow to open the studio in the browser in a separate goroutine so fmt.Scanln doesn't capture
+	// Execute the flow to open the studio in the browser in a separate goroutine so bufio.NewReader doesn't capture
 	// termination signals.
 	if !cfg.sandbox {
 		logger.Log("Press ENTER to open the studio in the browser.")
 		logger.Log("")
 		go func() {
-			fmt.Scanln()
+			// Use bufio.NewReader to properly handle interrupts on Windows. fmt.Scanln() does not return an error
+			// when interrupted on Windows, and so there's no way to distinguish between a user pressing enter vs
+			// Ctrl+C here.
+			_, err := bufio.NewReader(os.Stdin).ReadBytes('\n')
+			if err != nil {
+				return
+			}
+
 			if ok := utils.Open(studioURL); !ok {
 				logger.Log("Something went wrong. Try running the command with the --debug flag for more details.")
 			}
