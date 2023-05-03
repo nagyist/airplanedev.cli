@@ -4,9 +4,9 @@ import (
 	"context"
 	"path/filepath"
 
-	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 )
 
 type InitViewFromExampleRequest struct {

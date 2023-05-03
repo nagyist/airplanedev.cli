@@ -8,8 +8,8 @@ import (
 	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/build/clibuild"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/spf13/cobra"
 )
 

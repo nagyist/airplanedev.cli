@@ -9,7 +9,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
-	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/pkg/errors"
 )
 

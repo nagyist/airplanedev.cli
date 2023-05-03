@@ -16,7 +16,6 @@ import (
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/initcmd"
-	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/cli/pkg/runtime"
 	_ "github.com/airplanedev/cli/pkg/runtime/javascript"
@@ -26,6 +25,7 @@ import (
 	_ "github.com/airplanedev/cli/pkg/runtime/sql"
 	_ "github.com/airplanedev/cli/pkg/runtime/typescript"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

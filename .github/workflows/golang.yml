@@ -41,8 +41,9 @@ jobs:
       - uses: golangci/golangci-lint-action@v3
         with:
           version: v1.51.2
-          args: --timeout=5m
-          skip-go-installation: true
+          # Set the output format so that you can see where the lint issue is.
+          # https://github.com/golangci/golangci-lint-action/issues/119#issuecomment-981090648
+          args: "--timeout=5m --out-${NO_FUTURE}format colored-line-number"
           skip-pkg-cache: true
           skip-build-cache: true
       # https://github.com/pre-commit/action
@@ -61,6 +62,13 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
+      - uses: actions/setup-python@v4
+        with:
+          # Use the oldest supported version of Python. This ensures that our
+          # Python code (e.g. discovery, updater) can run on that version.
+          #
+          # We use 3.8 not 3.7 since the updater does not support 3.7.
+          python-version: "3.8"
 
       - name: Get current date (EST)
         id: date

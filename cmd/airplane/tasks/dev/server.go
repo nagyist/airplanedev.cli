@@ -16,12 +16,12 @@ import (
 	build "github.com/airplanedev/cli/pkg/build/clibuild"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/dev"
-	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/filewatcher"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/fsx"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/pkg/errors"
 )

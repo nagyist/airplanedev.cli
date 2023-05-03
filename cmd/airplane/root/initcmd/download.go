@@ -9,8 +9,8 @@ import (
 
 	"github.com/airplanedev/cli/pkg/build/clibuild"
 	"github.com/airplanedev/cli/pkg/dev"
-	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )

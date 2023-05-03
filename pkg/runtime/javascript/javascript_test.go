@@ -20,6 +20,7 @@ import (
 )
 
 func TestFormatComment(t *testing.T) {
+	t.Parallel()
 	require := require.New(t)
 
 	r := Runtime{}
@@ -31,6 +32,7 @@ line 2`))
 }
 
 func TestDev(tt *testing.T) {
+	tt.Parallel()
 	ctx := context.Background()
 
 	tests := []runtimetest.Test{
@@ -88,6 +90,7 @@ func TestDev(tt *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		desc         string
 		path         string
@@ -123,7 +126,9 @@ func TestVersion(t *testing.T) {
 		},
 	}
 	for _, tC := range testCases {
+		tC := tC // rebind for parallel tests
 		t.Run(tC.desc, func(t *testing.T) {
+			t.Parallel()
 			require := require.New(t)
 
 			r, err := runtime.Lookup(tC.path, buildtypes.TaskKindNode)

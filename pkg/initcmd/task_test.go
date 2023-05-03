@@ -12,7 +12,6 @@ import (
 	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	deployconfig "github.com/airplanedev/cli/pkg/deploy/config"
-	"github.com/airplanedev/cli/pkg/logger"
 	_ "github.com/airplanedev/cli/pkg/runtime/javascript"
 	_ "github.com/airplanedev/cli/pkg/runtime/python"
 	_ "github.com/airplanedev/cli/pkg/runtime/rest"
@@ -20,6 +19,7 @@ import (
 	_ "github.com/airplanedev/cli/pkg/runtime/sql"
 	_ "github.com/airplanedev/cli/pkg/runtime/typescript"
 	"github.com/airplanedev/cli/pkg/testutils"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/stretchr/testify/require"
 )
 

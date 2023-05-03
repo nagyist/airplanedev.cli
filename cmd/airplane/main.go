@@ -9,8 +9,8 @@ import (
 
 	"github.com/airplanedev/cli/cmd/airplane/root"
 	"github.com/airplanedev/cli/pkg/analytics"
-	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/airplanedev/trap"
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"

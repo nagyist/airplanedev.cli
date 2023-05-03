@@ -8,10 +8,10 @@ import (
 
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
-	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/runtime"
 	"github.com/airplanedev/cli/pkg/server/status"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slices"
 )

@@ -9,7 +9,7 @@ import (
 	"github.com/airplanedev/cli/pkg/build"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/configs"
-	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/pkg/errors"
 )
 

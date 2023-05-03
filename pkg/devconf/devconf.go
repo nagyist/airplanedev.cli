@@ -1,4 +1,4 @@
-package conf
+package devconf
 
 import (
 	"encoding/json"
@@ -9,11 +9,16 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/dev/env"
-	"github.com/airplanedev/cli/pkg/logger"
 	libresources "github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
+)
+
+var (
+	// ErrMissing is returned when the config file does not exist.
+	ErrMissing = errors.New("conf: config file does not exist")
 )
 
 var DefaultDevConfigFileName = "airplane.dev.yaml"

@@ -1,0 +1,58 @@
+name: python
+
+on:
+  push:
+    branches: ["main"]
+  pull_request: {}
+
+concurrency:
+  # If this was triggered from a pull request, only run one at a time and cancel any older,
+  # in-progress runs.
+  group: python-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (${{ matrix.test.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        test:
+          - { name: "updater", dir: "pkg/definitions/updaters/python" }
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: pipx install poetry
+      - uses: actions/setup-python@v4
+        with:
+          # Install multiple versions of Python. We need all installed for `make build`.
+          python-version: |
+            3.8
+            3.9
+            3.10
+            3.11
+          cache: "poetry"
+          cache-dependency-path: "${{ matrix.test.dir }}/poetry.lock"
+      - run: poetry install
+        working-directory: "${{ matrix.test.dir }}"
+      - run: make lint
+        working-directory: "${{ matrix.test.dir }}"
+      - run: |
+          mkdir pex-old
+          cd pex-old
+          unzip ../updater.pex
+        working-directory: "${{ matrix.test.dir }}"
+      - run: make build
+        working-directory: "${{ matrix.test.dir }}"
+      - run: |
+          mkdir pex-new
+          cd pex-new
+          unzip ../updater.pex
+        working-directory: "${{ matrix.test.dir }}"
+      - name: "check for outdated pex files (run 'make build' to fix)"
+        run: |
+          # The bootstrap_hash and pex_hash fields will differ between our laptops / CI. Ignore them.
+          # Diffing the code_hash and distributions fields is sufficient to guard against forgetting
+          # to update the pex file.
+          diff <(jq --sort-keys 'del(.bootstrap_hash, .pex_hash)' pex-old/PEX-INFO) <(jq --sort-keys 'del(.bootstrap_hash, .pex_hash)' pex-new/PEX-INFO)
+        working-directory: "${{ matrix.test.dir }}"

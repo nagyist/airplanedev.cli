@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	libapi "github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
+	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
-	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
+	"github.com/airplanedev/cli/pkg/devconf"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/stretchr/testify/require"
 )
@@ -60,7 +60,7 @@ func TestListTasks(t *testing.T) {
 			taskSlug2: taskConfig2,
 		}),
 		AppCondition: state.NewStore[string, state.AppCondition](nil),
-		DevConfig:    &conf.DevConfig{},
+		DevConfig:    &devconf.DevConfig{},
 		RemoteClient: &api.MockClient{},
 	}
 
@@ -117,7 +117,7 @@ func TestTaskConfigToAPITask(t *testing.T) {
 			taskSlug: tc,
 		}),
 		AppCondition: state.NewStore[string, state.AppCondition](nil),
-		DevConfig:    &conf.DevConfig{},
+		DevConfig:    &devconf.DevConfig{},
 		RemoteClient: &api.MockClient{},
 	}
 

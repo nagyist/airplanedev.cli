@@ -10,12 +10,12 @@ import (
 
 	libapi "github.com/airplanedev/cli/pkg/api"
 	api "github.com/airplanedev/cli/pkg/api/cliapi"
-	"github.com/airplanedev/cli/pkg/conf"
 	devenv "github.com/airplanedev/cli/pkg/dev/env"
-	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/devconf"
 	"github.com/airplanedev/cli/pkg/runtime"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/fsx"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
@@ -374,7 +374,7 @@ func filteredSystemEnvVars() []string {
 }
 
 // GetDiscoveryEnvVars get environment variables that are available during discovery.
-func GetDiscoveryEnvVars(devConfig *conf.DevConfig) []string {
+func GetDiscoveryEnvVars(devConfig *devconf.DevConfig) []string {
 	discoveryEnvVars := getCommonEnvVars()
 	discoveryEnvVars["AIRPLANE_RUNTIME"] = "build" // emulates builder behavior
 	envVars := generateEnvVarList(discoveryEnvVars)

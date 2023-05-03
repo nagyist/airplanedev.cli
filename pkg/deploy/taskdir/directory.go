@@ -10,7 +10,7 @@ import (
 )
 
 type TaskDirectory struct {
-	// path is the absolute path of the airplane.yaml task definition.
+	// path is the absolute path of the task definition.
 	defPath string
 	// closer is used to clean up TaskDirectory.
 	closer io.Closer

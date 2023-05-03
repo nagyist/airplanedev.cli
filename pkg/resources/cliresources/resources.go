@@ -7,10 +7,10 @@ import (
 	libapi "github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/api/cliapi"
 	libhttp "github.com/airplanedev/cli/pkg/api/http"
-	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev/env"
-	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/devconf"
 	"github.com/airplanedev/cli/pkg/resources"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/pkg/errors"
 )
@@ -71,7 +71,7 @@ func GenerateAliasToResourceMap(
 	return aliasToResourceMap, nil
 }
 
-func ListResourceMetadata(ctx context.Context, remoteClient api.APIClient, devConfig *conf.DevConfig, envSlug *string) ([]libapi.ResourceMetadata, error) {
+func ListResourceMetadata(ctx context.Context, remoteClient api.APIClient, devConfig *devconf.DevConfig, envSlug *string) ([]libapi.ResourceMetadata, error) {
 	mergedResources, err := MergeRemoteResources(ctx, remoteClient, devConfig, envSlug)
 	if err != nil {
 		return nil, errors.Wrap(err, "merging local and remote resources")
@@ -98,7 +98,7 @@ func ListResourceMetadata(ctx context.Context, remoteClient api.APIClient, devCo
 
 // MergeRemoteResources merges the resources defined in the dev config file with remote resources from the env passed
 // in the local dev server on startup.
-func MergeRemoteResources(ctx context.Context, remoteClient api.APIClient, devConfig *conf.DevConfig, envSlug *string) (map[string]env.ResourceWithEnv, error) {
+func MergeRemoteResources(ctx context.Context, remoteClient api.APIClient, devConfig *devconf.DevConfig, envSlug *string) (map[string]env.ResourceWithEnv, error) {
 	mergedResources := make(map[string]env.ResourceWithEnv)
 	if remoteClient == nil || devConfig == nil {
 		return mergedResources, nil

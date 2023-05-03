@@ -11,6 +11,7 @@ import (
 
 	"github.com/airplanedev/cli/pkg/build/node"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/deploy/discover/parser"
 	"github.com/airplanedev/cli/pkg/utils/fsx"
 	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
@@ -107,7 +108,7 @@ func extractJSConfigs(file string, env []string) (ParsedJSConfigs, error) {
 		return ParsedJSConfigs{}, errors.Wrap(err, "creating temporary file")
 	}
 	defer os.Remove(tempFile.Name())
-	_, err = tempFile.Write(nodeParserScript)
+	_, err = tempFile.Write([]byte(parser.NodeParserScript))
 	if err != nil {
 		return ParsedJSConfigs{}, errors.Wrap(err, "writing parser script")
 	}
@@ -138,7 +139,7 @@ func extractJSConfigs(file string, env []string) (ParsedJSConfigs, error) {
 }
 
 func extractPythonConfigs(file string, env []string) ([]map[string]interface{}, error) {
-	parserCmd := exec.Command("python3", "-c", string(pythonParserScript), file)
+	parserCmd := exec.Command("python3", "-c", string(parser.PythonParserScript), file)
 	parserCmd.Env = append(os.Environ(), env...)
 	out, err := parserCmd.Output()
 	if err != nil {

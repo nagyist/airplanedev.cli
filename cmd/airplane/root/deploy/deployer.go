@@ -15,7 +15,7 @@ import (
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/deploy/archive"
 	"github.com/airplanedev/cli/pkg/deploy/bundlediscover"
-	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/dustin/go-humanize"
 	"github.com/go-git/go-git/v5"
 	"github.com/pkg/errors"

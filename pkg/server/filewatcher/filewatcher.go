@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/deploy/discover"
-	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/radovskyb/watcher"
 )
 

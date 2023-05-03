@@ -26,18 +26,21 @@ type FlagsUpdate struct {
 	Updated time.Time         `json:"updated"`
 }
 
-// Path returns the default config defaultUserConfigPath.
-func defaultUserConfigPath() string {
+// Dir returns an absolute path to the Airplane configuration directory (.airplane).
+func Dir() string {
 	homedir, err := os.UserHomeDir()
 	if err != nil {
-		// TODO(amir): friendly output.
-		panic("$HOME environment variable must be set")
+		panic(err)
 	}
 	return filepath.Join(
 		homedir,
 		".airplane",
-		"config",
 	)
+}
+
+// Path returns the default config defaultUserConfigPath.
+func defaultUserConfigPath() string {
+	return filepath.Join(Dir(), "config")
 }
 
 // ReadDefaultUserConfig reads the configuration from the default location.

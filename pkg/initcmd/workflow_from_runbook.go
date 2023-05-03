@@ -8,9 +8,9 @@ import (
 	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/definitions"
-	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/cli/pkg/rb2wf"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/pkg/errors"
 )
 

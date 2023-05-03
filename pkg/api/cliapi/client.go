@@ -14,7 +14,7 @@ import (
 
 	libapi "github.com/airplanedev/cli/pkg/api"
 	libhttp "github.com/airplanedev/cli/pkg/api/http"
-	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/airplanedev/cli/pkg/version"
 	"github.com/pkg/errors"
 )

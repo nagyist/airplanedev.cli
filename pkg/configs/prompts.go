@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/airplanedev/cli/pkg/api/cliapi"
-	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/prompts"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/pkg/errors"
 )
 

@@ -16,6 +16,7 @@ import (
 )
 
 func TestUpdateJavaScriptTask(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name string
 		slug string
@@ -136,7 +137,7 @@ func TestUpdateJavaScriptTask(t *testing.T) {
 			// 4. A field is updated that includes single quotes.
 			// 5. A field is updated that includes double quotes.
 			// 6. A field is updated that includes both quotes.
-			name: "keys",
+			name: "strings",
 			slug: "my_task",
 			def: definitions.Definition{
 				Slug: "my_task",
@@ -323,7 +324,9 @@ func TestUpdateJavaScriptTask(t *testing.T) {
 		// TODO: test case where we can't update the task for some reason (e.g. parsing), and that we get a sensible error back
 	}
 	for _, tC := range testCases {
+		tC := tC // rebind for parallel tests
 		t.Run(tC.name, func(t *testing.T) {
+			t.Parallel()
 			require := require.New(t)
 
 			// Clone the input file into a temporary directory as it will be overwritten by `Update()`.
@@ -359,6 +362,7 @@ func TestUpdateJavaScriptTask(t *testing.T) {
 }
 
 func TestCanUpdateJavaScriptTask(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		slug      string
 		canUpdate bool
@@ -394,7 +398,9 @@ func TestCanUpdateJavaScriptTask(t *testing.T) {
 		},
 	}
 	for _, tC := range testCases {
+		tC := tC // rebind for parallel tests
 		t.Run(tC.slug, func(t *testing.T) {
+			t.Parallel()
 			require := require.New(t)
 
 			l := &logger.MockLogger{}
@@ -406,7 +412,8 @@ func TestCanUpdateJavaScriptTask(t *testing.T) {
 	}
 }
 
-func TestFixtures(t *testing.T) {
+func TestUpdateJavaScriptFixtures(t *testing.T) {
+	t.Parallel()
 	require := require.New(t)
 
 	// Assert that the "tabs" fixtures contains tab indentation. This guards against

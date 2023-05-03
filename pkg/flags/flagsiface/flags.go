@@ -3,7 +3,7 @@ package flagsiface
 import (
 	"context"
 
-	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 )
 
 const (

@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/airplanedev/cli/pkg/deploy/discover"
-	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/apidev"
 	"github.com/airplanedev/cli/pkg/server/apiext"
 	"github.com/airplanedev/cli/pkg/server/apiint"
@@ -18,6 +17,7 @@ import (
 	"github.com/airplanedev/cli/pkg/server/middleware"
 	"github.com/airplanedev/cli/pkg/server/network"
 	"github.com/airplanedev/cli/pkg/server/state"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"

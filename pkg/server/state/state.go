@@ -14,17 +14,17 @@ import (
 	libapi "github.com/airplanedev/cli/pkg/api"
 	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	libhttp "github.com/airplanedev/cli/pkg/api/http"
-	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/deploy/bundlediscover"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/devconf"
 	"github.com/airplanedev/cli/pkg/flags/flagsiface"
-	"github.com/airplanedev/cli/pkg/logger"
 	libparams "github.com/airplanedev/cli/pkg/parameters"
 	resources "github.com/airplanedev/cli/pkg/resources/cliresources"
 	"github.com/airplanedev/cli/pkg/server/dev_errors"
 	"github.com/airplanedev/cli/pkg/server/network"
 	"github.com/airplanedev/cli/pkg/server/status"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/airplanedev/cli/pkg/version"
 	lrucache "github.com/hashicorp/golang-lru/v2"
@@ -64,7 +64,7 @@ type State struct {
 	// Debouncers maps paths to debouncing functions.
 	Debouncers Store[string, func()]
 
-	DevConfig *conf.DevConfig
+	DevConfig *devconf.DevConfig
 	// ViteContexts is an in-memory cache that maps view slugs to vite contexts.
 	ViteContexts *lrucache.Cache[string, ViteContext]
 	Logger       logger.Logger
@@ -133,7 +133,7 @@ func New(devToken *string) (*State, error) {
 		DevToken:     devToken,
 		Logger:       logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
 		ServerStatus: status.ServerDiscovering,
-		DevConfig:    conf.NewDevConfig(""), // Set dev config to a zero value initially.
+		DevConfig:    devconf.NewDevConfig(""), // Set dev config to a zero value initially.
 	}, nil
 }
 

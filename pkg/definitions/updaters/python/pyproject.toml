@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "updater"
+version = "1.0.0"
+description = ""
+authors = ["Airplane <support@airplane.dev>"]
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.12"
+black = "23.3.0"
+typing-extensions = "4.5.0"
+inflection = "0.5.1"
+
+
+[tool.poetry.group.dev.dependencies]
+pex = "2.1.134"
+pylint = "2.17.3"
+mypy = "1.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+exclude = ["fixtures"]
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+
+[tool.isort]
+profile = "black"
+combine_as_imports = true
+multi_line_output = 3

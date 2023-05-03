@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
-	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 )
 
 type suggestNextTaskStepsRequest struct {

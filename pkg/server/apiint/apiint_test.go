@@ -13,10 +13,10 @@ import (
 
 	libapi "github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/api/cliapi"
-	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
+	"github.com/airplanedev/cli/pkg/devconf"
 	libresources "github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/resources/cliresources"
 	"github.com/airplanedev/cli/pkg/resources/kinds"
@@ -39,7 +39,7 @@ func TestListResources(t *testing.T) {
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
-			DevConfig: &conf.DevConfig{
+			DevConfig: &devconf.DevConfig{
 				Resources: map[string]env.ResourceWithEnv{
 					"db": {
 						Resource: &kinds.PostgresResource{
@@ -167,7 +167,7 @@ func TestSubmitPrompts(t *testing.T) {
 		server.NewRouter(&state.State{
 			Runs:         runstore,
 			TaskConfigs:  state.NewStore[string, discover.TaskConfig](nil),
-			DevConfig:    &conf.DevConfig{},
+			DevConfig:    &devconf.DevConfig{},
 			RemoteClient: &api.MockClient{},
 		}, server.Options{}),
 	)
@@ -250,7 +250,7 @@ func TestSkipSleeps(t *testing.T) {
 		server.NewRouter(&state.State{
 			Runs:         runstore,
 			TaskConfigs:  state.NewStore[string, discover.TaskConfig](nil),
-			DevConfig:    &conf.DevConfig{},
+			DevConfig:    &devconf.DevConfig{},
 			RemoteClient: &api.MockClient{},
 		}, server.Options{}),
 	)
@@ -401,7 +401,7 @@ func TestConfigsCRUD(t *testing.T) {
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
-			DevConfig: &conf.DevConfig{
+			DevConfig: &devconf.DevConfig{
 				ConfigVars: map[string]env.ConfigWithEnv{
 					"cv_0": cfg0,
 					"cv_1": cfg1,
@@ -523,7 +523,7 @@ func TestRemoteConfigs(t *testing.T) {
 		t,
 		server.NewRouter(&state.State{
 			EnvCache: state.NewStore[string, libapi.Env](nil),
-			DevConfig: &conf.DevConfig{
+			DevConfig: &devconf.DevConfig{
 				ConfigVars: map[string]env.ConfigWithEnv{
 					"cv_0": cfg0,
 					"cv_1": cfg1,

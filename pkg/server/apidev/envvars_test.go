@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	libhttp "github.com/airplanedev/cli/pkg/api/http"
-	"github.com/airplanedev/cli/pkg/conf"
+	"github.com/airplanedev/cli/pkg/devconf"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/apidev"
 	"github.com/airplanedev/cli/pkg/server/state"
@@ -28,7 +28,7 @@ func TestEnvVarsCRUD(t *testing.T) {
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
-			DevConfig: &conf.DevConfig{
+			DevConfig: &devconf.DevConfig{
 				EnvVars: map[string]string{
 					"ENV_VAR_0": "0",
 					"ENV_VAR_1": "1",
@@ -121,7 +121,7 @@ func TestEnvVarsInvalidName(t *testing.T) {
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
-			DevConfig: &conf.DevConfig{
+			DevConfig: &devconf.DevConfig{
 				EnvVars: map[string]string{},
 				Path:    path,
 			},

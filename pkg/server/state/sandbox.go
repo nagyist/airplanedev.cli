@@ -7,8 +7,8 @@ import (
 
 	"github.com/airplanedev/cli/pkg/deploy/bundlediscover"
 	"github.com/airplanedev/cli/pkg/dev"
-	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 )
 
 type SandboxState struct {

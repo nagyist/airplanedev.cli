@@ -1,9 +1,8 @@
-// nolint:forbidigo
 package logger
 
 import "fmt"
 
-var _ Logger = &MockLogger{}
+var _ LoggerWithLoader = &MockLogger{}
 
 type MockLogger struct {
 }
@@ -37,4 +36,19 @@ func (l *MockLogger) Suggest(title, command string, args ...interface{}) {
 	fmt.Println(title)
 	fmt.Printf(command, args...)
 	fmt.Println()
+}
+
+func (l *MockLogger) SuggestSteps(title string, steps ...string) {
+	fmt.Println(title)
+	for _, step := range steps {
+		fmt.Println(step)
+	}
+	fmt.Println()
+}
+
+func (l *MockLogger) StopLoader() bool {
+	return false
+}
+
+func (l *MockLogger) StartLoader() {
 }

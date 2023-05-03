@@ -6,7 +6,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api/cliapi"
 	libhttp "github.com/airplanedev/cli/pkg/api/http"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

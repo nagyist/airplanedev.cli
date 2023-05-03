@@ -14,16 +14,16 @@ import (
 	"github.com/airplanedev/cli/pkg/analytics"
 	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/dev"
-	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/devconf"
 	"github.com/airplanedev/cli/pkg/parameters"
 	resources "github.com/airplanedev/cli/pkg/resources/cliresources"
 	"github.com/airplanedev/cli/pkg/server"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/fsx"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -32,7 +32,7 @@ type taskDevConfig struct {
 	root          *cli.Config
 	port          int
 	devConfigPath string
-	devConfig     *conf.DevConfig
+	devConfig     *devconf.DevConfig
 	envSlug       string
 
 	// Short-lived dev command fields
@@ -122,13 +122,13 @@ func New(c *cli.Config) *cobra.Command {
 				}
 
 				// Recursively search for dev config file, starting from the dev dir.
-				devConfigDir, ok := fsx.Find(absDevDir, conf.DefaultDevConfigFileName)
+				devConfigDir, ok := fsx.Find(absDevDir, devconf.DefaultDevConfigFileName)
 				if !ok {
 					// If a dev config file is not found, set the dev config dir to the dev root and auto-create the
 					// file whenever it needs to be written to.
 					devConfigDir = absDevDir
 				}
-				cfg.devConfigPath = filepath.Join(devConfigDir, conf.DefaultDevConfigFileName)
+				cfg.devConfigPath = filepath.Join(devConfigDir, devconf.DefaultDevConfigFileName)
 			} else {
 				cfg.devConfigPath, err = filepath.Abs(cfg.devConfigPath)
 				if err != nil {
@@ -136,7 +136,7 @@ func New(c *cli.Config) *cobra.Command {
 				}
 			}
 
-			cfg.devConfig, err = conf.LoadDevConfigFile(cfg.devConfigPath)
+			cfg.devConfig, err = devconf.LoadDevConfigFile(cfg.devConfigPath)
 			if err != nil {
 				return errors.Wrap(err, "loading dev config file")
 			}

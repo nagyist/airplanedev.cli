@@ -12,14 +12,14 @@ import (
 	"time"
 
 	libapi "github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
+	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
-	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/dev/logs"
+	"github.com/airplanedev/cli/pkg/devconf"
 	libresources "github.com/airplanedev/cli/pkg/resources"
 	"github.com/airplanedev/cli/pkg/resources/kinds"
 	"github.com/airplanedev/cli/pkg/server"
@@ -78,7 +78,7 @@ func TestExecute(t *testing.T) {
 					Source:         discover.ConfigSourceDefn,
 				},
 			}),
-			DevConfig: &conf.DevConfig{},
+			DevConfig: &devconf.DevConfig{},
 		}, server.Options{}),
 	)
 
@@ -149,7 +149,7 @@ func TestExecuteFallback(t *testing.T) {
 			Executor:             mockExecutor,
 			Runs:                 store,
 			TaskConfigs:          state.NewStore(map[string]discover.TaskConfig{}),
-			DevConfig:            &conf.DevConfig{},
+			DevConfig:            &devconf.DevConfig{},
 			InitialRemoteEnvSlug: pointers.String("test"),
 		}, server.Options{}),
 	)
@@ -201,7 +201,7 @@ func TestExecuteDescendantFallback(t *testing.T) {
 			Executor:             mockExecutor,
 			Runs:                 runstore,
 			TaskConfigs:          state.NewStore(map[string]discover.TaskConfig{}),
-			DevConfig:            &conf.DevConfig{},
+			DevConfig:            &devconf.DevConfig{},
 			InitialRemoteEnvSlug: pointers.String("test"),
 		}, server.Options{}),
 	)
@@ -279,7 +279,7 @@ func TestExecuteBuiltin(t *testing.T) {
 					Source:         discover.ConfigSourceDefn,
 				},
 			}),
-			DevConfig: &conf.DevConfig{Resources: map[string]env.ResourceWithEnv{
+			DevConfig: &devconf.DevConfig{Resources: map[string]env.ResourceWithEnv{
 				"database": {
 					Resource: &dbResource,
 					Remote:   false,
@@ -415,7 +415,7 @@ func TestRefresh(t *testing.T) {
 					Source:         discover.ConfigSourceDefn,
 				},
 			}),
-			DevConfig: &conf.DevConfig{},
+			DevConfig: &devconf.DevConfig{},
 		}, server.Options{}),
 	)
 

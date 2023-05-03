@@ -8,16 +8,19 @@ import (
 	"testing"
 
 	"github.com/airplanedev/cli/pkg/definitions"
+	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCheckPythonInstalled(t *testing.T) {
+	t.Parallel()
 	require := require.New(t)
 
 	// Assumes python3 is installed in test environment...
-	err := checkPythonInstalled(context.Background(), &logger.MockLogger{})
+	bin, err := utils.GetPythonBinary(context.Background(), &logger.MockLogger{})
 	require.NoError(err)
+	require.NotEmpty(bin)
 }
 
 func TestGenerateInline(t *testing.T) {

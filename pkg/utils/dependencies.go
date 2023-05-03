@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils/fsx"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 )

@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"cloud.google.com/go/storage"
+	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/utils/airplane_directory"
 	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/pkg/errors"
@@ -40,12 +41,7 @@ const (
 
 // CreateDefaultBuiltinsDirectory creates the builtins directory in a default location: namely, $HOME/.airplane/builtins.
 func CreateDefaultBuiltinsDirectory() (string, error) {
-	homedir, err := os.UserHomeDir()
-	if err != nil {
-		return "", errors.Wrap(err, "getting home directory")
-	}
-
-	builtinsDir := filepath.Join(homedir, ".airplane", "builtins")
+	builtinsDir := filepath.Join(conf.Dir(), "builtins")
 	if err := os.MkdirAll(builtinsDir, os.ModeDir|0777); err != nil && !os.IsExist(err) {
 		return "", errors.Wrap(err, "creating builtins directory")
 	}

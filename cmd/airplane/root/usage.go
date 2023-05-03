@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/kr/text"
 	"github.com/spf13/cobra"
 )

@@ -12,7 +12,7 @@ import (
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/set_envvar"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config/set_resource"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/conf"
+	"github.com/airplanedev/cli/pkg/devconf"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -46,11 +46,11 @@ func New(c *cli.Config) *cobra.Command {
 				if err != nil {
 					return errors.Wrap(err, "error determining current working directory")
 				}
-				cfg.Filepath = filepath.Join(wd, conf.DefaultDevConfigFileName)
+				cfg.Filepath = filepath.Join(wd, devconf.DefaultDevConfigFileName)
 			}
 
 			var err error
-			cfg.DevConfig, err = conf.LoadDevConfigFile(cfg.Filepath)
+			cfg.DevConfig, err = devconf.LoadDevConfigFile(cfg.Filepath)
 			if err != nil {
 				return err
 			}

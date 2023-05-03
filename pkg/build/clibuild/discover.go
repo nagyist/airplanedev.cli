@@ -4,7 +4,7 @@ import (
 	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/deploy/bundlediscover"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
-	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 )
 
 func BundleDiscoverer(client api.APIClient, l logger.Logger, envSlug string) *bundlediscover.Discoverer {

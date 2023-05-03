@@ -11,11 +11,11 @@ import (
 	"text/template"
 
 	"github.com/airplanedev/cli/pkg/definitions"
-	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/node"
 	"github.com/airplanedev/cli/pkg/prompts"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/fsx"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/iancoleman/strcase"
 	"github.com/pkg/errors"
 )

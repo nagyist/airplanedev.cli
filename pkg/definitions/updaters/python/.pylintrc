@@ -1,0 +1,10 @@
+[MASTER]
+ignore=fixtures
+
+[MESSAGES CONTROL]
+disable = fixme,
+  missing-module-docstring,
+  missing-class-docstring,
+  missing-function-docstring,
+
+good-names-rgxs=^(visit_.*|[a-z])$

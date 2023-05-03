@@ -1,0 +1,15 @@
+{
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": true
+    }
+  },
+  "python.formatting.provider": "black",
+  "pylint.severity": {
+    "refactor": "Warning"
+  },
+  "mypy.dmypyExecutable": "${workspaceFolder}/.venv/bin/dmypy",
+  "mypy.configFile": "pyproject.toml"
+}

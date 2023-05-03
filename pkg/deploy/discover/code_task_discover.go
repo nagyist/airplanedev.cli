@@ -16,12 +16,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:embed parser/node/parser.js
-var nodeParserScript []byte
-
-//go:embed parser/python/parser.py
-var pythonParserScript string
-
 type CodeTaskDiscoverer struct {
 	Client api.IAPIClient
 	Logger logger.Logger

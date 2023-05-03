@@ -3,27 +3,26 @@ package python
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"text/template"
 	"time"
 
-	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/build/python"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/definitions/updaters"
 	"github.com/airplanedev/cli/pkg/deploy/config"
-	deployutils "github.com/airplanedev/cli/pkg/deploy/utils"
 	"github.com/airplanedev/cli/pkg/runtime"
+	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/airplane_directory"
 	"github.com/airplanedev/cli/pkg/utils/fsx"
 	"github.com/airplanedev/cli/pkg/utils/logger"
@@ -70,7 +69,9 @@ type Runtime struct{}
 
 // PrepareRun implementation.
 func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runtime.PrepareRunOptions) (rexprs []string, rcloser io.Closer, rerr error) {
-	if err := checkPythonInstalled(ctx, logger); err != nil {
+	// Confirm a Python binary is installed before preparing the run.
+	bin, err := utils.GetPythonBinary(ctx, logger)
+	if err != nil {
 		return nil, nil, err
 	}
 
@@ -115,56 +116,8 @@ func (r Runtime) PrepareRun(ctx context.Context, logger logger.Logger, opts runt
 		return nil, nil, errors.Wrap(err, "serializing param values")
 	}
 
-	bin := pythonBin(logger)
-	if bin == "" {
-		return nil, nil, errors.New("could not find python")
-	}
 	// -u forces the stdout stream to be unbuffered, or else Python may buffer logs until the run completes.
-	return []string{pythonBin(logger), "-u", filepath.Join(taskDir, "shim.py"), string(pv)}, closer, nil
-}
-
-// pythonBin returns the first of python3 or python found on PATH, if any.
-// We expect most systems to have python3 if Python 3 is installed, as per PEP 0394:
-// https://www.python.org/dev/peps/pep-0394/#recommendation
-// However, Python on Windows (whether through Python or Anaconda) does not seem to install python3.exe.
-func pythonBin(logger logger.Logger) string {
-	for _, bin := range []string{"python3", "python"} {
-		logger.Debug("Looking for binary %s", bin)
-		path, err := exec.LookPath(bin)
-		if err == nil {
-			logger.Debug("Found binary %s at %s", bin, path)
-			return bin
-		}
-		logger.Debug("Could not find binary %s: %s", bin, err)
-	}
-	return ""
-}
-
-// Checks that Python 3 is installed, since we rely on 3 and don't support 2.
-func checkPythonInstalled(ctx context.Context, logger logger.Logger) error {
-	bin := pythonBin(logger)
-	if bin == "" {
-		return errors.New(heredoc.Doc(`
-            Could not find the python3 or python commands on your PATH.
-            Ensure that Python 3 is installed and available in your shell environment.
-        `))
-	}
-	cmd := exec.CommandContext(ctx, bin, "--version")
-	logger.Debug("Running %s", strings.Join(cmd.Args, " "))
-	out, err := cmd.Output()
-	if err != nil {
-		return errors.New(fmt.Sprintf(heredoc.Doc(`
-            Got an error while running %s:
-            %s
-        `), strings.Join(cmd.Args, " "), err.Error()))
-	}
-	version := string(out)
-	if !strings.HasPrefix(version, "Python 3.") {
-		return errors.New(fmt.Sprintf(heredoc.Doc(`
-            Could not find Python 3 on your PATH. Found %s but running --version returned: %s
-        `), bin, version))
-	}
-	return nil
+	return []string{bin, "-u", filepath.Join(taskDir, "shim.py"), string(pv)}, closer, nil
 }
 
 // Generate implementation.
@@ -513,19 +466,14 @@ func (r Runtime) SupportsLocalExecution() bool {
 }
 
 func (r Runtime) Update(ctx context.Context, logger logger.Logger, path string, slug string, def definitions.Definition) error {
-	if deployutils.IsPythonInlineAirplaneEntity(path) {
-		// TODO(colin, 04012023): support updating inline python
-		return errors.New("Support for updating .py files is coming soon.")
+	root, err := r.Root(path)
+	if err != nil {
+		return errors.Wrap(err, "getting task root")
 	}
 
-	return updaters.UpdateYAMLTask(ctx, logger, path, slug, def)
+	return updaters.UpdatePythonTask(ctx, logger, root, path, slug, def)
 }
 
 func (r Runtime) CanUpdate(ctx context.Context, logger logger.Logger, path string, slug string) (bool, error) {
-	if deployutils.IsPythonInlineAirplaneEntity(path) {
-		// TODO(colin, 04012023): support updating inline python
-		return false, errors.New("Support for updating .py files is coming soon.")
-	}
-
-	return updaters.CanUpdateYAMLTask(path)
+	return updaters.CanUpdatePythonTask(ctx, logger, path, slug)
 }
