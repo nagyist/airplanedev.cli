@@ -66,6 +66,7 @@ python:
 					Admins:                     PermissionRecipients{},
 					RequireExplicitPermissions: false,
 				},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
 			},
 			// When unmarshalled, the default values will not be set.
 			overrideUnmarshalledDef: &Definition{
@@ -142,6 +143,7 @@ permissions: team_access
 					Admins:                     PermissionRecipients{Groups: []string{"group5"}},
 					RequireExplicitPermissions: true,
 				},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskParticipants),
 			},
 			expectedYAML: `slug: hello_world
 name: Hello World
@@ -186,6 +188,7 @@ permissions:
   admins:
     groups:
     - group5
+defaultRunPermissions: task-participants
 `,
 			expectedJSON: `{
 	"slug": "hello_world",
@@ -251,7 +254,8 @@ permissions:
 				"group5"
 			]
 		}
-	}
+	},
+	"defaultRunPermissions": "task-participants"
 }
 `,
 		},
@@ -394,13 +398,14 @@ func TestTaskToDefinition(t *testing.T) {
 						},
 					},
 				},
-				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
-				RestrictCallers:    []string{},
-				ConcurrencyLimit:   NewDefaultOneDefinition(1),
-				Configs:            []string{},
-				Constraints:        map[string]string{},
-				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          map[string]string{},
+				AllowSelfApprovals:    DefaultTrueDefinition{pointers.Bool(true)},
+				RestrictCallers:       []string{},
+				ConcurrencyLimit:      NewDefaultOneDefinition(1),
+				Configs:               []string{},
+				Constraints:           map[string]string{},
+				Schedules:             map[string]ScheduleDefinition{},
+				Resources:             map[string]string{},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
 			},
 		},
 		{
@@ -439,13 +444,14 @@ func TestTaskToDefinition(t *testing.T) {
 						},
 					},
 				},
-				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
-				RestrictCallers:    []string{},
-				ConcurrencyLimit:   NewDefaultOneDefinition(1),
-				Configs:            []string{},
-				Constraints:        map[string]string{},
-				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          map[string]string{},
+				AllowSelfApprovals:    DefaultTrueDefinition{pointers.Bool(true)},
+				RestrictCallers:       []string{},
+				ConcurrencyLimit:      NewDefaultOneDefinition(1),
+				Configs:               []string{},
+				Constraints:           map[string]string{},
+				Schedules:             map[string]ScheduleDefinition{},
+				Resources:             map[string]string{},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
 			},
 		},
 		{
@@ -467,13 +473,14 @@ func TestTaskToDefinition(t *testing.T) {
 					Entrypoint: "main.ts",
 					EnvVars:    api.EnvVars{},
 				},
-				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
-				RestrictCallers:    []string{},
-				ConcurrencyLimit:   NewDefaultOneDefinition(1),
-				Configs:            []string{},
-				Constraints:        map[string]string{},
-				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          map[string]string{},
+				AllowSelfApprovals:    DefaultTrueDefinition{pointers.Bool(true)},
+				RestrictCallers:       []string{},
+				ConcurrencyLimit:      NewDefaultOneDefinition(1),
+				Configs:               []string{},
+				Constraints:           map[string]string{},
+				Schedules:             map[string]ScheduleDefinition{},
+				Resources:             map[string]string{},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
 			},
 		},
 		{
@@ -514,13 +521,14 @@ func TestTaskToDefinition(t *testing.T) {
 					},
 					Base: buildtypes.BuildBaseSlim,
 				},
-				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
-				RestrictCallers:    []string{},
-				ConcurrencyLimit:   NewDefaultOneDefinition(1),
-				Configs:            []string{},
-				Constraints:        map[string]string{},
-				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          map[string]string{},
+				AllowSelfApprovals:    DefaultTrueDefinition{pointers.Bool(true)},
+				RestrictCallers:       []string{},
+				ConcurrencyLimit:      NewDefaultOneDefinition(1),
+				Configs:               []string{},
+				Constraints:           map[string]string{},
+				Schedules:             map[string]ScheduleDefinition{},
+				Resources:             map[string]string{},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
 			},
 		},
 		{
@@ -557,13 +565,14 @@ func TestTaskToDefinition(t *testing.T) {
 						},
 					},
 				},
-				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
-				RestrictCallers:    []string{},
-				ConcurrencyLimit:   NewDefaultOneDefinition(1),
-				Configs:            []string{},
-				Constraints:        map[string]string{},
-				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          map[string]string{},
+				AllowSelfApprovals:    DefaultTrueDefinition{pointers.Bool(true)},
+				RestrictCallers:       []string{},
+				ConcurrencyLimit:      NewDefaultOneDefinition(1),
+				Configs:               []string{},
+				Constraints:           map[string]string{},
+				Schedules:             map[string]ScheduleDefinition{},
+				Resources:             map[string]string{},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
 			},
 		},
 		{
@@ -602,13 +611,14 @@ func TestTaskToDefinition(t *testing.T) {
 						},
 					},
 				},
-				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
-				RestrictCallers:    []string{},
-				ConcurrencyLimit:   NewDefaultOneDefinition(1),
-				Configs:            []string{},
-				Constraints:        map[string]string{},
-				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          map[string]string{},
+				AllowSelfApprovals:    DefaultTrueDefinition{pointers.Bool(true)},
+				RestrictCallers:       []string{},
+				ConcurrencyLimit:      NewDefaultOneDefinition(1),
+				Configs:               []string{},
+				Constraints:           map[string]string{},
+				Schedules:             map[string]ScheduleDefinition{},
+				Resources:             map[string]string{},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
 			},
 		},
 		{
@@ -663,12 +673,13 @@ func TestTaskToDefinition(t *testing.T) {
 					Body:     "",
 					FormData: map[string]interface{}{},
 				},
-				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
-				RestrictCallers:    []string{},
-				ConcurrencyLimit:   NewDefaultOneDefinition(1),
-				Configs:            []string{},
-				Constraints:        map[string]string{},
-				Schedules:          map[string]ScheduleDefinition{},
+				AllowSelfApprovals:    DefaultTrueDefinition{pointers.Bool(true)},
+				RestrictCallers:       []string{},
+				ConcurrencyLimit:      NewDefaultOneDefinition(1),
+				Configs:               []string{},
+				Constraints:           map[string]string{},
+				Schedules:             map[string]ScheduleDefinition{},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
 			},
 		},
 		{
@@ -846,13 +857,14 @@ func TestTaskToDefinition(t *testing.T) {
 					Entrypoint: "main.py",
 					EnvVars:    api.EnvVars{},
 				},
-				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
-				RestrictCallers:    []string{},
-				ConcurrencyLimit:   NewDefaultOneDefinition(1),
-				Configs:            []string{},
-				Constraints:        map[string]string{},
-				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          map[string]string{},
+				AllowSelfApprovals:    DefaultTrueDefinition{pointers.Bool(true)},
+				RestrictCallers:       []string{},
+				ConcurrencyLimit:      NewDefaultOneDefinition(1),
+				Configs:               []string{},
+				Constraints:           map[string]string{},
+				Schedules:             map[string]ScheduleDefinition{},
+				Resources:             map[string]string{},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
 			},
 		},
 		{
@@ -881,15 +893,16 @@ func TestTaskToDefinition(t *testing.T) {
 					Entrypoint: "main.py",
 					EnvVars:    api.EnvVars{},
 				},
-				RequireRequests:    true,
-				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(false)},
-				RestrictCallers:    []string{"task", "view"},
-				ConcurrencyKey:     "scripts",
-				ConcurrencyLimit:   NewDefaultOneDefinition(5),
-				Configs:            []string{},
-				Constraints:        map[string]string{},
-				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          map[string]string{},
+				RequireRequests:       true,
+				AllowSelfApprovals:    DefaultTrueDefinition{pointers.Bool(false)},
+				RestrictCallers:       []string{"task", "view"},
+				ConcurrencyKey:        "scripts",
+				ConcurrencyLimit:      NewDefaultOneDefinition(5),
+				Configs:               []string{},
+				Constraints:           map[string]string{},
+				Schedules:             map[string]ScheduleDefinition{},
+				Resources:             map[string]string{},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
 			},
 		},
 		{
@@ -915,14 +928,15 @@ func TestTaskToDefinition(t *testing.T) {
 					Entrypoint: "main.py",
 					EnvVars:    api.EnvVars{},
 				},
-				RequireRequests:    false,
-				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
-				RestrictCallers:    []string{},
-				ConcurrencyLimit:   NewDefaultOneDefinition(1),
-				Configs:            []string{},
-				Constraints:        map[string]string{},
-				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          map[string]string{},
+				RequireRequests:       false,
+				AllowSelfApprovals:    DefaultTrueDefinition{pointers.Bool(true)},
+				RestrictCallers:       []string{},
+				ConcurrencyLimit:      NewDefaultOneDefinition(1),
+				Configs:               []string{},
+				Constraints:           map[string]string{},
+				Schedules:             map[string]ScheduleDefinition{},
+				Resources:             map[string]string{},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
 			},
 		},
 		{
@@ -985,12 +999,13 @@ func TestTaskToDefinition(t *testing.T) {
 					Body:     "",
 					FormData: map[string]interface{}{},
 				},
-				Configs:            []string{"CONFIG_NAME_1", "CONFIG_NAME_2"},
-				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
-				RestrictCallers:    []string{},
-				ConcurrencyLimit:   NewDefaultOneDefinition(1),
-				Constraints:        map[string]string{},
-				Schedules:          map[string]ScheduleDefinition{},
+				Configs:               []string{"CONFIG_NAME_1", "CONFIG_NAME_2"},
+				AllowSelfApprovals:    DefaultTrueDefinition{pointers.Bool(true)},
+				RestrictCallers:       []string{},
+				ConcurrencyLimit:      NewDefaultOneDefinition(1),
+				Constraints:           map[string]string{},
+				Schedules:             map[string]ScheduleDefinition{},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
 			},
 		},
 		{
@@ -1097,12 +1112,13 @@ func TestTaskToDefinition(t *testing.T) {
 						},
 					},
 				},
-				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
-				RestrictCallers:    []string{},
-				ConcurrencyLimit:   NewDefaultOneDefinition(1),
-				Configs:            []string{},
-				Constraints:        map[string]string{},
-				Resources:          map[string]string{},
+				AllowSelfApprovals:    DefaultTrueDefinition{pointers.Bool(true)},
+				RestrictCallers:       []string{},
+				ConcurrencyLimit:      NewDefaultOneDefinition(1),
+				Configs:               []string{},
+				Constraints:           map[string]string{},
+				Resources:             map[string]string{},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
 			},
 		},
 		{
@@ -1143,13 +1159,14 @@ func TestTaskToDefinition(t *testing.T) {
 					},
 					Base: buildtypes.BuildBaseSlim,
 				},
-				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
-				RestrictCallers:    []string{},
-				ConcurrencyLimit:   NewDefaultOneDefinition(1),
-				Configs:            []string{},
-				Constraints:        map[string]string{},
-				Schedules:          map[string]ScheduleDefinition{},
-				Resources:          map[string]string{},
+				AllowSelfApprovals:    DefaultTrueDefinition{pointers.Bool(true)},
+				RestrictCallers:       []string{},
+				ConcurrencyLimit:      NewDefaultOneDefinition(1),
+				Configs:               []string{},
+				Constraints:           map[string]string{},
+				Schedules:             map[string]ScheduleDefinition{},
+				Resources:             map[string]string{},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
 			},
 		},
 		{
@@ -1203,12 +1220,13 @@ func TestTaskToDefinition(t *testing.T) {
 						},
 					},
 				},
-				AllowSelfApprovals: DefaultTrueDefinition{pointers.Bool(true)},
-				RestrictCallers:    []string{},
-				ConcurrencyLimit:   NewDefaultOneDefinition(1),
-				Configs:            []string{},
-				Constraints:        map[string]string{},
-				Schedules:          map[string]ScheduleDefinition{},
+				AllowSelfApprovals:    DefaultTrueDefinition{pointers.Bool(true)},
+				RestrictCallers:       []string{},
+				ConcurrencyLimit:      NewDefaultOneDefinition(1),
+				Configs:               []string{},
+				Constraints:           map[string]string{},
+				Schedules:             map[string]ScheduleDefinition{},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
 			},
 		},
 	} {
@@ -1263,6 +1281,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
+				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
 			},
 		},
 		{
@@ -1310,6 +1329,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
+				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
 			},
 		},
 		{
@@ -1345,6 +1365,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
+				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
 			},
 		},
 		{
@@ -1392,6 +1413,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
+				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
 			},
 		},
 		{
@@ -1425,6 +1447,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
+				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
 			},
 		},
 		{
@@ -1477,6 +1500,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
+				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
 			},
 		},
 		{
@@ -1512,7 +1536,8 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				KindOptions: buildtypes.KindOptions{},
+				KindOptions:           buildtypes.KindOptions{},
+				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
 			},
 		},
 		{
@@ -1559,6 +1584,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
+				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
 			},
 			resources: []api.ResourceMetadata{
 				{
@@ -1604,6 +1630,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
+				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
 			},
 		},
 		{
@@ -1641,6 +1668,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
+				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
 			},
 		},
 		{
@@ -1881,6 +1909,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
+				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
 			},
 		},
 		{
@@ -1935,6 +1964,7 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
+				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
 			},
 			resources: []api.ResourceMetadata{
 				{
@@ -1998,8 +2028,9 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				KindOptions: buildtypes.KindOptions{},
-				Timeout:     0,
+				KindOptions:           buildtypes.KindOptions{},
+				Timeout:               0,
+				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
 			},
 			resources: []api.ResourceMetadata{
 				{
@@ -2009,6 +2040,43 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 						Name: "Local DB",
 					},
 				},
+			},
+		},
+		{
+			name: "test update default run permissions",
+			definition: Definition{
+				Name:        "Test Task",
+				Slug:        "test_task",
+				Description: "A task for testing",
+				Python: &PythonDefinition{
+					Entrypoint: "main.py",
+				},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskParticipants),
+			},
+			request: api.UpdateTaskRequest{
+				Name:        "Test Task",
+				Slug:        "test_task",
+				Parameters:  []api.Parameter{},
+				Resources:   map[string]string{},
+				Configs:     &[]api.ConfigAttachment{},
+				Description: "A task for testing",
+				Kind:        buildtypes.TaskKindPython,
+				KindOptions: buildtypes.KindOptions{
+					"entrypoint": "main.py",
+				},
+				ExecuteRules: api.UpdateExecuteRulesRequest{
+					DisallowSelfApprove: pointers.Bool(false),
+					RequireRequests:     pointers.Bool(false),
+					RestrictCallers:     []string{},
+					ConcurrencyKey:      &emptyStr,
+					ConcurrencyLimit:    pointers.Int64(1),
+				},
+				Timeout: 0,
+				Env:     api.EnvVars{},
+				Constraints: api.RunConstraints{
+					Labels: []api.AgentLabel{},
+				},
+				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String("task-participants")),
 			},
 		},
 	} {

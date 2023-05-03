@@ -16,12 +16,13 @@ import (
 	"time"
 
 	"github.com/MakeNowJust/heredoc/v2"
+	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/build/python"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/definitions/updaters"
 	"github.com/airplanedev/cli/pkg/deploy/config"
-	"github.com/airplanedev/cli/pkg/deploy/utils"
+	deployutils "github.com/airplanedev/cli/pkg/deploy/utils"
 	"github.com/airplanedev/cli/pkg/runtime"
 	"github.com/airplanedev/cli/pkg/utils/airplane_directory"
 	"github.com/airplanedev/cli/pkg/utils/fsx"
@@ -343,6 +344,9 @@ import airplane
     {{- end}}
     ],
     {{- end}}
+	{{- if and (ne .DefaultRunPermissions "task-viewers") (.DefaultRunPermissions) }}
+    default_run_permissions="{{.DefaultRunPermissions}}",
+    {{- end}}
     {{- if .Python.EnvVars }}
     env_vars=[
     {{- range $key, $value := .Python.EnvVars}}
@@ -421,12 +425,13 @@ def {{.Slug}}():
 
 type inlineHelper struct {
 	*definitions.Definition
-	AllowSelfApprovals  bool
-	Timeout             int
-	SDKMethod           string
-	NeedsOptionalImport bool
-	NeedsDatetimeImport bool
-	ParamSlugToType     map[string]string
+	AllowSelfApprovals    bool
+	Timeout               int
+	SDKMethod             string
+	NeedsOptionalImport   bool
+	NeedsDatetimeImport   bool
+	ParamSlugToType       map[string]string
+	DefaultRunPermissions api.DefaultRunPermissions
 }
 
 // GenerateInline implementation.
@@ -442,13 +447,14 @@ func (r Runtime) GenerateInline(def *definitions.Definition) ([]byte, fs.FileMod
 	}
 
 	helper := inlineHelper{
-		Definition:          def,
-		AllowSelfApprovals:  def.AllowSelfApprovals.Value(),
-		Timeout:             def.Timeout,
-		SDKMethod:           method,
-		NeedsOptionalImport: needsOptionalImport(def.Parameters),
-		NeedsDatetimeImport: needsDatetimeImport(def.Parameters),
-		ParamSlugToType:     paramSlugToType,
+		Definition:            def,
+		AllowSelfApprovals:    def.AllowSelfApprovals.Value(),
+		Timeout:               def.Timeout,
+		SDKMethod:             method,
+		NeedsOptionalImport:   needsOptionalImport(def.Parameters),
+		NeedsDatetimeImport:   needsDatetimeImport(def.Parameters),
+		ParamSlugToType:       paramSlugToType,
+		DefaultRunPermissions: def.DefaultRunPermissions.Value(),
 	}
 	if err := inlineCode.Execute(&buf, helper); err != nil {
 		return nil, 0, fmt.Errorf("python: template execute - %w", err)

@@ -51,8 +51,9 @@ type Definition struct {
 	ConcurrencyKey     string                `json:"concurrencyKey,omitempty"`
 	ConcurrencyLimit   DefaultOneDefinition  `json:"concurrencyLimit,omitempty"`
 
-	Schedules   map[string]ScheduleDefinition `json:"schedules,omitempty"`
-	Permissions *PermissionsDefinition        `json:"permissions,omitempty"`
+	Schedules             map[string]ScheduleDefinition `json:"schedules,omitempty"`
+	Permissions           *PermissionsDefinition        `json:"permissions,omitempty"`
+	DefaultRunPermissions DefaultTaskViewersDefinition  `json:"defaultRunPermissions,omitempty"`
 
 	buildConfig  buildtypes.BuildConfig
 	defnFilePath string
@@ -635,6 +636,7 @@ func (d Definition) GetTask(opts GetTaskOpts) (api.Task, error) {
 		Constraints: api.RunConstraints{
 			Labels: []api.AgentLabel{},
 		},
+		DefaultRunPermissions: api.DefaultRunPermissions(d.DefaultRunPermissions.Value()),
 	}
 
 	params, err := d.GetParameters()

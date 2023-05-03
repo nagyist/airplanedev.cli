@@ -46,6 +46,7 @@ type Task struct {
 	Repo                       string                 `json:"repo" yaml:"repo"`
 	RequireExplicitPermissions bool                   `json:"requireExplicitPermissions" yaml:"-"`
 	Permissions                Permissions            `json:"permissions" yaml:"-"`
+	DefaultRunPermissions      DefaultRunPermissions  `json:"defaultRunPermissions" yaml:"defaultRunPermissions"`
 	ExecuteRules               ExecuteRules           `json:"executeRules" yaml:"-"`
 	Timeout                    int                    `json:"timeout" yaml:"timeout"`
 	IsArchived                 bool                   `json:"isArchived" yaml:"isArchived"`
@@ -90,7 +91,8 @@ func (t Task) AsUpdateTaskRequest() UpdateTaskRequest {
 			ConcurrencyKey:      &t.ExecuteRules.ConcurrencyKey,
 			ConcurrencyLimit:    t.ExecuteRules.ConcurrencyLimit,
 		},
-		Timeout: t.Timeout,
+		Timeout:               t.Timeout,
+		DefaultRunPermissions: (*DefaultRunPermissions)(pointers.String(string(t.DefaultRunPermissions))),
 	}
 
 	// Ensure all nullable fields are initialized since UpdateTaskRequest uses patch semantics.
@@ -134,6 +136,9 @@ func (t Task) AsUpdateTaskRequest() UpdateTaskRequest {
 	}
 	if req.ExecuteRules.ConcurrencyLimit == nil {
 		req.ExecuteRules.ConcurrencyLimit = pointers.Int64(1)
+	}
+	if req.DefaultRunPermissions == nil {
+		req.DefaultRunPermissions = (*DefaultRunPermissions)(pointers.String(string(DefaultRunPermissionTaskViewers)))
 	}
 
 	if t.InterpolationMode != "" {
@@ -249,6 +254,7 @@ type UpdateTaskRequest struct {
 	RequireExplicitPermissions *bool                     `json:"requireExplicitPermissions"`
 	Permissions                *Permissions              `json:"permissions"`
 	ExecuteRules               UpdateExecuteRulesRequest `json:"executeRules"`
+	DefaultRunPermissions      *DefaultRunPermissions    `json:"defaultRunPermissions"`
 	Timeout                    int                       `json:"timeout"`
 	BuildID                    *string                   `json:"buildID"`
 	InterpolationMode          *string                   `json:"interpolationMode"`
@@ -364,6 +370,13 @@ type ResourceMetadata struct {
 	Slug               string    `json:"slug"`
 	DefaultEnvResource *Resource `json:"defaultEnvResource"`
 }
+
+type DefaultRunPermissions string
+
+const (
+	DefaultRunPermissionTaskViewers      DefaultRunPermissions = "task-viewers"
+	DefaultRunPermissionTaskParticipants DefaultRunPermissions = "task-participants"
+)
 
 type Permissions []Permission
 

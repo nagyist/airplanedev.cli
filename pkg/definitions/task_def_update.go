@@ -76,6 +76,9 @@ func (d *Definition) Update(req api.UpdateTaskRequest, opts UpdateOptions) error
 	if req.ExecuteRules.ConcurrencyLimit != nil {
 		d.ConcurrencyLimit = NewDefaultOneDefinition(int(*req.ExecuteRules.ConcurrencyLimit))
 	}
+	if req.DefaultRunPermissions != nil {
+		d.DefaultRunPermissions = NewDefaultTaskViewersDefinition(*req.DefaultRunPermissions)
+	}
 
 	if opts.Triggers != nil {
 		d.Schedules = map[string]ScheduleDefinition{}

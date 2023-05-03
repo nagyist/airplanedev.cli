@@ -65,7 +65,8 @@ export default airplane.task(
       admins: {
         groups: ["group5"]
       }
-    }
+    },
+    defaultRunPermissions: "task-participants"
   },
   async () => {
     return []

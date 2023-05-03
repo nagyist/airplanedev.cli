@@ -47,3 +47,4 @@ permissions:
   admins:
     groups:
     - group5
+defaultRunPermissions: task-participants

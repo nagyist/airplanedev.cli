@@ -89,6 +89,7 @@ func TestUpdateJavaScriptTask(t *testing.T) {
 					Admins:                     definitions.PermissionRecipients{Groups: []string{"group5"}},
 					RequireExplicitPermissions: true,
 				},
+				DefaultRunPermissions: definitions.NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskParticipants),
 			},
 		},
 		{
@@ -124,6 +125,7 @@ func TestUpdateJavaScriptTask(t *testing.T) {
 				Permissions: &definitions.PermissionsDefinition{
 					RequireExplicitPermissions: false,
 				},
+				DefaultRunPermissions: definitions.NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
 			},
 		},
 		{

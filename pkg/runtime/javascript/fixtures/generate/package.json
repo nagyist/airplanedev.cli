@@ -1,0 +1,9 @@
+{
+  "name": "generate",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "airplane": "0.2.56"
+  }
+}

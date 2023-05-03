@@ -2,12 +2,16 @@ package javascript
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
 
+	"github.com/airplanedev/cli/pkg/api"
+	"github.com/airplanedev/cli/pkg/build/types"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/examples"
 	"github.com/airplanedev/cli/pkg/runtime"
 	"github.com/airplanedev/cli/pkg/runtime/runtimetest"
@@ -132,6 +136,59 @@ func TestVersion(t *testing.T) {
 			require.NoError(err)
 
 			require.Equal(tC.buildVersion, bv)
+		})
+	}
+}
+func TestGenerateInline(t *testing.T) {
+	testCases := []struct {
+		desc     string
+		def      definitions.Definition
+		expected string
+	}{
+		{
+			desc: "simple",
+			def: definitions.Definition{
+				Slug: "my_task",
+				Name: "My Task",
+				Node: &definitions.NodeDefinition{},
+			},
+			expected: "simple.ts",
+		},
+		{
+			desc: "default run permissions task participants",
+			def: definitions.Definition{
+				Slug:                  "my_task",
+				Name:                  "My Task",
+				DefaultRunPermissions: definitions.NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskParticipants),
+				Node:                  &definitions.NodeDefinition{},
+			},
+			expected: "default_run_permissions.ts",
+		},
+		{
+			desc: "default run permissions task-viewer",
+			def: definitions.Definition{
+				Slug:                  "my_task",
+				Name:                  "My Task",
+				DefaultRunPermissions: definitions.NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
+				Node:                  &definitions.NodeDefinition{},
+			},
+			expected: "simple.ts",
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			require := require.New(t)
+
+			r, err := runtime.Lookup(".js", types.TaskKindNode)
+			require.NoError(err)
+
+			bytes, _, err := r.GenerateInline(&tC.def)
+			require.NoError(err)
+
+			fixtureString, err := os.ReadFile(fmt.Sprintf("./fixtures/generate/%s", tC.expected))
+			require.NoError(err)
+
+			require.Equal(string(fixtureString), string(bytes))
 		})
 	}
 }

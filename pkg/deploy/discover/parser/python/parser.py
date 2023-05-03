@@ -62,6 +62,7 @@ class Def:
     restrictCallers: Optional[List[Literal["task", "view"]]]
     timeout: int
     runtime: Literal["standard", "workflow"]
+    default_run_permissions: Literal["task-participants", "task-viewers"]
     concurrencyKey: str
     concurrencyLimit: int
 
@@ -72,7 +73,8 @@ def as_def(obj: Any) -> Union[Any, Dict[str, Any]]:
     if dataclasses.is_dataclass(obj):
         return dataclasses.asdict(
             obj,
-            dict_factory=lambda kv: {k: as_def(v) for (k, v) in kv if v is not None},
+            dict_factory=lambda kv: {k: as_def(v)
+                                     for (k, v) in kv if v is not None},
         )
     return obj
 
@@ -82,7 +84,8 @@ def extract_task_configs(files: List[str]) -> List[Def]:
 
     for file in files:
         sys.path.append(os.path.dirname(file))
-        spec = importlib.util.spec_from_file_location("airplane_task_import", file)
+        spec = importlib.util.spec_from_file_location(
+            "airplane_task_import", file)
         assert spec is not None, f"Unable to import module {file}"
         assert spec.loader is not None, f"Unable to construct loader for module {file}"
         module = importlib.util.module_from_spec(spec)
@@ -124,11 +127,16 @@ def extract_task_configs(files: List[str]) -> List[Def]:
                         constraints=conf.constraints,
                         requireRequests=conf.require_requests,
                         allowSelfApprovals=conf.allow_self_approvals,
-                        restrictCallers=conf.restrict_callers if hasattr(conf, "restrict_callers") else None,
+                        restrictCallers=conf.restrict_callers if hasattr(
+                            conf, "restrict_callers") else None,
                         timeout=conf.timeout,
                         runtime=conf.runtime,
-                        concurrencyKey=conf.concurrency_key if hasattr(conf, "concurrency_key") else "",
-                        concurrencyLimit=conf.concurrency_limit if hasattr(conf, "concurrency_limit") else 1,
+                        default_run_permissions=conf.default_run_permissions if hasattr(
+                            conf, "default_run_permissions") else None,
+                        concurrencyKey=conf.concurrency_key if hasattr(
+                            conf, "concurrency_key") else "",
+                        concurrencyLimit=conf.concurrency_limit if hasattr(
+                            conf, "concurrency_limit") else 1,
                         schedules={
                             s.slug: Schedule(
                                 name=s.name,

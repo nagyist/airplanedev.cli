@@ -4,39 +4,40 @@ import (
 	"time"
 
 	libapi "github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
+	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 )
 
 // This struct mirrors api.Task, but with different json/yaml tags.
 type printTask struct {
-	URL                        string                    `json:"url" yaml:"url"`
-	ID                         string                    `json:"id" yaml:"id"`
-	Name                       string                    `json:"name" yaml:"name"`
-	Slug                       string                    `json:"slug" yaml:"slug"`
-	Description                string                    `json:"description" yaml:"description"`
-	Image                      *string                   `json:"image" yaml:"image"`
-	Command                    []string                  `json:"command" yaml:"command"`
-	Arguments                  []string                  `json:"arguments" yaml:"arguments"`
-	Parameters                 libapi.Parameters         `json:"parameters" yaml:"parameters"`
-	Configs                    []libapi.ConfigAttachment `json:"configs" yaml:"configs"`
-	Constraints                libapi.RunConstraints     `json:"constraints" yaml:"constraints"`
-	Env                        libapi.EnvVars            `json:"env" yaml:"env"`
-	ResourceRequests           libapi.ResourceRequests   `json:"resourceRequests" yaml:"resourceRequests"`
-	Resources                  libapi.Resources          `json:"resources" yaml:"resources"`
-	Kind                       buildtypes.TaskKind       `json:"builder" yaml:"builder"`
-	KindOptions                buildtypes.KindOptions    `json:"builderConfig" yaml:"builderConfig"`
-	Runtime                    buildtypes.TaskRuntime    `json:"runtime" yaml:"runtime"`
-	Repo                       string                    `json:"repo" yaml:"repo"`
-	RequireExplicitPermissions bool                      `json:"requireExplicitPermissions" yaml:"-"`
-	Permissions                libapi.Permissions        `json:"permissions" yaml:"-"`
-	ExecuteRules               libapi.ExecuteRules       `json:"executeRules" yaml:"executeRules"`
-	Timeout                    int                       `json:"timeout" yaml:"timeout"`
-	IsArchived                 bool                      `json:"isArchived" yaml:"isArchived"`
-	InterpolationMode          string                    `json:"-" yaml:"-"`
-	Triggers                   []libapi.Trigger          `json:"-" yaml:"-"`
-	CreatedAt                  time.Time                 `json:"-" yaml:"-"`
-	UpdatedAt                  time.Time                 `json:"-" yaml:"-"`
+	URL                        string                       `json:"url" yaml:"url"`
+	ID                         string                       `json:"id" yaml:"id"`
+	Name                       string                       `json:"name" yaml:"name"`
+	Slug                       string                       `json:"slug" yaml:"slug"`
+	Description                string                       `json:"description" yaml:"description"`
+	Image                      *string                      `json:"image" yaml:"image"`
+	Command                    []string                     `json:"command" yaml:"command"`
+	Arguments                  []string                     `json:"arguments" yaml:"arguments"`
+	Parameters                 libapi.Parameters            `json:"parameters" yaml:"parameters"`
+	Configs                    []libapi.ConfigAttachment    `json:"configs" yaml:"configs"`
+	Constraints                libapi.RunConstraints        `json:"constraints" yaml:"constraints"`
+	Env                        libapi.EnvVars               `json:"env" yaml:"env"`
+	ResourceRequests           libapi.ResourceRequests      `json:"resourceRequests" yaml:"resourceRequests"`
+	Resources                  libapi.Resources             `json:"resources" yaml:"resources"`
+	Kind                       buildtypes.TaskKind          `json:"builder" yaml:"builder"`
+	KindOptions                buildtypes.KindOptions       `json:"builderConfig" yaml:"builderConfig"`
+	Runtime                    buildtypes.TaskRuntime       `json:"runtime" yaml:"runtime"`
+	Repo                       string                       `json:"repo" yaml:"repo"`
+	RequireExplicitPermissions bool                         `json:"requireExplicitPermissions" yaml:"-"`
+	Permissions                libapi.Permissions           `json:"permissions" yaml:"-"`
+	DefaultRunPermissions      libapi.DefaultRunPermissions `json:"defaultRunPermissions" yaml:"defaultRunPermissions"`
+	ExecuteRules               libapi.ExecuteRules          `json:"executeRules" yaml:"executeRules"`
+	Timeout                    int                          `json:"timeout" yaml:"timeout"`
+	IsArchived                 bool                         `json:"isArchived" yaml:"isArchived"`
+	InterpolationMode          string                       `json:"-" yaml:"-"`
+	Triggers                   []libapi.Trigger             `json:"-" yaml:"-"`
+	CreatedAt                  time.Time                    `json:"-" yaml:"-"`
+	UpdatedAt                  time.Time                    `json:"-" yaml:"-"`
 }
 
 func printTasks(tasks []libapi.Task) []printTask {

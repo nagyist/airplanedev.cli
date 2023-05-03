@@ -2,8 +2,9 @@ import airplane from "airplane";
 
 export default airplane.task(
   {
-    slug: "my_javascript_task",
-    name: "My JavaScript task",
+    slug: "my_task",
+    name: "My Task",
+    defaultRunPermissions: "task-participants",
   },
   // This is your task's entrypoint. When your task is executed, this
   // function will be called.
