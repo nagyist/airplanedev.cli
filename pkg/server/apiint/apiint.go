@@ -7,14 +7,14 @@ import (
 	"time"
 
 	libapi "github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
+	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	libhttp "github.com/airplanedev/cli/pkg/api/http"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/configs"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	libresources "github.com/airplanedev/cli/pkg/resources"
-	"github.com/airplanedev/cli/pkg/resources/cliresources"
+	resources "github.com/airplanedev/cli/pkg/resources/cliresources"
 	"github.com/airplanedev/cli/pkg/resources/conversion"
 	"github.com/airplanedev/cli/pkg/resources/kind_configs"
 	"github.com/airplanedev/cli/pkg/server/handlers"
@@ -439,7 +439,7 @@ func SubmitPromptHandler(ctx context.Context, state *state.State, r *http.Reques
 				// Check if the run is still waiting for user input.
 				run.IsWaitingForUser = false
 				for _, prompt := range run.Prompts {
-					run.IsWaitingForUser = run.IsWaitingForUser || (prompt.SubmittedAt == nil || prompt.CancelledAt == nil)
+					run.IsWaitingForUser = run.IsWaitingForUser || (prompt.SubmittedAt == nil && prompt.CancelledAt == nil)
 				}
 
 				return nil
@@ -482,7 +482,7 @@ func CancelPromptHandler(ctx context.Context, state *state.State, r *http.Reques
 				// Check if the run is still waiting for user input.
 				run.IsWaitingForUser = false
 				for _, prompt := range run.Prompts {
-					run.IsWaitingForUser = run.IsWaitingForUser || (prompt.SubmittedAt == nil || prompt.CancelledAt == nil)
+					run.IsWaitingForUser = run.IsWaitingForUser || (prompt.SubmittedAt == nil && prompt.CancelledAt == nil)
 				}
 
 				return nil
