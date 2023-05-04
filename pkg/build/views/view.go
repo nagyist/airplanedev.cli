@@ -149,7 +149,6 @@ func View(root string, options buildtypes.KindOptions) (string, error) {
 
 		COPY . /airplane/src/
 		RUN /airplane/node_modules/.bin/vite build --outDir {{.OutDir}}
-		RUN yarn list --pattern @airplane/views | grep @airplane/views | sed "s/^.*@airplane\/views@\(.*\)$/\1/" > /airplane/{{.OutDir}}/.airplane-views-version
 
 		# Docker's minimal image - we just need an empty place to copy the build artifacts.
 		FROM scratch
@@ -370,7 +369,6 @@ func ViewBundle(root string, buildContext buildtypes.BuildContext, options build
 		RUN {{.InlineIndexHtml}} > /airplane/index.html && {{.InlineMainTsx}} > /airplane/main.tsx && /airplane/.airplane-build-tools/gen_view.sh "{{.FilesToBuildWithoutExtension}}" /airplane/index.html /airplane/main.tsx
 		# Copy in universal Vite config and build view
 		RUN {{.InlineViteConfig}} > vite.config.ts && /airplane/node_modules/.bin/vite build --outDir {{.OutDir}}
-		RUN yarn list --pattern @airplane/views | grep @airplane/views | sed "s/^.*@airplane\/views@\(.*\)$/\1/" > {{.OutDir}}/.airplane-views-version
 
 		{{if .FilesToDiscover}}
 		# Build and discover inline views.
