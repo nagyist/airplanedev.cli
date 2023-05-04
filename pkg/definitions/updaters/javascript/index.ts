@@ -35,23 +35,23 @@ const run = async () => {
       throw new Error("a slug arg is not set");
     }
 
-    if (command === "can_update") {
+    if (command === "can_update" || command === "can_update_view") {
       let ok = true;
       try {
-        await update(file, slug, {}, { dryRun: true });
+        await update(file, slug, {}, { dryRun: true, view: command === "can_update_view" });
       } catch (err) {
         console.error(String(err));
         ok = false;
       }
       console.log(`__airplane_output ${ok}`);
-    } else if (command === "update") {
+    } else if (command === "update" || command === "update_view") {
       const defSerialized = process.argv[5];
       if (!defSerialized) {
         throw new Error("a definition arg is not set");
       }
       const def = JSON.parse(defSerialized);
 
-      await update(file, slug, def, { dryRun: false });
+      await update(file, slug, def, { dryRun: false, view: command === "update_view" });
     } else {
       throw new Error(`Unknown command: ${command}`);
     }

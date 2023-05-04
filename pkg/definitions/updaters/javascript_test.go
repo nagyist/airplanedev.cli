@@ -21,6 +21,7 @@ func TestUpdateJavaScriptTask(t *testing.T) {
 		name string
 		slug string
 		def  definitions.Definition
+		ext  string
 	}{
 		{
 			// Tests setting various fields.
@@ -291,6 +292,16 @@ func TestUpdateJavaScriptTask(t *testing.T) {
 				Description: "Added a description!",
 			},
 		},
+		{
+			// Tests the case where a task lives in a JSX file with a View.
+			name: "task",
+			slug: "my_task",
+			def: definitions.Definition{
+				Slug:        "my_task",
+				Description: "Added a description!",
+			},
+			ext: "jsx",
+		},
 		// TODO: get dedenting working (including other fields that support it, like parameter descriptions)
 		// {
 		// 	// Tests the case where a (dedentable) string value is set that can be
@@ -313,7 +324,6 @@ func TestUpdateJavaScriptTask(t *testing.T) {
 		// 	},
 		// },
 
-		// TODO: add tests that cover TypeScript
 		// TODO: support `import { task } from 'airplane'` syntax where it won't be a member expression (and ignore other functions called task)
 
 		// Test various error conditions:
@@ -329,10 +339,13 @@ func TestUpdateJavaScriptTask(t *testing.T) {
 			t.Parallel()
 			require := require.New(t)
 
+			if tC.ext == "" {
+				tC.ext = "js"
+			}
 			// Clone the input file into a temporary directory as it will be overwritten by `Update()`.
-			in, err := os.Open(fmt.Sprintf("./javascript/fixtures/%s.airplane.js", tC.name))
+			in, err := os.Open(fmt.Sprintf("./javascript/fixtures/%s.airplane.%s", tC.name, tC.ext))
 			require.NoError(err)
-			f, err := os.CreateTemp("", "runtime-update-javascript-*.airplane.js")
+			f, err := os.CreateTemp("", "runtime-update-javascript-*.airplane."+tC.ext)
 			require.NoError(err)
 			t.Cleanup(func() {
 				require.NoError(os.Remove(f.Name()))
@@ -340,8 +353,7 @@ func TestUpdateJavaScriptTask(t *testing.T) {
 			_, err = io.Copy(f, in)
 			require.NoError(err)
 			require.NoError(f.Close())
-
-			l := &logger.MockLogger{}
+			l := logger.NewTestLogger(t)
 
 			ok, err := CanUpdateJavaScriptTask(context.Background(), l, f.Name(), tC.slug)
 			require.NoError(err)
@@ -354,7 +366,7 @@ func TestUpdateJavaScriptTask(t *testing.T) {
 			// Compare
 			actual, err := os.ReadFile(f.Name())
 			require.NoError(err)
-			expected, err := os.ReadFile(fmt.Sprintf("./javascript/fixtures/%s.out.airplane.js", tC.name))
+			expected, err := os.ReadFile(fmt.Sprintf("./javascript/fixtures/%s.out.airplane.%s", tC.name, tC.ext))
 			require.NoError(err)
 			require.Equal(string(expected), string(actual))
 		})
@@ -402,8 +414,7 @@ func TestCanUpdateJavaScriptTask(t *testing.T) {
 		t.Run(tC.slug, func(t *testing.T) {
 			t.Parallel()
 			require := require.New(t)
-
-			l := &logger.MockLogger{}
+			l := logger.NewTestLogger(t)
 
 			canUpdate, err := CanUpdateJavaScriptTask(context.Background(), l, "./javascript/fixtures/can_update.airplane.js", tC.slug)
 			require.NoError(err)

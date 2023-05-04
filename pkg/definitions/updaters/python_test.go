@@ -486,6 +486,7 @@ func TestUpdatePythonTask(t *testing.T) {
 		t.Run(tC.name, func(t *testing.T) {
 			t.Parallel()
 			require := require.New(t)
+			l := logger.NewTestLogger(t)
 
 			// Clone the input file into a temporary directory as it will be overwritten by `Update()`.
 			in, err := os.ReadFile(fmt.Sprintf("./python/fixtures/%s_airplane.py", tC.name))
@@ -505,8 +506,6 @@ func TestUpdatePythonTask(t *testing.T) {
 			require.NoError(err)
 			err = os.WriteFile(filepath.Join(dir, "airplane.yaml"), airplaneYAMLBytes, 0755)
 			require.NoError(err)
-
-			l := &logger.MockLogger{}
 
 			ok, err := CanUpdatePythonTask(context.Background(), l, path, tC.slug)
 			if tC.err == "" {
@@ -588,8 +587,7 @@ func TestCanUpdatePythonTask(t *testing.T) {
 		t.Run(tC.slug, func(t *testing.T) {
 			t.Parallel()
 			require := require.New(t)
-
-			l := &logger.MockLogger{}
+			l := logger.NewTestLogger(t)
 
 			canUpdate, err := CanUpdatePythonTask(context.Background(), l, "./python/fixtures/can_update_airplane.py", tC.slug)
 			require.NoError(err)

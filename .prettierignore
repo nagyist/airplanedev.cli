@@ -1,0 +1,3 @@
+# Prettier doesn't support multiple ignore files, so we specify everything at the root.
+**/definitions/updaters/**/fixtures
+**/definitions/updaters/javascript/index.js

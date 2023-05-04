@@ -6,13 +6,12 @@
 // Bug: unknown function reference
 ipsum()
 
-export default airplane.task(
+export default airplane.view(
   {
-    slug: "my_task",
-    description: "Added a description!"
+    slug: "my_view"
   },
-  async () => {
+  () => {
     // Bug: unknown variable reference (foo).
-    console.log(foo)
+    return <Title>Hello {foo}!</Title>;
   }
 );

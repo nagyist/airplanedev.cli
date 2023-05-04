@@ -1,0 +1,5 @@
+{
+	"slug": "my_view_2",
+	"description": "Added a description!",
+	"entrypoint": "./MyView.jsx"
+}
