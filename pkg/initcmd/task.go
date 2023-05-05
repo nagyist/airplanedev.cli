@@ -320,6 +320,16 @@ func InitTask(ctx context.Context, req InitTaskRequest) (InitResponse, error) {
 			}
 		}
 		ret.AddCreatedFile(absEntrypoint)
+
+		gitignorePath := filepath.Join(req.WorkingDirectory, ".gitignore")
+		if utils.ShouldCreateDefaultGitignoreFile(gitignorePath) {
+			if !req.DryRun {
+				if err := utils.CreateDefaultGitignoreFile(gitignorePath); err != nil {
+					return InitResponse{}, err
+				}
+			}
+			ret.AddCreatedFile(gitignorePath)
+		}
 	}
 
 	var resp *writeDefnFileResponse

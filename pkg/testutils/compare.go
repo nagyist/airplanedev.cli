@@ -26,9 +26,19 @@ func includeFunc(dir string) func(string, os.FileInfo) (bool, error) {
 	}
 }
 
+func compareDirectories(
+	require *require.Assertions,
+	dir1, dir2 string,
+	checkEqual func(require *require.Assertions, path1 string, path2 string),
+	include func(filePath string, info os.FileInfo) (bool, error),
+) {
+	compareSubsetOfDirectories(require, dir1, dir2, checkEqual, include)
+	compareSubsetOfDirectories(require, dir2, dir1, checkEqual, include)
+}
+
 // compareDirectories compares the contents of two directories and returns true if all files in dir1 are in and equal
 // to a set of files in dir2.
-func compareDirectories(
+func compareSubsetOfDirectories(
 	require *require.Assertions,
 	dir1, dir2 string,
 	checkEqual func(require *require.Assertions, path1 string, path2 string),
