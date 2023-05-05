@@ -36,6 +36,7 @@ type printTask struct {
 	IsArchived                 bool                         `json:"isArchived" yaml:"isArchived"`
 	InterpolationMode          string                       `json:"-" yaml:"-"`
 	Triggers                   []libapi.Trigger             `json:"-" yaml:"-"`
+	SDKVersion                 *string                      `json:"-" yaml:"-"`
 	CreatedAt                  time.Time                    `json:"-" yaml:"-"`
 	UpdatedAt                  time.Time                    `json:"-" yaml:"-"`
 }

@@ -79,6 +79,9 @@ func (d *Definition) Update(req api.UpdateTaskRequest, opts UpdateOptions) error
 	if req.DefaultRunPermissions != nil {
 		d.DefaultRunPermissions = NewDefaultTaskViewersDefinition(*req.DefaultRunPermissions)
 	}
+	if req.SDKVersion != nil {
+		d.SDKVersion = req.SDKVersion
+	}
 
 	if opts.Triggers != nil {
 		d.Schedules = map[string]ScheduleDefinition{}

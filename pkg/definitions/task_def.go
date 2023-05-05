@@ -55,6 +55,8 @@ type Definition struct {
 	Permissions           *PermissionsDefinition        `json:"permissions,omitempty"`
 	DefaultRunPermissions DefaultTaskViewersDefinition  `json:"defaultRunPermissions,omitempty"`
 
+	SDKVersion *string `json:"sdkVersion,omitempty"`
+
 	buildConfig  buildtypes.BuildConfig
 	defnFilePath string
 }
@@ -637,6 +639,7 @@ func (d Definition) GetTask(opts GetTaskOpts) (api.Task, error) {
 			Labels: []api.AgentLabel{},
 		},
 		DefaultRunPermissions: api.DefaultRunPermissions(d.DefaultRunPermissions.Value()),
+		SDKVersion:            d.SDKVersion,
 	}
 
 	params, err := d.GetParameters()

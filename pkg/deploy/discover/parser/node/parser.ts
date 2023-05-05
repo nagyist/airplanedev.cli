@@ -36,6 +36,7 @@ type TaskDef = {
   defaultRunPermissions?: "task-viewers" | "task-participants";
   concurrencyKey?: string;
   concurrencyLimit?: number;
+  sdkVersion?: string;
 };
 
 type TaskDefWithBuildArgs = TaskDef & {
@@ -126,6 +127,7 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
               envVars: config.envVars,
               entrypoint: file,
             },
+            sdkVersion: config.sdkVersion,
           });
         }
       }

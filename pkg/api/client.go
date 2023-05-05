@@ -52,6 +52,7 @@ type Task struct {
 	IsArchived                 bool                   `json:"isArchived" yaml:"isArchived"`
 	InterpolationMode          string                 `json:"interpolationMode" yaml:"-"`
 	Triggers                   []Trigger              `json:"triggers" yaml:"-"`
+	SDKVersion                 *string                `json:"sdkVersion" yaml:"-"`
 
 	CreatedAt time.Time `json:"createdAt" yaml:"-"`
 	// Computed based on the task's revision.
@@ -93,6 +94,7 @@ func (t Task) AsUpdateTaskRequest() UpdateTaskRequest {
 		},
 		Timeout:               t.Timeout,
 		DefaultRunPermissions: (*DefaultRunPermissions)(pointers.String(string(t.DefaultRunPermissions))),
+		SDKVersion:            t.SDKVersion,
 	}
 
 	// Ensure all nullable fields are initialized since UpdateTaskRequest uses patch semantics.
@@ -255,6 +257,7 @@ type UpdateTaskRequest struct {
 	Permissions                *Permissions              `json:"permissions"`
 	ExecuteRules               UpdateExecuteRulesRequest `json:"executeRules"`
 	DefaultRunPermissions      *DefaultRunPermissions    `json:"defaultRunPermissions"`
+	SDKVersion                 *string                   `json:"sdkVersion"`
 	Timeout                    int                       `json:"timeout"`
 	BuildID                    *string                   `json:"buildID"`
 	InterpolationMode          *string                   `json:"interpolationMode"`
