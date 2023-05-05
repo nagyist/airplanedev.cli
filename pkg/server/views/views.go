@@ -9,6 +9,7 @@ import (
 	libhttp "github.com/airplanedev/cli/pkg/api/http"
 	"github.com/airplanedev/cli/pkg/build/node"
 	"github.com/airplanedev/cli/pkg/configs"
+	"github.com/airplanedev/cli/pkg/definitions/updaters"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/server/state"
@@ -23,6 +24,8 @@ import (
 type ViewInfo struct {
 	libapi.View
 	ViewsPkgVersion string `json:"viewsPkgVersion"`
+	// File is the (absolute) path to the file where this view is defined.
+	File string `json:"file"`
 }
 
 // GetViewHandler handles requests to the /i/views/get?slug=<view_slug> endpoint.
@@ -90,6 +93,62 @@ func GetViewHandler(ctx context.Context, state *state.State, r *http.Request) (V
 	return viewConfigToInfo(viewConfig, envVars, &viewsVersion), nil
 }
 
+func UpdateViewHandler(ctx context.Context, state *state.State, r *http.Request, req libapi.UpdateViewRequest) (struct{}, error) {
+	viewConfig, ok := state.ViewConfigs.Get(req.Slug)
+	if !ok {
+		return struct{}{}, libhttp.NewErrNotFound("view with slug %q not found", req.Slug)
+	}
+
+	if err := viewConfig.Def.Update(req); err != nil {
+		return struct{}{}, libhttp.NewErrBadRequest("unable to update view %q: %s", req.Slug, err.Error())
+	}
+
+	// Update the underlying view file.
+	if err := updaters.UpdateView(ctx, state.Logger, viewConfig.Def.DefnFilePath, req.Slug, viewConfig.Def); err != nil {
+		return struct{}{}, err
+	}
+
+	// Optimistically update the view in the cache.
+	_, err := state.ViewConfigs.Update(req.Slug, func(val *discover.ViewConfig) error {
+		val.Def = viewConfig.Def
+		return nil
+	})
+	if err != nil {
+		return struct{}{}, err
+	}
+
+	return struct{}{}, nil
+}
+
+type CanUpdateViewRequest struct {
+	Slug string `json:"slug"`
+}
+
+type CanUpdateViewResponse struct {
+	CanUpdate bool `json:"canUpdate"`
+}
+
+func CanUpdateViewHandler(ctx context.Context, state *state.State, r *http.Request) (CanUpdateViewResponse, error) {
+	slug := r.URL.Query().Get("slug")
+	if slug == "" {
+		return CanUpdateViewResponse{}, libhttp.NewErrBadRequest("view slug was not supplied")
+	}
+
+	viewConfig, ok := state.ViewConfigs.Get(slug)
+	if !ok {
+		return CanUpdateViewResponse{}, libhttp.NewErrNotFound("view with slug %q not found", slug)
+	}
+
+	canUpdate, err := updaters.CanUpdateView(ctx, state.Logger, viewConfig.Def.DefnFilePath, slug)
+	if err != nil {
+		return CanUpdateViewResponse{}, err
+	}
+
+	return CanUpdateViewResponse{
+		CanUpdate: canUpdate,
+	}, nil
+}
+
 type ListViewsResponse struct {
 	Views []ViewInfo `json:"views"`
 }
@@ -131,6 +190,8 @@ func viewConfigToInfo(viewConfig discover.ViewConfig, envVars map[string]string,
 	if viewsPkgVersion != nil {
 		vi.ViewsPkgVersion = *viewsPkgVersion
 	}
+
+	vi.File = viewConfig.Def.DefnFilePath
 
 	return vi
 }

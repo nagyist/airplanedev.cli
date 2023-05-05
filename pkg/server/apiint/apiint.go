@@ -62,12 +62,14 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/runs/getOutputs", handlers.New(state, outputs.GetOutputsHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/tasks/get", handlers.New(state, tasks.GetTaskHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/tasks/list", handlers.New(state, tasks.ListTasksHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/tasks/update", handlers.WithBody(state, tasks.UpdateTaskHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/tasks/canUpdate", handlers.New(state, tasks.CanUpdateTaskHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/tasks/list", handlers.New(state, tasks.ListTasksHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/views/get", handlers.New(state, views.GetViewHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/views/list", handlers.New(state, views.ListViewsHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/views/update", handlers.WithBody(state, views.UpdateViewHandler)).Methods("POST", "OPTIONS")
+	r.Handle("/views/canUpdate", handlers.New(state, views.CanUpdateViewHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/users/get", handlers.New(state, GetUserHandler)).Methods("GET", "OPTIONS")
 

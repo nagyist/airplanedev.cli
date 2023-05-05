@@ -41,6 +41,19 @@ func GetViewSchema() string {
 	return viewSchemaStr
 }
 
+// Update updates a definition by applying the UpdateViewRequest using patch semantics.
+func (d *ViewDefinition) Update(req api.UpdateViewRequest) error {
+	d.Slug = req.Slug
+	d.Name = req.Name
+	d.Description = req.Description
+
+	if req.EnvVars != nil {
+		d.EnvVars = req.EnvVars
+	}
+
+	return nil
+}
+
 func (d *ViewDefinition) Unmarshal(format DefFormat, buf []byte) error {
 	var err error
 	switch format {
