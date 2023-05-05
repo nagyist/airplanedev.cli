@@ -62,7 +62,7 @@ class Def:
     restrictCallers: Optional[List[Literal["task", "view"]]]
     timeout: int
     runtime: Literal["standard", "workflow"]
-    default_run_permissions: Literal["task-participants", "task-viewers"]
+    defaultRunPermissions: Literal["task-participants", "task-viewers"]
     concurrencyKey: str
     concurrencyLimit: int
 
@@ -131,7 +131,7 @@ def extract_task_configs(files: List[str]) -> List[Def]:
                             conf, "restrict_callers") else None,
                         timeout=conf.timeout,
                         runtime=conf.runtime,
-                        default_run_permissions=conf.default_run_permissions if hasattr(
+                        defaultRunPermissions=conf.default_run_permissions if hasattr(
                             conf, "default_run_permissions") else None,
                         concurrencyKey=conf.concurrency_key if hasattr(
                             conf, "concurrency_key") else "",
