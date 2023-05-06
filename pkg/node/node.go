@@ -229,31 +229,28 @@ func createPackageJSONFile(l logger.Logger, cwd string) error {
 	return nil
 }
 
-//go:embed scaffolding/viewTSConfig.json
+//go:embed scaffolding/defaultViewTSConfig.json
 var defaultViewTSConfig []byte
+
+//go:embed scaffolding/requiredViewTSConfig.json
+var requiredViewTSConfig []byte
 
 // CreateViewTSConfig returns true if a tsconfig.json file was created.
 func CreateViewTSConfig(configDir string, p prompts.Prompter, l logger.Logger, dryRun bool) (bool, error) {
-	return mergeTSConfig(configDir, defaultViewTSConfig, MergeStrategyPreferTemplate, p, l, dryRun)
+	return mergeTSConfig(configDir, defaultViewTSConfig, requiredViewTSConfig, p, l, dryRun)
 }
 
-//go:embed scaffolding/taskTSConfig.json
+//go:embed scaffolding/defaultTaskTSConfig.json
 var defaultTaskTSConfig []byte
 
 // CreateTaskTSConfig returns true if a tsconfig.json file was created.
 func CreateTaskTSConfig(configDir string, p prompts.Prompter, l logger.Logger, dryRun bool) (bool, error) {
-	return mergeTSConfig(configDir, defaultTaskTSConfig, MergeStrategyPreferExisting, p, l, dryRun)
+	return mergeTSConfig(configDir, defaultTaskTSConfig, nil, p, l, dryRun)
 }
 
-type MergeStrategy string
-
-const (
-	MergeStrategyPreferExisting MergeStrategy = "existing"
-	MergeStrategyPreferTemplate MergeStrategy = "template"
-)
-
-// mergeTSConfig return strue if a tsconfig.json file was created.
-func mergeTSConfig(configDir string, configFile []byte, strategy MergeStrategy, p prompts.Prompter, l logger.Logger, dryRun bool) (bool, error) {
+// mergeTSConfig creates a default tsconfig.json file if one does not exist, or prompts the user to merge any required
+// fields into the existing one.
+func mergeTSConfig(configDir string, defaultTSConfigFile []byte, requiredTSConfigFile []byte, p prompts.Prompter, l logger.Logger, dryRun bool) (bool, error) {
 	existed := false
 	configPath, err := formatTSConfigPath(configDir)
 	if err != nil {
@@ -262,63 +259,60 @@ func mergeTSConfig(configDir string, configFile []byte, strategy MergeStrategy, 
 
 	if fsx.Exists(configPath) {
 		existed = true
-		templateTSConfig, err := parseTSConfig(configFile)
-		if err != nil {
-			return false, errors.Wrap(err, "parsing template tsconfig")
-		}
-
 		l.Debug("Found existing tsconfig.json...")
 
-		existingFile, err := os.ReadFile(configPath)
-		if err != nil {
-			return false, errors.Wrap(err, "reading existing tsconfig.json")
-		}
-		existingTSConfig, err := parseTSConfig(existingFile)
-		if err != nil {
-			return false, errors.Wrap(err, "parsing existing tsconfig")
-		}
-
-		newTSConfig := map[string]interface{}{}
-		if strategy == MergeStrategyPreferExisting {
-			mergeMapsRecursively(newTSConfig, templateTSConfig)
-			mergeMapsRecursively(newTSConfig, existingTSConfig)
-		} else {
-			mergeMapsRecursively(newTSConfig, existingTSConfig)
-			mergeMapsRecursively(newTSConfig, templateTSConfig)
-		}
-
-		changesNeeded, err := printTSConfigChanges(l, configPath, existingTSConfig, newTSConfig)
-		if err != nil {
-			return false, err
-		}
-
-		if changesNeeded {
-			if p != nil {
-				if ok, err := p.Confirm(
-					fmt.Sprintf("Would you like to override %s with these changes?", configPath),
-					prompts.WithDefault(true),
-				); err != nil {
-					return false, err
-				} else if !ok {
-					return false, nil
-				}
-			}
-
-			configFile, err = json.MarshalIndent(newTSConfig, "", "  ")
+		if requiredTSConfigFile != nil {
+			requiredTSConfig, err := parseTSConfig(requiredTSConfigFile)
 			if err != nil {
-				return false, errors.Wrap(err, "marshalling tsconfig.json file")
+				return false, errors.Wrap(err, "parsing template tsconfig")
 			}
 
-			if !dryRun {
-				if err := os.WriteFile(configPath, configFile, 0644); err != nil {
-					return false, errors.Wrap(err, "writing tsconfig.json")
-				}
+			existingFile, err := os.ReadFile(configPath)
+			if err != nil {
+				return false, errors.Wrap(err, "reading existing tsconfig.json")
 			}
-			l.Step(fmt.Sprintf("Updated %s", configPath))
+			existingTSConfig, err := parseTSConfig(existingFile)
+			if err != nil {
+				return false, errors.Wrap(err, "parsing existing tsconfig")
+			}
+
+			newTSConfig := map[string]interface{}{}
+			mergeMapsRecursively(newTSConfig, requiredTSConfig)
+			mergeMapsRecursively(newTSConfig, existingTSConfig)
+
+			changesNeeded, err := printTSConfigChanges(l, configPath, existingTSConfig, newTSConfig)
+			if err != nil {
+				return false, err
+			}
+
+			if changesNeeded {
+				if p != nil {
+					if ok, err := p.Confirm(
+						fmt.Sprintf("Would you like to override %s with these changes?", configPath),
+						prompts.WithDefault(true),
+					); err != nil {
+						return false, err
+					} else if !ok {
+						return false, nil
+					}
+				}
+
+				newTSConfigFile, err := json.MarshalIndent(newTSConfig, "", "  ")
+				if err != nil {
+					return false, errors.Wrap(err, "marshalling tsconfig.json file")
+				}
+
+				if !dryRun {
+					if err := os.WriteFile(configPath, newTSConfigFile, 0644); err != nil {
+						return false, errors.Wrap(err, "writing tsconfig.json")
+					}
+				}
+				l.Step(fmt.Sprintf("Updated %s", configPath))
+			}
 		}
 	} else {
 		if !dryRun {
-			if err := os.WriteFile(configPath, configFile, 0644); err != nil {
+			if err := os.WriteFile(configPath, defaultTSConfigFile, 0644); err != nil {
 				return false, errors.Wrap(err, "writing tsconfig.json")
 			}
 		}
@@ -351,10 +345,32 @@ func mergeMapsRecursively(dest, src map[string]interface{}) {
 				dest[key] = map[string]interface{}{}
 			}
 			mergeMapsRecursively(dest[key].(map[string]interface{}), subMap)
+		} else if list, isList := value.([]interface{}); isList {
+			mergedList := list
+			if destList, ok := dest[key]; ok {
+				if _, ok := destList.([]interface{}); ok {
+					for _, item := range destList.([]interface{}) {
+						if !contains(mergedList, item) {
+							mergedList = append(mergedList, item)
+						}
+					}
+				}
+			}
+
+			dest[key] = mergedList
 		} else {
 			dest[key] = src[key]
 		}
 	}
+}
+
+func contains(list []interface{}, item interface{}) bool {
+	for _, listItem := range list {
+		if listItem == item {
+			return true
+		}
+	}
+	return false
 }
 
 // prints changes between two maps and returns whether there are differences

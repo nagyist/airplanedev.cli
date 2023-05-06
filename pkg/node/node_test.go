@@ -1,9 +1,13 @@
 package node
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
+	"github.com/airplanedev/cli/pkg/prompts"
+	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/stretchr/testify/require"
 )
 
@@ -80,4 +84,64 @@ func TestParseTSConfig(t *testing.T) {
 
 	_, err = parseTSConfig([]byte(`bad config`))
 	require.Error(t, err)
+}
+
+func TestMergeTSConfig(t *testing.T) {
+	require := require.New(t)
+	tempDir := t.TempDir()
+
+	cwd, err := os.Getwd()
+	require.NoError(err)
+	defer func() {
+		// Change back to the original directory when the current test case is done.
+		err = os.Chdir(cwd)
+		require.NoError(err)
+	}()
+
+	err = os.Chdir(tempDir)
+	require.NoError(err)
+
+	err = os.WriteFile(filepath.Join(tempDir, "tsconfig.json"), []byte(`{
+  "compilerOptions": {
+    "lib": ["ESNext"],
+	"target": "ESNext"
+  },
+}`,
+	), 0644)
+
+	requiredTSConfig := []byte(`{
+  "compilerOptions": {
+    "lib": ["DOM", "DOM.Iterable"],
+	"jsx": "react-jsx"
+  },
+}`)
+
+	// Trigger two merges. The second one should be a no-op.
+	for i := 0; i < 2; i++ {
+		created, err := mergeTSConfig(
+			tempDir,
+			nil,
+			requiredTSConfig,
+			prompts.NewMock(true),
+			&logger.MockLogger{},
+			false,
+		)
+		require.NoError(err)
+		require.False(created)
+
+		newTsConfigContents, err := os.ReadFile(filepath.Join(tempDir, "tsconfig.json"))
+		require.NoError(err)
+		require.Equal(
+			`{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "target": "ESNext"
+  }
+}`, string(newTsConfigContents))
+	}
 }
