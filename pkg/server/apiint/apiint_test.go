@@ -13,7 +13,6 @@ import (
 
 	libapi "github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/api/cliapi"
-	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/devconf"
@@ -166,7 +165,7 @@ func TestSubmitPrompts(t *testing.T) {
 		t,
 		server.NewRouter(&state.State{
 			Runs:         runstore,
-			TaskConfigs:  state.NewStore[string, discover.TaskConfig](nil),
+			LocalTasks:   state.NewStore[string, state.TaskState](nil),
 			DevConfig:    &devconf.DevConfig{},
 			RemoteClient: &api.MockClient{},
 		}, server.Options{}),
@@ -249,7 +248,7 @@ func TestSkipSleeps(t *testing.T) {
 		t,
 		server.NewRouter(&state.State{
 			Runs:         runstore,
-			TaskConfigs:  state.NewStore[string, discover.TaskConfig](nil),
+			LocalTasks:   state.NewStore[string, state.TaskState](nil),
 			DevConfig:    &devconf.DevConfig{},
 			RemoteClient: &api.MockClient{},
 		}, server.Options{}),
@@ -313,8 +312,8 @@ func TestListRuns(t *testing.T) {
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
-			Runs:        runstore,
-			TaskConfigs: state.NewStore[string, discover.TaskConfig](nil),
+			Runs:       runstore,
+			LocalTasks: state.NewStore[string, state.TaskState](nil),
 		}, server.Options{}),
 	)
 	var resp apiint.ListRunsResponse
@@ -606,8 +605,8 @@ func TestGetOutput(t *testing.T) {
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
-			Runs:        runstore,
-			TaskConfigs: state.NewStore[string, discover.TaskConfig](nil),
+			Runs:       runstore,
+			LocalTasks: state.NewStore[string, state.TaskState](nil),
 		}, server.Options{}),
 	)
 

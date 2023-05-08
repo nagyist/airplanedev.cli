@@ -40,7 +40,7 @@ func IsTaskSlugAvailable(ctx context.Context, s *state.State, slug string) (bool
 	}
 
 	// Check local tasks.
-	if _, ok := s.TaskConfigs.Get(slug); ok {
+	if _, ok := s.LocalTasks.Get(slug); ok {
 		// Got a hit, so it's not available.
 		return false, nil
 	}
@@ -79,7 +79,7 @@ func IsViewSlugAvailable(ctx context.Context, s *state.State, slug string) (bool
 	}
 
 	// Check local views.
-	if _, ok := s.ViewConfigs.Get(slug); ok {
+	if _, ok := s.LocalViews.Get(slug); ok {
 		// Got a hit, so it's not available.
 		return false, nil
 	}

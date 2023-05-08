@@ -70,19 +70,23 @@ func TestListEntrypoints(t *testing.T) {
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
-			TaskConfigs: state.NewStore(map[string]discover.TaskConfig{
+			LocalTasks: state.NewStore(map[string]state.TaskState{
 				taskSlug: {
-					TaskID:         "tsk123",
-					TaskRoot:       ".",
-					TaskEntrypoint: "my_task.ts",
-					Def:            taskDefinition,
-					Source:         discover.ConfigSourceDefn,
+					TaskConfig: discover.TaskConfig{
+						TaskID:         "tsk123",
+						TaskRoot:       ".",
+						TaskEntrypoint: "my_task.ts",
+						Def:            taskDefinition,
+						Source:         discover.ConfigSourceDefn,
+					},
 				},
 			}),
-			ViewConfigs: state.NewStore(map[string]discover.ViewConfig{
+			LocalViews: state.NewStore(map[string]state.ViewState{
 				viewSlug: {
-					Def:    viewDefinition,
-					Source: discover.ConfigSourceDefn,
+					ViewConfig: discover.ViewConfig{
+						Def:    viewDefinition,
+						Source: discover.ConfigSourceDefn,
+					},
 				},
 			}),
 			RemoteClient: &api.MockClient{
@@ -176,19 +180,23 @@ func TestListFilesHandler(t *testing.T) {
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
-			TaskConfigs: state.NewStore(map[string]discover.TaskConfig{
+			LocalTasks: state.NewStore(map[string]state.TaskState{
 				taskSlug: {
-					TaskID:         "tsk123",
-					TaskRoot:       ".",
-					TaskEntrypoint: "my_task.airplane.ts",
-					Def:            taskDefinition,
-					Source:         discover.ConfigSourceDefn,
+					TaskConfig: discover.TaskConfig{
+						TaskID:         "tsk123",
+						TaskRoot:       ".",
+						TaskEntrypoint: "my_task.airplane.ts",
+						Def:            taskDefinition,
+						Source:         discover.ConfigSourceDefn,
+					},
 				},
 			}),
-			ViewConfigs: state.NewStore(map[string]discover.ViewConfig{
+			LocalViews: state.NewStore(map[string]state.ViewState{
 				viewSlug: {
-					Def:    viewDefinition,
-					Source: discover.ConfigSourceDefn,
+					ViewConfig: discover.ViewConfig{
+						Def:    viewDefinition,
+						Source: discover.ConfigSourceDefn,
+					},
 				},
 			}),
 			Dir: absoluteDir,

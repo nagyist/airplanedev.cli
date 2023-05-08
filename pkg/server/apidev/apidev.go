@@ -163,7 +163,7 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 	entrypoints := make(map[string][]EntityMetadata)
 	remoteEntrypoints := make([]EntityMetadata, 0)
 
-	for slug, taskConfig := range state.TaskConfigs.Items() {
+	for slug, taskConfig := range state.LocalTasks.Items() {
 		absoluteEntrypoint := taskConfig.TaskEntrypoint
 		if absoluteEntrypoint == "" {
 			// for YAML-only tasks like REST that don't have entrypoints
@@ -185,7 +185,7 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 		})
 	}
 
-	for slug, viewConfig := range state.ViewConfigs.Items() {
+	for slug, viewConfig := range state.LocalViews.Items() {
 		absoluteEntrypoint := viewConfig.Def.Entrypoint
 
 		ep, err := filepath.Rel(state.Dir, absoluteEntrypoint)
@@ -266,12 +266,12 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 		return StartViewResponse{}, libhttp.NewErrBadRequest("view slug was not supplied")
 	}
 
-	viewConfig, ok := s.ViewConfigs.Get(viewSlug)
+	view, ok := s.LocalViews.Get(viewSlug)
 	if !ok {
 		return StartViewResponse{}, libhttp.NewErrBadRequest("view with slug %q not found", viewSlug)
 	}
 
-	vd, err := viewdir.NewViewDirectoryFromViewConfig(viewConfig)
+	vd, err := viewdir.NewViewDirectoryFromViewConfig(view.ViewConfig)
 	if err != nil {
 		return StartViewResponse{}, err
 	}
@@ -295,12 +295,12 @@ func StartViewHandler(ctx context.Context, s *state.State, r *http.Request) (Sta
 		}
 	} else {
 		// Invalidate all vite processes that use the same root
-		for slug, cfg := range s.ViewConfigs.Items() {
+		for slug, cfg := range s.LocalViews.Items() {
 			if slug == viewSlug {
 				continue
 			}
 
-			if cfg.Root == viewConfig.Root {
+			if cfg.Root == view.ViewConfig.Root {
 				s.ViteContexts.Remove(slug)
 			}
 		}
@@ -400,9 +400,9 @@ func LogsHandler(ctx context.Context, state *state.State, r *http.Request, flush
 }
 
 type GetTaskErrorResponse struct {
-	Errors   []dev_errors.AppError `json:"errors"`
-	Warnings []dev_errors.AppError `json:"warnings"`
-	Info     []dev_errors.AppError `json:"info"`
+	Errors   []dev_errors.EntityError `json:"errors"`
+	Warnings []dev_errors.EntityError `json:"warnings"`
+	Info     []dev_errors.EntityError `json:"info"`
 }
 
 // GetTaskErrorsHandler returns any errors found for the task, grouped by level
@@ -416,9 +416,9 @@ func GetTaskErrorsHandler(ctx context.Context, state *state.State, r *http.Reque
 	if err != nil {
 		return GetTaskErrorResponse{}, err
 	}
-	info := []dev_errors.AppError{}
-	warnings := []dev_errors.AppError{}
-	errors := []dev_errors.AppError{}
+	info := []dev_errors.EntityError{}
+	warnings := []dev_errors.EntityError{}
+	errors := []dev_errors.EntityError{}
 
 	for _, e := range metadata.Errors {
 		if e.Level == dev_errors.LevelInfo {

@@ -95,7 +95,7 @@ func InitTaskHandler(ctx context.Context, s *state.State, r *http.Request, req I
 
 		// Wait a maximum of five seconds for the task to be discovered.
 		utils.WaitUntilTimeout(func() bool {
-			if _, ok := s.TaskConfigs.Get(t.Slug); ok {
+			if _, ok := s.LocalTasks.Get(t.Slug); ok {
 				return true
 			}
 			return false
@@ -154,7 +154,7 @@ func InitViewHandler(ctx context.Context, s *state.State, r *http.Request, req I
 
 		// Wait a maximum of five seconds for the view to be discovered.
 		utils.WaitUntilTimeout(func() bool {
-			if _, ok := s.ViewConfigs.Get(resp.NewViewDefinition.Slug); ok {
+			if _, ok := s.LocalViews.Get(resp.NewViewDefinition.Slug); ok {
 				return true
 			}
 			return false

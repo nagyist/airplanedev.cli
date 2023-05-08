@@ -3,17 +3,16 @@ package tasks
 import (
 	"context"
 	"net/http"
+	"time"
 
 	libapi "github.com/airplanedev/cli/pkg/api"
 	api "github.com/airplanedev/cli/pkg/api/cliapi"
 	libhttp "github.com/airplanedev/cli/pkg/api/http"
 	"github.com/airplanedev/cli/pkg/definitions"
-	"github.com/airplanedev/cli/pkg/deploy/discover"
 	resources "github.com/airplanedev/cli/pkg/resources/cliresources"
 	"github.com/airplanedev/cli/pkg/runtime"
 	"github.com/airplanedev/cli/pkg/server/state"
 	serverutils "github.com/airplanedev/cli/pkg/server/utils"
-	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"golang.org/x/exp/slices"
 )
 
@@ -31,20 +30,20 @@ func GetTaskHandler(ctx context.Context, state *state.State, r *http.Request) (G
 		return GetTaskResponse{}, libhttp.NewErrBadRequest("task slug was not supplied")
 	}
 
-	taskConfig, ok := state.TaskConfigs.Get(taskSlug)
+	taskState, ok := state.LocalTasks.Get(taskSlug)
 	if !ok {
 		return GetTaskResponse{}, libhttp.NewErrNotFound("task with slug %q not found", taskSlug)
 	}
 
 	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
-	task, err := taskConfigToAPITask(ctx, state, taskConfig, envSlug)
+	task, err := taskStateToAPITask(ctx, state, taskState, envSlug)
 	if err != nil {
 		return GetTaskResponse{}, err
 	}
 
 	return GetTaskResponse{
 		Task: task,
-		File: taskConfig.Def.GetDefnFilePath(),
+		File: taskState.Def.GetDefnFilePath(),
 	}, nil
 }
 
@@ -55,14 +54,14 @@ type UpdateTaskRequest struct {
 	Triggers []libapi.Trigger `json:"triggers"`
 }
 
-func UpdateTaskHandler(ctx context.Context, state *state.State, r *http.Request, req UpdateTaskRequest) (struct{}, error) {
-	taskConfig, ok := state.TaskConfigs.Get(req.Slug)
+func UpdateTaskHandler(ctx context.Context, s *state.State, r *http.Request, req UpdateTaskRequest) (struct{}, error) {
+	taskConfig, ok := s.LocalTasks.Get(req.Slug)
 	if !ok {
 		return struct{}{}, libhttp.NewErrNotFound("task with slug %q not found", req.Slug)
 	}
 
-	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
-	resources, err := resources.ListResourceMetadata(ctx, state.RemoteClient, state.DevConfig, envSlug)
+	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(s, r)
+	resources, err := resources.ListResourceMetadata(ctx, s.RemoteClient, s.DevConfig, envSlug)
 	if err != nil {
 		return struct{}{}, err
 	}
@@ -85,13 +84,14 @@ func UpdateTaskHandler(ctx context.Context, state *state.State, r *http.Request,
 	}
 
 	// Update the underlying task file.
-	if err := rt.Update(ctx, state.Logger, taskConfig.Def.GetDefnFilePath(), req.Slug, taskConfig.Def); err != nil {
+	if err := rt.Update(ctx, s.Logger, taskConfig.Def.GetDefnFilePath(), req.Slug, taskConfig.Def); err != nil {
 		return struct{}{}, err
 	}
 
 	// Optimistically update the task in the cache.
-	_, err = state.TaskConfigs.Update(req.Slug, func(val *discover.TaskConfig) error {
+	_, err = s.LocalTasks.Update(req.Slug, func(val *state.TaskState) error {
 		val.Def = taskConfig.Def
+		val.UpdatedAt = time.Now()
 		return nil
 	})
 	if err != nil {
@@ -115,7 +115,7 @@ func CanUpdateTaskHandler(ctx context.Context, state *state.State, r *http.Reque
 		return CanUpdateTaskResponse{}, libhttp.NewErrBadRequest("task slug was not supplied")
 	}
 
-	taskConfig, ok := state.TaskConfigs.Get(slug)
+	taskConfig, ok := state.LocalTasks.Get(slug)
 	if !ok {
 		return CanUpdateTaskResponse{}, libhttp.NewErrNotFound("task with slug %q not found", slug)
 	}
@@ -152,11 +152,11 @@ func ListTasksHandler(ctx context.Context, state *state.State, r *http.Request) 
 }
 
 func ListTasks(ctx context.Context, s *state.State) ([]libapi.Task, error) {
-	taskConfigs := s.TaskConfigs.Values()
-	tasks := make([]libapi.Task, 0, len(taskConfigs))
+	taskStates := s.LocalTasks.Values()
+	tasks := make([]libapi.Task, 0, len(taskStates))
 
-	for _, taskConfig := range taskConfigs {
-		t, err := taskConfigToAPITask(ctx, s, taskConfig, nil)
+	for _, taskState := range taskStates {
+		t, err := taskStateToAPITask(ctx, s, taskState, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -170,10 +170,10 @@ func ListTasks(ctx context.Context, s *state.State) ([]libapi.Task, error) {
 	return tasks, nil
 }
 
-func taskConfigToAPITask(
+func taskStateToAPITask(
 	ctx context.Context,
 	state *state.State,
-	taskConfig discover.TaskConfig,
+	taskState state.TaskState,
 	envSlug *string,
 ) (libapi.Task, error) {
 	resources, err := resources.ListResourceMetadata(ctx, state.RemoteClient, state.DevConfig, envSlug)
@@ -181,7 +181,7 @@ func taskConfigToAPITask(
 		return libapi.Task{}, err
 	}
 
-	task, err := taskConfig.Def.GetTask(definitions.GetTaskOpts{
+	task, err := taskState.Def.GetTask(definitions.GetTaskOpts{
 		AvailableResources: resources,
 		Bundle:             true,
 		// We want to best-effort support invalid task definitions (e.g. unknown resources) so that
@@ -189,17 +189,12 @@ func taskConfigToAPITask(
 		IgnoreInvalid: true,
 	})
 	if err != nil {
-		return libapi.Task{}, libhttp.NewErrBadRequest("task %q is invalid: %s", taskConfig.TaskID, err.Error())
+		return libapi.Task{}, libhttp.NewErrBadRequest("task %q is invalid: %s", taskState.TaskID, err.Error())
 	}
 
 	// Use the studio-generated ID.
-	task.ID = taskConfig.TaskID
-
-	metadata, err := state.GetTaskErrors(ctx, task.Slug, pointers.ToString(envSlug))
-	if err != nil {
-		return libapi.Task{}, err
-	}
-	task.UpdatedAt = metadata.RefreshedAt
+	task.ID = taskState.TaskID
+	task.UpdatedAt = taskState.UpdatedAt
 
 	// Certain fields are not supported by tasks-as-code, so give them default values.
 	if task.ResourceRequests == nil {

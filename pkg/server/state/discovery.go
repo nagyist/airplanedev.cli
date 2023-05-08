@@ -37,7 +37,7 @@ func (s *State) ReloadPath(ctx context.Context, opts ReloadPathOpts) error {
 
 		pathsToDiscover := []string{opts.Path}
 
-		for _, tC := range s.TaskConfigs.Items() {
+		for _, tC := range s.LocalTasks.Items() {
 			var shouldRefreshTask bool
 			// Refresh any tasks that have resource attachments
 			if opts.Path == s.DevConfig.Path {
@@ -60,7 +60,7 @@ func (s *State) ReloadPath(ctx context.Context, opts ReloadPathOpts) error {
 		}
 
 		// Refresh any views that have the modified entrypoint.
-		for _, vC := range s.ViewConfigs.Items() {
+		for _, vC := range s.LocalViews.Items() {
 			if vC.Def.Entrypoint == opts.Path {
 				pathsToDiscover = append(pathsToDiscover, vC.Def.DefnFilePath)
 			}
@@ -69,6 +69,7 @@ func (s *State) ReloadPath(ctx context.Context, opts ReloadPathOpts) error {
 		slices.Sort(pathsToDiscover)
 		pathsToDiscover = utils.UniqueStrings(pathsToDiscover)
 
+		discoveredAt := time.Now()
 		taskConfigs, viewConfigs, err := s.DiscoverTasksAndViews(ctx, pathsToDiscover...)
 		if err != nil {
 			logger.Error(err.Error())
@@ -76,14 +77,14 @@ func (s *State) ReloadPath(ctx context.Context, opts ReloadPathOpts) error {
 
 		// Delete any tasks or views defined in the old path
 		if opts.OldPath != "" {
-			for _, tC := range s.TaskConfigs.Items() {
+			for _, tC := range s.LocalTasks.Items() {
 				if tC.Def.GetDefnFilePath() == opts.OldPath {
-					s.TaskConfigs.Delete(tC.Def.Slug)
+					s.LocalTasks.Delete(tC.Def.Slug)
 				}
 			}
-			for _, vC := range s.ViewConfigs.Items() {
+			for _, vC := range s.LocalViews.Items() {
 				if vC.Def.DefnFilePath == opts.OldPath {
-					s.ViewConfigs.Delete(vC.Def.Slug)
+					s.LocalViews.Delete(vC.Def.Slug)
 				}
 			}
 		}
@@ -92,6 +93,7 @@ func (s *State) ReloadPath(ctx context.Context, opts ReloadPathOpts) error {
 			Tasks:        taskConfigs,
 			Views:        viewConfigs,
 			OverwriteAll: shouldRefreshDir,
+			DiscoveredAt: discoveredAt,
 		})
 		LogNewApps(taskConfigs, viewConfigs)
 		if err != nil {
@@ -128,29 +130,41 @@ type DiscoverOpts struct {
 	Views []discover.ViewConfig
 	// OverwriteAll will clear out existing tasks and views and replace them with the new ones
 	OverwriteAll bool
+	// DiscoveredAt is the time when discovery was started. If zero, defaults to the current time.
+	DiscoveredAt time.Time
 }
 
 // RegisterTasksAndViews generates a mapping of slug to task and view configs and stores the mappings in the server
 // state. Task registration must occur after the local dev server has started because the task discoverer hits the
 // /v0/tasks/getMetadata endpoint.
 func (s *State) RegisterTasksAndViews(ctx context.Context, opts DiscoverOpts) error {
-	// Always invalidate the AppCondition cache.
-	s.AppCondition.ReplaceItems(map[string]AppCondition{})
-
-	taskConfigs := map[string]discover.TaskConfig{}
-	for _, cfg := range opts.Tasks {
-		taskConfigs[cfg.Def.GetSlug()] = cfg
+	if opts.DiscoveredAt.IsZero() {
+		opts.DiscoveredAt = time.Now()
 	}
-	viewConfigs := map[string]discover.ViewConfig{}
+
+	// Always invalidate the EntityCondition cache.
+	s.TaskConditions.ReplaceItems(map[string]EntityCondition{})
+
+	taskConfigs := map[string]TaskState{}
+	for _, cfg := range opts.Tasks {
+		taskConfigs[cfg.Def.GetSlug()] = TaskState{
+			TaskConfig: cfg,
+			UpdatedAt:  time.Now(),
+		}
+	}
+	viewConfigs := map[string]ViewState{}
 	for _, cfg := range opts.Views {
-		viewConfigs[cfg.Def.Slug] = cfg
+		viewConfigs[cfg.Def.Slug] = ViewState{
+			ViewConfig: cfg,
+			UpdatedAt:  opts.DiscoveredAt,
+		}
 	}
 	if opts.OverwriteAll {
-		s.TaskConfigs.ReplaceItems(taskConfigs)
-		s.ViewConfigs.ReplaceItems(viewConfigs)
+		s.LocalTasks.ReplaceItems(taskConfigs)
+		s.LocalViews.ReplaceItems(viewConfigs)
 	} else {
-		s.TaskConfigs.AddMany(taskConfigs)
-		s.ViewConfigs.AddMany(viewConfigs)
+		s.LocalTasks.AddMany(taskConfigs)
+		s.LocalViews.AddMany(viewConfigs)
 	}
 
 	s.SetServerStatus(status.ServerReady)

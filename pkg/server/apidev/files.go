@@ -22,7 +22,7 @@ import (
 func ListFilesHandler(ctx context.Context, state *state.State, r *http.Request) (ListFilesResponse, error) {
 	// Track entities per file, which we'll use to show entities in the UI.
 	filepathToEntities := make(map[string][]EntityMetadata, 0)
-	for slug, taskConfig := range state.TaskConfigs.Items() {
+	for slug, taskConfig := range state.LocalTasks.Items() {
 		defnFilePath := taskConfig.Def.GetDefnFilePath()
 		if _, ok := filepathToEntities[defnFilePath]; !ok {
 			filepathToEntities[defnFilePath] = make([]EntityMetadata, 0, 1)
@@ -35,7 +35,7 @@ func ListFilesHandler(ctx context.Context, state *state.State, r *http.Request) 
 		})
 	}
 
-	for slug, viewConfig := range state.ViewConfigs.Items() {
+	for slug, viewConfig := range state.LocalViews.Items() {
 		defnFilePath := viewConfig.Def.DefnFilePath
 		if _, ok := filepathToEntities[defnFilePath]; !ok {
 			filepathToEntities[defnFilePath] = make([]EntityMetadata, 0, 1)

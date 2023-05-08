@@ -595,6 +595,8 @@ type View struct {
 	Description     string            `json:"description"`
 	CreatedBy       string            `json:"createdBy"`
 	CreatedAt       time.Time         `json:"createdAt"`
+	UpdatedBy       string            `json:"updatedBy"`
+	UpdatedAt       time.Time         `json:"updatedAt"`
 	EnvVars         EnvVars           `json:"envVars"`
 	ResolvedEnvVars map[string]string `json:"resolvedEnvVars"`
 	// IsLocal is true if the view is local in the editor, false if it's a

@@ -73,7 +73,7 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		envSlug = serverutils.GetEffectiveEnvSlugFromRequest(state, r)
 	}
 
-	localTaskConfig, ok := state.TaskConfigs.Get(req.Slug)
+	localTask, ok := state.LocalTasks.Get(req.Slug)
 	isBuiltin := builtins.IsBuiltinTaskSlug(req.Slug)
 	hasErrors := false
 	if ok {
@@ -184,36 +184,36 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		run.TaskSlug = req.Slug
 		run.ParamValues = req.ParamValues
 	} else {
-		kind, kindOptions, err := dev.GetKindAndOptions(localTaskConfig)
+		kind, kindOptions, err := dev.GetKindAndOptions(localTask.TaskConfig)
 		if err != nil {
 			return api.RunTaskResponse{}, err
 		}
 		runConfig.Kind = kind
 		runConfig.KindOptions = kindOptions
-		runConfig.Name = localTaskConfig.Def.GetName()
-		runConfig.File = localTaskConfig.TaskEntrypoint
-		resourceAttachments, err = localTaskConfig.Def.GetResourceAttachments()
+		runConfig.Name = localTask.Def.GetName()
+		runConfig.File = localTask.TaskEntrypoint
+		resourceAttachments, err = localTask.Def.GetResourceAttachments()
 		if err != nil {
 			return api.RunTaskResponse{}, errors.Wrap(err, "getting resource attachments")
 		}
-		if runConfig.TaskEnvVars, err = localTaskConfig.Def.GetEnv(); err != nil {
+		if runConfig.TaskEnvVars, err = localTask.Def.GetEnv(); err != nil {
 			return api.RunTaskResponse{}, errors.Wrap(err, "getting task env vars")
 		}
-		if runConfig.ConfigAttachments, err = localTaskConfig.Def.GetConfigAttachments(); err != nil {
+		if runConfig.ConfigAttachments, err = localTask.Def.GetConfigAttachments(); err != nil {
 			return api.RunTaskResponse{}, errors.Wrap(err, "getting attached configs")
 		}
-		params, err = localTaskConfig.Def.GetParameters()
+		params, err = localTask.Def.GetParameters()
 		if err != nil {
 			return api.RunTaskResponse{}, errors.Wrap(err, "getting parameters")
 		}
 		run.TaskID = req.Slug
 		run.TaskSlug = req.Slug
-		run.TaskName = localTaskConfig.Def.GetName()
+		run.TaskName = localTask.Def.GetName()
 		runConfig.ConfigVars, err = configs.MergeRemoteConfigs(ctx, state, envSlug)
 		if err != nil {
 			return api.RunTaskResponse{}, errors.Wrap(err, "merging local and remote configs")
 		}
-		run.TaskRevision = localTaskConfig
+		run.TaskRevision = localTask.TaskConfig
 		paramValuesWithDefaults := parameters.ApplyDefaults(params, req.ParamValues)
 		run.ParamValues = paramValuesWithDefaults
 		runConfig.ParamValues, err = parameters.StandardizeParamValues(ctx, state.RemoteClient, params, paramValuesWithDefaults)
@@ -317,7 +317,7 @@ func GetTaskMetadataHandler(ctx context.Context, state *state.State, r *http.Req
 		return libapi.TaskMetadata{}, libhttp.NewErrBadRequest("expected a slug")
 	}
 
-	_, ok := state.TaskConfigs.Get(slug)
+	_, ok := state.LocalTasks.Get(slug)
 	isBuiltin := builtins.IsBuiltinTaskSlug(slug)
 	// Neither builtin nor local, we try using the fallback env first, but we
 	// default to returning a dummy task if it's not found.
@@ -344,7 +344,7 @@ func GetTaskReviewersHandler(ctx context.Context, state *state.State, r *http.Re
 		return api.GetTaskReviewersResponse{}, libhttp.NewErrBadRequest("expected a slug")
 	}
 
-	localTaskConfig, ok := state.TaskConfigs.Get(taskSlug)
+	localTaskConfig, ok := state.LocalTasks.Get(taskSlug)
 	if ok {
 		parameters, err := localTaskConfig.Def.GetParameters()
 		if err != nil {

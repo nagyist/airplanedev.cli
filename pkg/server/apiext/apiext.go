@@ -109,7 +109,7 @@ func GetViewHandler(ctx context.Context, state *state.State, r *http.Request) (l
 		return libapi.View{}, libhttp.NewErrBadRequest("slug cannot be empty")
 	}
 
-	_, ok := state.ViewConfigs.Get(slug)
+	_, ok := state.LocalViews.Get(slug)
 	// Not local, we try using the fallback env first, but we default to returning a dummy view if it's not found.
 	if !ok {
 		if state.InitialRemoteEnvSlug != nil {
@@ -338,7 +338,7 @@ func ListResourceMetadataHandler(ctx context.Context, state *state.State, r *htt
 func GetPermissionsHandler(ctx context.Context, state *state.State, r *http.Request) (api.GetPermissionsResponse, error) {
 	taskSlug := r.URL.Query().Get("task_slug")
 	actions := r.URL.Query()["actions"]
-	_, hasLocalTask := state.TaskConfigs.Get(taskSlug)
+	_, hasLocalTask := state.LocalTasks.Get(taskSlug)
 
 	outputs := map[string]bool{}
 	if hasLocalTask {

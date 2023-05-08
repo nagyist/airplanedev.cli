@@ -1,10 +1,10 @@
 package dev_errors
 
-type AppError struct {
-	Level   Level  `json:"level"`
-	AppName string `json:"name"`
-	AppKind string `json:"kind"`
-	Reason  string `json:"reason"`
+type EntityError struct {
+	Level  Level  `json:"level"`
+	Name   string `json:"name"`
+	Kind   string `json:"kind"`
+	Reason string `json:"reason"`
 }
 
 type Level string

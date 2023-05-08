@@ -28,12 +28,14 @@ func TestListTasks(t *testing.T) {
 		},
 	}
 	taskDefinition.SetDefnFilePath("my_task.task.yaml")
-	taskConfig1 := discover.TaskConfig{
-		TaskID:         "tsk1",
-		TaskRoot:       ".",
-		TaskEntrypoint: "my_task.ts",
-		Def:            taskDefinition,
-		Source:         discover.ConfigSourceDefn,
+	taskState1 := state.TaskState{
+		TaskConfig: discover.TaskConfig{
+			TaskID:         "tsk1",
+			TaskRoot:       ".",
+			TaskEntrypoint: "my_task.ts",
+			Def:            taskDefinition,
+			Source:         discover.ConfigSourceDefn,
+		},
 	}
 
 	taskSlug2 := "task_2"
@@ -46,31 +48,33 @@ func TestListTasks(t *testing.T) {
 		},
 	}
 	taskDefinition.SetDefnFilePath("my_task_2.task.yaml")
-	taskConfig2 := discover.TaskConfig{
-		TaskID:         "tsk2",
-		TaskRoot:       ".",
-		TaskEntrypoint: "my_task_2.ts",
-		Def:            taskDefinition2,
-		Source:         discover.ConfigSourceDefn,
+	taskState2 := state.TaskState{
+		TaskConfig: discover.TaskConfig{
+			TaskID:         "tsk2",
+			TaskRoot:       ".",
+			TaskEntrypoint: "my_task_2.ts",
+			Def:            taskDefinition2,
+			Source:         discover.ConfigSourceDefn,
+		},
 	}
 
 	s := &state.State{
-		TaskConfigs: state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{
-			taskSlug1: taskConfig1,
-			taskSlug2: taskConfig2,
+		LocalTasks: state.NewStore(map[string]state.TaskState{
+			taskSlug1: taskState1,
+			taskSlug2: taskState2,
 		}),
-		AppCondition: state.NewStore[string, state.AppCondition](nil),
-		DevConfig:    &devconf.DevConfig{},
-		RemoteClient: &api.MockClient{},
+		TaskConditions: state.NewStore[string, state.EntityCondition](nil),
+		DevConfig:      &devconf.DevConfig{},
+		RemoteClient:   &api.MockClient{},
 	}
 
 	tasks, err := ListTasks(ctx, s)
 	require.NoError(err)
 
-	expectedTask1, err := taskConfigToAPITask(ctx, s, taskConfig1, nil)
+	expectedTask1, err := taskStateToAPITask(ctx, s, taskState1, nil)
 	require.NoError(err)
 
-	expectedTask2, err := taskConfigToAPITask(ctx, s, taskConfig2, nil)
+	expectedTask2, err := taskStateToAPITask(ctx, s, taskState2, nil)
 	require.NoError(err)
 
 	require.ElementsMatch([]libapi.Task{
@@ -104,24 +108,26 @@ func TestTaskConfigToAPITask(t *testing.T) {
 	}
 	taskDefinition.SetDefnFilePath("my_task.task.yaml")
 
-	tc := discover.TaskConfig{
-		TaskID:         "tsk123",
-		TaskRoot:       ".",
-		TaskEntrypoint: "my_task.ts",
-		Def:            taskDefinition,
-		Source:         discover.ConfigSourceDefn,
+	taskState := state.TaskState{
+		TaskConfig: discover.TaskConfig{
+			TaskID:         "tsk123",
+			TaskRoot:       ".",
+			TaskEntrypoint: "my_task.ts",
+			Def:            taskDefinition,
+			Source:         discover.ConfigSourceDefn,
+		},
 	}
 
 	s := &state.State{
-		TaskConfigs: state.NewStore[string, discover.TaskConfig](map[string]discover.TaskConfig{
-			taskSlug: tc,
+		LocalTasks: state.NewStore(map[string]state.TaskState{
+			taskSlug: taskState,
 		}),
-		AppCondition: state.NewStore[string, state.AppCondition](nil),
-		DevConfig:    &devconf.DevConfig{},
-		RemoteClient: &api.MockClient{},
+		TaskConditions: state.NewStore[string, state.EntityCondition](nil),
+		DevConfig:      &devconf.DevConfig{},
+		RemoteClient:   &api.MockClient{},
 	}
 
-	task, err := taskConfigToAPITask(ctx, s, tc, nil)
+	task, err := taskStateToAPITask(ctx, s, taskState, nil)
 	require.NoError(err)
 
 	require.Equal("tsk123", task.ID)

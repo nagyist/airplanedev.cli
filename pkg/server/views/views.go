@@ -4,13 +4,13 @@ import (
 	"context"
 	"net/http"
 	"path/filepath"
+	"time"
 
 	libapi "github.com/airplanedev/cli/pkg/api"
 	libhttp "github.com/airplanedev/cli/pkg/api/http"
 	"github.com/airplanedev/cli/pkg/build/node"
 	"github.com/airplanedev/cli/pkg/configs"
 	"github.com/airplanedev/cli/pkg/definitions/updaters"
-	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/server/state"
 	serverutils "github.com/airplanedev/cli/pkg/server/utils"
@@ -34,14 +34,14 @@ func GetViewHandler(ctx context.Context, state *state.State, r *http.Request) (V
 	if viewSlug == "" {
 		return ViewInfo{}, libhttp.NewErrBadRequest("view slug was not supplied")
 	}
-	viewConfig, ok := state.ViewConfigs.Get(viewSlug)
+	view, ok := state.LocalViews.Get(viewSlug)
 	if !ok {
 		return ViewInfo{}, libhttp.NewErrBadRequest("view with slug %q not found", viewSlug)
 	}
 
 	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(state, r)
 	configVars := state.DevConfig.ConfigVars
-	if len(state.DevConfig.EnvVars) > 0 || len(viewConfig.Def.EnvVars) > 0 {
+	if len(state.DevConfig.EnvVars) > 0 || len(view.Def.EnvVars) > 0 {
 		var err error
 		configVars, err = configs.MergeRemoteConfigs(ctx, state, envSlug)
 		if err != nil {
@@ -50,7 +50,7 @@ func GetViewHandler(ctx context.Context, state *state.State, r *http.Request) (V
 	}
 
 	apiPort := state.LocalClient.AppURL().Port()
-	viewURL := utils.StudioURL(state.StudioURL.Host, apiPort, "/view/"+viewConfig.Def.Slug)
+	viewURL := utils.StudioURL(state.StudioURL.Host, apiPort, "/view/"+view.Def.Slug)
 
 	headers := map[string]string{}
 	if envSlug == nil {
@@ -64,13 +64,13 @@ func GetViewHandler(ctx context.Context, state *state.State, r *http.Request) (V
 	}
 
 	envVars, err := dev.GetEnvVarsForView(ctx, state.RemoteClient, dev.GetEnvVarsForViewConfig{
-		ViewEnvVars:      viewConfig.Def.EnvVars,
+		ViewEnvVars:      view.Def.EnvVars,
 		DevConfigEnvVars: state.DevConfig.EnvVars,
 		ConfigVars:       configVars,
 		FallbackEnvSlug:  pointers.ToString(envSlug),
 		AuthInfo:         state.AuthInfo,
-		Name:             viewConfig.Def.Name,
-		Slug:             viewConfig.Def.Slug,
+		Name:             view.Def.Name,
+		Slug:             view.Def.Slug,
 		ViewURL:          viewURL,
 		APIHeaders:       headers,
 	})
@@ -80,7 +80,7 @@ func GetViewHandler(ctx context.Context, state *state.State, r *http.Request) (V
 
 	// Try to read the @airplane/views version.
 	viewsVersion := ""
-	rootPackageJSON := filepath.Join(viewConfig.Root, "package.json")
+	rootPackageJSON := filepath.Join(view.Root, "package.json")
 	hasPackageJSON := fsx.AssertExistsAll(rootPackageJSON) == nil
 	if hasPackageJSON {
 		pkg, err := node.ReadPackageJSON(rootPackageJSON)
@@ -90,11 +90,11 @@ func GetViewHandler(ctx context.Context, state *state.State, r *http.Request) (V
 		viewsVersion = pkg.Dependencies["@airplane/views"]
 	}
 
-	return viewConfigToInfo(viewConfig, envVars, &viewsVersion), nil
+	return viewStateToInfo(view, envVars, &viewsVersion), nil
 }
 
-func UpdateViewHandler(ctx context.Context, state *state.State, r *http.Request, req libapi.UpdateViewRequest) (struct{}, error) {
-	viewConfig, ok := state.ViewConfigs.Get(req.Slug)
+func UpdateViewHandler(ctx context.Context, s *state.State, r *http.Request, req libapi.UpdateViewRequest) (struct{}, error) {
+	viewConfig, ok := s.LocalViews.Get(req.Slug)
 	if !ok {
 		return struct{}{}, libhttp.NewErrNotFound("view with slug %q not found", req.Slug)
 	}
@@ -104,13 +104,14 @@ func UpdateViewHandler(ctx context.Context, state *state.State, r *http.Request,
 	}
 
 	// Update the underlying view file.
-	if err := updaters.UpdateView(ctx, state.Logger, viewConfig.Def.DefnFilePath, req.Slug, viewConfig.Def); err != nil {
+	if err := updaters.UpdateView(ctx, s.Logger, viewConfig.Def.DefnFilePath, req.Slug, viewConfig.Def); err != nil {
 		return struct{}{}, err
 	}
 
 	// Optimistically update the view in the cache.
-	_, err := state.ViewConfigs.Update(req.Slug, func(val *discover.ViewConfig) error {
+	_, err := s.LocalViews.Update(req.Slug, func(val *state.ViewState) error {
 		val.Def = viewConfig.Def
+		val.UpdatedAt = time.Now()
 		return nil
 	})
 	if err != nil {
@@ -134,7 +135,7 @@ func CanUpdateViewHandler(ctx context.Context, state *state.State, r *http.Reque
 		return CanUpdateViewResponse{}, libhttp.NewErrBadRequest("view slug was not supplied")
 	}
 
-	viewConfig, ok := state.ViewConfigs.Get(slug)
+	viewConfig, ok := state.LocalViews.Get(slug)
 	if !ok {
 		return CanUpdateViewResponse{}, libhttp.NewErrNotFound("view with slug %q not found", slug)
 	}
@@ -162,11 +163,11 @@ func ListViewsHandler(ctx context.Context, state *state.State, r *http.Request) 
 }
 
 func ListViews(state *state.State) []ViewInfo {
-	viewConfigs := state.ViewConfigs.Values()
-	views := make([]ViewInfo, 0, len(viewConfigs))
+	viewStates := state.LocalViews.Values()
+	views := make([]ViewInfo, 0, len(viewStates))
 
-	for _, vc := range viewConfigs {
-		views = append(views, viewConfigToInfo(vc, nil, nil))
+	for _, viewState := range viewStates {
+		views = append(views, viewStateToInfo(viewState, nil, nil))
 	}
 
 	slices.SortFunc(views, func(a, b ViewInfo) bool {
@@ -176,15 +177,16 @@ func ListViews(state *state.State) []ViewInfo {
 	return views
 }
 
-func viewConfigToInfo(viewConfig discover.ViewConfig, envVars map[string]string, viewsPkgVersion *string) ViewInfo {
+func viewStateToInfo(viewState state.ViewState, envVars map[string]string, viewsPkgVersion *string) ViewInfo {
 	vi := ViewInfo{
 		View: libapi.View{
-			ID:              viewConfig.Def.Slug,
-			Slug:            viewConfig.Def.Slug,
-			Name:            viewConfig.Def.Name,
-			Description:     viewConfig.Def.Description,
-			EnvVars:         viewConfig.Def.EnvVars,
+			ID:              viewState.Def.Slug,
+			Slug:            viewState.Def.Slug,
+			Name:            viewState.Def.Name,
+			Description:     viewState.Def.Description,
+			EnvVars:         viewState.Def.EnvVars,
 			ResolvedEnvVars: envVars,
+			UpdatedAt:       viewState.UpdatedAt,
 		},
 	}
 
@@ -192,7 +194,7 @@ func viewConfigToInfo(viewConfig discover.ViewConfig, envVars map[string]string,
 		vi.ViewsPkgVersion = *viewsPkgVersion
 	}
 
-	vi.File = viewConfig.Def.DefnFilePath
+	vi.File = viewState.Def.DefnFilePath
 
 	return vi
 }

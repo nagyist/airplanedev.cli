@@ -37,6 +37,18 @@ type ViteContext struct {
 	Process   *os.Process
 }
 
+type TaskState struct {
+	discover.TaskConfig
+
+	UpdatedAt time.Time
+}
+
+type ViewState struct {
+	discover.ViewConfig
+
+	UpdatedAt time.Time
+}
+
 type State struct {
 	Flagger              flagsiface.Flagger
 	LocalClient          *api.Client
@@ -50,13 +62,12 @@ type State struct {
 	Dir      string
 	Executor dev.Executor
 
-	Runs *runsStore
-	// Mapping from task slug to task config
-	TaskConfigs Store[string, discover.TaskConfig]
-	// Mapping from view slug to view config
-	ViewConfigs Store[string, discover.ViewConfig]
-	// AppCondition holds info about task such as errors to display and time registered
-	AppCondition Store[string, AppCondition]
+	Runs       *runsStore
+	LocalTasks Store[string, TaskState]
+	LocalViews Store[string, ViewState]
+
+	// TaskConditions holds info about tasks such as errors to display.
+	TaskConditions Store[string, EntityCondition]
 
 	Discoverer       *discover.Discoverer
 	BundleDiscoverer *bundlediscover.Discoverer
@@ -87,9 +98,8 @@ type State struct {
 	ServerStatusMutex sync.Mutex
 }
 
-type AppCondition struct {
-	RefreshedAt time.Time
-	Errors      []dev_errors.AppError
+type EntityCondition struct {
+	Errors []dev_errors.EntityError
 }
 
 // TODO: add limit on max items
@@ -122,18 +132,18 @@ func New(devToken *string) (*State, error) {
 	}
 
 	return &State{
-		EnvCache:     NewStore[string, libapi.Env](nil),
-		Runs:         NewRunStore(),
-		TaskConfigs:  NewStore[string, discover.TaskConfig](nil),
-		AppCondition: NewStore[string, AppCondition](nil),
-		ViewConfigs:  NewStore[string, discover.ViewConfig](nil),
-		Debouncers:   NewStore[string, func()](nil),
-		ViteContexts: viteContextCache,
-		PortProxy:    network.ViewPortProxy(devToken),
-		DevToken:     devToken,
-		Logger:       logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
-		ServerStatus: status.ServerDiscovering,
-		DevConfig:    devconf.NewDevConfig(""), // Set dev config to a zero value initially.
+		EnvCache:       NewStore[string, libapi.Env](nil),
+		Runs:           NewRunStore(),
+		LocalTasks:     NewStore[string, TaskState](nil),
+		TaskConditions: NewStore[string, EntityCondition](nil),
+		LocalViews:     NewStore[string, ViewState](nil),
+		Debouncers:     NewStore[string, func()](nil),
+		ViteContexts:   viteContextCache,
+		PortProxy:      network.ViewPortProxy(devToken),
+		DevToken:       devToken,
+		Logger:         logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
+		ServerStatus:   status.ServerDiscovering,
+		DevConfig:      devconf.NewDevConfig(""), // Set dev config to a zero value initially.
 	}, nil
 }
 
@@ -150,55 +160,53 @@ func (s *State) GetEnv(ctx context.Context, envSlug string) (libapi.Env, error) 
 	return env, nil
 }
 
-func (s *State) GetTaskErrors(ctx context.Context, slug string, envSlug string) (AppCondition, error) {
+func (s *State) GetTaskErrors(ctx context.Context, slug string, envSlug string) (EntityCondition, error) {
 	key := appConditionKey(slug, envSlug)
-	if result, ok := s.AppCondition.Get(key); ok {
+	if result, ok := s.TaskConditions.Get(key); ok {
 		return result, nil
 	}
 
-	result := AppCondition{
-		RefreshedAt: time.Now(),
-	}
+	result := EntityCondition{}
 
-	taskConfig, ok := s.TaskConfigs.Get(slug)
+	taskConfig, ok := s.LocalTasks.Get(slug)
 	if !ok {
 		// Not supported locally.
 		kind, _, err := taskConfig.Def.GetKindAndOptions()
 		if err != nil {
-			return AppCondition{}, errors.Wrap(err, "getting task kind")
+			return EntityCondition{}, errors.Wrap(err, "getting task kind")
 		}
-		result.Errors = append(result.Errors, dev_errors.AppError{
-			Level:   dev_errors.LevelError,
-			AppName: taskConfig.Def.GetName(),
-			AppKind: "task",
-			Reason:  fmt.Sprintf("%v task does not support local execution", kind),
+		result.Errors = append(result.Errors, dev_errors.EntityError{
+			Level:  dev_errors.LevelError,
+			Name:   taskConfig.Def.GetName(),
+			Kind:   "task",
+			Reason: fmt.Sprintf("%v task does not support local execution", kind),
 		})
 	} else {
 		// Is local execution supported?
 		kind, _, err := taskConfig.Def.GetKindAndOptions()
 		if err != nil {
-			return AppCondition{}, errors.Wrap(err, "getting task kind")
+			return EntityCondition{}, errors.Wrap(err, "getting task kind")
 		}
 		supported := supportsLocalExecution(taskConfig.Def.GetName(), taskConfig.TaskEntrypoint, kind)
 		if !supported {
-			result.Errors = append(result.Errors, dev_errors.AppError{
-				Level:   dev_errors.LevelError,
-				AppName: taskConfig.Def.GetName(),
-				AppKind: "task",
-				Reason:  fmt.Sprintf("%v tasks cannot be executed locally.", kind.UserFriendlyTaskKind()),
+			result.Errors = append(result.Errors, dev_errors.EntityError{
+				Level:  dev_errors.LevelError,
+				Name:   taskConfig.Def.GetName(),
+				Kind:   "task",
+				Reason: fmt.Sprintf("%v tasks cannot be executed locally.", kind.UserFriendlyTaskKind()),
 			})
 		}
 
 		mergedResources, err := resources.MergeRemoteResources(ctx, s.RemoteClient, s.DevConfig, pointers.String(envSlug))
 		if err != nil {
-			return AppCondition{}, errors.Wrap(err, "merging local and remote resources")
+			return EntityCondition{}, errors.Wrap(err, "merging local and remote resources")
 		}
 
 		// Check resource attachments.
 		var missingResources []string
 		resourceAttachments, err := taskConfig.Def.GetResourceAttachments()
 		if err != nil {
-			return AppCondition{}, errors.Wrap(err, "getting resource attachments")
+			return EntityCondition{}, errors.Wrap(err, "getting resource attachments")
 		}
 		for _, ref := range resourceAttachments {
 			if _, ok := resources.LookupResource(mergedResources, ref); !ok {
@@ -213,23 +221,23 @@ func (s *State) GetTaskErrors(ctx context.Context, slug string, envSlug string) 
 					reason += fmt.Sprintf(" or remotely in env %q", envSlug)
 				}
 				reason += "."
-				result.Errors = append(result.Errors, dev_errors.AppError{
-					Level:   dev_errors.LevelWarning,
-					AppName: taskConfig.Def.GetName(),
-					AppKind: "task",
-					Reason:  reason,
+				result.Errors = append(result.Errors, dev_errors.EntityError{
+					Level:  dev_errors.LevelWarning,
+					Name:   taskConfig.Def.GetName(),
+					Kind:   "task",
+					Reason: reason,
 				})
 			}
 		}
 	}
 
-	s.AddAppCondition(slug, envSlug, result)
+	s.AddTaskCondition(slug, envSlug, result)
 	return result, nil
 }
 
-func (s *State) AddAppCondition(slug string, envSlug string, appCondition AppCondition) {
+func (s *State) AddTaskCondition(slug string, envSlug string, appCondition EntityCondition) {
 	key := appConditionKey(slug, envSlug)
-	s.AppCondition.Add(key, appCondition)
+	s.TaskConditions.Add(key, appCondition)
 }
 
 func appConditionKey(slug, envSlug string) string {

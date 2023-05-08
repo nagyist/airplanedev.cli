@@ -14,24 +14,28 @@ func TestListViews(t *testing.T) {
 	require := require.New(t)
 
 	s := &state.State{
-		ViewConfigs: state.NewStore[string, discover.ViewConfig](map[string]discover.ViewConfig{
+		LocalViews: state.NewStore(map[string]state.ViewState{
 			"view_1": {
-				Def: definitions.ViewDefinition{
-					Name:        "My view",
-					Entrypoint:  "my_view.ts",
-					Slug:        "view_1",
-					Description: "My awesome view",
+				ViewConfig: discover.ViewConfig{
+					Def: definitions.ViewDefinition{
+						Name:        "My view",
+						Entrypoint:  "my_view.ts",
+						Slug:        "view_1",
+						Description: "My awesome view",
+					},
+					Source: discover.ConfigSourceDefn,
 				},
-				Source: discover.ConfigSourceDefn,
 			},
 			"view_2": {
-				Def: definitions.ViewDefinition{
-					Name:        "My view 2",
-					Entrypoint:  "my_view_2.ts",
-					Slug:        "view_2",
-					Description: "My awesome view 2",
+				ViewConfig: discover.ViewConfig{
+					Def: definitions.ViewDefinition{
+						Name:        "My view 2",
+						Entrypoint:  "my_view_2.ts",
+						Slug:        "view_2",
+						Description: "My awesome view 2",
+					},
+					Source: discover.ConfigSourceDefn,
 				},
-				Source: discover.ConfigSourceDefn,
 			},
 		}),
 	}
@@ -66,16 +70,18 @@ func TestViewConfigToInfo(t *testing.T) {
 		Slug:        viewSlug,
 		Description: "My awesome view",
 	}
-	viewConfig := discover.ViewConfig{
-		Def:    viewDefinition,
-		Source: discover.ConfigSourceDefn,
+	viewState := state.ViewState{
+		ViewConfig: discover.ViewConfig{
+			Def:    viewDefinition,
+			Source: discover.ConfigSourceDefn,
+		},
 	}
 
 	viewsVersion := "2.0.0"
 	viewEnvVars := map[string]string{
 		"KEY": "VALUE",
 	}
-	view := viewConfigToInfo(viewConfig, viewEnvVars, &viewsVersion)
+	view := viewStateToInfo(viewState, viewEnvVars, &viewsVersion)
 
 	require.Equal(ViewInfo{
 		View: libapi.View{

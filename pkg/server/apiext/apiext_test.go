@@ -69,13 +69,15 @@ func TestExecute(t *testing.T) {
 			RemoteClient: &api.MockClient{},
 			Executor:     mockExecutor,
 			Runs:         store,
-			TaskConfigs: state.NewStore(map[string]discover.TaskConfig{
+			LocalTasks: state.NewStore(map[string]state.TaskState{
 				slug: {
-					TaskID:         "tsk123",
-					TaskRoot:       ".",
-					TaskEntrypoint: "my_task.ts",
-					Def:            taskDefinition,
-					Source:         discover.ConfigSourceDefn,
+					TaskConfig: discover.TaskConfig{
+						TaskID:         "tsk123",
+						TaskRoot:       ".",
+						TaskEntrypoint: "my_task.ts",
+						Def:            taskDefinition,
+						Source:         discover.ConfigSourceDefn,
+					},
 				},
 			}),
 			DevConfig: &devconf.DevConfig{},
@@ -148,7 +150,7 @@ func TestExecuteFallback(t *testing.T) {
 			},
 			Executor:             mockExecutor,
 			Runs:                 store,
-			TaskConfigs:          state.NewStore(map[string]discover.TaskConfig{}),
+			LocalTasks:           state.NewStore(map[string]state.TaskState{}),
 			DevConfig:            &devconf.DevConfig{},
 			InitialRemoteEnvSlug: pointers.String("test"),
 		}, server.Options{}),
@@ -200,7 +202,7 @@ func TestExecuteDescendantFallback(t *testing.T) {
 			RemoteClient:         &api.MockClient{},
 			Executor:             mockExecutor,
 			Runs:                 runstore,
-			TaskConfigs:          state.NewStore(map[string]discover.TaskConfig{}),
+			LocalTasks:           state.NewStore(map[string]state.TaskState{}),
 			DevConfig:            &devconf.DevConfig{},
 			InitialRemoteEnvSlug: pointers.String("test"),
 		}, server.Options{}),
@@ -270,13 +272,15 @@ func TestExecuteBuiltin(t *testing.T) {
 			RemoteClient: &api.MockClient{},
 			Executor:     mockExecutor,
 			Runs:         store,
-			TaskConfigs: state.NewStore(map[string]discover.TaskConfig{
+			LocalTasks: state.NewStore(map[string]state.TaskState{
 				slug: {
-					TaskID:         "tsk123",
-					TaskRoot:       ".",
-					TaskEntrypoint: "my_task.ts",
-					Def:            taskDefinition,
-					Source:         discover.ConfigSourceDefn,
+					TaskConfig: discover.TaskConfig{
+						TaskID:         "tsk123",
+						TaskRoot:       ".",
+						TaskEntrypoint: "my_task.ts",
+						Def:            taskDefinition,
+						Source:         discover.ConfigSourceDefn,
+					},
 				},
 			}),
 			DevConfig: &devconf.DevConfig{Resources: map[string]env.ResourceWithEnv{
@@ -337,8 +341,8 @@ func TestGetRun(t *testing.T) {
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
-			Runs:        runstore,
-			TaskConfigs: state.NewStore[string, discover.TaskConfig](nil),
+			Runs:       runstore,
+			LocalTasks: state.NewStore[string, state.TaskState](nil),
 		}, server.Options{}),
 	)
 	body := h.GET("/v0/runs/get").
@@ -365,8 +369,8 @@ func TestGetOutput(t *testing.T) {
 		context.Background(),
 		t,
 		server.NewRouter(&state.State{
-			Runs:        runstore,
-			TaskConfigs: state.NewStore[string, discover.TaskConfig](nil),
+			Runs:       runstore,
+			LocalTasks: state.NewStore[string, state.TaskState](nil),
 		}, server.Options{}),
 	)
 
@@ -406,13 +410,15 @@ func TestRefresh(t *testing.T) {
 			RemoteClient: &api.MockClient{},
 			Executor:     mockExecutor,
 			Runs:         store,
-			TaskConfigs: state.NewStore(map[string]discover.TaskConfig{
+			LocalTasks: state.NewStore(map[string]state.TaskState{
 				slug: {
-					TaskID:         "tsk123",
-					TaskRoot:       ".",
-					TaskEntrypoint: "my_task.ts",
-					Def:            taskDefinition,
-					Source:         discover.ConfigSourceDefn,
+					TaskConfig: discover.TaskConfig{
+						TaskID:         "tsk123",
+						TaskRoot:       ".",
+						TaskEntrypoint: "my_task.ts",
+						Def:            taskDefinition,
+						Source:         discover.ConfigSourceDefn,
+					},
 				},
 			}),
 			DevConfig: &devconf.DevConfig{},
