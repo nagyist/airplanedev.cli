@@ -1,11 +1,5 @@
 import dataclasses
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-)
+from typing import Any, Callable, Dict, List, Optional
 
 
 # Inlined partial airplanesdk library so the parser works properly.
@@ -39,6 +33,7 @@ class TaskDef:
     schedules: Optional[List[Any]]
     parameters: Optional[List[ParamDef]]
     env_vars: Optional[Any]
+    sdk_version: Optional[str]
 
 
 def collatz(num: int) -> int:
@@ -75,4 +70,5 @@ collatz.__airplane = TaskDef(
             regex=None,
         )
     ],
+    sdk_version=None,
 )

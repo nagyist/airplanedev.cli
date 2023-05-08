@@ -541,7 +541,8 @@ func TestDiscover(t *testing.T) {
 						Python: &definitions.PythonDefinition{
 							EnvVars: api.EnvVars{},
 						},
-						Schedules: map[string]definitions.ScheduleDefinition{},
+						Schedules:  map[string]definitions.ScheduleDefinition{},
+						SDKVersion: pointers.String("0.0.1"),
 					},
 					Source: ConfigSourceCode,
 				},

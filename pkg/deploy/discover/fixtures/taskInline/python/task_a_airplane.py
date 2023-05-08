@@ -35,4 +35,5 @@ task_a.__airplane = TaskDef(
             regex=None,
         )
     ],
+    sdk_version="0.0.1",
 )

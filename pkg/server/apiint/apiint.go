@@ -624,6 +624,12 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (Ge
 		logger.Error("Encountered error while getting task info: %v", err)
 		return GetRunResponse{}, errors.Errorf("error getting task %s", run.TaskRevision.Def.GetSlug())
 	}
+	kind, err := run.TaskRevision.Def.Kind()
+	if err != nil {
+		logger.Error("Encountered error while getting task info: %v", err)
+		return GetRunResponse{}, errors.Errorf("error getting task %s", run.TaskRevision.Def.GetSlug())
+	}
+
 	run.Parameters = &parameters
 	task := &libapi.Task{
 		ID:          run.TaskRevision.Def.GetSlug(),
@@ -631,6 +637,8 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (Ge
 		Slug:        run.TaskRevision.Def.GetSlug(),
 		Description: run.TaskRevision.Def.GetDescription(),
 		Parameters:  parameters,
+		Kind:        kind,
+		SDKVersion:  run.TaskRevision.Def.SDKVersion,
 	}
 
 	return GetRunResponse{
