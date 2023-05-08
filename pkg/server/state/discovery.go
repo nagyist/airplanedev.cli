@@ -16,26 +16,31 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func (s *State) ReloadPath(ctx context.Context, path string) error {
-	fileInfo, err := os.Stat(path)
+type ReloadPathOpts struct {
+	Path    string
+	OldPath string
+}
+
+func (s *State) ReloadPath(ctx context.Context, opts ReloadPathOpts) error {
+	fileInfo, err := os.Stat(opts.Path)
 	if err != nil {
-		return errors.Wrapf(err, "describing %s", path)
+		return errors.Wrapf(err, "describing %s", opts.Path)
 	}
 	shouldRefreshDir := fileInfo.IsDir()
 
 	reload := func() {
-		if path == s.DevConfig.Path {
+		if opts.Path == s.DevConfig.Path {
 			if err := s.DevConfig.Update(); err != nil {
 				logger.Error("Loading dev config file: %s", err.Error())
 			}
 		}
 
-		pathsToDiscover := []string{path}
+		pathsToDiscover := []string{opts.Path}
 
 		for _, tC := range s.TaskConfigs.Items() {
 			var shouldRefreshTask bool
 			// Refresh any tasks that have resource attachments
-			if path == s.DevConfig.Path {
+			if opts.Path == s.DevConfig.Path {
 				ra, err := tC.Def.GetResourceAttachments()
 				if err != nil {
 					logger.Debug("Error getting resource attachments for task %s: %v", tC.Def.GetName(), err)
@@ -48,7 +53,7 @@ func (s *State) ReloadPath(ctx context.Context, path string) error {
 			}
 
 			// Refresh any tasks that have the modified entrypoint.
-			shouldRefreshTask = shouldRefreshTask || tC.TaskEntrypoint == path
+			shouldRefreshTask = shouldRefreshTask || tC.TaskEntrypoint == opts.Path
 			if shouldRefreshTask {
 				pathsToDiscover = append(pathsToDiscover, tC.Def.GetDefnFilePath())
 			}
@@ -56,7 +61,7 @@ func (s *State) ReloadPath(ctx context.Context, path string) error {
 
 		// Refresh any views that have the modified entrypoint.
 		for _, vC := range s.ViewConfigs.Items() {
-			if vC.Def.Entrypoint == path {
+			if vC.Def.Entrypoint == opts.Path {
 				pathsToDiscover = append(pathsToDiscover, vC.Def.DefnFilePath)
 			}
 		}
@@ -67,6 +72,20 @@ func (s *State) ReloadPath(ctx context.Context, path string) error {
 		taskConfigs, viewConfigs, err := s.DiscoverTasksAndViews(ctx, pathsToDiscover...)
 		if err != nil {
 			logger.Error(err.Error())
+		}
+
+		// Delete any tasks or views defined in the old path
+		if opts.OldPath != "" {
+			for _, tC := range s.TaskConfigs.Items() {
+				if tC.Def.GetDefnFilePath() == opts.OldPath {
+					s.TaskConfigs.Delete(tC.Def.Slug)
+				}
+			}
+			for _, vC := range s.ViewConfigs.Items() {
+				if vC.Def.DefnFilePath == opts.OldPath {
+					s.ViewConfigs.Delete(vC.Def.Slug)
+				}
+			}
 		}
 
 		err = s.RegisterTasksAndViews(ctx, DiscoverOpts{
@@ -80,10 +99,10 @@ func (s *State) ReloadPath(ctx context.Context, path string) error {
 		}
 	}
 
-	dfn, ok := s.Debouncers.Get(path)
+	dfn, ok := s.Debouncers.Get(opts.Path)
 	if !ok {
 		dfn = utils.Debounce(time.Second, reload)
-		s.Debouncers.Add(path, dfn)
+		s.Debouncers.Add(opts.Path, dfn)
 	}
 	// kick off a debounced version of the reload
 	// debounce is non-blocking and will execute reload() in a separate goroutine

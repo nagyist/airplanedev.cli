@@ -87,7 +87,9 @@ func InitTaskHandler(ctx context.Context, s *state.State, r *http.Request, req I
 			}
 			path = entrypoint
 		}
-		if err := s.ReloadPath(ctx, path); err != nil {
+		if err := s.ReloadPath(ctx, state.ReloadPathOpts{
+			Path: path,
+		}); err != nil {
 			return InitTaskResponse{}, errors.Wrap(err, "reloading path")
 		}
 
@@ -144,7 +146,9 @@ func InitViewHandler(ctx context.Context, s *state.State, r *http.Request, req I
 
 	if !req.DryRun && resp.NewViewDefinition != nil {
 		// Kick off discovery for the view.
-		if err := s.ReloadPath(ctx, resp.NewViewDefinition.DefnFilePath); err != nil {
+		if err := s.ReloadPath(ctx, state.ReloadPathOpts{
+			Path: resp.NewViewDefinition.DefnFilePath,
+		}); err != nil {
 			return InitViewResponse{}, errors.Wrap(err, "reloading path")
 		}
 

@@ -239,7 +239,10 @@ func (s *Server) ReloadApps(ctx context.Context, wd string, e filewatcher.Event)
 		path = wd
 	}
 
-	return s.state.ReloadPath(ctx, path)
+	return s.state.ReloadPath(ctx, state.ReloadPathOpts{
+		Path:    path,
+		OldPath: e.OldPath,
+	})
 }
 
 // RegisterTasksAndViews generates a mapping of slug to task and view configs and stores the mappings in the server

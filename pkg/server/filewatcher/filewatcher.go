@@ -32,12 +32,16 @@ const (
 
 // Event describes the change that occured.
 type Event struct {
-	Op   Operation
-	Path string
+	Op      Operation
+	Path    string
+	OldPath string
 }
 
 func toEvent(e watcher.Event) Event {
-	event := Event{Path: e.Path}
+	event := Event{
+		Path:    e.Path,
+		OldPath: e.OldPath,
+	}
 	switch e.Op {
 	case watcher.Create:
 		event.Op = Create
