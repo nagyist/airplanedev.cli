@@ -33,6 +33,7 @@ type TaskDef = {
   resources: Record<string, string> | string[];
   schedules: Record<string, any>;
   runtime?: "" | "workflow";
+  permissions?: any;
   defaultRunPermissions?: "task-viewers" | "task-participants";
   concurrencyKey?: string;
   concurrencyLimit?: number;
@@ -119,6 +120,7 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
             defaultRunPermissions: config.defaultRunPermissions,
             concurrencyKey: config.concurrencyKey,
             concurrencyLimit: config.concurrencyLimit,
+            permissions: config.permissions,
             resources: config.resources,
             schedules: config.schedules,
             parameters: params,

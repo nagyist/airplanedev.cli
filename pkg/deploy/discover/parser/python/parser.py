@@ -34,6 +34,18 @@ class Schedule:
     cron: str
     paramValues: Dict[str, Any]
 
+@dataclasses.dataclass
+class PermissionAssignees:
+    users: Optional[List[str]]
+    groups: Optional[List[str]]
+
+
+@dataclasses.dataclass
+class ExplicitPermissions:
+    viewers: Optional[PermissionAssignees]
+    requesters: Optional[PermissionAssignees]
+    executers: Optional[PermissionAssignees]
+    admins: Optional[PermissionAssignees]
 
 @dataclasses.dataclass
 class EnvVar:
@@ -70,6 +82,7 @@ class Def:
     sdkVersion: Optional[str]
 
     schedules: Dict[str, Schedule]
+    permissions: Optional[Union[Literal["team_access"], ExplicitPermissions]]
 
 
 def as_def(obj: Any) -> Union[Any, Dict[str, Any]]:
@@ -146,6 +159,7 @@ def extract_task_configs(files: List[str]) -> List[Def]:
                         concurrencyLimit=conf_with_fallback(
                             conf, "concurrency_limit", 1
                         ),
+                        permissions=conf.permissions if hasattr(conf, "permissions") else None,
                         schedules={
                             s.slug: Schedule(
                                 name=s.name,

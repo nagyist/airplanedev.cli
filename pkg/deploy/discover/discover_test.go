@@ -809,6 +809,81 @@ func TestDiscover(t *testing.T) {
 			expectedErr: true,
 		},
 		{
+			name:  "node code definition with explicit permissions",
+			paths: []string{"./fixtures/taskInlinePermissions/codeOnlyTask.airplane.ts"},
+			existingTasks: map[string]api.Task{
+				"collatz": {ID: "tsk123", Slug: "collatz", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
+			},
+			expectedTaskConfigs: []TaskConfig{
+				{
+					TaskID:         "tsk123",
+					TaskRoot:       fixturesPath,
+					TaskEntrypoint: fixturesPath + "/taskInlinePermissions/codeOnlyTask.airplane.ts",
+					Def: definitions.Definition{
+						Name:       "Collatz Conjecture Step",
+						Slug:       "collatz",
+						Node:       &definitions.NodeDefinition{},
+						Parameters: []definitions.ParameterDefinition{},
+						Permissions: &definitions.PermissionsDefinition{
+							Viewers:                    definitions.PermissionRecipients{Groups: []string{"group1"}, Users: []string{"user1"}},
+							Requesters:                 definitions.PermissionRecipients{Groups: []string{"group2"}},
+							Executers:                  definitions.PermissionRecipients{Groups: []string{"group3", "group4"}},
+							Admins:                     definitions.PermissionRecipients{Groups: []string{"group5"}},
+							RequireExplicitPermissions: true,
+						},
+					},
+					Source: ConfigSourceCode,
+				},
+			},
+			buildConfigs: []buildtypes.BuildConfig{
+				{
+					"entrypoint":     "taskInlinePermissions/codeOnlyTask.airplane.ts",
+					"entrypointFunc": "collatz",
+					"workdir":        "",
+				},
+			},
+			absEntrypoints: []string{
+				fixturesPath + "/taskInlinePermissions/codeOnlyTask.airplane.ts",
+			},
+			defnFilePaths: []string{fixturesPath + "/taskInlinePermissions/codeOnlyTask.airplane.ts"},
+		},
+		{
+			name:  "node code definition with team access",
+			paths: []string{"./fixtures/taskInlinePermissionsTeamAccess/codeOnlyTask.airplane.ts"},
+			existingTasks: map[string]api.Task{
+				"collatz": {ID: "tsk123", Slug: "collatz", Kind: buildtypes.TaskKindNode, InterpolationMode: "jst"},
+			},
+			expectedTaskConfigs: []TaskConfig{
+				{
+					TaskID:         "tsk123",
+					TaskRoot:       fixturesPath,
+					TaskEntrypoint: fixturesPath + "/taskInlinePermissionsTeamAccess/codeOnlyTask.airplane.ts",
+					Def: definitions.Definition{
+						Name:       "Collatz Conjecture Step",
+						Slug:       "collatz",
+						Node:       &definitions.NodeDefinition{},
+						Parameters: []definitions.ParameterDefinition{},
+						Permissions: &definitions.PermissionsDefinition{
+							RequireExplicitPermissions: false,
+						},
+					},
+					Source: ConfigSourceCode,
+				},
+			},
+			buildConfigs: []buildtypes.BuildConfig{
+				{
+					"entrypoint":     "taskInlinePermissionsTeamAccess/codeOnlyTask.airplane.ts",
+					"entrypointFunc": "collatz",
+					"workdir":        "",
+				},
+			},
+			absEntrypoints: []string{
+				fixturesPath + "/taskInlinePermissionsTeamAccess/codeOnlyTask.airplane.ts",
+			},
+			defnFilePaths: []string{fixturesPath + "/taskInlinePermissionsTeamAccess/codeOnlyTask.airplane.ts"},
+		},
+		// TODO: add python tests with permissions after we update the python SDK
+		{
 			name:  "node code definition with an esm dep",
 			paths: []string{"./fixtures/taskInlineEsm/codeOnlyTask.airplane.ts"},
 			existingTasks: map[string]api.Task{
