@@ -79,11 +79,11 @@ func TestViewConfigToInfo(t *testing.T) {
 
 	require.Equal(ViewInfo{
 		View: libapi.View{
-			ID:          viewSlug,
-			Slug:        viewSlug,
-			Name:        "My view",
-			Description: "My awesome view",
-			EnvVars:     viewEnvVars,
+			ID:              viewSlug,
+			Slug:            viewSlug,
+			Name:            "My view",
+			Description:     "My awesome view",
+			ResolvedEnvVars: viewEnvVars,
 		},
 		ViewsPkgVersion: viewsVersion,
 	}, view)

@@ -179,11 +179,12 @@ func ListViews(state *state.State) []ViewInfo {
 func viewConfigToInfo(viewConfig discover.ViewConfig, envVars map[string]string, viewsPkgVersion *string) ViewInfo {
 	vi := ViewInfo{
 		View: libapi.View{
-			ID:          viewConfig.Def.Slug,
-			Slug:        viewConfig.Def.Slug,
-			Name:        viewConfig.Def.Name,
-			Description: viewConfig.Def.Description,
-			EnvVars:     envVars,
+			ID:              viewConfig.Def.Slug,
+			Slug:            viewConfig.Def.Slug,
+			Name:            viewConfig.Def.Name,
+			Description:     viewConfig.Def.Description,
+			EnvVars:         viewConfig.Def.EnvVars,
+			ResolvedEnvVars: envVars,
 		},
 	}
 

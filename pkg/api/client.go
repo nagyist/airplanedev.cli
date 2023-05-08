@@ -587,15 +587,16 @@ type ExecuteRules struct {
 }
 
 type View struct {
-	ID          string            `json:"id"`
-	Slug        string            `json:"slug"`
-	ArchivedAt  *time.Time        `json:"archivedAt"`
-	ArchivedBy  *string           `json:"archivedBy"`
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	CreatedBy   string            `json:"createdBy"`
-	CreatedAt   time.Time         `json:"createdAt"`
-	EnvVars     map[string]string `json:"envVars"`
+	ID              string            `json:"id"`
+	Slug            string            `json:"slug"`
+	ArchivedAt      *time.Time        `json:"archivedAt"`
+	ArchivedBy      *string           `json:"archivedBy"`
+	Name            string            `json:"name"`
+	Description     string            `json:"description"`
+	CreatedBy       string            `json:"createdBy"`
+	CreatedAt       time.Time         `json:"createdAt"`
+	EnvVars         EnvVars           `json:"envVars"`
+	ResolvedEnvVars map[string]string `json:"resolvedEnvVars"`
 	// IsLocal is true if the view is local in the editor, false if it's a
 	// view that's already deployed.
 	IsLocal bool `json:"isLocal"`
