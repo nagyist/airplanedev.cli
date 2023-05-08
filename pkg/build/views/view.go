@@ -384,7 +384,7 @@ func ViewBundle(root string, buildContext buildtypes.BuildContext, options build
 
 		# Bust the Docker cache to ensure discovered entities are logged.
 		ARG AIRPLANE_BUILD_ID
-		RUN echo "$AIRPLANE_BUILD_ID"&& cat /airplane/.airplane-build-tools/discovery.json
+		RUN echo "$AIRPLANE_BUILD_ID" && cat /airplane/.airplane-build-tools/discovery.json
 		{{end}}
 
 		# Docker's minimal image - we just need an empty place to copy the build artifacts.
