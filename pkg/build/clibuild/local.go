@@ -4,11 +4,11 @@ import (
 	"context"
 	"sync"
 
-	libapi "github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/build"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
-	"github.com/airplanedev/cli/pkg/configs"
+	libapi "github.com/airplanedev/cli/pkg/cli/apiclient"
+	"github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	"github.com/airplanedev/cli/pkg/cli/configs"
 	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/pkg/errors"
 )

@@ -48,7 +48,7 @@ jobs:
           skip-build-cache: true
       # https://github.com/pre-commit/action
       - uses: pre-commit/action@v3.0.0
-      - run: scripts/check_gotidy.sh
+      - run: scripts/ci/check_gotidy.sh
 
   sharded-test:
     runs-on: buildjet-8vcpu-ubuntu-2004

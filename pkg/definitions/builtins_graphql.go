@@ -3,9 +3,9 @@ package definitions
 import (
 	"log"
 
-	"github.com/airplanedev/cli/pkg/api"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
-	"github.com/airplanedev/cli/pkg/builtins"
+	"github.com/airplanedev/cli/pkg/cli/apiclient"
+	"github.com/airplanedev/cli/pkg/cli/builtins"
 	"github.com/pkg/errors"
 )
 

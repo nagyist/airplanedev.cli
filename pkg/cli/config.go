@@ -1,12 +1,10 @@
 package cli
 
 import (
-	api "github.com/airplanedev/cli/pkg/api/cliapi"
-	"github.com/airplanedev/cli/pkg/devconf"
-	"github.com/airplanedev/cli/pkg/flags/flagsiface"
-	"github.com/airplanedev/cli/pkg/prompts"
-	"github.com/airplanedev/cli/pkg/utils/logger"
-	"github.com/golang-jwt/jwt/v5"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	"github.com/airplanedev/cli/pkg/cli/devconf"
+	"github.com/airplanedev/cli/pkg/cli/flags/flagsiface"
+	"github.com/airplanedev/cli/pkg/cli/prompts"
 )
 
 // Config represents command configuration.
@@ -42,32 +40,6 @@ type Config struct {
 
 	// Prompter represents the prompter to use to get user input.
 	Prompter prompts.Prompter
-}
-
-type AnalyticsToken struct {
-	UserID string
-	TeamID string
-}
-
-// ParseTokenForAnalytics parses UNVERIFIED JWT information - this information can be spoofed.
-// Should only be used for analytics, nothing sensitive.
-func ParseTokenForAnalytics(token string) AnalyticsToken {
-	var res AnalyticsToken
-	if token == "" {
-		return res
-	}
-	t, _, err := new(jwt.Parser).ParseUnverified(token, jwt.MapClaims{})
-	if err != nil {
-		logger.Debug("error parsing token: %v", err)
-		return res
-	}
-	claims, ok := t.Claims.(jwt.MapClaims)
-	if !ok {
-		return res
-	}
-	res.UserID = claims["userID"].(string)
-	res.TeamID = claims["teamID"].(string)
-	return res
 }
 
 // Must should be used for Cobra initialize commands that can return an error

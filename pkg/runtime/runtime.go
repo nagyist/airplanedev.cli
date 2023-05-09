@@ -16,7 +16,7 @@ import (
 	"sort"
 
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
-	"github.com/airplanedev/cli/pkg/builtins"
+	"github.com/airplanedev/cli/pkg/cli/builtins"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/deploy/config"
 	"github.com/airplanedev/cli/pkg/utils/fsx"

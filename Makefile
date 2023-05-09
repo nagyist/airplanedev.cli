@@ -9,5 +9,5 @@ lint:
 
 install:
 	@go install \
-		-ldflags="-X github.com/airplanedev/cli/pkg/analytics.segmentWriteKey=${SEGMENT_WRITE_KEY} -X github.com/airplanedev/cli/pkg/analytics.sentryDSN=${SENTRY_DSN}" \
-		./cmd/airplane
+		-ldflags="-X github.com/airplanedev/cli/pkg/cli/analytics.segmentWriteKey=${SEGMENT_WRITE_KEY} -X github.com/airplanedev/cli/pkg/cli/analytics.sentryDSN=${SENTRY_DSN}" \
+		./cmd/cli

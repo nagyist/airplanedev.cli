@@ -3,8 +3,8 @@ package discover
 import (
 	"context"
 
-	"github.com/airplanedev/cli/pkg/api"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/runtime"
 	_ "github.com/airplanedev/cli/pkg/runtime/builtin"

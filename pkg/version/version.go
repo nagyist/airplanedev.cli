@@ -1,13 +1,24 @@
 package version
 
-import "sync"
+import "os"
 
-// Set by Go Releaser.
+// The following fields are set at build-time via ldflags.
 var (
-	version    string = "<unknown>"
-	date       string = "<unknown>"
+	version           = "(unknown)"
+	date       string = "(unknown)"
 	prerelease string = ""
 )
+
+// The following fields are cached to avoid unnecessary syscalls.
+var (
+	hostname = "(unknown)"
+)
+
+func init() {
+	if h, err := os.Hostname(); err != nil {
+		hostname = h
+	}
+}
 
 func Get() string {
 	return version
@@ -21,21 +32,6 @@ func Date() string {
 	return date
 }
 
-type Metadata struct {
-	Status   string `json:"status"`
-	Version  string `json:"version"`
-	IsLatest bool   `json:"isLatest"`
-}
-
-// We cache the CLI's version since github rate limits checks
-// When we add hot reload and it's long running, we should expire/periodically refresh this.
-type Cache struct {
-	mu      sync.Mutex
-	Version *Metadata
-}
-
-func (c *Cache) Add(response Metadata) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.Version = &response
+func Hostname() string {
+	return hostname
 }

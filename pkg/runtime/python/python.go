@@ -15,9 +15,9 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/build/python"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/definitions/updaters"
 	"github.com/airplanedev/cli/pkg/deploy/config"

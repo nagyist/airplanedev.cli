@@ -5,7 +5,7 @@ before:
   hooks:
     - go mod tidy
 builds:
-  - main: ./cmd/airplane/main.go
+  - main: ./cmd/cli/main.go
     env:
       - CGO_ENABLED=0
     ldflags:
@@ -13,8 +13,8 @@ builds:
       - -X github.com/airplanedev/cli/pkg/version.version={{.Version}}
       - -X github.com/airplanedev/cli/pkg/version.prerelease={{.Prerelease}}
       - -X github.com/airplanedev/cli/pkg/version.date={{.Date}}
-      - -X github.com/airplanedev/cli/pkg/analytics.segmentWriteKey={{.Env.SEGMENT_WRITE_KEY}}
-      - -X github.com/airplanedev/cli/pkg/analytics.sentryDSN={{.Env.SENTRY_DSN}}
+      - -X github.com/airplanedev/cli/pkg/cli/analytics.segmentWriteKey={{.Env.SEGMENT_WRITE_KEY}}
+      - -X github.com/airplanedev/cli/pkg/cli/analytics.sentryDSN={{.Env.SENTRY_DSN}}
     goos:
       - linux
       - windows
@@ -66,15 +66,14 @@ release:
   prerelease: auto
   extra_files:
     # Upload our installation scripts as release artifacts:
-    - glob: ./scripts/install.sh
-    - glob: ./scripts/install.ps1
+    - glob: ./deployments/cli/install.sh
+    - glob: ./deployments/cli/install.ps1
 dockers:
-  -
-    image_templates:
-    - us-docker.pkg.dev/airplane-prod/public/cli:latest
-    - us-docker.pkg.dev/airplane-prod/public/cli:{{ trimprefix .Tag "v" }}
-    - us-docker.pkg.dev/airplane-prod/public/cli:{{ .Major }}.{{ .Minor }}
+  - image_templates:
+      - us-docker.pkg.dev/airplane-prod/public/cli:latest
+      - us-docker.pkg.dev/airplane-prod/public/cli:{{ trimprefix .Tag "v" }}
+      - us-docker.pkg.dev/airplane-prod/public/cli:{{ .Major }}.{{ .Minor }}
     skip_push: auto
     # Store the Dockerfile in a subdirectory to avoid it getting picked up by tests that
     # look for a Dockerfile in parent directories.
-    dockerfile: ./scripts/Dockerfile
+    dockerfile: ./deployments/cli/Dockerfile

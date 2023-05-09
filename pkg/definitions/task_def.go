@@ -7,8 +7,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/airplanedev/cli/pkg/api"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/goccy/go-yaml"
 	"github.com/pkg/errors"

@@ -3,8 +3,8 @@ package definitions
 import (
 	"path"
 
-	"github.com/airplanedev/cli/pkg/api"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	"github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/pkg/errors"
 )
 

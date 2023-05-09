@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
-	"github.com/airplanedev/cli/pkg/builtins"
+	"github.com/airplanedev/cli/pkg/cli/builtins"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/definitions/updaters"
 	"github.com/airplanedev/cli/pkg/runtime"
