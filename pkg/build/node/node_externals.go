@@ -461,7 +461,7 @@ func getYarnLockPackageVersion(dir string, packageName string) (string, error) {
 	}
 
 	if treeLine == "" {
-		return "", fmt.Errorf("could not find package info in yarn output: %s", string(out))
+		return "", errors.Errorf("could not find package info in yarn output: %s", string(out))
 	}
 
 	results := yarnListResults{}

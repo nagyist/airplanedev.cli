@@ -9,7 +9,7 @@ import (
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/cli"
 	libapi "github.com/airplanedev/cli/pkg/cli/apiclient"
-	"github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 	"github.com/airplanedev/cli/pkg/cli/prompts"
 	"github.com/airplanedev/cli/pkg/deploy/archive"
 	"github.com/airplanedev/cli/pkg/deploy/bundlediscover"
@@ -20,7 +20,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/storage/filesystem"
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -204,7 +203,6 @@ func TestDeploy(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
 			require := require.New(t)
-			assert := assert.New(t)
 			mockClient := &api.MockClient{
 				GetDeploymentResponse: tC.getDeploymentResponse,
 				Configs: []api.Config{
@@ -239,13 +237,13 @@ func TestDeploy(t *testing.T) {
 
 			err := d.Deploy(context.Background(), tC.bundles)
 			if tC.expectedError != nil {
-				assert.Error(err)
+				require.Error(err)
 				return
 			} else {
 				require.NoError(err)
 			}
 
-			assert.Equal(tC.deploys, mockClient.Deploys)
+			require.Equal(tC.deploys, mockClient.Deploys)
 		})
 	}
 }
@@ -286,15 +284,14 @@ func TestParseRemote(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			assert := assert.New(t)
 			require := require.New(t)
 
 			owner, name, vendor, err := parseRemote(tC.remote)
 			require.NoError(err)
 
-			assert.Equal(tC.ownerName, owner)
-			assert.Equal(tC.repoName, name)
-			assert.Equal(tC.vendor, vendor)
+			require.Equal(tC.ownerName, owner)
+			require.Equal(tC.repoName, name)
+			require.Equal(tC.vendor, vendor)
 		})
 	}
 }

@@ -64,7 +64,7 @@ func getLocation(p path.P, root *ojson.Value) (location, error) {
 			if !ok {
 				if cur == nil {
 					updateLocation(loc, ojson.NewObject())
-					obj = getAtLocation(loc).(*ojson.Object)
+					obj, _ = getAtLocation(loc).(*ojson.Object)
 				} else {
 					return location{}, errors.New("expected *ojson.Object")
 				}

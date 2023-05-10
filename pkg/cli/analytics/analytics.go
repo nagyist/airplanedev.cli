@@ -1,18 +1,18 @@
 package analytics
 
 import (
-	"errors"
 	"runtime"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 	"github.com/airplanedev/cli/pkg/cli/conf"
 	"github.com/airplanedev/cli/pkg/cli/prompts"
 	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/airplanedev/cli/pkg/version"
 	"github.com/getsentry/sentry-go"
+	"github.com/pkg/errors"
 	"github.com/segmentio/analytics-go"
 )
 

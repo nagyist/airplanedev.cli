@@ -2,7 +2,6 @@ package rest
 
 import (
 	"context"
-	"errors"
 	"io"
 	"io/fs"
 	"os"
@@ -13,6 +12,7 @@ import (
 	"github.com/airplanedev/cli/pkg/definitions/updaters"
 	"github.com/airplanedev/cli/pkg/runtime"
 	"github.com/airplanedev/cli/pkg/utils/logger"
+	"github.com/pkg/errors"
 )
 
 // Init register the runtime.

@@ -7,6 +7,8 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // Exists returns true if the given path exists.
@@ -19,7 +21,7 @@ func Exists(path string) bool {
 func AssertExistsAll(paths ...string) error {
 	for _, p := range paths {
 		if _, err := os.Stat(p); os.IsNotExist(err) {
-			return fmt.Errorf("could not find file %s", path.Base(p))
+			return errors.Errorf("could not find file %s", path.Base(p))
 		}
 	}
 	return nil
@@ -36,7 +38,7 @@ func AssertExistsAny(paths ...string) error {
 			return err
 		}
 	}
-	return fmt.Errorf("could not find any files %s", paths)
+	return errors.Errorf("could not find any files %s", paths)
 }
 
 // Find attempts to find the path of the given filename.

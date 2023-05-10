@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 	"github.com/airplanedev/cli/pkg/cli/conf"
 	"github.com/airplanedev/cli/pkg/cli/flags/flagsiface"
 	"github.com/airplanedev/cli/pkg/utils/logger"

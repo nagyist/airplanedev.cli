@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	libapi "github.com/airplanedev/cli/pkg/cli/apiclient"
-	"github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 	libhttp "github.com/airplanedev/cli/pkg/cli/apiclient/http"
 	"github.com/airplanedev/cli/pkg/cli/dev/env"
 	"github.com/airplanedev/cli/pkg/cli/devconf"

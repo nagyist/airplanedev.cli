@@ -40,7 +40,8 @@ func InstallBundleDependencies(bundle bundlediscover.Bundle) error {
 		BuildContext: bundle.BuildContext,
 	})
 	if err != nil {
-		if _, ok := errors.Cause(err).(buildtypes.ErrUnsupportedBuilder); ok {
+		var unsuperr buildtypes.ErrUnsupportedBuilder
+		if errors.As(err, &unsuperr) {
 			return nil
 		}
 		return err

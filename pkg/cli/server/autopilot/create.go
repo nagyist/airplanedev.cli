@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
-	"github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 	libhttp "github.com/airplanedev/cli/pkg/cli/apiclient/http"
 	"github.com/airplanedev/cli/pkg/cli/server/state"
 	"github.com/airplanedev/cli/pkg/utils"

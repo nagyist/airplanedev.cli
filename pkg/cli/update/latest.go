@@ -3,7 +3,6 @@ package update
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os/exec"
 	"runtime"
@@ -15,6 +14,7 @@ import (
 	"github.com/airplanedev/cli/pkg/utils/fsx"
 	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/airplanedev/cli/pkg/version"
+	"github.com/pkg/errors"
 )
 
 const releaseURL = "https://api.github.com/repos/airplanedev/cli/releases?per_page=1"
@@ -128,7 +128,7 @@ func getLatest(ctx context.Context) (string, error) {
 			analytics.ReportError(err)
 			logger.Debug("Unable to decode GitHub %s API response: %s", resp.Status, err)
 		}
-		return "", fmt.Errorf("HTTP %s: %s", resp.Status, ghError.Message)
+		return "", errors.Errorf("HTTP %s: %s", resp.Status, ghError.Message)
 	}
 
 	var releases []release

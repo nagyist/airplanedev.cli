@@ -19,7 +19,7 @@ import (
 	"github.com/airplanedev/cli/pkg/build/node"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	buildversions "github.com/airplanedev/cli/pkg/build/versions"
-	"github.com/airplanedev/cli/pkg/cli/apiclient"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/definitions/updaters"
 	"github.com/airplanedev/cli/pkg/deploy/config"
@@ -256,7 +256,7 @@ func (r Runtime) Generate(t *runtime.Task) ([]byte, fs.FileMode, error) {
 
 	var buf bytes.Buffer
 	if err := code.Execute(&buf, d); err != nil {
-		return nil, 0, fmt.Errorf("javascript: template execute - %w", err)
+		return nil, 0, errors.Wrap(err, "javascript: template execute")
 	}
 
 	return buf.Bytes(), 0644, nil
@@ -281,7 +281,7 @@ func (r Runtime) GenerateInline(def *definitions.Definition) ([]byte, fs.FileMod
 		Workflow:              def.Runtime == buildtypes.TaskRuntimeWorkflow,
 	}
 	if err := inlineCode.Execute(&buf, helper); err != nil {
-		return nil, 0, fmt.Errorf("javascript: template execute - %w", err)
+		return nil, 0, errors.Wrap(err, "javascript: template execute")
 	}
 
 	return buf.Bytes(), 0644, nil

@@ -9,11 +9,10 @@ import (
 
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	libapi "github.com/airplanedev/cli/pkg/cli/apiclient"
-	"github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 	"github.com/airplanedev/cli/pkg/cli/dev/env"
 	"github.com/airplanedev/cli/pkg/runtime"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -217,14 +216,13 @@ func TestGetEnvVarsForView(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
 			require := require.New(t)
-			assert := assert.New(t)
 
 			envVars, err := GetEnvVarsForView(context.Background(), &api.MockClient{}, tC.config)
 			require.NoError(err)
 
 			for key, value := range tC.expectedEnvVars {
-				assert.Contains(envVars, key)
-				assert.Equal(envVars[key], value)
+				require.Contains(envVars, key)
+				require.Equal(envVars[key], value)
 			}
 		})
 	}

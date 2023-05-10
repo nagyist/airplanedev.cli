@@ -3,7 +3,7 @@ package definitions
 import (
 	"encoding/json"
 
-	"github.com/airplanedev/cli/pkg/cli/apiclient"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/goccy/go-yaml"
 )
 

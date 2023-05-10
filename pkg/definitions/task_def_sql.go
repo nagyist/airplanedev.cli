@@ -4,7 +4,7 @@ import (
 	"os"
 
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
-	"github.com/airplanedev/cli/pkg/cli/apiclient"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/goccy/go-yaml"
 	"github.com/pkg/errors"
 )

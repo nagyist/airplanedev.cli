@@ -1,6 +1,6 @@
 package logs
 
-import "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+import api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 
 // MockLogWatcher is a mock log watcher.
 type MockLogWatcher struct{}

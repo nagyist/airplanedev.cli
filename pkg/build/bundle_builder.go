@@ -79,11 +79,11 @@ type BundleBuilder struct {
 // New returns a new local builder with c.
 func NewBundleBuilder(c BundleLocalConfig) (*BundleBuilder, *client.Client, error) {
 	if !filepath.IsAbs(c.Root) {
-		return nil, nil, fmt.Errorf("build: expected an absolute root path, got %q", c.Root)
+		return nil, nil, errors.Errorf("build: expected an absolute root path, got %q", c.Root)
 	}
 
 	if !c.BuildContext.Valid() {
-		return nil, nil, fmt.Errorf("build: unexpected build context: (%s:%s)", c.BuildContext.Type, c.BuildContext.Version)
+		return nil, nil, errors.Errorf("build: unexpected build context: (%s:%s)", c.BuildContext.Type, c.BuildContext.Version)
 	}
 
 	if c.Options == nil {

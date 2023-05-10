@@ -12,7 +12,6 @@ import (
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/examples"
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1091,7 +1090,6 @@ func TestGenShimPackageJSON(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
 			require := require.New(t)
-			assert := assert.New(t)
 
 			packageJSONs, _, err := node.GetPackageJSONs(examples.Path(t, tc.packageJSON))
 			require.NoError(err)
@@ -1109,7 +1107,7 @@ func TestGenShimPackageJSON(t *testing.T) {
 			err = json.Unmarshal(shimPackageJSONSerialized, &shimJSON)
 			require.NoError(err)
 
-			assert.Equal(tc.expectedShimPackageJSON, shimJSON)
+			require.Equal(tc.expectedShimPackageJSON, shimJSON)
 		})
 	}
 
@@ -1157,18 +1155,17 @@ func TestReadPackageJSON(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
 			require := require.New(t)
-			assert := assert.New(t)
 
 			path := filepath.Join(fixturesPath, tC.fixture)
 
 			p, err := node.ReadPackageJSON(path)
 			if tC.expectNotExistError {
-				assert.True(errors.Is(err, os.ErrNotExist))
+				require.True(errors.Is(err, os.ErrNotExist))
 				return
 			}
 			require.NoError(err)
 
-			assert.Equal(tC.packageJSON, p)
+			require.Equal(tC.packageJSON, p)
 		})
 	}
 }

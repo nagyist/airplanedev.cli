@@ -8,7 +8,7 @@ import (
 
 	"github.com/airplanedev/archiver"
 	"github.com/airplanedev/cli/pkg/build/ignore"
-	"github.com/airplanedev/cli/pkg/cli/apiclient"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/singleflight"
@@ -56,7 +56,7 @@ func (d *apiArchiver) Archive(ctx context.Context, root string) (string, int, er
 	if err != nil {
 		return "", 0, err
 	}
-	upload := uploadIDRes.(uploadRes)
+	upload, _ := uploadIDRes.(uploadRes)
 	return upload.uploadID, upload.sizeBytes, nil
 }
 
@@ -69,8 +69,9 @@ func (d *apiArchiver) uploadArchive(ctx context.Context, archivePath, rootPath s
 	// Check if anyone has uploaded an archive for this path.
 	uid, ok := d.uploadedArchives.Load(rootPath)
 	if ok {
+		id, _ := uid.(string)
 		// Somebody has already uploaded the path. Re-use the upload ID.
-		return uploadRes{uploadID: uid.(string)}, nil
+		return uploadRes{uploadID: id}, nil
 	}
 
 	archive, err := os.OpenFile(archivePath, os.O_RDONLY, 0)

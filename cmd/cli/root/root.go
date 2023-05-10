@@ -1,7 +1,6 @@
 package root
 
 import (
-	"errors"
 	"os"
 
 	"github.com/MakeNowJust/heredoc"
@@ -22,7 +21,7 @@ import (
 	"github.com/airplanedev/cli/cmd/cli/views"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/cli/analytics"
-	"github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 	"github.com/airplanedev/cli/pkg/cli/conf"
 	"github.com/airplanedev/cli/pkg/cli/flags"
 	"github.com/airplanedev/cli/pkg/cli/print"
@@ -31,6 +30,7 @@ import (
 	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/airplanedev/trap"
 	isatty "github.com/mattn/go-isatty"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 

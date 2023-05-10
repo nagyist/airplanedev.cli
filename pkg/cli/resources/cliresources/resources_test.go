@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	libapi "github.com/airplanedev/cli/pkg/cli/apiclient"
-	"github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 	"github.com/airplanedev/cli/pkg/cli/dev/env"
 	libresources "github.com/airplanedev/cli/pkg/cli/resources"
 	"github.com/airplanedev/cli/pkg/cli/resources/kinds"

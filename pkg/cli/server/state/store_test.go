@@ -3,11 +3,11 @@
 package state
 
 import (
-	"errors"
 	"sync"
 	"testing"
 
 	"github.com/airplanedev/cli/pkg/cli/dev"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
 

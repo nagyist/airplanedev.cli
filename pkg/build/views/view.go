@@ -71,7 +71,7 @@ func View(root string, options buildtypes.KindOptions) (string, error) {
 	packageJSONMap, ok := packageJSON.(map[string]interface{})
 	if !ok {
 		packageJSON = map[string]interface{}{}
-		packageJSONMap = packageJSON.(map[string]interface{})
+		packageJSONMap, _ = packageJSON.(map[string]interface{})
 	}
 
 	packagesToCheck := []string{"vite", "@vitejs/plugin-react", "react", "react-dom", "@airplane/views", "object-hash"}
@@ -97,7 +97,7 @@ func View(root string, options buildtypes.KindOptions) (string, error) {
 	if len(packagesToAdd) > 0 {
 		if !depsOk {
 			packageJSONMap["dependencies"] = map[string]interface{}{}
-			deps = packageJSONMap["dependencies"].(map[string]interface{})
+			deps, _ = packageJSONMap["dependencies"].(map[string]interface{})
 		}
 		for _, pkg := range packagesToAdd {
 			deps[pkg] = "*"

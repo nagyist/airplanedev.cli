@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	libapi "github.com/airplanedev/cli/pkg/cli/apiclient"
-	"github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 	"github.com/stretchr/testify/require"
 )
 

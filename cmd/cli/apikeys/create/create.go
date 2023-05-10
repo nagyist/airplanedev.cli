@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/airplanedev/cli/pkg/cli"
-	"github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/mattn/go-isatty"
 	"github.com/pkg/errors"

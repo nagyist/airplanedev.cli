@@ -2,7 +2,7 @@ package dev
 
 import (
 	"github.com/airplanedev/cli/pkg/cli/analytics"
-	"github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 	liblogs "github.com/airplanedev/cli/pkg/logs"
 	"github.com/airplanedev/cli/pkg/utils/logger"
 )

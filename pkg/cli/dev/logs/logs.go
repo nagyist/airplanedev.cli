@@ -3,7 +3,7 @@ package logs
 import (
 	"sync"
 
-	"github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 )
 
 // LogBroker represents keeps track of a set of log watchers and streams logs to them. There should only be one log

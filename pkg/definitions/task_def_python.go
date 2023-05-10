@@ -4,7 +4,7 @@ import (
 	"path"
 
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
-	"github.com/airplanedev/cli/pkg/cli/apiclient"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/pkg/errors"
 )
 
@@ -25,10 +25,11 @@ func (d *PythonDefinition) copyToTask(task *api.Task, bc buildtypes.BuildConfig,
 	task.Env = d.EnvVars
 	if opts.Bundle {
 		entrypointFunc, _ := bc["entrypointFunc"].(string)
+		entrypoint, _ := bc["entrypoint"].(string)
 		task.Command = []string{"python"}
 		task.Arguments = []string{
 			"/airplane/.airplane/shim.py",
-			path.Join("/airplane/", bc["entrypoint"].(string)),
+			path.Join("/airplane/", entrypoint),
 			entrypointFunc,
 			"{{JSON.stringify(params)}}",
 		}

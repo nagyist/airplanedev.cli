@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/airplanedev/cli/pkg/build/fixtures"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -66,16 +65,15 @@ func TestExternalPackages(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
 			require := require.New(t)
-			assert := assert.New(t)
 
 			packageJSONs, usesWorkspaces, err := GetPackageJSONs(tC.packageJSON)
 			require.NoError(err)
-			assert.Equal(tC.usesWorkspaces, usesWorkspaces)
+			require.Equal(tC.usesWorkspaces, usesWorkspaces)
 
 			externalPackages, err := ExternalPackages(packageJSONs, usesWorkspaces)
 			require.NoError(err)
 
-			assert.ElementsMatch(tC.externalPackages, externalPackages)
+			require.ElementsMatch(tC.externalPackages, externalPackages)
 		})
 	}
 }

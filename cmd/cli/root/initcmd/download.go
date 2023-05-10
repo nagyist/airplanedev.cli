@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/airplanedev/cli/pkg/build/clibuild"
+	build "github.com/airplanedev/cli/pkg/build/clibuild"
 	"github.com/airplanedev/cli/pkg/cli/dev"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/cli/pkg/utils/logger"

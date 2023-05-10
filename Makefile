@@ -5,7 +5,7 @@ lint:
 	@# `brew install pre-commit` or https://pre-commit.com/#installation
 	pre-commit run --all-files
 	@# `brew install golangci-lint` or https://golangci-lint.run/usage/install/#local-installation
-	golangci-lint run --timeout=5m
+	golangci-lint run --timeout=5m --max-same-issues=20
 
 install:
 	@go install \

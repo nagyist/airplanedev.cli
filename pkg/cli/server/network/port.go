@@ -33,7 +33,8 @@ func FindOpenPort() (int, error) {
 		return 0, errors.Wrap(err, "failed to listen on any port")
 	}
 
-	return listener.Addr().(*net.TCPAddr).Port, nil
+	addr, _ := listener.Addr().(*net.TCPAddr)
+	return addr.Port, nil
 }
 
 // FindOpenPortFrom finds an open port on the host machine, starting at the given port.

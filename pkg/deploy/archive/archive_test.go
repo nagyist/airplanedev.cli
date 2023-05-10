@@ -7,13 +7,11 @@ import (
 
 	"github.com/airplanedev/cli/pkg/cli/apiclient/mock"
 	"github.com/airplanedev/cli/pkg/utils/logger"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestArchive(t *testing.T) {
 	require := require.New(t)
-	assert := assert.New(t)
 	fixturesPath, _ := filepath.Abs("./fixtures")
 
 	testCases := []struct {
@@ -50,10 +48,10 @@ func TestArchive(t *testing.T) {
 				require.NoError(err)
 				numUploaded++
 				if numUploaded > tC.numUploaded {
-					assert.Empty(sizeBytes)
+					require.Empty(sizeBytes)
 				}
 			}
-			assert.Equal(tC.numUploaded, uploader.UploadCount)
+			require.Equal(tC.numUploaded, uploader.UploadCount)
 		})
 	}
 }

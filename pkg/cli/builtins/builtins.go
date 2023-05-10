@@ -37,11 +37,11 @@ func GetBuiltinFunctionSpecification(slug string) (FunctionSpecification, error)
 	// Validate function specification and schema
 	slugParts := strings.Split(slug, ":")
 	if len(slugParts) != 2 || slugParts[0] != builtinsSlugPrefix {
-		return FunctionSpecification{}, fmt.Errorf("unknown builtin task slug: %s", slug)
+		return FunctionSpecification{}, errors.Errorf("unknown builtin task slug: %s", slug)
 	}
 	namespaceParts := strings.Split(slugParts[1], "_")
 	if len(namespaceParts) != 2 { // This may not be true in the future
-		return FunctionSpecification{}, fmt.Errorf("unknown builtin task slug: %s", slug)
+		return FunctionSpecification{}, errors.Errorf("unknown builtin task slug: %s", slug)
 	}
 	return FunctionSpecification{
 		Namespace: namespaceParts[0],

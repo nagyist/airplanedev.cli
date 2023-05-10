@@ -28,7 +28,7 @@ func ParseInsecureAirplaneToken(token string) (AirplaneTokenClaims, error) {
 	if err != nil {
 		return AirplaneTokenClaims{}, errors.Wrap(err, "parsing airplane token")
 	}
-	claims := t.Claims.(jwt.MapClaims)
+	claims, _ := t.Claims.(jwt.MapClaims)
 	runID, _ := claims["runID"].(string)
 	return AirplaneTokenClaims{
 		RunID: runID,

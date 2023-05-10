@@ -3,7 +3,7 @@ package parameters
 import (
 	"testing"
 
-	"github.com/airplanedev/cli/pkg/cli/apiclient"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/stretchr/testify/require"
 )
 

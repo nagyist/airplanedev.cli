@@ -103,7 +103,7 @@ type LocalBuiltinClient struct {
 
 func NewLocalClient(dir string, opSystem string, arch string, logger logger.Logger) (*LocalBuiltinClient, error) {
 	if !isLocalExecutionSupported(opSystem, arch) {
-		return nil, fmt.Errorf("Local builtins execution for %s %s systems is under development. Please reach out to support@airplane.dev for assistance.", opSystem, arch)
+		return nil, errors.Errorf("Local builtins execution for %s %s systems is under development. Please reach out to support@airplane.dev for assistance.", opSystem, arch)
 	}
 	storageClient, err := storage.NewClient(context.Background(), option.WithoutAuthentication())
 	if err != nil {

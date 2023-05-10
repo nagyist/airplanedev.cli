@@ -3,7 +3,7 @@ package dev
 import (
 	"context"
 
-	"github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 )
 
 func configureSandbox(ctx context.Context, client api.APIClient, namespace string, key string) (*string, error) {

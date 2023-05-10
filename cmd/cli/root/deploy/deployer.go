@@ -11,7 +11,7 @@ import (
 
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	"github.com/airplanedev/cli/pkg/cli/analytics"
-	"github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 	"github.com/airplanedev/cli/pkg/cli/conf"
 	"github.com/airplanedev/cli/pkg/deploy/archive"
 	"github.com/airplanedev/cli/pkg/deploy/bundlediscover"
@@ -202,7 +202,9 @@ func (d *deployer) tarAndUploadBatch(
 
 	uploadIDsMap := make(map[string]string)
 	uploadIDs.Range(func(key, value interface{}) bool {
-		uploadIDsMap[key.(string)] = value.(string)
+		k, _ := key.(string)
+		v, _ := value.(string)
+		uploadIDsMap[k] = v
 		return true
 	})
 	return uploadIDsMap, groupErr

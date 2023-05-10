@@ -6,7 +6,7 @@ import (
 	"time"
 
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
-	"github.com/airplanedev/cli/pkg/cli/apiclient"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	libhttp "github.com/airplanedev/cli/pkg/cli/apiclient/http"
 	"github.com/airplanedev/cli/pkg/cli/initcmd"
 	"github.com/airplanedev/cli/pkg/cli/server/state"

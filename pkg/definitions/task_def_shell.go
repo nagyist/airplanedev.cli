@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
-	"github.com/airplanedev/cli/pkg/cli/apiclient"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/pkg/errors"
 )
 
@@ -21,9 +21,10 @@ func (d *ShellDefinition) copyToTask(task *api.Task, bc buildtypes.BuildConfig, 
 	task.Env = d.EnvVars
 	if opts.Bundle {
 		task.Command = []string{"bash"}
+		entrypoint, _ := bc["entrypoint"].(string)
 		task.Arguments = []string{
 			".airplane/shim.sh",
-			fmt.Sprintf("./%s", bc["entrypoint"].(string)),
+			fmt.Sprintf("./%s", entrypoint),
 		}
 		// Pass slug={{slug}} as an array to the shell task
 		for _, param := range task.Parameters {

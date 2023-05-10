@@ -50,7 +50,8 @@ func main() {
 
 		logger.Debug("Error: %+v", err)
 		logger.Log("")
-		if exerr, ok := errors.Cause(err).(utils.ErrorExplained); ok {
+		var exerr utils.ErrorExplained
+		if errors.As(err, &exerr) {
 			logger.Error(capitalize(exerr.Error()))
 			logger.Log("")
 			logger.Log(capitalize(exerr.ExplainError()))

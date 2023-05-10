@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,12 +34,11 @@ func TestGetPackagesToAdd(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
 			require := require.New(t)
-			assert := assert.New(t)
 			r := strings.NewReader(tC.requirements)
 
 			d, err := getPackagesToAdd(r, tC.dependencies)
 			require.NoError(err)
-			assert.ElementsMatch(tC.expectedDependencies, d)
+			require.ElementsMatch(tC.expectedDependencies, d)
 		})
 	}
 }

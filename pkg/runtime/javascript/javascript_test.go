@@ -10,7 +10,7 @@ import (
 
 	"github.com/airplanedev/cli/pkg/build/types"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
-	"github.com/airplanedev/cli/pkg/cli/apiclient"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/examples"
 	"github.com/airplanedev/cli/pkg/runtime"

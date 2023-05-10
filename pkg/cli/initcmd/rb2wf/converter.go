@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	libapi "github.com/airplanedev/cli/pkg/cli/apiclient"
-	"github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/airplanedev/ojson"
 	"github.com/pkg/errors"

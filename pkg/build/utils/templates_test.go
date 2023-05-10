@@ -3,7 +3,7 @@ package utils
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestInlineString(t *testing.T) {
@@ -35,8 +35,8 @@ func TestInlineString(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			assert := assert.New(t)
-			assert.Equal(tC.expected, InlineString(tC.input))
+			require := require.New(t)
+			require.Equal(tC.expected, InlineString(tC.input))
 		})
 	}
 }

@@ -344,12 +344,13 @@ func mergeMapsRecursively(dest, src map[string]interface{}) {
 			} else if _, ok := destSubMap.(map[string]interface{}); !ok {
 				dest[key] = map[string]interface{}{}
 			}
-			mergeMapsRecursively(dest[key].(map[string]interface{}), subMap)
+			m, _ := dest[key].(map[string]interface{})
+			mergeMapsRecursively(m, subMap)
 		} else if list, isList := value.([]interface{}); isList {
 			mergedList := list
 			if destList, ok := dest[key]; ok {
-				if _, ok := destList.([]interface{}); ok {
-					for _, item := range destList.([]interface{}) {
+				if l, ok := destList.([]interface{}); ok {
+					for _, item := range l {
 						if !contains(mergedList, item) {
 							mergedList = append(mergedList, item)
 						}

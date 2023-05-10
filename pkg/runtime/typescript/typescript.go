@@ -2,12 +2,12 @@ package typescript
 
 import (
 	"bytes"
-	"fmt"
 	"io/fs"
 	"text/template"
 
 	"github.com/airplanedev/cli/pkg/runtime"
 	"github.com/airplanedev/cli/pkg/runtime/javascript"
+	"github.com/pkg/errors"
 )
 
 // Init register the runtime.
@@ -81,7 +81,7 @@ func (r Runtime) Generate(t *runtime.Task) ([]byte, fs.FileMode, error) {
 
 	var buf bytes.Buffer
 	if err := code.Execute(&buf, d); err != nil {
-		return nil, 0, fmt.Errorf("typescript: template execute - %w", err)
+		return nil, 0, errors.Wrap(err, "typescript: template execute")
 	}
 
 	return buf.Bytes(), 0644, nil

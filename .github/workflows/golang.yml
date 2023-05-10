@@ -4,6 +4,7 @@ on:
   push:
     branches: ["main"]
   pull_request: {}
+  merge_group: {}
   schedule:
     # Run every day at 8AM UTC (middle of the night for US) to refresh caches. This
     # is after the key switchover happens (midnight EST), but before most people start

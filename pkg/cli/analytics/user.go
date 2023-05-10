@@ -26,7 +26,7 @@ func ParseTokenForAnalytics(token string) AnalyticsToken {
 	if !ok {
 		return res
 	}
-	res.UserID = claims["userID"].(string)
-	res.TeamID = claims["teamID"].(string)
+	res.UserID, _ = claims["userID"].(string)
+	res.TeamID, _ = claims["teamID"].(string)
 	return res
 }
