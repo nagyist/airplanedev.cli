@@ -19,7 +19,7 @@ export default defineConfig({
         // If base is non-empty, Vite attempts to serve files from a subpath of the actual workspace root (i.e.
         // {workspace}/{base}. We do not want that, and are simply using base to proxy Studio requests to the vite
         // server, and so we allow the original workspace root (equivalent to the Airplane project root).
-        "{{.Root}}",
+        String.raw`{{.Root}}`,
       ],
     },
   },
