@@ -27,7 +27,7 @@ type release struct {
 
 // CheckLatest queries the GitHub API for newer releases and prints a warning if the CLI is outdated.
 func CheckLatest(ctx context.Context, userConfig *conf.UserConfig) bool {
-	if version.Get() == "<unknown>" || version.Prerelease() {
+	if version.Get() == "(unknown)" || version.Prerelease() {
 		// Pass silently if we don't know the current CLI version or are on a pre-release.
 		return true
 	}
