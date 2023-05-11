@@ -185,7 +185,9 @@ type APIClient interface {
 
 	GetUser(ctx context.Context, userID string) (GetUserResponse, error)
 	GetGroup(ctx context.Context, groupID string) (libapi.GetGroupResponse, error)
+	ListGroups(ctx context.Context) (libapi.ListGroupsResponse, error)
 	SearchEntities(ctx context.Context, scope libapi.EntitySearchScope, query string) (libapi.SearchEntitiesResponse, error)
+	ListTeamUsers(ctx context.Context, teamID string) (res libapi.ListTeamUsersResponse, err error)
 
 	AutopilotComplete(ctx context.Context, req AutopilotCompleteRequest) (AutopilotCompleteResponse, error)
 
@@ -805,10 +807,22 @@ func (c *Client) GetUser(ctx context.Context, userID string) (res GetUserRespons
 	return
 }
 
+func (c *Client) ListTeamUsers(ctx context.Context, teamID string) (res libapi.ListTeamUsersResponse, err error) {
+	err = c.get(ctx, encodeQueryString("/teams/listUsers", url.Values{
+		"teamID": []string{teamID},
+	}), &res)
+	return
+}
+
 func (c *Client) GetGroup(ctx context.Context, groupID string) (res libapi.GetGroupResponse, err error) {
 	err = c.get(ctx, encodeQueryString("/groups/get", url.Values{
 		"groupID": []string{groupID},
 	}), &res)
+	return
+}
+
+func (c *Client) ListGroups(ctx context.Context) (res libapi.ListGroupsResponse, err error) {
+	err = c.get(ctx, encodeQueryString("/groups/list", url.Values{}), &res)
 	return
 }
 

@@ -67,3 +67,37 @@ func (err ResourceMissingError) ExplainError() string {
 	url := getAppURL(err.AppURL) + "/settings/resources/new"
 	return linkToCreatePage("resource", url)
 }
+
+// UserMissingError implements an explainable error.
+type UserMissingError struct {
+	AppURL string
+	Email  string
+}
+
+// Error implementation.
+func (err UserMissingError) Error() string {
+	return fmt.Sprintf("user with email %q does not exist", err.Email)
+}
+
+// ExplainError implementation.
+func (err UserMissingError) ExplainError() string {
+	url := getAppURL(err.AppURL) + "/settings/members"
+	return fmt.Sprintf("View users at %s", url)
+}
+
+// GroupMissingError implements an explainable error.
+type GroupMissingError struct {
+	AppURL string
+	Slug   string
+}
+
+// Error implementation.
+func (err GroupMissingError) Error() string {
+	return fmt.Sprintf("group with slug %q does not exist", err.Slug)
+}
+
+// ExplainError implementation.
+func (err GroupMissingError) ExplainError() string {
+	url := getAppURL(err.AppURL) + "/settings/groups"
+	return fmt.Sprintf("View groups at %s", url)
+}

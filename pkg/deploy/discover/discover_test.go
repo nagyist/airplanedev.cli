@@ -711,6 +711,9 @@ func TestDiscover(t *testing.T) {
 						},
 						Node:                  &definitions.NodeDefinition{},
 						DefaultRunPermissions: definitions.NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskParticipants),
+						Permissions: &definitions.PermissionsDefinition{
+							RequireExplicitPermissions: true,
+						},
 					},
 					Source: ConfigSourceCode,
 				},

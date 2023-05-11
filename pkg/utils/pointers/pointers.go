@@ -2,6 +2,12 @@ package pointers
 
 import "time"
 
+// Pointer returns a pointer for any type.
+// If there is a more specific function for the type, use that instead.
+func Pointer[T any](v T) *T {
+	return &v
+}
+
 // String returns a pointer to a string - nil if string is empty.
 func String(s string) *string {
 	if s == "" {

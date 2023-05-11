@@ -46,6 +46,7 @@ type Task struct {
 	Repo                       string                 `json:"repo" yaml:"repo"`
 	RequireExplicitPermissions bool                   `json:"requireExplicitPermissions" yaml:"-"`
 	Permissions                Permissions            `json:"permissions" yaml:"-"`
+	PermissionsSource          *PermissionsSource     `json:"permissionsSource" yaml:"-"`
 	DefaultRunPermissions      DefaultRunPermissions  `json:"defaultRunPermissions" yaml:"defaultRunPermissions"`
 	ExecuteRules               ExecuteRules           `json:"executeRules" yaml:"-"`
 	Timeout                    int                    `json:"timeout" yaml:"timeout"`
@@ -62,8 +63,6 @@ type Task struct {
 // AsUpdateTaskRequest converts a Task into an UpdateTaskRequest.
 //
 // Keep in mind that fields that are not managed as code are not included:
-// - RequireExplicitPermissions
-// - Permissions
 // - BuildID
 // - EnvSlug
 // - Repo
@@ -92,9 +91,11 @@ func (t Task) AsUpdateTaskRequest() UpdateTaskRequest {
 			ConcurrencyKey:      &t.ExecuteRules.ConcurrencyKey,
 			ConcurrencyLimit:    t.ExecuteRules.ConcurrencyLimit,
 		},
-		Timeout:               t.Timeout,
-		DefaultRunPermissions: (*DefaultRunPermissions)(pointers.String(string(t.DefaultRunPermissions))),
-		SDKVersion:            t.SDKVersion,
+		Timeout:                    t.Timeout,
+		DefaultRunPermissions:      (*DefaultRunPermissions)(pointers.String(string(t.DefaultRunPermissions))),
+		SDKVersion:                 t.SDKVersion,
+		RequireExplicitPermissions: &t.RequireExplicitPermissions,
+		PermissionsSource:          t.PermissionsSource,
 	}
 
 	// Ensure all nullable fields are initialized since UpdateTaskRequest uses patch semantics.
@@ -142,7 +143,11 @@ func (t Task) AsUpdateTaskRequest() UpdateTaskRequest {
 	if req.DefaultRunPermissions == nil {
 		req.DefaultRunPermissions = (*DefaultRunPermissions)(pointers.String(string(DefaultRunPermissionTaskViewers)))
 	}
-
+	if len(t.Permissions) == 0 {
+		req.Permissions = &Permissions{}
+	} else {
+		req.Permissions = &t.Permissions
+	}
 	if t.InterpolationMode != "" {
 		req.InterpolationMode = &t.InterpolationMode
 	}
@@ -255,6 +260,7 @@ type UpdateTaskRequest struct {
 	Repo                       string                    `json:"repo"`
 	RequireExplicitPermissions *bool                     `json:"requireExplicitPermissions"`
 	Permissions                *Permissions              `json:"permissions"`
+	PermissionsSource          *PermissionsSource        `json:"permissionsSource"`
 	ExecuteRules               UpdateExecuteRulesRequest `json:"executeRules"`
 	DefaultRunPermissions      *DefaultRunPermissions    `json:"defaultRunPermissions"`
 	SDKVersion                 *string                   `json:"sdkVersion"`
@@ -410,6 +416,13 @@ const (
 	RoleSessionExecuter  RoleID = "session_executer"
 	RoleSessionAdmin     RoleID = "session_admin"
 	RoleResourceUser     RoleID = "resource_user"
+)
+
+type PermissionsSource string
+
+const (
+	PermissionsSourceWeb  PermissionsSource = "web"
+	PermissionsSourceCode PermissionsSource = "code"
 )
 
 type ResourceRequests map[string]string
@@ -732,6 +745,19 @@ const (
 
 type GetGroupResponse struct {
 	Group Group `json:"group"`
+}
+
+type ListGroupsResponse struct {
+	Groups []Group `json:"groups"`
+}
+
+type ListTeamUsersResponse struct {
+	Users []TeamMember `json:"users"`
+}
+
+type TeamMember struct {
+	User
+	IsAdmin bool `json:"isAdmin"`
 }
 
 type User struct {

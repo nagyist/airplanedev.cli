@@ -11,6 +11,7 @@ import (
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
 	libapi "github.com/airplanedev/cli/pkg/cli/apiclient"
 	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
+	"github.com/airplanedev/cli/pkg/cli/flags/flagsiface"
 	"github.com/airplanedev/cli/pkg/cli/initcmd/node"
 	"github.com/airplanedev/cli/pkg/cli/initcmd/python"
 	"github.com/airplanedev/cli/pkg/cli/prompts"
@@ -29,6 +30,7 @@ type InitTaskRequest struct {
 	Client           api.APIClient
 	Prompter         prompts.Prompter
 	Logger           logger.Logger
+	Flagger          flagsiface.Flagger
 	DryRun           bool
 	WorkingDirectory string
 
@@ -103,12 +105,44 @@ func InitTask(ctx context.Context, req InitTaskRequest) (InitResponse, error) {
 			req.Inline = true
 		}
 
-		resp, err := client.ListResourceMetadata(ctx)
-		if err != nil {
-			return InitResponse{}, err
+		if req.Flagger == nil || !req.Flagger.Bool(ctx, req.Logger, flagsiface.PermissionsAsCode) {
+			task.Permissions = nil
+			task.RequireExplicitPermissions = false
+			task.PermissionsSource = nil
 		}
 
-		def, err = definitions.NewDefinitionFromTask(task, resp.Resources)
+		var users []libapi.User
+		var groups []libapi.Group
+		if task.RequireExplicitPermissions {
+			usersResp, err := client.ListTeamUsers(ctx, client.TeamID())
+			if err != nil {
+				return InitResponse{}, err
+			}
+			for _, user := range usersResp.Users {
+				users = append(users, user.User)
+			}
+
+			groupsResp, err := client.ListGroups(ctx)
+			if err != nil {
+				return InitResponse{}, err
+			}
+			groups = groupsResp.Groups
+		}
+
+		var resources []libapi.ResourceMetadata
+		if len(task.Resources) > 0 {
+			resp, err := client.ListResourceMetadata(ctx)
+			if err != nil {
+				return InitResponse{}, err
+			}
+			resources = resp.Resources
+		}
+
+		def, err = definitions.NewDefinitionFromTask(task, definitions.NewDefinitionOptions{
+			AvailableResources: resources,
+			Users:              users,
+			Groups:             groups,
+		})
 		if err != nil {
 			return InitResponse{}, err
 		}

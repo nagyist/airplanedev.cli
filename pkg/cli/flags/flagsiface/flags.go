@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	SanitizeInputs = "sanitize-inputs"
+	SanitizeInputs    = "sanitize-inputs"
+	PermissionsAsCode = "permissions-as-code"
 )
 
 // Flaggers are the primary mechanism for dynamically adjusting runtime behavior

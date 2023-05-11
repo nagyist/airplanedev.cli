@@ -494,3 +494,9 @@ func (mc *MockClient) SearchEntities(ctx context.Context, scope libapi.EntitySea
 func (c *MockClient) GetGroup(ctx context.Context, groupID string) (res libapi.GetGroupResponse, err error) {
 	panic("not implemented")
 }
+func (c *MockClient) ListGroups(ctx context.Context) (res libapi.ListGroupsResponse, err error) {
+	return libapi.ListGroupsResponse{Groups: []libapi.Group{}}, nil
+}
+func (c *MockClient) ListTeamUsers(ctx context.Context, teamID string) (res libapi.ListTeamUsersResponse, err error) {
+	return libapi.ListTeamUsersResponse{Users: []libapi.TeamMember{}}, nil
+}

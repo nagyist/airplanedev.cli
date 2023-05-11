@@ -268,16 +268,24 @@ func NewBuiltinDefinition(name string, slug string, builtin BuiltinTaskDef) Defi
 	}
 }
 
-func NewDefinitionFromTask(t api.Task, availableResources []api.ResourceMetadata) (Definition, error) {
+type NewDefinitionOptions struct {
+	AvailableResources []api.ResourceMetadata
+	Users              []api.User
+	Groups             []api.Group
+}
+
+func NewDefinitionFromTask(t api.Task, opts NewDefinitionOptions) (Definition, error) {
 	d := Definition{}
-	opts := UpdateOptions{
+	updateOptions := UpdateOptions{
 		Triggers:           t.Triggers,
-		AvailableResources: availableResources,
+		AvailableResources: opts.AvailableResources,
+		Users:              opts.Users,
+		Groups:             opts.Groups,
 	}
-	if opts.Triggers == nil {
-		opts.Triggers = []api.Trigger{}
+	if updateOptions.Triggers == nil {
+		updateOptions.Triggers = []api.Trigger{}
 	}
-	if err := d.Update(t.AsUpdateTaskRequest(), opts); err != nil {
+	if err := d.Update(t.AsUpdateTaskRequest(), updateOptions); err != nil {
 		return Definition{}, err
 	}
 
@@ -609,6 +617,8 @@ type GetTaskOpts struct {
 	// List of resources that this task can attach. This is used for converting
 	// resource slugs to IDs.
 	AvailableResources []api.ResourceMetadata
+	Users              []api.User
+	Groups             []api.Group
 	// Set to `true` if this task is using bundle builds.
 	Bundle bool
 	// Set to `true` to silently ignore invalid definition fields.
@@ -617,7 +627,7 @@ type GetTaskOpts struct {
 
 // GetTask converts a task definition into a Task struct.
 //
-// Note that certain fields are not supported "as-code", e.g. permissions. Those fields
+// Note that certain fields are not supported "as-code". Those fields
 // will not be set on the task.
 func (d Definition) GetTask(opts GetTaskOpts) (api.Task, error) {
 	task := api.Task{
@@ -638,8 +648,9 @@ func (d Definition) GetTask(opts GetTaskOpts) (api.Task, error) {
 		Constraints: api.RunConstraints{
 			Labels: []api.AgentLabel{},
 		},
-		DefaultRunPermissions: api.DefaultRunPermissions(d.DefaultRunPermissions.Value()),
-		SDKVersion:            d.SDKVersion,
+		DefaultRunPermissions:      api.DefaultRunPermissions(d.DefaultRunPermissions.Value()),
+		SDKVersion:                 d.SDKVersion,
+		RequireExplicitPermissions: d.Permissions != nil && d.Permissions.RequireExplicitPermissions,
 	}
 
 	params, err := d.GetParameters()
@@ -677,7 +688,101 @@ func (d Definition) GetTask(opts GetTaskOpts) (api.Task, error) {
 	}
 	task.Triggers = triggers
 
+	if d.Permissions != nil {
+		if d.Permissions.RequireExplicitPermissions {
+			if err := d.addPermissionsToTask(&task, opts); err != nil {
+				return api.Task{}, err
+			}
+		}
+		// Permissions have been defined which indicates that the user wants to manage permissions as code.
+		task.PermissionsSource = (*api.PermissionsSource)(pointers.String(string(api.PermissionsSourceCode)))
+	}
+
 	return task, nil
+}
+
+func (d Definition) addPermissionsToTask(task *api.Task, opts GetTaskOpts) error {
+	for _, p := range d.Permissions.Viewers.Users {
+		if user := getUserByEmail(opts.Users, p); user != nil {
+			task.Permissions = append(task.Permissions, api.Permission{
+				RoleID:    api.RoleTaskViewer,
+				SubUserID: pointers.String(user.ID),
+			})
+		} else if !opts.IgnoreInvalid {
+			return api.UserMissingError{Email: p}
+		}
+	}
+	for _, p := range d.Permissions.Viewers.Groups {
+		if group := getGroupBySlug(opts.Groups, p); group != nil {
+			task.Permissions = append(task.Permissions, api.Permission{
+				RoleID:     api.RoleTaskViewer,
+				SubGroupID: pointers.String(group.ID),
+			})
+		} else if !opts.IgnoreInvalid {
+			return api.GroupMissingError{Slug: p}
+		}
+	}
+	for _, p := range d.Permissions.Requesters.Users {
+		if user := getUserByEmail(opts.Users, p); user != nil {
+			task.Permissions = append(task.Permissions, api.Permission{
+				RoleID:    api.RoleTaskRequester,
+				SubUserID: pointers.String(user.ID),
+			})
+		} else if !opts.IgnoreInvalid {
+			return api.UserMissingError{Email: p}
+		}
+	}
+	for _, p := range d.Permissions.Requesters.Groups {
+		if group := getGroupBySlug(opts.Groups, p); group != nil {
+			task.Permissions = append(task.Permissions, api.Permission{
+				RoleID:     api.RoleTaskRequester,
+				SubGroupID: pointers.String(group.ID),
+			})
+		} else if !opts.IgnoreInvalid {
+			return api.GroupMissingError{Slug: p}
+		}
+	}
+	for _, p := range d.Permissions.Executers.Users {
+		if user := getUserByEmail(opts.Users, p); user != nil {
+			task.Permissions = append(task.Permissions, api.Permission{
+				RoleID:    api.RoleTaskExecuter,
+				SubUserID: pointers.String(user.ID),
+			})
+		} else if !opts.IgnoreInvalid {
+			return api.UserMissingError{Email: p}
+		}
+	}
+	for _, p := range d.Permissions.Executers.Groups {
+		if group := getGroupBySlug(opts.Groups, p); group != nil {
+			task.Permissions = append(task.Permissions, api.Permission{
+				RoleID:     api.RoleTaskExecuter,
+				SubGroupID: pointers.String(group.ID),
+			})
+		} else if !opts.IgnoreInvalid {
+			return api.GroupMissingError{Slug: p}
+		}
+	}
+	for _, p := range d.Permissions.Admins.Users {
+		if user := getUserByEmail(opts.Users, p); user != nil {
+			task.Permissions = append(task.Permissions, api.Permission{
+				RoleID:    api.RoleTaskAdmin,
+				SubUserID: pointers.String(user.ID),
+			})
+		} else if !opts.IgnoreInvalid {
+			return api.UserMissingError{Email: p}
+		}
+	}
+	for _, p := range d.Permissions.Admins.Groups {
+		if group := getGroupBySlug(opts.Groups, p); group != nil {
+			task.Permissions = append(task.Permissions, api.Permission{
+				RoleID:     api.RoleTaskAdmin,
+				SubGroupID: pointers.String(group.ID),
+			})
+		} else if !opts.IgnoreInvalid {
+			return api.GroupMissingError{Slug: p}
+		}
+	}
+	return nil
 }
 
 func (d Definition) addResourcesToTask(task *api.Task, opts GetTaskOpts) error {
@@ -1064,6 +1169,42 @@ func getResourceByName(resources []api.ResourceMetadata, name string) *api.Resou
 	for i, resource := range resources {
 		if resource.DefaultEnvResource != nil && resource.DefaultEnvResource.Name == name {
 			return &resources[i]
+		}
+	}
+	return nil
+}
+
+func getUserByEmail(users []api.User, email string) *api.User {
+	for i, user := range users {
+		if user.Email == email {
+			return &users[i]
+		}
+	}
+	return nil
+}
+
+func getUserByID(users []api.User, id string) *api.User {
+	for i, user := range users {
+		if user.ID == id {
+			return &users[i]
+		}
+	}
+	return nil
+}
+
+func getGroupBySlug(groups []api.Group, slug string) *api.Group {
+	for i, group := range groups {
+		if group.Slug == slug {
+			return &groups[i]
+		}
+	}
+	return nil
+}
+
+func getGroupByID(groups []api.Group, id string) *api.Group {
+	for i, group := range groups {
+		if group.ID == id {
+			return &groups[i]
 		}
 	}
 	return nil

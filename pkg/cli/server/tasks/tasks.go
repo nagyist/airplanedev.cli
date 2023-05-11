@@ -13,6 +13,7 @@ import (
 	serverutils "github.com/airplanedev/cli/pkg/cli/server/utils"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/runtime"
+	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"golang.org/x/exp/slices"
 )
 
@@ -60,15 +61,40 @@ func UpdateTaskHandler(ctx context.Context, s *state.State, r *http.Request, req
 		return struct{}{}, libhttp.NewErrNotFound("task with slug %q not found", req.Slug)
 	}
 
-	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(s, r)
-	resources, err := resources.ListResourceMetadata(ctx, s.RemoteClient, s.DevConfig, envSlug)
-	if err != nil {
-		return struct{}{}, err
+	var resourceMetadata []libapi.ResourceMetadata
+	if len(req.UpdateTaskRequest.Resources) > 0 {
+		envSlug := serverutils.GetEffectiveEnvSlugFromRequest(s, r)
+		var err error
+		resourceMetadata, err = resources.ListResourceMetadata(ctx, s.RemoteClient, s.DevConfig, envSlug)
+		if err != nil {
+			return struct{}{}, err
+		}
+	}
+
+	var users []libapi.User
+	var groups []libapi.Group
+	if pointers.ToBool(req.UpdateTaskRequest.RequireExplicitPermissions) {
+		usersResp, err := s.RemoteClient.ListTeamUsers(ctx, s.AuthInfo.Team.ID)
+		if err != nil {
+			return struct{}{}, err
+		}
+
+		for _, user := range usersResp.Users {
+			users = append(users, user.User)
+		}
+
+		groupsResp, err := s.RemoteClient.ListGroups(ctx)
+		if err != nil {
+			return struct{}{}, err
+		}
+		groups = groupsResp.Groups
 	}
 
 	if err := taskConfig.Def.Update(req.UpdateTaskRequest, definitions.UpdateOptions{
 		Triggers:           req.Triggers,
-		AvailableResources: resources,
+		AvailableResources: resourceMetadata,
+		Users:              users,
+		Groups:             groups,
 	}); err != nil {
 		return struct{}{}, libhttp.NewErrBadRequest("unable to update task %q: %s", req.Slug, err.Error())
 	}
@@ -176,13 +202,38 @@ func taskStateToAPITask(
 	taskState state.TaskState,
 	envSlug *string,
 ) (libapi.Task, error) {
-	resources, err := resources.ListResourceMetadata(ctx, state.RemoteClient, state.DevConfig, envSlug)
-	if err != nil {
-		return libapi.Task{}, err
+	var resourceMetadata []libapi.ResourceMetadata
+	if len(taskState.Def.Resources) > 0 {
+		var err error
+		resourceMetadata, err = resources.ListResourceMetadata(ctx, state.RemoteClient, state.DevConfig, envSlug)
+		if err != nil {
+			return libapi.Task{}, err
+		}
+	}
+
+	var users []libapi.User
+	var groups []libapi.Group
+	if taskState.Def.Permissions != nil && taskState.Def.Permissions.RequireExplicitPermissions {
+		usersResp, err := state.RemoteClient.ListTeamUsers(ctx, state.AuthInfo.Team.ID)
+		if err != nil {
+			return libapi.Task{}, err
+		}
+
+		for _, user := range usersResp.Users {
+			users = append(users, user.User)
+		}
+
+		groupsResp, err := state.RemoteClient.ListGroups(ctx)
+		if err != nil {
+			return libapi.Task{}, err
+		}
+		groups = groupsResp.Groups
 	}
 
 	task, err := taskState.Def.GetTask(definitions.GetTaskOpts{
-		AvailableResources: resources,
+		AvailableResources: resourceMetadata,
+		Users:              users,
+		Groups:             groups,
 		Bundle:             true,
 		// We want to best-effort support invalid task definitions (e.g. unknown resources) so that
 		// we can render corresponding validation errors in the UI.
@@ -199,9 +250,6 @@ func taskStateToAPITask(
 	// Certain fields are not supported by tasks-as-code, so give them default values.
 	if task.ResourceRequests == nil {
 		task.ResourceRequests = libapi.ResourceRequests{}
-	}
-	if task.Permissions == nil {
-		task.Permissions = libapi.Permissions{}
 	}
 	if task.InterpolationMode == "" {
 		task.InterpolationMode = "jst"

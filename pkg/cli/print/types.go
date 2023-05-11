@@ -28,8 +28,9 @@ type printTask struct {
 	KindOptions                buildtypes.KindOptions       `json:"builderConfig" yaml:"builderConfig"`
 	Runtime                    buildtypes.TaskRuntime       `json:"runtime" yaml:"runtime"`
 	Repo                       string                       `json:"repo" yaml:"repo"`
-	RequireExplicitPermissions bool                         `json:"requireExplicitPermissions" yaml:"-"`
-	Permissions                libapi.Permissions           `json:"permissions" yaml:"-"`
+	RequireExplicitPermissions bool                         `json:"requireExplicitPermissions" yaml:"requireExplicitPermissions"`
+	Permissions                libapi.Permissions           `json:"permissions" yaml:"permissions"`
+	PermissionsSource          *libapi.PermissionsSource    `json:"-" yaml:"-"`
 	DefaultRunPermissions      libapi.DefaultRunPermissions `json:"defaultRunPermissions" yaml:"defaultRunPermissions"`
 	ExecuteRules               libapi.ExecuteRules          `json:"executeRules" yaml:"executeRules"`
 	Timeout                    int                          `json:"timeout" yaml:"timeout"`

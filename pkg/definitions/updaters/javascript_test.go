@@ -271,6 +271,33 @@ func TestUpdateJavaScriptTask(t *testing.T) {
 			},
 		},
 		{
+			name: "empty_explicit_permissions",
+			slug: "my_task",
+			def: definitions.Definition{
+				Slug:        "my_task",
+				Name:        "",
+				Description: "",
+				Parameters:  []definitions.ParameterDefinition{},
+				Resources:   map[string]string{},
+				Node: &definitions.NodeDefinition{
+					EnvVars: api.EnvVars{},
+				},
+				Constraints:           map[string]string{},
+				RequireRequests:       false,
+				AllowSelfApprovals:    definitions.NewDefaultTrueDefinition(true),
+				RestrictCallers:       []string{},
+				Timeout:               3600,
+				Runtime:               buildtypes.TaskRuntimeStandard,
+				Schedules:             map[string]definitions.ScheduleDefinition{},
+				ConcurrencyKey:        "",
+				ConcurrencyLimit:      definitions.NewDefaultOneDefinition(1),
+				DefaultRunPermissions: definitions.NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
+				Permissions: &definitions.PermissionsDefinition{
+					RequireExplicitPermissions: true,
+				},
+			},
+		},
+		{
 			// Tests the case where a resource has at least one alias. The "all" case checks for
 			// the case where no aliases are used.
 			name: "resource_aliases",

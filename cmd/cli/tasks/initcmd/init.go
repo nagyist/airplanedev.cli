@@ -162,6 +162,7 @@ func Run(ctx context.Context, cfg config) error {
 		Client:         cfg.client,
 		Prompter:       cfg.root.Prompter,
 		Logger:         l,
+		Flagger:        cfg.root.Flagger,
 		DryRun:         cfg.dryRun,
 		File:           cfg.file,
 		FromTask:       cfg.from,

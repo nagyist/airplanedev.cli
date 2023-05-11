@@ -14,6 +14,7 @@ export const collatz = airplane.task(
     name: "Collatz Conjecture Step",
     parameters: { num: { name: "Num", type: "integer" } },
     defaultRunPermissions: "task-participants",
+    permissions: {},
   },
   () => {}
 );
