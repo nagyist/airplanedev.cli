@@ -72,6 +72,8 @@ func AttachInternalAPIRoutes(r *mux.Router, state *state.State) {
 	r.Handle("/views/canUpdate", handlers.New(state, views.CanUpdateViewHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/users/get", handlers.New(state, GetUserHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/groups/get", handlers.New(state, GetGroupHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/entities/search", handlers.New(state, SearchEntitiesHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/configs/get", handlers.New(state, GetConfigHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/configs/upsert", handlers.WithBody(state, UpsertConfigHandler)).Methods("POST", "OPTIONS")

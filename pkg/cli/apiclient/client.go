@@ -713,6 +713,49 @@ type Env struct {
 	ArchivedAt *time.Time `json:"archivedAt"`
 }
 
+type SearchEntitiesResponse struct {
+	Results []EntitySearchResult `json:"results"`
+}
+
+type EntitySearchResult struct {
+	User  *User  `json:"user,omitempty"`
+	Group *Group `json:"group,omitempty"`
+}
+
+type EntitySearchScope string
+
+const (
+	ScopeAll    EntitySearchScope = "USERS_AND_GROUPS"
+	ScopeUsers  EntitySearchScope = "USERS"
+	ScopeGroups EntitySearchScope = "GROUPS"
+)
+
+type GetGroupResponse struct {
+	Group Group `json:"group"`
+}
+
+type User struct {
+	ID        string    `json:"userID"`
+	Email     string    `json:"email"`
+	Name      string    `json:"name"`
+	AvatarURL *string   `json:"avatarURL,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type Group struct {
+	ID           string    `json:"id"`
+	TeamID       string    `json:"teamID"`
+	Name         string    `json:"name"`
+	Slug         string    `json:"slug"`
+	CreatedAt    time.Time `json:"createdAt"`
+	MemberCount  int       `json:"memberCount"`
+	Email        *string   `json:"email,omitempty"`
+	SlackChannel *string   `json:"slackChannel,omitempty"`
+	// SlackChannelName is a queried/cached value derived from SlackChannel (the ID)
+	SlackChannelName *string `json:"slackChannelName,omitempty"`
+	DSyncID          *string `json:"dsyncID,omitempty"`
+}
+
 type EvaluateTemplateRequest struct {
 	// Value is an arbitrary value that can include one or more Template values.
 	// Each Template will be evaluated, and if successful, will be replaced in

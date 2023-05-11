@@ -184,6 +184,8 @@ type APIClient interface {
 	GetWebHost(ctx context.Context) (string, error)
 
 	GetUser(ctx context.Context, userID string) (GetUserResponse, error)
+	GetGroup(ctx context.Context, groupID string) (libapi.GetGroupResponse, error)
+	SearchEntities(ctx context.Context, scope libapi.EntitySearchScope, query string) (libapi.SearchEntitiesResponse, error)
 
 	AutopilotComplete(ctx context.Context, req AutopilotCompleteRequest) (AutopilotCompleteResponse, error)
 
@@ -799,6 +801,21 @@ func (c *Client) GetWebHost(ctx context.Context) (webHost string, err error) {
 func (c *Client) GetUser(ctx context.Context, userID string) (res GetUserResponse, err error) {
 	err = c.get(ctx, encodeQueryString("/users/get", url.Values{
 		"userID": []string{userID},
+	}), &res)
+	return
+}
+
+func (c *Client) GetGroup(ctx context.Context, groupID string) (res libapi.GetGroupResponse, err error) {
+	err = c.get(ctx, encodeQueryString("/groups/get", url.Values{
+		"groupID": []string{groupID},
+	}), &res)
+	return
+}
+
+func (c *Client) SearchEntities(ctx context.Context, scope libapi.EntitySearchScope, query string) (res libapi.SearchEntitiesResponse, err error) {
+	err = c.get(ctx, encodeQueryString("/entities/search", url.Values{
+		"scope": []string{string(scope)},
+		"q":     []string{query},
 	}), &res)
 	return
 }

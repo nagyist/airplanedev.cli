@@ -486,3 +486,11 @@ func (mc *MockClient) AutopilotComplete(ctx context.Context, req AutopilotComple
 func (mc *MockClient) GenerateStudioIDToken(ctx context.Context, req GenerateStudioIDTokenRequest) (GenerateStudioIDTokenResponse, error) {
 	panic("not implemented")
 }
+
+func (mc *MockClient) SearchEntities(ctx context.Context, scope libapi.EntitySearchScope, query string) (libapi.SearchEntitiesResponse, error) {
+	panic("not implemented")
+}
+
+func (c *MockClient) GetGroup(ctx context.Context, groupID string) (res libapi.GetGroupResponse, err error) {
+	panic("not implemented")
+}
