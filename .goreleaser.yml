@@ -1,5 +1,5 @@
-# Docs: https://goreleaser.com/
-
+# GoReleaser builds and releases the Airplane CLI.
+# Docs: https://goreleaser.com
 project_name: airplane
 before:
   hooks:
@@ -31,16 +31,32 @@ archives:
   - id: archive
     files: [only-the-binary*]
     wrap_in_directory: false
+    rlcp: true
     # This is the default name_template, but without the version. This allows install.sh to compute the
     # latest artifact name without knowing the version.
-    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}{{ if .Mips }}_{{ .Mips }}{{ end }}"
-    replacements:
-      amd64: x86_64
+    # It also overrides the architecture field to map amd64 -> x86_64.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- with .Arm }}v{{ . }}{{ end }}
+      {{- with .Mips }}_{{ . }}{{ end }}
+      {{- if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}
   - id: binary
     format: binary
     files: [only-the-binary*]
-    replacements:
-      amd64: x86_64
+    rlcp: true
+    # This is the default binary name_template, but includes the same architecture override as above.
+    name_template: >-
+      {{ .Binary }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- with .Arm }}v{{ . }}{{ end }}
+      {{- with .Mips }}_{{ . }}{{ end }}
+      {{- if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}
 checksum:
   name_template: "checksums.txt"
 snapshot:

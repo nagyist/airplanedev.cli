@@ -21,7 +21,8 @@ jobs:
       - name: Run GoReleaser build
         uses: goreleaser/goreleaser-action@v4
         with:
-          args: build --snapshot --rm-dist --timeout 20m
+          version: latest
+          args: build --snapshot --clean --timeout 20m
         env:
           GITHUB_TOKEN: test
           SEGMENT_WRITE_KEY: test
