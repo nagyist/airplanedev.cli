@@ -1,5 +1,8 @@
 # Airplane CLI
 
+> **Note**
+> As of May 12, 2023, this repository is only used for GitHub releases. The code in this repository is no longer actively updated.
+
 Provides CLI access to [app.airplane.dev](https://app.airplane.dev).
 
 Once you install the CLI, run `airplane --help` to get started.
