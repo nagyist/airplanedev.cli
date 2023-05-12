@@ -129,14 +129,11 @@ func InitTask(ctx context.Context, req InitTaskRequest) (InitResponse, error) {
 			groups = groupsResp.Groups
 		}
 
-		var resources []libapi.ResourceMetadata
-		if len(task.Resources) > 0 {
-			resp, err := client.ListResourceMetadata(ctx)
-			if err != nil {
-				return InitResponse{}, err
-			}
-			resources = resp.Resources
+		resp, err := client.ListResourceMetadata(ctx)
+		if err != nil {
+			return InitResponse{}, err
 		}
+		resources := resp.Resources
 
 		def, err = definitions.NewDefinitionFromTask(task, definitions.NewDefinitionOptions{
 			AvailableResources: resources,

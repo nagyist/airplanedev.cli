@@ -61,14 +61,10 @@ func UpdateTaskHandler(ctx context.Context, s *state.State, r *http.Request, req
 		return struct{}{}, libhttp.NewErrNotFound("task with slug %q not found", req.Slug)
 	}
 
-	var resourceMetadata []libapi.ResourceMetadata
-	if len(req.UpdateTaskRequest.Resources) > 0 {
-		envSlug := serverutils.GetEffectiveEnvSlugFromRequest(s, r)
-		var err error
-		resourceMetadata, err = resources.ListResourceMetadata(ctx, s.RemoteClient, s.DevConfig, envSlug)
-		if err != nil {
-			return struct{}{}, err
-		}
+	envSlug := serverutils.GetEffectiveEnvSlugFromRequest(s, r)
+	resourceMetadata, err := resources.ListResourceMetadata(ctx, s.RemoteClient, s.DevConfig, envSlug)
+	if err != nil {
+		return struct{}{}, err
 	}
 
 	var users []libapi.User
@@ -203,7 +199,11 @@ func taskStateToAPITask(
 	envSlug *string,
 ) (libapi.Task, error) {
 	var resourceMetadata []libapi.ResourceMetadata
-	if len(taskState.Def.Resources) > 0 {
+	resourceAttachments, err := taskState.Def.GetResourceAttachments()
+	if err != nil {
+		return libapi.Task{}, err
+	}
+	if len(resourceAttachments) > 0 {
 		var err error
 		resourceMetadata, err = resources.ListResourceMetadata(ctx, state.RemoteClient, state.DevConfig, envSlug)
 		if err != nil {

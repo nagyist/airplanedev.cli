@@ -163,6 +163,9 @@ const buildTaskConfig = (def: any): ExpressionKind => {
     }
   }
 
+  // We don't want to include the SDK version in the definition.
+  delete def.sdkVersion;
+
   return buildJSON(def);
 };
 
