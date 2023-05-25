@@ -1,7 +1,7 @@
 # Airplane CLI
 
 > **Note**
-> As of May 12, 2023, this repository is only used for GitHub releases. The code in this repository is no longer actively updated.
+> As of May 12, 2023, the CLI’s codebase was migrated into an internal monorepo. Going forward, this repository will only be used as a release target for new CLI versions.
 
 Provides CLI access to [app.airplane.dev](https://app.airplane.dev).
 
