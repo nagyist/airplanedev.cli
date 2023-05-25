@@ -4,7 +4,9 @@ import inspect
 import json
 import os
 import sys
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, TypeVar, Union
+
+T = TypeVar("T")
 
 
 @dataclasses.dataclass
@@ -32,6 +34,18 @@ class Schedule:
     cron: str
     paramValues: Dict[str, Any]
 
+@dataclasses.dataclass
+class PermissionAssignees:
+    users: Optional[List[str]]
+    groups: Optional[List[str]]
+
+
+@dataclasses.dataclass
+class ExplicitPermissions:
+    viewers: Optional[PermissionAssignees]
+    requesters: Optional[PermissionAssignees]
+    executers: Optional[PermissionAssignees]
+    admins: Optional[PermissionAssignees]
 
 @dataclasses.dataclass
 class EnvVar:
@@ -62,21 +76,26 @@ class Def:
     restrictCallers: Optional[List[Literal["task", "view"]]]
     timeout: int
     runtime: Literal["standard", "workflow"]
-    default_run_permissions: Literal["task-participants", "task-viewers"]
+    defaultRunPermissions: Optional[Literal["task-participants", "task-viewers"]]
     concurrencyKey: str
     concurrencyLimit: int
+    sdkVersion: Optional[str]
 
     schedules: Dict[str, Schedule]
+    permissions: Optional[Union[Literal["team_access"], ExplicitPermissions]]
 
 
 def as_def(obj: Any) -> Union[Any, Dict[str, Any]]:
     if dataclasses.is_dataclass(obj):
         return dataclasses.asdict(
             obj,
-            dict_factory=lambda kv: {k: as_def(v)
-                                     for (k, v) in kv if v is not None},
+            dict_factory=lambda kv: {k: as_def(v) for (k, v) in kv if v is not None},
         )
     return obj
+
+
+def conf_with_fallback(obj: Any, attr: str, fallback: T) -> Union[Any, T]:
+    return getattr(obj, attr) if hasattr(obj, attr) else fallback
 
 
 def extract_task_configs(files: List[str]) -> List[Def]:
@@ -84,8 +103,7 @@ def extract_task_configs(files: List[str]) -> List[Def]:
 
     for file in files:
         sys.path.append(os.path.dirname(file))
-        spec = importlib.util.spec_from_file_location(
-            "airplane_task_import", file)
+        spec = importlib.util.spec_from_file_location("airplane_task_import", file)
         assert spec is not None, f"Unable to import module {file}"
         assert spec.loader is not None, f"Unable to construct loader for module {file}"
         module = importlib.util.module_from_spec(spec)
@@ -95,7 +113,9 @@ def extract_task_configs(files: List[str]) -> List[Def]:
             if callable(obj) and hasattr(obj, "__airplane"):
                 conf = obj.__airplane
                 # Only select tasks that were defined in the file, not imported.
-                if inspect.getabsfile(conf.func) != os.path.normcase(os.path.abspath(file)):
+                if inspect.getabsfile(conf.func) != os.path.normcase(
+                    os.path.abspath(file)
+                ):
                     continue
                 defs.append(
                     Def(
@@ -127,16 +147,19 @@ def extract_task_configs(files: List[str]) -> List[Def]:
                         constraints=conf.constraints,
                         requireRequests=conf.require_requests,
                         allowSelfApprovals=conf.allow_self_approvals,
-                        restrictCallers=conf.restrict_callers if hasattr(
-                            conf, "restrict_callers") else None,
+                        restrictCallers=conf_with_fallback(
+                            conf, "restrict_callers", None
+                        ),
                         timeout=conf.timeout,
                         runtime=conf.runtime,
-                        default_run_permissions=conf.default_run_permissions if hasattr(
-                            conf, "default_run_permissions") else None,
-                        concurrencyKey=conf.concurrency_key if hasattr(
-                            conf, "concurrency_key") else "",
-                        concurrencyLimit=conf.concurrency_limit if hasattr(
-                            conf, "concurrency_limit") else 1,
+                        defaultRunPermissions=conf_with_fallback(
+                            conf, "default_run_permissions", None
+                        ),
+                        concurrencyKey=conf_with_fallback(conf, "concurrency_key", ""),
+                        concurrencyLimit=conf_with_fallback(
+                            conf, "concurrency_limit", 1
+                        ),
+                        permissions=conf.permissions if hasattr(conf, "permissions") else None,
                         schedules={
                             s.slug: Schedule(
                                 name=s.name,
@@ -156,6 +179,7 @@ def extract_task_configs(files: List[str]) -> List[Def]:
                             },
                             entrypoint=file,
                         ),
+                        sdkVersion=conf_with_fallback(conf, "sdk_version", None),
                     )
                 )
 

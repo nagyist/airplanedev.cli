@@ -8,8 +8,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/airplanedev/cli/pkg/api"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/airplanedev/cli/pkg/definitions"
 	deployutils "github.com/airplanedev/cli/pkg/deploy/utils"
 	"github.com/airplanedev/cli/pkg/utils/logger"
@@ -190,7 +190,7 @@ func (c *CodeTaskDiscoverer) parseNodeDefinitions(ctx context.Context, file stri
 	for _, parsedTask := range parsedConfigs.TaskConfigs {
 		// Add the entrypoint to the json definition before validation
 		// since it is unknown to the parser.
-		nodeConfig := parsedTask["node"].(map[string]interface{})
+		nodeConfig, _ := parsedTask["node"].(map[string]interface{})
 		nodeConfig["entrypoint"] = pm.RelEntrypoint
 
 		def, err := ConstructDefinition(parsedTask, pm, bc)
@@ -226,7 +226,7 @@ func (c *CodeTaskDiscoverer) parsePythonDefinitions(ctx context.Context, file st
 	for _, parsedTask := range parsedConfigs {
 		// Add the entrypoint to the json definition before validation
 		// since it is unknown to the parser.
-		pythonConfig := parsedTask["python"].(map[string]interface{})
+		pythonConfig, _ := parsedTask["python"].(map[string]interface{})
 		pythonConfig["entrypoint"] = pathMetadata.RelEntrypoint
 
 		def, err := ConstructDefinition(parsedTask, pathMetadata, bc)
@@ -257,16 +257,15 @@ func ConstructDefinition(parsedTask map[string]interface{}, pathMetadata TaskPat
 	}
 
 	if err := def.Unmarshal(definitions.DefFormatJSON, b); err != nil {
-		switch err := errors.Cause(err).(type) {
-		case definitions.ErrSchemaValidation:
+		var errsv definitions.ErrSchemaValidation
+		if errors.As(err, &errsv) {
 			errorMsgs := []string{}
-			for _, verr := range err.Errors {
+			for _, verr := range errsv.Errors {
 				errorMsgs = append(errorMsgs, fmt.Sprintf("%s: %s", verr.Field(), verr.Description()))
 			}
 			return definitions.Definition{}, definitions.NewErrReadDefinition(fmt.Sprintf("Error reading %s", pathMetadata.AbsEntrypoint), errorMsgs...)
-		default:
-			return definitions.Definition{}, errors.Wrap(err, "unmarshalling task definition")
 		}
+		return definitions.Definition{}, errors.Wrap(err, "unmarshalling task definition")
 	}
 
 	def.SetBuildConfig("entrypoint", pathMetadata.RelEntrypoint)

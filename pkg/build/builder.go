@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -98,7 +97,7 @@ type Builder struct {
 // New returns a new local builder with c.
 func New(c LocalConfig) (*Builder, *client.Client, error) {
 	if !filepath.IsAbs(c.Root) {
-		return nil, nil, fmt.Errorf("build: expected an absolute root path, got %q", c.Root)
+		return nil, nil, errors.Errorf("build: expected an absolute root path, got %q", c.Root)
 	}
 
 	if c.Builder == "" {

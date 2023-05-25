@@ -15,9 +15,9 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/build/python"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/definitions/updaters"
 	"github.com/airplanedev/cli/pkg/deploy/config"
@@ -129,7 +129,7 @@ func (r Runtime) Generate(t *runtime.Task) ([]byte, fs.FileMode, error) {
 
 	var buf bytes.Buffer
 	if err := code.Execute(&buf, d); err != nil {
-		return nil, 0, fmt.Errorf("python: template execute - %w", err)
+		return nil, 0, errors.Wrap(err, "python: template execute")
 	}
 
 	return buf.Bytes(), 0644, nil
@@ -410,7 +410,7 @@ func (r Runtime) GenerateInline(def *definitions.Definition) ([]byte, fs.FileMod
 		DefaultRunPermissions: def.DefaultRunPermissions.Value(),
 	}
 	if err := inlineCode.Execute(&buf, helper); err != nil {
-		return nil, 0, fmt.Errorf("python: template execute - %w", err)
+		return nil, 0, errors.Wrap(err, "python: template execute")
 	}
 
 	return buf.Bytes(), 0644, nil

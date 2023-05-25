@@ -4,6 +4,7 @@ on:
   push:
     branches: ["main"]
   pull_request: {}
+  merge_group: {}
 
 concurrency:
   # If this was triggered from a pull request, only run one at a time and cancel any older,
@@ -13,7 +14,7 @@ concurrency:
 
 jobs:
   run:
-    name: test (${{ matrix.dir.name }})
+    name: test (js-${{ matrix.dir.name }})
     strategy:
       fail-fast: false
       matrix:

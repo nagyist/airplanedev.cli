@@ -1,6 +1,6 @@
 package config
 
-// This file is copied from pkg/api/client.go to avoid circular dependency issues.
+// This file is copied from pkg/cli/apiclient/client.go to avoid circular dependency issues.
 
 import (
 	"encoding/json"

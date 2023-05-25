@@ -3,8 +3,8 @@ package discover
 import (
 	"context"
 
-	"github.com/airplanedev/cli/pkg/api"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/runtime"
 	_ "github.com/airplanedev/cli/pkg/runtime/builtin"
@@ -64,7 +64,9 @@ func (sd *ScriptDiscoverer) GetTaskConfigs(ctx context.Context, file string) ([]
 		return nil, err
 	}
 
-	def, err := definitions.NewDefinitionFromTask(task, resp.Resources)
+	def, err := definitions.NewDefinitionFromTask(task, definitions.NewDefinitionOptions{
+		AvailableResources: resp.Resources,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +120,9 @@ func (sd *ScriptDiscoverer) GetTaskRoot(ctx context.Context, file string) (strin
 		return "", buildtypes.BuildContext{}, err
 	}
 
-	def, err := definitions.NewDefinitionFromTask(task, resp.Resources)
+	def, err := definitions.NewDefinitionFromTask(task, definitions.NewDefinitionOptions{
+		AvailableResources: resp.Resources,
+	})
 	if err != nil {
 		return "", buildtypes.BuildContext{}, err
 	}

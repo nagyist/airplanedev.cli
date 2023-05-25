@@ -6,7 +6,6 @@
 // Bug: unknown function reference
 ipsum()
 
-// Bug: Invalid export syntax (needs a name or "default").
 export default airplane.task(
   {
     slug: "my_task"

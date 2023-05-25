@@ -1,8 +1,8 @@
 package definitions
 
 import (
-	"github.com/airplanedev/cli/pkg/api"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/alessio/shellescape"
 	"github.com/flynn/go-shlex"
 )

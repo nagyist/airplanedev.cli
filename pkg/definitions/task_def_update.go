@@ -1,8 +1,8 @@
 package definitions
 
 import (
-	"github.com/airplanedev/cli/pkg/api"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/pkg/errors"
 )
@@ -17,6 +17,8 @@ type UpdateOptions struct {
 	// AvailableResources are the resources that this task can attach. This is used for
 	// translating between resource slugs and resource IDs.
 	AvailableResources []api.ResourceMetadata
+	Users              []api.User
+	Groups             []api.Group
 }
 
 // Update updates a definition by applying the UpdateTaskRequest using patch semantics.
@@ -79,6 +81,29 @@ func (d *Definition) Update(req api.UpdateTaskRequest, opts UpdateOptions) error
 	if req.DefaultRunPermissions != nil {
 		d.DefaultRunPermissions = NewDefaultTaskViewersDefinition(*req.DefaultRunPermissions)
 	}
+	if req.SDKVersion != nil {
+		d.SDKVersion = req.SDKVersion
+	}
+	if req.Permissions != nil {
+		if err := d.updatePermissions(*req.Permissions, opts.Users, opts.Groups); err != nil {
+			return err
+		}
+	}
+	if req.RequireExplicitPermissions != nil {
+		if !*req.RequireExplicitPermissions {
+			d.Permissions = nil
+		} else {
+			if d.Permissions == nil {
+				d.Permissions = &PermissionsDefinition{}
+			}
+			d.Permissions.RequireExplicitPermissions = true
+		}
+	}
+	if d.Permissions == nil && req.PermissionsSource != nil && *req.PermissionsSource == api.PermissionsSourceCode {
+		// Update did not have permissions set but indicated that permissions should be set via code only.
+		// Set permissions to a non-nil value to disambiguate from the case where permissions don't have to be managed via code.
+		d.Permissions = &PermissionsDefinition{}
+	}
 
 	if opts.Triggers != nil {
 		d.Schedules = map[string]ScheduleDefinition{}
@@ -122,6 +147,51 @@ func (d *Definition) updateResources(resources api.Resources, kind buildtypes.Ta
 		}
 	}
 
+	return nil
+}
+
+func (d *Definition) updatePermissions(permissions api.Permissions, users []api.User, groups []api.Group) error {
+	d.Permissions = &PermissionsDefinition{}
+	for _, p := range permissions {
+		var userEmail string
+		var groupSlug string
+		if p.SubUserID != nil {
+			if user := getUserByID(users, *p.SubUserID); user != nil {
+				userEmail = user.Email
+			}
+		}
+		if p.SubGroupID != nil {
+			if group := getGroupByID(groups, *p.SubGroupID); group != nil {
+				groupSlug = group.Slug
+			}
+		}
+		switch p.RoleID {
+		case api.RoleTaskViewer:
+			if userEmail != "" {
+				d.Permissions.Viewers.Users = append(d.Permissions.Viewers.Users, userEmail)
+			} else if groupSlug != "" {
+				d.Permissions.Viewers.Groups = append(d.Permissions.Viewers.Groups, groupSlug)
+			}
+		case api.RoleTaskRequester:
+			if userEmail != "" {
+				d.Permissions.Requesters.Users = append(d.Permissions.Requesters.Users, userEmail)
+			} else if groupSlug != "" {
+				d.Permissions.Requesters.Groups = append(d.Permissions.Requesters.Groups, groupSlug)
+			}
+		case api.RoleTaskExecuter:
+			if userEmail != "" {
+				d.Permissions.Executers.Users = append(d.Permissions.Executers.Users, userEmail)
+			} else if groupSlug != "" {
+				d.Permissions.Executers.Groups = append(d.Permissions.Executers.Groups, groupSlug)
+			}
+		case api.RoleTaskAdmin:
+			if userEmail != "" {
+				d.Permissions.Admins.Users = append(d.Permissions.Admins.Users, userEmail)
+			} else if groupSlug != "" {
+				d.Permissions.Admins.Groups = append(d.Permissions.Admins.Groups, groupSlug)
+			}
+		}
+	}
 	return nil
 }
 

@@ -1,2 +1,3 @@
-*.js
-node_modules
+# Duplicate these rules to the root prettierignore (for IDEs). This is used by the CI lint step.
+fixtures
+index.js

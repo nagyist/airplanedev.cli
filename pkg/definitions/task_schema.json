@@ -304,6 +304,7 @@
     "permissions": true,
     "schedules": true,
     "defaultRunPermissions": true,
+    "sdkVersion": true,
     "restrictCallers": true,
     "node": true,
     "python": true,

@@ -33,9 +33,11 @@ type TaskDef = {
   resources: Record<string, string> | string[];
   schedules: Record<string, any>;
   runtime?: "" | "workflow";
+  permissions?: any;
   defaultRunPermissions?: "task-viewers" | "task-participants";
   concurrencyKey?: string;
   concurrencyLimit?: number;
+  sdkVersion?: string;
 };
 
 type TaskDefWithBuildArgs = TaskDef & {
@@ -118,6 +120,7 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
             defaultRunPermissions: config.defaultRunPermissions,
             concurrencyKey: config.concurrencyKey,
             concurrencyLimit: config.concurrencyLimit,
+            permissions: config.permissions,
             resources: config.resources,
             schedules: config.schedules,
             parameters: params,
@@ -126,6 +129,7 @@ const extractTaskConfigs = (files: string[]): AirplaneConfigs => {
               envVars: config.envVars,
               entrypoint: file,
             },
+            sdkVersion: config.sdkVersion,
           });
         }
       }

@@ -3,7 +3,7 @@ package definitions
 import (
 	"reflect"
 
-	"github.com/airplanedev/cli/pkg/api"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/pkg/errors"
 )

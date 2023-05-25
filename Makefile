@@ -5,9 +5,9 @@ lint:
 	@# `brew install pre-commit` or https://pre-commit.com/#installation
 	pre-commit run --all-files
 	@# `brew install golangci-lint` or https://golangci-lint.run/usage/install/#local-installation
-	golangci-lint run --timeout=5m
+	golangci-lint run --timeout=5m --max-same-issues=20
 
 install:
 	@go install \
-		-ldflags="-X github.com/airplanedev/cli/pkg/analytics.segmentWriteKey=${SEGMENT_WRITE_KEY} -X github.com/airplanedev/cli/pkg/analytics.sentryDSN=${SENTRY_DSN}" \
-		./cmd/airplane
+		-ldflags="-X github.com/airplanedev/cli/pkg/cli/analytics.segmentWriteKey=${SEGMENT_WRITE_KEY} -X github.com/airplanedev/cli/pkg/cli/analytics.sentryDSN=${SENTRY_DSN}" \
+		./cmd/cli

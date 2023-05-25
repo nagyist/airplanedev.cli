@@ -1,5 +1,8 @@
 # Airplane CLI
 
+> **Note**
+> As of May 12, 2023, the CLI’s codebase was migrated into an internal monorepo. Going forward, this repository will only be used as a release target for new CLI versions.
+
 Provides CLI access to [app.airplane.dev](https://app.airplane.dev).
 
 Once you install the CLI, run `airplane --help` to get started.

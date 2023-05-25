@@ -25,13 +25,13 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/bluekeyes/go-gitdiff v0.7.1
 	github.com/briandowns/spinner v1.23.0
-	github.com/docker/docker v23.0.1+incompatible
+	github.com/docker/docker v23.0.3+incompatible
 	github.com/dustin/go-humanize v1.0.1
 	github.com/evanw/esbuild v0.17.17
 	github.com/fatih/color v1.15.0
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568
 	github.com/gavv/httpexpect/v2 v2.15.0
-	github.com/getsentry/sentry-go v0.20.0
+	github.com/getsentry/sentry-go v0.21.0
 	github.com/go-git/go-billy/v5 v5.4.1
 	github.com/go-git/go-git-fixtures/v4 v4.3.1
 	github.com/go-git/go-git/v5 v5.6.1

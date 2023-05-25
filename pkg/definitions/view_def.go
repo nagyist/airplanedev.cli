@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"text/template"
 
-	"github.com/airplanedev/cli/pkg/api"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/goccy/go-yaml"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
@@ -21,7 +21,7 @@ import (
 // Optional fields should have `omitempty` set. If omitempty doesn't work on the field's type, add an
 // `IsZero` method. See the `DefaultXYZDefinition` structs as an example. Add test cases to
 // TestDefinitionMarshal to confirm this behavior. This behavior is relied upon when updating
-// view definitions via `pkg/views.Update` (you should add test cases in the corresponding
+// view definitions via `pkg/cli/views.Update` (you should add test cases in the corresponding
 // `pkg/definitions/updaters` when adding new fields).
 type ViewDefinition struct {
 	Slug        string      `json:"slug"`
@@ -39,6 +39,19 @@ var viewSchemaStr string
 
 func GetViewSchema() string {
 	return viewSchemaStr
+}
+
+// Update updates a definition by applying the UpdateViewRequest using patch semantics.
+func (d *ViewDefinition) Update(req api.UpdateViewRequest) error {
+	d.Slug = req.Slug
+	d.Name = req.Name
+	d.Description = req.Description
+
+	if req.EnvVars != nil {
+		d.EnvVars = req.EnvVars
+	}
+
+	return nil
 }
 
 func (d *ViewDefinition) Unmarshal(format DefFormat, buf []byte) error {

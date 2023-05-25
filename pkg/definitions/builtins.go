@@ -3,8 +3,8 @@ package definitions
 import (
 	"encoding/json"
 
-	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/builtins"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
+	"github.com/airplanedev/cli/pkg/cli/builtins"
 	"github.com/pkg/errors"
 )
 

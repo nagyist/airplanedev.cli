@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/airplanedev/cli/pkg/api"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
 	"github.com/stretchr/testify/require"
 )
@@ -361,6 +361,8 @@ func TestTaskToDefinition(t *testing.T) {
 		task       api.Task
 		definition Definition
 		resources  []api.ResourceMetadata
+		users      []api.User
+		groups     []api.Group
 	}{
 		{
 			name: "python task",
@@ -1009,6 +1011,108 @@ func TestTaskToDefinition(t *testing.T) {
 			},
 		},
 		{
+			name: "permissions",
+			users: []api.User{
+				{Email: "testuser_viewer@", ID: "testuser_viewer"},
+				{Email: "testuser_requester@", ID: "testuser_requester"},
+				{Email: "testuser_executer@", ID: "testuser_executer"},
+				{Email: "testuser_admin@", ID: "testuser_admin"},
+			},
+			groups: []api.Group{
+				{Slug: "testgroup_viewer_slug", ID: "testgroup_viewer"},
+				{Slug: "testgroup_requester_slug", ID: "testgroup_requester"},
+				{Slug: "testgroup_executer_slug", ID: "testgroup_executer"},
+				{Slug: "testgroup_admin_slug", ID: "testgroup_admin"},
+			},
+			task: api.Task{
+				Name:      "Python Task",
+				Slug:      "python_task",
+				Arguments: []string{"{{JSON.stringify(params)}}"},
+				Kind:      buildtypes.TaskKindPython,
+				KindOptions: buildtypes.KindOptions{
+					"entrypoint": "main.py",
+				},
+				RequireExplicitPermissions: true,
+				Permissions: api.Permissions{
+					{RoleID: api.RoleTaskViewer, SubUserID: pointers.String("testuser_viewer")},
+					{RoleID: api.RoleTaskViewer, SubGroupID: pointers.String("testgroup_viewer")},
+					{RoleID: api.RoleTaskRequester, SubUserID: pointers.String("testuser_requester")},
+					{RoleID: api.RoleTaskRequester, SubGroupID: pointers.String("testgroup_requester")},
+					{RoleID: api.RoleTaskExecuter, SubUserID: pointers.String("testuser_executer")},
+					{RoleID: api.RoleTaskExecuter, SubGroupID: pointers.String("testgroup_executer")},
+					{RoleID: api.RoleTaskAdmin, SubUserID: pointers.String("testuser_admin")},
+					{RoleID: api.RoleTaskAdmin, SubGroupID: pointers.String("testgroup_admin")},
+				},
+			},
+			definition: Definition{
+				Name:       "Python Task",
+				Slug:       "python_task",
+				Parameters: []ParameterDefinition{},
+				Python: &PythonDefinition{
+					Entrypoint: "main.py",
+					EnvVars:    api.EnvVars{},
+				},
+				Schedules:             map[string]ScheduleDefinition{},
+				AllowSelfApprovals:    DefaultTrueDefinition{pointers.Bool(true)},
+				RestrictCallers:       []string{},
+				ConcurrencyLimit:      NewDefaultOneDefinition(1),
+				Configs:               []string{},
+				Constraints:           map[string]string{},
+				Resources:             map[string]string{},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
+				Permissions: &PermissionsDefinition{
+					RequireExplicitPermissions: true,
+					Viewers: PermissionRecipients{
+						Users:  []string{"testuser_viewer@"},
+						Groups: []string{"testgroup_viewer_slug"},
+					},
+					Requesters: PermissionRecipients{
+						Users:  []string{"testuser_requester@"},
+						Groups: []string{"testgroup_requester_slug"},
+					},
+					Executers: PermissionRecipients{
+						Users:  []string{"testuser_executer@"},
+						Groups: []string{"testgroup_executer_slug"},
+					},
+					Admins: PermissionRecipients{
+						Users:  []string{"testuser_admin@"},
+						Groups: []string{"testgroup_admin_slug"},
+					},
+				},
+			},
+		},
+		{
+			name: "team permissions",
+			task: api.Task{
+				Name:      "Python Task",
+				Slug:      "python_task",
+				Arguments: []string{"{{JSON.stringify(params)}}"},
+				Kind:      buildtypes.TaskKindPython,
+				KindOptions: buildtypes.KindOptions{
+					"entrypoint": "main.py",
+				},
+				PermissionsSource: pointers.Pointer(api.PermissionsSourceCode),
+			},
+			definition: Definition{
+				Name:       "Python Task",
+				Slug:       "python_task",
+				Parameters: []ParameterDefinition{},
+				Python: &PythonDefinition{
+					Entrypoint: "main.py",
+					EnvVars:    api.EnvVars{},
+				},
+				Schedules:             map[string]ScheduleDefinition{},
+				AllowSelfApprovals:    DefaultTrueDefinition{pointers.Bool(true)},
+				RestrictCallers:       []string{},
+				ConcurrencyLimit:      NewDefaultOneDefinition(1),
+				Configs:               []string{},
+				Constraints:           map[string]string{},
+				Resources:             map[string]string{},
+				DefaultRunPermissions: NewDefaultTaskViewersDefinition(api.DefaultRunPermissionTaskViewers),
+				Permissions:           &PermissionsDefinition{},
+			},
+		},
+		{
 			name: "python task",
 			task: api.Task{
 				Name:        "Python Task",
@@ -1232,7 +1336,11 @@ func TestTaskToDefinition(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			assert := require.New(t)
-			d, err := NewDefinitionFromTask(test.task, test.resources)
+			d, err := NewDefinitionFromTask(test.task, NewDefinitionOptions{
+				AvailableResources: test.resources,
+				Users:              test.users,
+				Groups:             test.groups,
+			})
 			assert.NoError(err)
 			assert.Equal(test.definition, d)
 		})
@@ -1241,11 +1349,15 @@ func TestTaskToDefinition(t *testing.T) {
 
 func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 	emptyStr := ""
+	e := api.Permissions{}
+	f := &e
 	for _, test := range []struct {
 		name       string
 		definition Definition
 		request    api.UpdateTaskRequest
 		resources  []api.ResourceMetadata
+		users      []api.User
+		groups     []api.Group
 		isBundle   bool
 	}{
 		{
@@ -1281,7 +1393,9 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
+				DefaultRunPermissions:      pointers.Pointer(api.DefaultRunPermissionTaskViewers),
+				RequireExplicitPermissions: pointers.Bool(false),
+				Permissions:                f,
 			},
 		},
 		{
@@ -1329,7 +1443,9 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
+				DefaultRunPermissions:      pointers.Pointer(api.DefaultRunPermissionTaskViewers),
+				RequireExplicitPermissions: pointers.Bool(false),
+				Permissions:                &api.Permissions{},
 			},
 		},
 		{
@@ -1365,7 +1481,9 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
+				DefaultRunPermissions:      pointers.Pointer(api.DefaultRunPermissionTaskViewers),
+				RequireExplicitPermissions: pointers.Bool(false),
+				Permissions:                &api.Permissions{},
 			},
 		},
 		{
@@ -1413,7 +1531,9 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
+				DefaultRunPermissions:      pointers.Pointer(api.DefaultRunPermissionTaskViewers),
+				RequireExplicitPermissions: pointers.Bool(false),
+				Permissions:                &api.Permissions{},
 			},
 		},
 		{
@@ -1447,7 +1567,9 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
+				DefaultRunPermissions:      pointers.Pointer(api.DefaultRunPermissionTaskViewers),
+				RequireExplicitPermissions: pointers.Bool(false),
+				Permissions:                &api.Permissions{},
 			},
 		},
 		{
@@ -1500,7 +1622,9 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
+				DefaultRunPermissions:      pointers.Pointer(api.DefaultRunPermissionTaskViewers),
+				RequireExplicitPermissions: pointers.Bool(false),
+				Permissions:                &api.Permissions{},
 			},
 		},
 		{
@@ -1536,8 +1660,10 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				KindOptions:           buildtypes.KindOptions{},
-				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
+				KindOptions:                buildtypes.KindOptions{},
+				DefaultRunPermissions:      pointers.Pointer(api.DefaultRunPermissionTaskViewers),
+				RequireExplicitPermissions: pointers.Bool(false),
+				Permissions:                &api.Permissions{},
 			},
 		},
 		{
@@ -1584,7 +1710,9 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
+				DefaultRunPermissions:      pointers.Pointer(api.DefaultRunPermissionTaskViewers),
+				RequireExplicitPermissions: pointers.Bool(false),
+				Permissions:                &api.Permissions{},
 			},
 			resources: []api.ResourceMetadata{
 				{
@@ -1630,7 +1758,9 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
+				DefaultRunPermissions:      pointers.Pointer(api.DefaultRunPermissionTaskViewers),
+				RequireExplicitPermissions: pointers.Bool(false),
+				Permissions:                &api.Permissions{},
 			},
 		},
 		{
@@ -1668,7 +1798,9 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
+				DefaultRunPermissions:      pointers.Pointer(api.DefaultRunPermissionTaskViewers),
+				RequireExplicitPermissions: pointers.Bool(false),
+				Permissions:                &api.Permissions{},
 			},
 		},
 		{
@@ -1909,7 +2041,9 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
+				DefaultRunPermissions:      pointers.Pointer(api.DefaultRunPermissionTaskViewers),
+				RequireExplicitPermissions: pointers.Bool(false),
+				Permissions:                &api.Permissions{},
 			},
 		},
 		{
@@ -1964,7 +2098,9 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
+				DefaultRunPermissions:      pointers.Pointer(api.DefaultRunPermissionTaskViewers),
+				RequireExplicitPermissions: pointers.Bool(false),
+				Permissions:                &api.Permissions{},
 			},
 			resources: []api.ResourceMetadata{
 				{
@@ -2028,9 +2164,11 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				KindOptions:           buildtypes.KindOptions{},
-				Timeout:               0,
-				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String(string(api.DefaultRunPermissionTaskViewers))),
+				KindOptions:                buildtypes.KindOptions{},
+				Timeout:                    0,
+				DefaultRunPermissions:      pointers.Pointer(api.DefaultRunPermissionTaskViewers),
+				RequireExplicitPermissions: pointers.Bool(false),
+				Permissions:                &api.Permissions{},
 			},
 			resources: []api.ResourceMetadata{
 				{
@@ -2076,7 +2214,130 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 				Constraints: api.RunConstraints{
 					Labels: []api.AgentLabel{},
 				},
-				DefaultRunPermissions: (*api.DefaultRunPermissions)(pointers.String("task-participants")),
+				DefaultRunPermissions:      (*api.DefaultRunPermissions)(pointers.String("task-participants")),
+				RequireExplicitPermissions: pointers.Bool(false),
+				Permissions:                &api.Permissions{},
+			},
+		},
+		{
+			name: "test empty explicit permissions",
+			definition: Definition{
+				Name:        "Test Task",
+				Slug:        "test_task",
+				Description: "A task for testing",
+				Python: &PythonDefinition{
+					Entrypoint: "main.py",
+				},
+				Permissions: &PermissionsDefinition{
+					RequireExplicitPermissions: true,
+				},
+			},
+			request: api.UpdateTaskRequest{
+				Name:        "Test Task",
+				Slug:        "test_task",
+				Parameters:  []api.Parameter{},
+				Resources:   map[string]string{},
+				Configs:     &[]api.ConfigAttachment{},
+				Description: "A task for testing",
+				Kind:        buildtypes.TaskKindPython,
+				KindOptions: buildtypes.KindOptions{
+					"entrypoint": "main.py",
+				},
+				ExecuteRules: api.UpdateExecuteRulesRequest{
+					DisallowSelfApprove: pointers.Bool(false),
+					RequireRequests:     pointers.Bool(false),
+					RestrictCallers:     []string{},
+					ConcurrencyKey:      &emptyStr,
+					ConcurrencyLimit:    pointers.Int64(1),
+				},
+				Timeout: 0,
+				Env:     api.EnvVars{},
+				Constraints: api.RunConstraints{
+					Labels: []api.AgentLabel{},
+				},
+				RequireExplicitPermissions: pointers.Bool(true),
+				DefaultRunPermissions:      pointers.Pointer(api.DefaultRunPermissionTaskViewers),
+				Permissions:                &api.Permissions{},
+				PermissionsSource:          pointers.Pointer(api.PermissionsSourceCode),
+			},
+		},
+		{
+			name: "test permissions",
+			users: []api.User{
+				{Email: "testuser_viewer@", ID: "testuser_viewer"},
+				{Email: "testuser_requester@", ID: "testuser_requester"},
+				{Email: "testuser_executer@", ID: "testuser_executer"},
+				{Email: "testuser_admin@", ID: "testuser_admin"},
+			},
+			groups: []api.Group{
+				{Slug: "testgroup_viewer_slug", ID: "testgroup_viewer"},
+				{Slug: "testgroup_requester_slug", ID: "testgroup_requester"},
+				{Slug: "testgroup_executer_slug", ID: "testgroup_executer"},
+				{Slug: "testgroup_admin_slug", ID: "testgroup_admin"},
+			},
+			definition: Definition{
+				Name:        "Test Task",
+				Slug:        "test_task",
+				Description: "A task for testing",
+				Python: &PythonDefinition{
+					Entrypoint: "main.py",
+				},
+				Permissions: &PermissionsDefinition{
+					RequireExplicitPermissions: true,
+					Viewers: PermissionRecipients{
+						Users:  []string{"testuser_viewer@"},
+						Groups: []string{"testgroup_viewer_slug"},
+					},
+					Requesters: PermissionRecipients{
+						Users:  []string{"testuser_requester@"},
+						Groups: []string{"testgroup_requester_slug"},
+					},
+					Executers: PermissionRecipients{
+						Users:  []string{"testuser_executer@"},
+						Groups: []string{"testgroup_executer_slug"},
+					},
+					Admins: PermissionRecipients{
+						Users:  []string{"testuser_admin@"},
+						Groups: []string{"testgroup_admin_slug"},
+					},
+				},
+			},
+			request: api.UpdateTaskRequest{
+				Name:        "Test Task",
+				Slug:        "test_task",
+				Parameters:  []api.Parameter{},
+				Resources:   map[string]string{},
+				Configs:     &[]api.ConfigAttachment{},
+				Description: "A task for testing",
+				Kind:        buildtypes.TaskKindPython,
+				KindOptions: buildtypes.KindOptions{
+					"entrypoint": "main.py",
+				},
+				ExecuteRules: api.UpdateExecuteRulesRequest{
+					DisallowSelfApprove: pointers.Bool(false),
+					RequireRequests:     pointers.Bool(false),
+					RestrictCallers:     []string{},
+					ConcurrencyKey:      &emptyStr,
+					ConcurrencyLimit:    pointers.Int64(1),
+				},
+				Timeout: 0,
+				Env:     api.EnvVars{},
+				Constraints: api.RunConstraints{
+					Labels: []api.AgentLabel{},
+				},
+				RequireExplicitPermissions: pointers.Bool(true),
+				DefaultRunPermissions:      pointers.Pointer(api.DefaultRunPermissionTaskViewers),
+				Permissions: &api.Permissions{
+					{RoleID: api.RoleTaskViewer, SubUserID: pointers.String("testuser_viewer")},
+					{RoleID: api.RoleTaskViewer, SubGroupID: pointers.String("testgroup_viewer")},
+					{RoleID: api.RoleTaskRequester, SubUserID: pointers.String("testuser_requester")},
+					{RoleID: api.RoleTaskRequester, SubGroupID: pointers.String("testgroup_requester")},
+					{RoleID: api.RoleTaskExecuter, SubUserID: pointers.String("testuser_executer")},
+					{RoleID: api.RoleTaskExecuter, SubGroupID: pointers.String("testgroup_executer")},
+					{RoleID: api.RoleTaskAdmin, SubUserID: pointers.String("testuser_admin")},
+					{RoleID: api.RoleTaskAdmin, SubGroupID: pointers.String("testgroup_admin")},
+				},
+				PermissionsSource: pointers.Pointer(api.PermissionsSourceCode),
 			},
 		},
 	} {
@@ -2085,6 +2346,8 @@ func TestDefinitionToUpdateTaskRequest(t *testing.T) {
 			task, err := test.definition.GetTask(GetTaskOpts{
 				AvailableResources: test.resources,
 				Bundle:             test.isBundle,
+				Users:              test.users,
+				Groups:             test.groups,
 			})
 			assert.NoError(err)
 			assert.Equal(test.request, task.AsUpdateTaskRequest())

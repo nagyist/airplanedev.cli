@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/airplanedev/cli/pkg/api"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/utils/fsx"
 	"github.com/airplanedev/cli/pkg/utils/logger"
@@ -145,16 +145,15 @@ func getViewDefinitionFromFile(file string) (definitions.ViewDefinition, error) 
 
 	d := definitions.ViewDefinition{}
 	if err := d.Unmarshal(format, buf); err != nil {
-		switch err := errors.Cause(err).(type) {
-		case definitions.ErrSchemaValidation:
+		var errsv definitions.ErrSchemaValidation
+		if errors.As(err, &errsv) {
 			errorMsgs := []string{}
-			for _, verr := range err.Errors {
+			for _, verr := range errsv.Errors {
 				errorMsgs = append(errorMsgs, fmt.Sprintf("%s: %s", verr.Field(), verr.Description()))
 			}
 			return definitions.ViewDefinition{}, definitions.NewErrReadDefinition(fmt.Sprintf("Error reading %s", file), errorMsgs...)
-		default:
-			return definitions.ViewDefinition{}, errors.Wrap(err, "unmarshalling view definition")
 		}
+		return definitions.ViewDefinition{}, errors.Wrap(err, "unmarshalling view definition")
 	}
 	d.DefnFilePath, err = filepath.Abs(file)
 	if err != nil {

@@ -3,9 +3,9 @@ package build
 import (
 	"context"
 
-	libapi "github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/api/cliapi"
 	"github.com/airplanedev/cli/pkg/build"
+	libapi "github.com/airplanedev/cli/pkg/cli/apiclient"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 	"github.com/airplanedev/cli/pkg/definitions"
 )
 

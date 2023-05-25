@@ -1,11 +1,11 @@
-# Docs: https://goreleaser.com/
-
+# GoReleaser builds and releases the Airplane CLI.
+# Docs: https://goreleaser.com
 project_name: airplane
 before:
   hooks:
     - go mod tidy
 builds:
-  - main: ./cmd/airplane/main.go
+  - main: ./cmd/cli/main.go
     env:
       - CGO_ENABLED=0
     ldflags:
@@ -13,8 +13,8 @@ builds:
       - -X github.com/airplanedev/cli/pkg/version.version={{.Version}}
       - -X github.com/airplanedev/cli/pkg/version.prerelease={{.Prerelease}}
       - -X github.com/airplanedev/cli/pkg/version.date={{.Date}}
-      - -X github.com/airplanedev/cli/pkg/analytics.segmentWriteKey={{.Env.SEGMENT_WRITE_KEY}}
-      - -X github.com/airplanedev/cli/pkg/analytics.sentryDSN={{.Env.SENTRY_DSN}}
+      - -X github.com/airplanedev/cli/pkg/cli/analytics.segmentWriteKey={{.Env.SEGMENT_WRITE_KEY}}
+      - -X github.com/airplanedev/cli/pkg/cli/analytics.sentryDSN={{.Env.SENTRY_DSN}}
     goos:
       - linux
       - windows
@@ -31,16 +31,32 @@ archives:
   - id: archive
     files: [only-the-binary*]
     wrap_in_directory: false
+    rlcp: true
     # This is the default name_template, but without the version. This allows install.sh to compute the
     # latest artifact name without knowing the version.
-    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}{{ if .Mips }}_{{ .Mips }}{{ end }}"
-    replacements:
-      amd64: x86_64
+    # It also overrides the architecture field to map amd64 -> x86_64.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- with .Arm }}v{{ . }}{{ end }}
+      {{- with .Mips }}_{{ . }}{{ end }}
+      {{- if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}
   - id: binary
     format: binary
     files: [only-the-binary*]
-    replacements:
-      amd64: x86_64
+    rlcp: true
+    # This is the default binary name_template, but includes the same architecture override as above.
+    name_template: >-
+      {{ .Binary }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- with .Arm }}v{{ . }}{{ end }}
+      {{- with .Mips }}_{{ . }}{{ end }}
+      {{- if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}
 checksum:
   name_template: "checksums.txt"
 snapshot:
@@ -66,15 +82,14 @@ release:
   prerelease: auto
   extra_files:
     # Upload our installation scripts as release artifacts:
-    - glob: ./scripts/install.sh
-    - glob: ./scripts/install.ps1
+    - glob: ./deployments/cli/install.sh
+    - glob: ./deployments/cli/install.ps1
 dockers:
-  -
-    image_templates:
-    - us-docker.pkg.dev/airplane-prod/public/cli:latest
-    - us-docker.pkg.dev/airplane-prod/public/cli:{{ trimprefix .Tag "v" }}
-    - us-docker.pkg.dev/airplane-prod/public/cli:{{ .Major }}.{{ .Minor }}
+  - image_templates:
+      - us-docker.pkg.dev/airplane-prod/public/cli:latest
+      - us-docker.pkg.dev/airplane-prod/public/cli:{{ trimprefix .Tag "v" }}
+      - us-docker.pkg.dev/airplane-prod/public/cli:{{ .Major }}.{{ .Minor }}
     skip_push: auto
     # Store the Dockerfile in a subdirectory to avoid it getting picked up by tests that
     # look for a Dockerfile in parent directories.
-    dockerfile: ./scripts/Dockerfile
+    dockerfile: ./deployments/cli/Dockerfile

@@ -3,8 +3,8 @@ package definitions
 import (
 	"os"
 
-	"github.com/airplanedev/cli/pkg/api"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/goccy/go-yaml"
 	"github.com/pkg/errors"
 )

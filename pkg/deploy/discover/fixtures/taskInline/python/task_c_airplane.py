@@ -41,6 +41,7 @@ task_c.__airplane = TaskDef(
             regex=None,
         )
     ],
+    sdk_version=None,
 )
 
 
@@ -76,6 +77,7 @@ def wrap_task_d():
                     regex=None,
                 )
             ],
+            sdk_version=None,
         )
 
         @functools.wraps(func)

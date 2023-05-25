@@ -117,7 +117,7 @@ func (r Runtime) Generate(t *runtime.Task) ([]byte, os.FileMode, error) {
 
 	var buf bytes.Buffer
 	if err := code.Execute(&buf, d); err != nil {
-		return nil, 0, fmt.Errorf("shell: template execute - %w", err)
+		return nil, 0, errors.Wrap(err, "shell: template execute")
 	}
 
 	// 0744 has +x to execute shell scripts.

@@ -7,8 +7,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/airplanedev/cli/pkg/api"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/airplanedev/cli/pkg/definitions"
 	deployutils "github.com/airplanedev/cli/pkg/deploy/utils"
 	"github.com/airplanedev/cli/pkg/utils/logger"
@@ -79,16 +79,15 @@ func (dd *CodeViewDiscoverer) GetViewConfig(ctx context.Context, file string) (*
 	}
 
 	if err = d.Unmarshal(definitions.DefFormatJSON, buf); err != nil {
-		switch err := errors.Cause(err).(type) {
-		case definitions.ErrSchemaValidation:
+		var errsv definitions.ErrSchemaValidation
+		if errors.As(err, &errsv) {
 			errorMsgs := []string{}
-			for _, verr := range err.Errors {
+			for _, verr := range errsv.Errors {
 				errorMsgs = append(errorMsgs, fmt.Sprintf("%s: %s", verr.Field(), verr.Description()))
 			}
 			return nil, definitions.NewErrReadDefinition(fmt.Sprintf("Error reading %s", file), errorMsgs...)
-		default:
-			return nil, errors.Wrap(err, "unmarshalling view definition")
 		}
+		return nil, errors.Wrap(err, "unmarshalling view definition")
 	}
 
 	envVars := make(api.EnvVars)

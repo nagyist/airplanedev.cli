@@ -35,3 +35,4 @@ class TaskDef:
     schedules: Optional[List[Any]]
     parameters: Optional[List[ParamDef]]
     env_vars: Optional[Any]
+    sdk_version: Optional[str]

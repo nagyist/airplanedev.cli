@@ -25,16 +25,15 @@ func (td TaskDirectory) ReadDefinition() (definitions.Definition, error) {
 
 	def := definitions.Definition{}
 	if err := def.Unmarshal(definitions.GetTaskDefFormat(defPath), buf); err != nil {
-		switch err := errors.Cause(err).(type) {
-		case definitions.ErrSchemaValidation:
+		var errsv definitions.ErrSchemaValidation
+		if errors.As(err, &errsv) {
 			errorMsgs := []string{}
-			for _, verr := range err.Errors {
+			for _, verr := range errsv.Errors {
 				errorMsgs = append(errorMsgs, fmt.Sprintf("%s: %s", verr.Field(), verr.Description()))
 			}
 			return definitions.Definition{}, definitions.NewErrReadDefinition(fmt.Sprintf("Error reading %s", defPath), errorMsgs...)
-		default:
-			return definitions.Definition{}, errors.Wrap(err, "unmarshalling task definition")
 		}
+		return definitions.Definition{}, errors.Wrap(err, "unmarshalling task definition")
 	}
 	def.SetDefnFilePath(td.defPath)
 	entrypoint, err := def.Entrypoint()

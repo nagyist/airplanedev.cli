@@ -6,13 +6,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/airplanedev/cli/pkg/api"
-	"github.com/airplanedev/cli/pkg/api/mock"
 	buildtypes "github.com/airplanedev/cli/pkg/build/types"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
+	"github.com/airplanedev/cli/pkg/cli/apiclient/mock"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -453,7 +452,6 @@ func TestDiscover(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
 			require := require.New(t)
-			assert := assert.New(t)
 			apiClient := &mock.MockClient{
 				Tasks: tC.existingTasks,
 			}
@@ -491,7 +489,7 @@ func TestDiscover(t *testing.T) {
 			}
 			require.NoError(err)
 
-			assert.ElementsMatch(tC.expectedBundles, bundles)
+			require.ElementsMatch(tC.expectedBundles, bundles)
 		})
 	}
 }

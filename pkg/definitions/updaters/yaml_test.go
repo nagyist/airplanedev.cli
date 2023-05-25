@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/build/types"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient"
 	"github.com/airplanedev/cli/pkg/definitions"
 	"github.com/airplanedev/cli/pkg/utils/logger"
 	"github.com/airplanedev/cli/pkg/utils/pointers"
@@ -452,6 +452,8 @@ func TestUpdateYAMLTask(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.name, func(t *testing.T) {
 			require := require.New(t)
+			l := logger.NewTestLogger(t)
+
 			ext := "task.yaml"
 			if tC.json {
 				ext = "task.json"
@@ -468,8 +470,6 @@ func TestUpdateYAMLTask(t *testing.T) {
 			_, err = io.Copy(f, in)
 			require.NoError(err)
 			require.NoError(f.Close())
-
-			l := &logger.MockLogger{}
 
 			canUpdate, err := CanUpdateYAMLTask(f.Name())
 			require.NoError(err)

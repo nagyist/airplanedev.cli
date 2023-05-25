@@ -1,5 +1,6 @@
 import { parse, print } from "@airplane/recast";
-import * as typescript from "@airplane/recast/parsers/typescript";
+// We use the babel-ts parser since it supports both TypeScript and JSX.
+import * as typescript from "@airplane/recast/parsers/babel-ts";
 import { ASTNode, builders, namedTypes, visit } from "ast-types";
 import type { ExpressionKind, PatternKind } from "ast-types/gen/kinds";
 import { readFile, writeFile } from "node:fs/promises";
@@ -8,12 +9,14 @@ export const update = async (
   file: string,
   existingSlug: string,
   def: any,
-  opts: { dryRun: boolean }
+  opts: { dryRun: boolean; view: boolean }
 ) => {
-  const buf = await readFile(file);
+  const buf = await readFile(file, { encoding: "utf-8" });
   const contents = buf.toString();
   const ast = parse(contents, { parser: typescript }) as ASTNode;
   let found = 0;
+  const entityName = opts.view ? "view" : "task";
+  const capitalEntityName = opts.view ? "View" : "Task";
   visit(ast, {
     // `airplane.task(...)` is a CallExpression
     visitCallExpression(path) {
@@ -25,8 +28,9 @@ export const update = async (
         return this.traverse(path);
       }
 
-      if (airplaneExpression === "airplane.view") {
-        // TODO: support views!
+      const foundView = airplaneExpression === "airplane.view";
+      if (opts.view !== foundView) {
+        // This is not the entity we are looking for.
         return this.traverse(path);
       }
 
@@ -38,7 +42,7 @@ export const update = async (
         return this.traverse(path);
       }
 
-      // There may be multiple tasks in this file. Confirm this task's slug matches
+      // There may be multiple entities in this file. Confirm this entity's slug matches
       // the one we're updating.
       const slug = getStringValue(arg1, "slug");
       if (slug !== existingSlug) {
@@ -48,10 +52,10 @@ export const update = async (
 
       const cf = hasComputedFields(arg1);
       if (cf) {
-        throw new Error("Tasks that use computed fields must be updated manually.");
+        throw new Error(`${capitalEntityName}s that use computed fields must be updated manually.`);
       }
 
-      const newNode = buildTaskConfig(def);
+      const newNode = opts.view ? buildViewConfig(def) : buildTaskConfig(def);
       node.arguments[0] = newNode;
 
       // Continue traversing.
@@ -60,9 +64,9 @@ export const update = async (
   });
 
   if (found === 0) {
-    throw new Error(`Could not find task with slug "${existingSlug}".`);
+    throw new Error(`Could not find ${entityName} with slug "${existingSlug}".`);
   } else if (found > 1) {
-    throw new Error(`Found more than one task with slug "${existingSlug}".`);
+    throw new Error(`Found more than one ${entityName} with slug "${existingSlug}".`);
   }
 
   // Return early without writing out any changes.
@@ -90,7 +94,16 @@ export const update = async (
     }
   }
 
-  await writeFile(file, result);
+  await writeFile(file, result, { encoding: "utf-8" });
+};
+
+const buildViewConfig = (def: any): ExpressionKind => {
+  // Rewrite the definition from JSON format into what is used by the JS SDK.
+
+  // Entrypoints are not necessary when managing View config as inline JS.
+  delete def.entrypoint;
+
+  return buildJSON(def);
 };
 
 const buildTaskConfig = (def: any): ExpressionKind => {
@@ -149,6 +162,9 @@ const buildTaskConfig = (def: any): ExpressionKind => {
       }
     }
   }
+
+  // We don't want to include the SDK version in the definition.
+  delete def.sdkVersion;
 
   return buildJSON(def);
 };

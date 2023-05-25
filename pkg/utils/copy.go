@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/airplanedev/cli/pkg/prompts"
+	"github.com/airplanedev/cli/pkg/cli/prompts"
 	"github.com/airplanedev/cli/pkg/utils/fsx"
 	"github.com/airplanedev/cli/pkg/utils/github"
 	"github.com/airplanedev/cli/pkg/utils/logger"

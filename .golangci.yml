@@ -1,24 +1,50 @@
 # https://golangci-lint.run/usage/configuration/#config-file
 
 linters:
+  # Only run the linters in the "enable" list below.
+  disable-all: true
+
   # The following linters require at least version 1.44 of golangci-lint.
   # https://golangci-lint.run/usage/linters/
   enable:
     - bidichk
     - bodyclose
-    - contextcheck
     - durationcheck
+    - errcheck
     - errchkjson
     - exportloopref
-    # Disabled since we use print functions for the CLI itself.
-    # - forbidigo
+    - forbidigo
+    - forcetypeassert
     - gci
     - gofmt
+    - goimports
+    - gosimple
     - makezero
     - nakedret
-    - noctx
     - predeclared
     - promlinter
     - rowserrcheck
     - sqlclosecheck
     - tenv
+    - unused
+
+    # The following checks look useful, but have a lot of deltas.
+    # TODO: Enable these and fix problems.
+    #
+    # - contextcheck
+    # - errname
+    # - godot
+    # - gosec
+    # - noctx
+    # - wrapcheck
+
+linters-settings:
+  forbidigo:
+    forbid:
+      - '^errors\.Cause(# please use github\.com/airplanedev/cli/pkg/utils/errorsx\.Cause)?$'
+      - '^fmt\.Errorf(# please use github\.com/pkg/errors\.Errorf)?$'
+      - '^assert\.New(# please use require\.New)?$'
+
+issues:
+  exclude:
+    - 'SA5008: unknown JSON option "remain"'

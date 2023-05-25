@@ -71,7 +71,7 @@ func View(root string, options buildtypes.KindOptions) (string, error) {
 	packageJSONMap, ok := packageJSON.(map[string]interface{})
 	if !ok {
 		packageJSON = map[string]interface{}{}
-		packageJSONMap = packageJSON.(map[string]interface{})
+		packageJSONMap, _ = packageJSON.(map[string]interface{})
 	}
 
 	packagesToCheck := []string{"vite", "@vitejs/plugin-react", "react", "react-dom", "@airplane/views", "object-hash"}
@@ -97,7 +97,7 @@ func View(root string, options buildtypes.KindOptions) (string, error) {
 	if len(packagesToAdd) > 0 {
 		if !depsOk {
 			packageJSONMap["dependencies"] = map[string]interface{}{}
-			deps = packageJSONMap["dependencies"].(map[string]interface{})
+			deps, _ = packageJSONMap["dependencies"].(map[string]interface{})
 		}
 		for _, pkg := range packagesToAdd {
 			deps[pkg] = "*"
@@ -149,7 +149,6 @@ func View(root string, options buildtypes.KindOptions) (string, error) {
 
 		COPY . /airplane/src/
 		RUN /airplane/node_modules/.bin/vite build --outDir {{.OutDir}}
-		RUN yarn list --pattern @airplane/views | grep @airplane/views | sed "s/^.*@airplane\/views@\(.*\)$/\1/" > /airplane/{{.OutDir}}/.airplane-views-version
 
 		# Docker's minimal image - we just need an empty place to copy the build artifacts.
 		FROM scratch
@@ -370,7 +369,6 @@ func ViewBundle(root string, buildContext buildtypes.BuildContext, options build
 		RUN {{.InlineIndexHtml}} > /airplane/index.html && {{.InlineMainTsx}} > /airplane/main.tsx && /airplane/.airplane-build-tools/gen_view.sh "{{.FilesToBuildWithoutExtension}}" /airplane/index.html /airplane/main.tsx
 		# Copy in universal Vite config and build view
 		RUN {{.InlineViteConfig}} > vite.config.ts && /airplane/node_modules/.bin/vite build --outDir {{.OutDir}}
-		RUN yarn list --pattern @airplane/views | grep @airplane/views | sed "s/^.*@airplane\/views@\(.*\)$/\1/" > {{.OutDir}}/.airplane-views-version
 
 		{{if .FilesToDiscover}}
 		# Build and discover inline views.
@@ -386,7 +384,7 @@ func ViewBundle(root string, buildContext buildtypes.BuildContext, options build
 
 		# Bust the Docker cache to ensure discovered entities are logged.
 		ARG AIRPLANE_BUILD_ID
-		RUN echo "$AIRPLANE_BUILD_ID"&& cat /airplane/.airplane-build-tools/discovery.json
+		RUN echo "$AIRPLANE_BUILD_ID" && cat /airplane/.airplane-build-tools/discovery.json
 		{{end}}
 
 		# Docker's minimal image - we just need an empty place to copy the build artifacts.

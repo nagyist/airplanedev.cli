@@ -1,7 +1,7 @@
 package build
 
 import (
-	"github.com/airplanedev/cli/pkg/api/cliapi"
+	api "github.com/airplanedev/cli/pkg/cli/apiclient/cliapi"
 	"github.com/airplanedev/cli/pkg/deploy/bundlediscover"
 	"github.com/airplanedev/cli/pkg/deploy/discover"
 	"github.com/airplanedev/cli/pkg/utils/logger"
